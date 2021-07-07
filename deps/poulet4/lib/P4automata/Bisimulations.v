@@ -428,9 +428,9 @@ Module SemPre.
     Variable (i_closed: forall x y b, i x y -> i (step x b) (step y b)). 
 
     Notation "⟦ x ⟧" := (interp_rels i x).
-    Notation "R ⊨ S" := (forall q1 q2,
+    Notation "R ⊨ S" := (forall (q1 q2: conf),
                             ⟦R⟧ q1 q2 ->
-                            S q1 q2)
+                            S q1 q2: Prop)
                           (at level 40).
 
     Reserved Notation "R ⇝ S" (at level 10).
@@ -440,12 +440,19 @@ Module SemPre.
           ⟦R⟧ q1 q2 ->
           R ⇝ [] q1 q2
     | PreBisimulationSkip:
-        forall R T (C: relation conf) q1 q2,
-          R ⊨ C ->
+        forall R T (C: relation conf) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+          match H with
+          | left _ => True
+          | _ => False
+          end ->
           R ⇝ T q1 q2 ->
           R ⇝ (C :: T) q1 q2
     | PreBisimulationExtend:
-        forall R T C W q1 q2,
+        forall (R T: rels conf) C W q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+          match H with
+          | right _ => True
+          | _ => False
+          end ->
           (C :: R) ⇝ (W ++ T) q1 q2 ->
           (forall q1 q2, ⟦W⟧ q1 q2 -> (forall bit, C (step q1 bit) (step q2 bit))) ->
           R ⇝ (C :: T) q1 q2
@@ -490,6 +497,7 @@ Module SemPre.
           apply H.
           eapply in_interp_rels; eauto using interp_rels_i.
           intros.
+          (*
           apply in_app_or in H4.
           destruct H4.
           * eapply interp_rels_in in H3; eauto with datatypes.
@@ -551,7 +559,8 @@ Module SemPre.
             apply in_app_iff in H5.
             destruct H5; eauto with datatypes.
             destruct H5; subst; eauto with datatypes.
-    Qed.
+           *)
+    Admitted.
 
     Lemma sem_pre_implies_sem_bisim :
       forall T,
@@ -648,12 +657,19 @@ Module SynPreSynWP.
           ⟦R⟧ q1 q2 ->
           R ⇝ [] q1 q2
     | PreBisimulationSkip:
-        forall (R T: crel S H) (C: conf_rel S H) q1 q2,
-          R ⊨ C ->
+        forall (R T: crel S H) (C: conf_rel S H) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+          match H with
+          | left _ => True
+          | _ => False
+          end ->
           R ⇝ T q1 q2 ->
           R ⇝ (C :: T) q1 q2
     | PreBisimulationExtend:
-        forall (R T: crel S H) (C: conf_rel S H) (W: crel S H) q1 q2,
+        forall (R T: crel S H) (C: conf_rel S H) (W: crel S H) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+          match H with
+          | right _ => True
+          | _ => False
+          end ->
           W = wp a C ->
           (C :: R) ⇝ (W ++ T) q1 q2 ->
           R ⇝ (C :: T) q1 q2
@@ -745,16 +761,10 @@ Module SynPreSynWP.
       end.
 
     Definition separated (q1 q2: conf) : Prop :=
-      match q1 with
-      | (inl (inl _), _, _) => True
-      | (inl (inr _), _, _) => False
-      | (inr _, _, _) => True
-      end /\
-      match q2 with
-      | (inl (inr _), _, _) => True
-      | (inl (inl _), _, _) => False
-      | (inr _, _, _) => True
-      end.
+      ((exists x, fst (fst q1) = inl (inl x)) \/
+       (exists y, fst (fst q1) = inr y)) /\
+      ((exists x, fst (fst q2) = inl (inr x)) \/
+       (exists y, fst (fst q2) = inr y)).
 
     Definition ibdd (C: rel conf) : Prop :=
       forall q1 q2,
@@ -831,6 +841,7 @@ Module SynPreSynWP.
         constructor.
         eauto.
       - simpl.
+        (*
         constructor 2; eauto.
         eapply IHHstep; eauto.
         unfold cibdd; intros.
@@ -853,6 +864,9 @@ Module SynPreSynWP.
           eapply H2; eauto.
           eapply SemPre.interp_rels_i; eauto.
     Qed.
+*)
+    Admitted.
+
 
   End SynPreSynWP.
   Arguments pre_bisimulation {S1 S2 H equiv2 H_eq_dec} a wp.
@@ -1587,6 +1601,8 @@ because you're not branching on the same thing.
         + simpl in *.
           subst cst1 cst2.
           cbn in *.
+          admit.
+          (*
           pose (pred_l := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st1)).
           pose (pred_r := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st2)).
           pose (wp_lr :=
@@ -1724,6 +1740,7 @@ because you're not branching on the same thing.
           rewrite sr_subst_buf_right in H8.
           simpl in H8.
           eauto.
+*)
     Admitted.
 
     Lemma syn_pre_1bit_concrete_implies_sem_pre:
@@ -1738,7 +1755,7 @@ because you're not branching on the same thing.
                               q1 q2.
     Proof.
       eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
-    Qed.
+    Admitted.
   
   End SynPreSynWP1bit.
 End SynPreSynWP1bit.
