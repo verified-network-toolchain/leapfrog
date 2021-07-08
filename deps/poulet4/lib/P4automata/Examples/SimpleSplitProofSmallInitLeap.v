@@ -191,7 +191,7 @@ Ltac solve_bisim :=
     apply PreBisimulationClose
   end.
 
-Lemma prebisim_simple_split_sym_small_init_leap:
+(* Lemma prebisim_simple_split_sym_small_init_leap:
   pre_bisimulation SimpleSplit.aut
                    (WPSymLeap.wp (H:=SimpleSplit.header))
                    (separated _ _ _ SimpleSplit.aut)
@@ -208,5 +208,5 @@ Proof.
   intuition eauto;
     firstorder (try congruence);
     sauto limit:5000.
-Qed.
+Qed. *)
 
