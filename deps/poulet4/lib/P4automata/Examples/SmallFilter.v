@@ -419,6 +419,34 @@ Ltac solve_bisim :=
     apply PreBisimulationClose
   end.
 
+Ltac find v :=
+  match goal with
+  | v := ?value : _ |- _ => value
+  end.
+
+Ltac build_store hdrs P store :=
+  idtac hdrs;
+  idtac P;
+  idtac store;
+  match hdrs with
+  | nil => constr:(P store)
+  | ?h :: ?hdrs' =>
+    let x := fresh "h" in
+    let old_store := find store in
+    clear store;
+    set (store := (h, x) :: old_store);
+    build_store hdrs' constr:(exists y, P store) store
+  end.
+
+Ltac simp_exists_store :=
+  match goal with
+  | |- exists (x: P4A.store ?H), @?P x =>
+    pose (hdrs := enum H);
+    cbv in hdrs;
+    let store := fresh "store" in
+    set (store := []: P4A.store H);
+    cut (ltac:(build_store ltac:(find hdrs) P store))
+  end.
 
 Lemma prebisim_incremental_sep:
   pre_bisimulation IncrementalSeparate.aut
@@ -435,26 +463,69 @@ Proof.
   solve_bisim.
   match goal with
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    assert (H: ~(R ⊨ C)) by (
+    assert (H: ~(R ⊨ C))
+  end.
+  {
+      rewrite filter_entails.
+      simpl.
+      rewrite no_state.
+      repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel || cbn).
+      eapply forall_exists.
+      repeat (setoid_rewrite <- split_univ; cbn).
+      repeat (setoid_rewrite <- split_ex; cbn).
+      unfold not.
+      pose proof (ltac:(simp_exists_store)).
 
-      rewrite filter_entails;
-      simpl;
-      rewrite no_state;
-      repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel || cbn);
-      eapply forall_exists;
-      repeat (setoid_rewrite <- split_univ; cbn);
-      repeat (setoid_rewrite <- split_ex; cbn);
+      match goal with
+      | |- exists (x: P4A.store ?H), @?P x =>
+        let hdrs := fresh "hdrs" in
+        set (hdrs := enum H);
+          cbv in hdrs;
+          match goal with
+          | hdrs := ?h : _ |- _ => idtac h
+          end
+      end.
+      
+      
+                  
+        match hdrs with
+        | ?h :: _ => idtac h
+        end
+      end.
+      
+      
+          build_store hdrs P (@nil (H * list bool))
+      end.
+      simp_exists_store.
 
-      unfold Sum.H, P4A.store, P4A.Env.t;
-      unfold not;
+{
+  intros.
+  destruct H as [x0 [x1 [x2 [x3 ?]]]].
+  exists ([(inl IncrementalBits.Pref, P4A.VBits x0);
+      (inl IncrementalBits.Suf, P4A.VBits x1);
+      (inr BigBits.Pref, P4A.VBits x2); (inr BigBits.Suf, P4A.VBits x3)]).
+  eauto.
+}
 
-      exists ([(inl IncrementalBits.Pref, VBits [true])]);
-      exists tt;
-      intros;
-      specialize (H [(inr BigBits.Pref, VBits [true])] tt);
-      unfold i in H;
-      cbn in H;
-      sauto
+      match goal with
+      | |- exists (x: P4A.store ?H), @?P x =>
+        cut (exists y0 y1 y2 y3,
+                   P ([(inl IncrementalBits.Pref, P4A.VBits y0);
+                       (inl IncrementalBits.Suf, P4A.VBits y1);
+                       (inr BigBits.Pref, P4A.VBits y2);
+                       (inr BigBits.Suf, P4A.VBits y3)]))
+      end.
+      {
+        intros.
+        destruct H as [x0 [x1 [x2 [x3 ?]]]].
+        exists ([(inl IncrementalBits.Pref, P4A.VBits x0);
+            (inl IncrementalBits.Suf, P4A.VBits x1);
+            (inr BigBits.Pref, P4A.VBits x2); (inr BigBits.Suf, P4A.VBits x3)]).
+        eauto.
+      }
+      repeat eexists.
+      sauto.
+  }
     );
     pose (t := wp a C);
         eapply PreBisimulationExtend with (H0 := right H) (W := t);
