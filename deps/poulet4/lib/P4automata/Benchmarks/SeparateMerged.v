@@ -1,10 +1,10 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.IPFilter.
+Require Import Poulet4.P4automata.Examples.BabyIP.
 From Hammer Require Import Tactics.
 
-Notation i := (separated _ _ _ IPFilter.aut).
+Notation i := (separated _ _ _ BabyIP.aut).
 Notation "⟦ x ⟧" := (interp_crel i x).
-Notation "⦇ x ⦈" := (interp_conf_rel (a:=IPFilter.aut) x).
+Notation "⦇ x ⦈" := (interp_conf_rel (a:=BabyIP.aut) x).
 Notation "R ⊨ q1 q2" := (⟦R⟧ q1 q2) (at level 40).
 Notation "R ⊨ S" := (forall q1 q2, ⟦R⟧ q1 q2 -> ⦇S⦈ q1 q2) (at level 40).
 
@@ -72,13 +72,13 @@ Admitted.
 
 Lemma no_state:
   forall R S,
-    (forall q1 q2 (_ : interp_crel (separated _ _ _ IPFilter.aut) R q1 q2),
+    (forall q1 q2 (_ : interp_crel (separated _ _ _ BabyIP.aut) R q1 q2),
         interp_conf_rel S q1 q2)
     <->
     (forall st1 (buf1: n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2 (buf2: n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
         let q1 := (S.(cr_st).(cs_st1).(st_state), st1, t2l _ _ buf1) in
         let q2 := (S.(cr_st).(cs_st2).(st_state), st2, t2l _ _ buf2) in
-        interp_crel (separated _ _ _ IPFilter.aut) R q1 q2 ->
+        interp_crel (separated _ _ _ BabyIP.aut) R q1 q2 ->
         forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
 Proof.
   intros.
@@ -94,14 +94,14 @@ Ltac break_store :=
   repeat match goal with
   | |- exists (x: P4A.store ?H), @?P x =>
     cut (exists y0 y1 y2 y3,
-                P ([(inl UDPInterleaved.HdrIP, P4A.VBits y0);
-                    (inl UDPInterleaved.HdrUDP, P4A.VBits y1);
-                    (inr UDPCombined.HdrIP, P4A.VBits y2);
-                    (inr UDPCombined.HdrUDP, P4A.VBits y3)]));
+                P ([(inl BabyIP1.HdrIP, P4A.VBits y0);
+                    (inl BabyIP1.HdrUDPTCP, P4A.VBits y1);
+                    (inr BabyIP2.HdrCombi, P4A.VBits y2);
+                    (inr BabyIP2.HdrSeq, P4A.VBits y3)]));
     [ intros [x0 [x1 [x2 [x3 ?]]]];
-      exists ([(inl UDPInterleaved.HdrIP, P4A.VBits x0);
-            (inl UDPInterleaved.HdrUDP, P4A.VBits x1);
-            (inr UDPCombined.HdrIP, P4A.VBits x2); (inr UDPCombined.HdrUDP, P4A.VBits x3)]);
+      exists ([(inl BabyIP1.HdrIP, P4A.VBits x0);
+            (inl BabyIP1.HdrUDPTCP, P4A.VBits x1);
+            (inr BabyIP2.HdrCombi, P4A.VBits x2); (inr BabyIP2.HdrSeq, P4A.VBits x3)]);
       eauto
       
       
@@ -112,10 +112,10 @@ Ltac break_store :=
       intros
   | H: forall (x: P4A.store ?H), @?P x |- _ =>
       assert (forall y0 y1 y2 y3,
-                  P ([(inl UDPInterleaved.HdrIP, P4A.VBits y0);
-                  (inl UDPInterleaved.HdrUDP, P4A.VBits y1);
-                  (inr UDPCombined.HdrIP, P4A.VBits y2);
-                  (inr UDPCombined.HdrUDP, P4A.VBits y3)])); [
+                  P ([(inl BabyIP1.HdrIP, P4A.VBits y0);
+                  (inl BabyIP1.HdrUDPTCP, P4A.VBits y1);
+                  (inr BabyIP2.HdrCombi, P4A.VBits y2);
+                  (inr BabyIP2.HdrSeq, P4A.VBits y3)])); [
       cbn; sauto | 
       sauto
     ]
@@ -226,30 +226,3 @@ Proof.
   all: (exact nil).
   
 Time Qed. *)
-
-Lemma prebisim_ipfilter:
-  pre_bisimulation IPFilter.aut
-                   (WPSymLeap.wp (H:=_))
-                   (separated _ _ _ IPFilter.aut)
-                   nil
-                   (mk_init 10 IPFilter.aut UDPCombined.Parse UDPInterleaved.ParseIP)
-                   (inl (inl UDPCombined.Parse), [], [])
-                   (inl (inr UDPInterleaved.ParseIP), [], []).
-Proof.
-  idtac "running ipfilter bisimulation".
-  set (rel0 := mk_init 10 IPFilter.aut UDPCombined.Parse UDPInterleaved.ParseIP).
-  cbv in rel0.
-  subst rel0.
-
-  time repeat (time solve_bisim).
-
-  repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template || cbn).
-  intuition eauto;
-  firstorder (try congruence);
-  sauto limit:5000.
-
-  Unshelve.
-  all: (exact nil).
-  
-Time Qed.
-
