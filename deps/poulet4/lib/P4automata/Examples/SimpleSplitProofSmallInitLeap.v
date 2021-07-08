@@ -2,6 +2,8 @@ Require Import Poulet4.P4automata.Examples.ProofHeader.
 Require Import Poulet4.P4automata.Examples.SimpleSplit.
 Require Import ZArith List Bool.
 
+From Hammer Require Import Tactics.
+From Hammer Require Import Hammer.
 
 Definition possibly_unsound_init_rel
   : crel (Simple.state + Split.state) (Sum.H Simple.header Split.header)
@@ -56,6 +58,74 @@ Qed.
   match goal with 
   | *)
 
+Lemma exists_unused:
+  forall A,
+    inhabited A ->  
+    forall P: Prop,
+    exists (_: A), P <-> P.
+Proof.
+  intros.
+  inversion H.
+  firstorder.
+Qed.
+Lemma flip_ex_impl:
+  forall A B (P Q: A -> B -> Prop),
+    (exists x y, P x y /\ ~ Q x y) ->
+    (exists x y, ~ (P x y -> Q x y)).
+Proof.
+  firstorder.
+Qed.
+
+Ltac disprove_sat :=
+  unfold interp_conf_rel;
+  simpl;
+  eapply forall_exists;
+  apply flip_ex_impl;
+  unfold "⊨";
+  simpl;
+  repeat setoid_rewrite <- split_ex;
+  simpl;
+  unfold interp_conf_state, interp_state_template;
+  simpl;
+  unfold i;
+  repeat (simpl (fst _) || simpl (snd _));
+  unfold Sum.H, P4A.store, P4A.Env.t;
+  unfold not;
+  sauto limit:20000.
+
+Ltac extend_bisim a wp R C :=
+      let H := fresh "H" in
+      assert (H: ~(R ⊨ C)) by disprove_sat;
+        pose (t := wp a C);
+        eapply PreBisimulationExtend with (H0 := right H) (W := t);
+        [ tauto | reflexivity |];
+        compute in t;
+        simpl (_ ++ _);
+        unfold t;
+        clear t; 
+        clear H.
+
+Ltac skip_bisim a wp R C :=
+  let H := fresh "H" in
+  assert (H: R ⊨ C)
+    by (unfold interp_conf_rel;
+        unfold "⊨";
+        unfold interp_conf_state, interp_state_template;
+        simpl;
+        sauto);
+        eapply PreBisimulationSkip with (H0:=left H);
+        [tauto|];
+        clear H.
+
+Ltac solve_bisim :=
+  match goal with
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    extend_bisim a wp R C
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    skip_bisim a wp R C
+  | _ => idtac
+  end.
+
 Lemma prebisim_simple_split_sym_small_init_leap:
   pre_bisimulation SimpleSplit.aut
                    (WPSymLeap.wp (H:=SimpleSplit.header))
@@ -68,48 +138,11 @@ Proof.
   set (r := possibly_unsound_init_rel).
   cbv in r.
   subst r.
+  solve_bisim.
+  solve_bisim.
   match goal with
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    assert (~(R ⊨ C))
+    skip_bisim a wp R C
   end.
-  {
-    simpl.
-    unfold interp_conf_rel.
-    eapply forall_exists.
-    repeat setoid_rewrite <- split_ex.
-    simpl.
-    unfold "⊨".
-    unfold interp_conf_state, interp_state_template.
-    simpl.
-    unfold i.
-    repeat (simpl (fst _) || simpl (snd _)).
-    unfold Sum.H, P4A.store, P4A.Env.t.
-    unfold not.
-    
-    (* a hand-simplified obligation that works with a weird eexists trick *)
-    assert (exists
-               (_ : 
-                  P4A.store
-                    (Sum.H Simple.header
-                           Split.header))
-               (x : Sum.S Simple.state Split.state + bool) 
-               (y0 : list bool) (y1 y2 y3 y4 y5 y6 y7 y8 y10 y11 : bool) 
-               (x0 : Simple.state + Split.state + bool) (y9 : list bool) 
-               (x1 : Simple.state) (x2 : Split.state),
-               (x0 = inl (inl x1) \/ x0 = inr y10) /\ (x = inl (inr x2) \/ x = inr y11) ->
-               (inl (inl Simple.Start) = x0 /\ y9 = [y1; y2; y3; y4; y5; y6; y7; y8]) /\
-               inr true = x /\ (exists _ : unit, y0 = [])).
-    eexists.
-    Hammer.hammer. 
-    Hammer.hammer.
-    firstorder.
-    exists x0.
-    exists [].
-    exists x1.
-    exists x12.
-    exists [].
-    exists x13.
-    admit.
-  }
   admit.
 Admitted.
