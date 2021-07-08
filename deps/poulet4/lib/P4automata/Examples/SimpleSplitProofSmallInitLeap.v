@@ -54,6 +54,15 @@ Proof.
   intuition.
 Qed.
 
+Lemma split_univ:
+  forall (A B : Type) (P : A * B -> Prop),
+    (forall (x : A) (y : B), P (x, y)) <-> (forall x : A * B, P x).
+Proof.
+  firstorder.
+  destruct x.
+  firstorder.
+Qed.
+
 (* Ltac break_products :=
   match goal with 
   | *)
@@ -76,7 +85,47 @@ Proof.
   firstorder.
 Qed.
 
+Definition states_match (c1 c2: conf_rel SimpleSplit.state SimpleSplit.header) : bool :=
+  if conf_state_eq_dec c1.(cr_st) c2.(cr_st)
+  then true
+  else false.
+
+Lemma filter_entails:
+  forall R C,
+    R ⊨ C <-> filter (states_match C) R ⊨ C.
+Proof.
+Admitted.
+
+Lemma no_state:
+  forall R S,
+    (forall q1 q2 (_ : interp_crel (separated _ _ _ SimpleSplit.aut) R q1 q2),
+        interp_conf_rel S q1 q2)
+    <->
+    (forall st1 (buf1: n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2 (buf2: n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
+        let q1 := (S.(cr_st).(cs_st1).(st_state), st1, t2l _ _ buf1) in
+        let q2 := (S.(cr_st).(cs_st2).(st_state), st2, t2l _ _ buf2) in
+        interp_crel (separated _ _ _ SimpleSplit.aut) R q1 q2 ->
+        forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
+Proof.
+  intros.
+  unfold "⊨".
+  split; intros.
+  - unfold interp_conf_rel in *.
+    simpl.
+    intros.
+Admitted.
+
 Ltac disprove_sat :=
+  rewrite filter_entails;
+  simpl;
+  rewrite no_state;
+  repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel || cbn);
+  eapply forall_exists;
+  repeat (setoid_rewrite <- split_univ; cbn);
+  repeat (setoid_rewrite <- split_ex; cbn);
+  solve [sauto].
+
+Ltac disprove_sat_old :=
   unfold interp_conf_rel;
   simpl;
   eapply forall_exists;
@@ -91,7 +140,7 @@ Ltac disprove_sat :=
   repeat (simpl (fst _) || simpl (snd _));
   unfold Sum.H, P4A.store, P4A.Env.t;
   unfold not;
-  sauto limit:5000.
+  sauto.
 
 Ltac extend_bisim a wp R C :=
       let H := fresh "H" in
@@ -105,38 +154,41 @@ Ltac extend_bisim a wp R C :=
         clear t; 
         clear H.
 
+Ltac extend_bisim_old a wp R C :=
+      let H := fresh "H" in
+      assert (H: ~(R ⊨ C)) by disprove_sat_old;
+        pose (t := wp a C);
+        eapply PreBisimulationExtend with (H0 := right H) (W := t);
+        [ tauto | reflexivity |];
+        compute in t;
+        simpl (_ ++ _);
+        unfold t;
+        clear t; 
+        clear H.
+
+Ltac prove_sat :=
+  unfold interp_conf_rel;
+  unfold "⊨";
+  unfold interp_conf_state, interp_state_template;
+  simpl;
+  sauto limit:5000.
+
 Ltac skip_bisim a wp R C :=
   let H := fresh "H" in
   assert (H: R ⊨ C)
-    by (unfold interp_conf_rel;
-        unfold "⊨";
-        unfold interp_conf_state, interp_state_template;
-        simpl;
-        sauto limit:5000);
-        eapply PreBisimulationSkip with (H0:=left H);
-        clear H.
-        (* 
-        [ intros; cbn in *; unfold interp_conf_rel, interp_store_rel, interp_conf_state, interp_state_template in *;
-        simpl in *;
-        subst;
-        intros;
-        intuition;
-        repeat 
-          match goal with
-          | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
-          | [ X : _ * _ |- _ ] => destruct X
-          end;
-          simpl in *; try solve [simpl in *; congruence]
-          |]. *)
+    by prove_sat;
+  eapply PreBisimulationSkip with (H0:=left H);
+  [ exact I | ];
+  clear H.
 
 Ltac solve_bisim :=
   match goal with
-  (* | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    skip_bisim a wp R C *)
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     extend_bisim a wp R C
-  (* | |- pre_bisimulation _ _ _ _ [] _ _ =>
-    apply PreBisimulationClose *)
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    skip_bisim a wp R C
+  | |- pre_bisimulation _ _ _ _ [] _ _ =>
+    apply PreBisimulationClose
   end.
 
 Lemma prebisim_simple_split_sym_small_init_leap:
@@ -151,144 +203,10 @@ Proof.
   set (r := possibly_unsound_init_rel).
   cbv in r.
   subst r.
-  solve_bisim.
-  match goal with 
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    skip_bisim a wp R C; auto
-  end.
-  (* proof goal for ~(R |= C) in 1st step
-  exists x y : P4automaton.configuration (P4A.interp SimpleSplit.aut),
-    i x y /\
-    (((exists t1 t2 : unit * bool * bool * bool * bool * bool * bool * bool * bool,
-         [snd (fst (fst (fst (fst (fst (fst (fst t1)))))));
-         snd (fst (fst (fst (fst (fst (fst t1))))));
-         snd (fst (fst (fst (fst (fst t1))))); snd (fst (fst (fst (fst t1))));
-         snd (fst (fst (fst t1))); snd (fst (fst t1)); 
-         snd (fst t1); snd t1] = snd x /\
-         [snd (fst (fst (fst (fst (fst (fst (fst t2)))))));
-         snd (fst (fst (fst (fst (fst (fst t2))))));
-         snd (fst (fst (fst (fst (fst t2))))); snd (fst (fst (fst (fst t2))));
-         snd (fst (fst (fst t2))); snd (fst (fst t2)); 
-         snd (fst t2); snd t2] = snd y /\
-         inl (inl Simple.Start) = fst (fst x) /\ inr true = fst (fst y)) ->
-      unit -> False) -> False)
-   *)
-  (* proof goal for ~(R |= C) in 3rd step
-  exists x y : P4automaton.configuration (P4A.interp SimpleSplit.aut),
-    (((exists t1 t2 : unit * bool * bool * bool * bool * bool * bool * bool * bool,
-         [snd (fst (fst (fst (fst (fst (fst (fst t1)))))));
-         snd (fst (fst (fst (fst (fst (fst t1))))));
-         snd (fst (fst (fst (fst (fst t1))))); snd (fst (fst (fst (fst t1))));
-         snd (fst (fst (fst t1))); snd (fst (fst t1)); 
-         snd (fst t1); snd t1] = snd x /\
-         [snd (fst (fst (fst (fst (fst (fst (fst t2)))))));
-         snd (fst (fst (fst (fst (fst (fst t2))))));
-         snd (fst (fst (fst (fst (fst t2))))); snd (fst (fst (fst (fst t2))));
-         snd (fst (fst (fst t2))); snd (fst (fst t2)); 
-         snd (fst t2); snd t2] = snd y /\
-         inl (inl Simple.Start) = fst (fst x) /\ inr true = fst (fst y)) ->
-      unit -> False) /\ i x y) /\
-    (((exists _ _ : unit,
-         [] = snd x /\
-         [] = snd y /\
-         inl (inl Simple.Start) = fst (fst x) /\
-         inl (inr Split.StSplit2) = fst (fst y)) ->
-      unit * {b : list bool | length b = 8} -> False) -> False)
+  time repeat (idtac "..."; time solve_bisim).
+  repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template || cbn).
+  intuition eauto;
+    firstorder (try congruence);
+    sauto limit:5000.
+Qed.
 
-   *)
-  match goal with 
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(R ⊨ C))
-  end.
-  {
-    repeat (unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template || cbn).
-    eapply forall_exists.
-    apply flip_ex_impl.
-    unfold not.
-    repeat setoid_rewrite <- split_ex.
-    cbn.
-    unfold i.
-    repeat (simpl (fst _) || simpl (snd _)).
-    unfold Sum.H, P4A.store, P4A.Env.t.
-    unfold not.
-    assert (
-  exists
-    (x : Simple.state + Split.state + bool) 
-  (y0 : list bool) (x0 : Simple.state + Split.state + bool) 
-   (y2 : list bool),
-    (((exists
-          (y3 y4 y5 y6 y7 y8 y9 y10 : bool)  
-       (y11 y12 y13 y14 y15 y16 y17 y18 : bool),
-         [y3; y4; y5; y6; y7; y8; y9; y10] = y0 /\
-         [y11; y12; y13; y14; y15; y16; y17; y18] = y2 /\
-         inl (inl Simple.Start) = x /\ inr true = x0) -> 
-      unit -> False) /\
-     ((exists x1 : Simple.state, x = inl (inl x1)) \/
-      (exists y3 : bool, x = inr y3)) /\
-     ((exists x1 : Split.state, x0 = inl (inr x1)) \/
-      (exists y3 : bool, x0 = inr y3))) /\
-    (((
-         [] = y0 /\
-         [] = y2 /\ inl (inl Simple.Start) = x /\ inl (inr Split.StSplit2) = x0) ->
-      False) -> False)
-      ).
-    sauto exh:on limit:2000.
-    repeat eexists.
-    exact nil.
-    exact nil.
-    - intros.
-      repeat destruct H.
-      destruct H0.
-      destruct H0.
-      admit.
-    - admit.
-    - admit.
-    - intro H.
-      apply H.
-      exists tt. 
-      exists tt. 
-      eauto.
-      pose tt.
-      split; eauto.
-      exists [false;false;false;false;
-         false;false;false;false].
-      reflexivity.
-  }
-
-  }
-  
-        pose (t := wp a C);
-        eapply PreBisimulationExtend with (H0 := right H) (W := t);
-        [ tauto | reflexivity |];
-        compute in t;
-        simpl (_ ++ _);
-        unfold t;
-        clear t; 
-        clear H.
-  match goal with 
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    skip_bisim a wp R C; auto
-  end.
-  solve_bisim.
-  skip_bisim.
-
-  exact I.
-  
-    assert (H: R ⊨ C)
-  end; [ intros; cbn in *; unfold interp_conf_rel, interp_store_rel, interp_conf_state, interp_state_template, i in *;
-        simpl in *|].
-  
-      (* subst;
-      intros;
-      repeat 
-        match goal with
-        | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
-        | [ X : _ * _ |- _ ] => destruct X
-        | [ X : _ /\ _ |- _ ] => destruct X
-        | [ X : exists _, _ |- _ ] => destruct X
-        end;
-        congruence || intuition
-        |]. *)
-  admit.
-Admitted.
