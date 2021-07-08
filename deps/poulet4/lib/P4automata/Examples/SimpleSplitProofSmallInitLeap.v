@@ -91,7 +91,7 @@ Ltac disprove_sat :=
   repeat (simpl (fst _) || simpl (snd _));
   unfold Sum.H, P4A.store, P4A.Env.t;
   unfold not;
-  sauto limit:20000.
+  sauto limit:5000.
 
 Ltac extend_bisim a wp R C :=
       let H := fresh "H" in
@@ -112,17 +112,30 @@ Ltac skip_bisim a wp R C :=
         unfold "⊨";
         unfold interp_conf_state, interp_state_template;
         simpl;
-        sauto);
-        eapply PreBisimulationSkip with (H0:=left H);
-        [tauto|];
-        clear H.
+        sauto limit:5000);
+        eapply PreBisimulationSkip with (H0:=left H).
+        (* clear H;
+        [ intros; cbn in *; unfold interp_conf_rel, interp_store_rel, interp_conf_state, interp_state_template in *;
+        simpl in *;
+        subst;
+        intros;
+        intuition;
+        repeat 
+          match goal with
+          | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
+          | [ X : _ * _ |- _ ] => destruct X
+          end;
+          simpl in *; try solve [simpl in *; congruence]
+          |]. *)
 
 Ltac solve_bisim :=
   match goal with
+  (* | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    skip_bisim a wp R C *)
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     extend_bisim a wp R C
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    skip_bisim a wp R C
+  (* | |- pre_bisimulation _ _ _ _ [] _ _ =>
+    apply PreBisimulationClose *)
   | _ => idtac
   end.
 
@@ -139,10 +152,21 @@ Proof.
   cbv in r.
   subst r.
   solve_bisim.
-  solve_bisim.
-  match goal with
+  match goal with 
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    skip_bisim a wp R C
-  end.
+    assert (H: R ⊨ C)
+  end; [ intros; cbn in *; unfold interp_conf_rel, interp_store_rel, interp_conf_state, interp_state_template, i in *;
+        simpl in *|].
+      (* subst;
+      intros;
+      repeat 
+        match goal with
+        | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
+        | [ X : _ * _ |- _ ] => destruct X
+        | [ X : _ /\ _ |- _ ] => destruct X
+        | [ X : exists _, _ |- _ ] => destruct X
+        end;
+        congruence || intuition
+        |]. *)
   admit.
 Admitted.
