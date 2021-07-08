@@ -76,9 +76,11 @@ Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
 
 Lemma split_ex:
   forall A B (P: A * B -> Prop),
-    (exists x: A, exists y: B, P (x, y)) ->
+    (exists x: A, exists y: B, P (x, y)) <->
     exists x: A * B, P x.
 Proof.
+  firstorder.
+  destruct x.
   firstorder.
 Qed.
 
