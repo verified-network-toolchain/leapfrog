@@ -343,6 +343,40 @@ Proof.
     intros.
 Admitted.
 
+
+Ltac break_store := 
+  repeat match goal with
+  | |- exists (x: P4A.store ?H), @?P x =>
+    cut (exists y0 y1 y2 y3,
+                P ([(inl IncrementalBits.Pref, P4A.VBits y0);
+                    (inl IncrementalBits.Suf, P4A.VBits y1);
+                    (inr BigBits.Pref, P4A.VBits y2);
+                    (inr BigBits.Suf, P4A.VBits y3)]));
+    [ intros [x0 [x1 [x2 [x3 ?]]]];
+      exists ([(inl IncrementalBits.Pref, P4A.VBits x0);
+            (inl IncrementalBits.Suf, P4A.VBits x1);
+            (inr BigBits.Pref, P4A.VBits x2); (inr BigBits.Suf, P4A.VBits x3)]);
+      eauto
+      
+      
+      | trivial
+    ];
+    repeat eexists
+  | |- (forall (x: P4A.store ?H), _) -> False =>
+      intros
+  | H: forall (x: P4A.store ?H), @?P x |- _ =>
+      assert (forall y0 y1 y2 y3,
+                  P ([(inl IncrementalBits.Pref, P4A.VBits y0);
+                      (inl IncrementalBits.Suf, P4A.VBits y1);
+                      (inr BigBits.Pref, P4A.VBits y2);
+                      (inr BigBits.Suf, P4A.VBits y3)])); [
+      cbn; sauto | 
+      sauto
+    ]
+  end.
+
+
+
 Ltac disprove_sat :=
   rewrite filter_entails;
   simpl;
@@ -351,7 +385,7 @@ Ltac disprove_sat :=
   eapply forall_exists;
   repeat (setoid_rewrite <- split_univ; cbn);
   repeat (setoid_rewrite <- split_ex; cbn);
-  solve [sauto].
+  (solve [sauto] || unfold not; now break_store).
 
 Ltac disprove_sat_old :=
   unfold interp_conf_rel;
@@ -448,7 +482,8 @@ Ltac simp_exists_store :=
     cut (ltac:(build_store ltac:(find hdrs) P store))
   end.
 
-Lemma prebisim_incremental_sep:
+(* 
+  Lemma prebisim_incremental_sep:
   pre_bisimulation IncrementalSeparate.aut
                    (WPSymLeap.wp (H:=IncrementalSeparate.header))
                    (separated _ _ _ IncrementalSeparate.aut)
@@ -460,105 +495,14 @@ Proof.
   set (r := (mk_init 10 IncrementalSeparate.aut IncrementalBits.Start BigBits.Parse)).
   cbv in r.
   subst r.
-  solve_bisim.
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    assert (H: ~(R ⊨ C))
-  end.
-  {
-      rewrite filter_entails.
-      simpl.
-      rewrite no_state.
-      repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel || cbn).
-      eapply forall_exists.
-      repeat (setoid_rewrite <- split_univ; cbn).
-      repeat (setoid_rewrite <- split_ex; cbn).
-      unfold not.
-      pose proof (ltac:(simp_exists_store)).
-
-      match goal with
-      | |- exists (x: P4A.store ?H), @?P x =>
-        let hdrs := fresh "hdrs" in
-        set (hdrs := enum H);
-          cbv in hdrs;
-          match goal with
-          | hdrs := ?h : _ |- _ => idtac h
-          end
-      end.
-      
-      
-                  
-        match hdrs with
-        | ?h :: _ => idtac h
-        end
-      end.
-      
-      
-          build_store hdrs P (@nil (H * list bool))
-      end.
-      simp_exists_store.
-
-{
-  intros.
-  destruct H as [x0 [x1 [x2 [x3 ?]]]].
-  exists ([(inl IncrementalBits.Pref, P4A.VBits x0);
-      (inl IncrementalBits.Suf, P4A.VBits x1);
-      (inr BigBits.Pref, P4A.VBits x2); (inr BigBits.Suf, P4A.VBits x3)]).
-  eauto.
-}
-
-      match goal with
-      | |- exists (x: P4A.store ?H), @?P x =>
-        cut (exists y0 y1 y2 y3,
-                   P ([(inl IncrementalBits.Pref, P4A.VBits y0);
-                       (inl IncrementalBits.Suf, P4A.VBits y1);
-                       (inr BigBits.Pref, P4A.VBits y2);
-                       (inr BigBits.Suf, P4A.VBits y3)]))
-      end.
-      {
-        intros.
-        destruct H as [x0 [x1 [x2 [x3 ?]]]].
-        exists ([(inl IncrementalBits.Pref, P4A.VBits x0);
-            (inl IncrementalBits.Suf, P4A.VBits x1);
-            (inr BigBits.Pref, P4A.VBits x2); (inr BigBits.Suf, P4A.VBits x3)]).
-        eauto.
-      }
-      repeat eexists.
-      sauto.
-  }
-    );
-    pose (t := wp a C);
-        eapply PreBisimulationExtend with (H0 := right H) (W := t);
-        [ tauto | reflexivity |];
-        compute in t;
-        simpl (_ ++ _);
-        unfold t;
-        clear t; 
-        clear H
-  end.
-  
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
-
-
-
-  solve_bisim.
-  solve_bisim.
-  solve_bisim.
+  time repeat (time solve_bisim).
 
   repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template || cbn).
   intuition eauto;
   firstorder (try congruence);
   sauto limit:5000.
-Time Qed.
+
+  Unshelve.
+  all: (exact nil).
+  
+Time Qed. *)
