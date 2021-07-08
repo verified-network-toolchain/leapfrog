@@ -62,6 +62,26 @@ Fixpoint check_bvar {c} (x: bvar c) : nat :=
   | BVarRest x' => check_bvar x'
   end.
 
+Fixpoint n_tuple A (n: nat): Type :=
+  match n with
+  | 0 => unit
+  | S n => n_tuple A n * A
+  end.
+
+Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
+  match n as n' return n_tuple A n' -> list A with
+  | 0 => fun _ => []
+  | S n => fun p => t2l A n (fst p) ++ [snd p]
+  end x.
+
+Lemma split_ex:
+  forall A B (P: A * B -> Prop),
+    (exists x: A, exists y: B, P (x, y)) ->
+    exists x: A * B, P x.
+Proof.
+  firstorder.
+Qed.
+
 Equations interp_bvar {c} (valu: bval c) (x: bvar c) : list bool :=
   { interp_bvar (_, bs)    (BVarTop _ _)  := proj1_sig bs;
     interp_bvar (valu', bs) (BVarRest x')  := interp_bvar valu' x' }.
@@ -100,8 +120,10 @@ Section ConfRel.
                            congruence).
 
   Definition interp_state_template (st: state_template) (c: conf) :=
-    st.(st_state) = fst (fst c) /\
-    List.length (snd c) = st.(st_buf_len).
+    st.(st_state) = fst (fst c).
+    (* /\
+    exists (tup : n_tuple _ st.(st_buf_len)), 
+      snd c = t2l _ st.(st_buf_len) tup. *)
 
   Inductive side := Left | Right.
   Derive NoConfusion for side.
@@ -376,7 +398,11 @@ Section ConfRel.
   
   Definition interp_conf_rel (phi: conf_rel) : relation conf :=
     fun x y => 
-      interp_conf_state phi.(cr_st) x y ->
+      (exists (t1: n_tuple _ phi.(cr_st).(cs_st1).(st_buf_len)) 
+             (t2: n_tuple _ phi.(cr_st).(cs_st1).(st_buf_len)),
+             t2l _ _ t1 = snd x /\
+             t2l _ _ t2 = snd y /\
+             interp_conf_state phi.(cr_st) x y) ->
       forall valu,
         interp_store_rel phi.(cr_rel) valu x y.
 

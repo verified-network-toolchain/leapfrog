@@ -1375,7 +1375,8 @@ Module SynPreSynWP1bit.
       simpl (PreBisimulationSyntax.cr_st _) in *.
       simpl (PreBisimulationSyntax.cr_ctx _) in *.
       simpl (PreBisimulationSyntax.cr_rel _) in *.
-      destruct H2 as [[? ?] [? ?]].
+      admit.
+      (* destruct H2 as [[? ?] [? ?]].
       subst.
       unfold step; cbn.
       simpl in *.
@@ -1387,11 +1388,11 @@ Module SynPreSynWP1bit.
       destruct vs as [vs | vs], us as [us | us]; simpl.
       simpl in * |-.
       destruct (equiv_dec (S (length ubuf)) (P4A.size a us)),
-               (equiv_dec (S (length vbuf)) (P4A.size a vs)).
+               (equiv_dec (S (length vbuf)) (P4A.size a vs)). *)
+      (* - admit.
       - admit.
       - admit.
-      - admit.
-      - admit.
+      - admit. *)
     Admitted.
 
     Lemma be_subst_buf_left:
@@ -1592,17 +1593,19 @@ because you're not branching on the same thing.
         destruct st1 as [[st1 | ?] | st1], st2 as [[st2 | ?] | st2];
           try solve [cbv in H0; tauto].
         + simpl in *.
-          subst bl2.
-          subst bl1.
-          simpl in *.
           admit.
+          (* subst bl2.
+          subst bl1.
+          simpl in *. *)
+          (* admit. *)
         + admit.
         + admit.
         + simpl in *.
-          subst cst1 cst2.
-          cbn in *.
           admit.
           (*
+          subst cst1 cst2.
+          cbn in *.
+          
           pose (pred_l := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st1)).
           pose (pred_r := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st2)).
           pose (wp_lr :=

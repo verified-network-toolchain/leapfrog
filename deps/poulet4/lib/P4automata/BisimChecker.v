@@ -185,23 +185,3 @@ Ltac solve_bisim_plain :=
       subst t
     | |- _ => progress simpl
     end.
-
-Fixpoint n_tuple A (n: nat): Type :=
-  match n with
-  | 0 => unit
-  | S n => n_tuple A n * A
-  end.
-
-Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
-  match n as n' return n_tuple A n' -> list A with
-  | 0 => fun _ => []
-  | S n => fun p => t2l A n (fst p) ++ [snd p]
-  end x.
-
-Lemma split_ex:
-  forall A B (P: A * B -> Prop),
-    (exists x: A, exists y: B, P (x, y)) ->
-    exists x: A * B, P x.
-Proof.
-  firstorder.
-Qed.

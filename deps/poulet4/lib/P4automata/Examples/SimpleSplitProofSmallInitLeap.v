@@ -1,5 +1,8 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
 Require Import Poulet4.P4automata.Examples.SimpleSplit.
+Require Import SMTCoq.SMTCoq.
+Require Import ZArith List Bool.
+
 
 Definition possibly_unsound_init_rel
   : crel (Simple.state + Split.state) (Sum.H Simple.header Split.header)
@@ -38,6 +41,22 @@ Proof.
   firstorder.
 Qed.
 
+Lemma double_neg: 
+  forall {A B} (P: A -> B -> Prop),
+  (exists x y, P x y) ->
+  (exists x y, ~ (P x y -> False)).
+Proof.
+  intros.
+  destruct H as [x [y H]].
+  exists x.
+  exists y.
+  intuition.
+Qed.
+
+(* Ltac break_products :=
+  match goal with 
+  | *)
+
 Lemma prebisim_simple_split_sym_small_init_leap:
   pre_bisimulation SimpleSplit.aut
                    (WPSymLeap.wp (H:=SimpleSplit.header))
@@ -54,107 +73,31 @@ Proof.
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     assert (~(R ⊨ C))
   end.
-  {
-    unfold interp_crel.
-    unfold interp_conf_rel.
-    unfold interp_store_rel.
-    repeat (unfold interp_crel,
-            interp_conf_rel,
-            interp_conf_state,
-            interp_store_rel,
-            interp_bit_expr,
-            interp_store_rel,
-            interp_state_template,
-            RelationClasses.relation_conjunction,
-            Relations.interp_rels,
-            separated
-            || cbn).
-    match goal with
-    | |- ~ (forall x y: ?T, @?Q x y) =>
-      eapply forall_exists with (P := Q)
-    end.
-    unfold P4automaton.configuration.
-    simpl.
-    unfold P4A.store, P4A.Env.t, Sum.H in *.
-    repeat apply split_ex.
-    simpl.
-    pose (n_tuple bool 8).
-    simpl in T.
-    Check t2l.
-
-    pose (l := [false;false;false;false;
-                false;false;false;false]).
-    assert (length l = 8) by reflexivity.
-    pose (t := Simple.Start).
-    pose (t' := Split.StSplit1).
-    pose (t'' := Split.StSplit2).
-    Import Tactics.
-    hfcrush.
-    Tactics.sfirstorder.
-    Hammer.hammer.
-    sfirstorder.
+  simpl.
+  unfold interp_conf_rel.
+  unfold P4automaton.configuration.
+  simpl.
+  unfold "⊨".
+  unfold interp_conf_state, interp_state_template.
+  simpl.
+  unfold i.
+  eapply forall_exists.
     
-      idtac P;
-      eapply forall_exists; try eapply H
-    end.
+  (* a hand-simplified obligation that works with a weird eexists trick *)
+  assert (exists
+    (_ : 
+                                               P4A.store
+                                                 (Sum.H Simple.header
+                                                 Split.header))
+    (x : Sum.S Simple.state Split.state + bool) 
+  (y0 : list bool) (y1 y2 y3 y4 y5 y6 y7 y8 y10 y11 : bool) 
+  (x0 : Simple.state + Split.state + bool) (y9 : list bool) 
+  (x1 : Simple.state) (x2 : Split.state),
+    (x0 = inl (inl x1) \/ x0 = inr y10) /\ (x = inl (inr x2) \/ x = inr y11) ->
+    (inl (inl Simple.Start) = x0 /\ y9 = [y1; y2; y3; y4; y5; y6; y7; y8]) /\
+    inr true = x /\ (exists _ : unit, y0 = [])).
+    eexists.
+    Hammer.hammer. 
     Hammer.hammer.
-    do 2 destruct H0.
-    eapply H0.
-    specialize (H (inl (inl Simple.Start), [], [false;false;false;false;false;false;false;false]) (inr true, [], []));
-    intuition.
-             : {R ⊨ C} + {~(R ⊨ C)} 
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    set (H := ltac:(
-                right;
-    repeat (unfold interp_crel,
-            interp_conf_rel,
-            interp_conf_state,
-            interp_store_rel,
-            interp_bit_expr,
-            interp_store_rel,
-            interp_state_template,
-            RelationClasses.relation_conjunction,
-            Relations.interp_rels,
-            separated
-            || cbn);
-    intuition;
-    simpl in *;
-    Hammer.hammer
-    specialize (H (inl (inl Simple.Start), [], [false;false;false;false;false;false;false;false]) (inr true, [], []));
-    intuition
-             )
-             : {R ⊨ C} + {~(R ⊨ C)} 
-        )
-  end.
-  eapply PreBisimulationExtend with (H0:=H); eauto.
-  exact I.
-  clear H.
-  cbn.
-  simpl (_ ++ _).
-  cbv.
-  solve_bisim'.
-=======
-
-  solve_bisim'.
-  solve_bisim'.
-  
-  repeat match goal with
-  | |- pre_bisimulation _ _ _ _ [] _ _ => apply PreBisimulationClose
-  | |- pre_bisimulation _ _ _ _ (_ :: _) _ _ => pbskip_plain
-  | |- pre_bisimulation ?a ?wp _ _ (?C :: _) _ _ =>
-    let t := fresh "tmp" in
-    pose (t := wp a C); eapply PreBisimulationExtend with (W := t);
-      [ reflexivity |  ]; compute in t; unfold t; clear t;
-        simpl (_ ++ _)
-  | |- _ => progress simpl
-  end.
-  subst.
   admit.
-  intuition eauto.
->>>>>>> Stashed changes
-  time (repeat solve_bisim').
-  cbv in *.
-  intuition (try congruence).
-Qed.
+Admitted.
