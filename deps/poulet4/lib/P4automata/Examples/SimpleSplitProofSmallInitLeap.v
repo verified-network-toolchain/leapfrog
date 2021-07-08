@@ -55,6 +55,9 @@ Proof.
     assert (~(R ⊨ C))
   end.
   {
+    unfold interp_crel.
+    unfold interp_conf_rel.
+    unfold interp_store_rel.
     repeat (unfold interp_crel,
             interp_conf_rel,
             interp_conf_state,
@@ -73,6 +76,12 @@ Proof.
     unfold P4automaton.configuration.
     simpl.
     unfold P4A.store, P4A.Env.t, Sum.H in *.
+    repeat apply split_ex.
+    simpl.
+    pose (n_tuple bool 8).
+    simpl in T.
+    Check t2l.
+
     pose (l := [false;false;false;false;
                 false;false;false;false]).
     assert (length l = 8) by reflexivity.
@@ -126,6 +135,25 @@ Proof.
   simpl (_ ++ _).
   cbv.
   solve_bisim'.
+=======
+
+  solve_bisim'.
+  solve_bisim'.
+  
+  repeat match goal with
+  | |- pre_bisimulation _ _ _ _ [] _ _ => apply PreBisimulationClose
+  | |- pre_bisimulation _ _ _ _ (_ :: _) _ _ => pbskip_plain
+  | |- pre_bisimulation ?a ?wp _ _ (?C :: _) _ _ =>
+    let t := fresh "tmp" in
+    pose (t := wp a C); eapply PreBisimulationExtend with (W := t);
+      [ reflexivity |  ]; compute in t; unfold t; clear t;
+        simpl (_ ++ _)
+  | |- _ => progress simpl
+  end.
+  subst.
+  admit.
+  intuition eauto.
+>>>>>>> Stashed changes
   time (repeat solve_bisim').
   cbv in *.
   intuition (try congruence).
