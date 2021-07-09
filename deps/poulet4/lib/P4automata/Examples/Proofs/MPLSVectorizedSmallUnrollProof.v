@@ -1,16 +1,16 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
 Require Import Poulet4.P4automata.Examples.MPLSVectorizedSmall.
 
-Lemma prebisim_mpls_unroll:
-  pre_bisimulation MPLSVect.aut
+Lemma prebisim_mpls_vect_unroll:
+  pre_bisimulation MPLSVectUnroll.aut
                    (WPSymLeap.wp (H:=_))
-                   (separated _ _ _ MPLSVect.aut)
+                   (separated _ _ _ _)
                    nil
-                   (mk_init 10 MPLSVect.aut MPLSPlain.ParseMPLS MPLSUnroll.ParseMPLS0)
+                   (mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS)
                    (inl (inl MPLSPlain.ParseMPLS), [], [])
-                   (inl (inr MPLSUnroll.ParseMPLS0), [], []).
+                   (inl (inr MPLSInline.ParseMPLS), [], []).
 Proof.
-  set (rel0 := mk_init 10 MPLSVect.aut MPLSPlain.ParseMPLS MPLSUnroll.ParseMPLS0).
+  set (rel0 := mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS).
   cbv in rel0.
   subst rel0.
   fail 1.
@@ -18,5 +18,3 @@ Proof.
   cbv in *.
   intuition (try congruence).
 Time Qed.
-
-
