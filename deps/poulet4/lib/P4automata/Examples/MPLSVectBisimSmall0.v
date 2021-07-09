@@ -208,7 +208,7 @@ Ltac solve_bisim :=
   | _ => fail "solve_bisim failed"
   end.
 
-(* Lemma prebisim_mpls_unroll:
+Lemma prebisim_mpls_unroll:
   pre_bisimulation MPLSVect.aut
                    (WPSymLeap.wp (H:=_))
                    (separated _ _ _ MPLSVect.aut)
@@ -231,6 +231,6 @@ Proof.
 
   Unshelve.
   all: (exact nil).
-Time Qed. *)
+Time Qed.
 
 

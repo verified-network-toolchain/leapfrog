@@ -209,7 +209,7 @@ Ltac solve_bisim :=
   end.
 
 
-(* Lemma prebisim_mpls_vect_inline:
+Lemma prebisim_mpls_vect_inline:
   pre_bisimulation MPLSUnrollInline.aut
                    (WPSymLeap.wp (H:=_))
                    (separated _ _ _ MPLSUnrollInline.aut)
@@ -232,5 +232,5 @@ Proof.
 
   Unshelve.
   all: (exact nil).
-Time Qed.  *)
+Time Qed. 
 

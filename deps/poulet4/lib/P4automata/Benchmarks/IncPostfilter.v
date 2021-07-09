@@ -201,7 +201,7 @@ Ltac solve_bisim :=
   | _ => fail "solve_bisim failed"
   end.
 
-(* Lemma prebisim_ipfilter:
+Lemma prebisim_ipfilter:
   pre_bisimulation IPFilter.aut
                    (WPSymLeap.wp (H:=_))
                    (separated _ _ _ IPFilter.aut)
@@ -225,5 +225,5 @@ Proof.
   Unshelve.
   all: (exact nil).
   
-Time Qed. *)
+Time Qed.
 
