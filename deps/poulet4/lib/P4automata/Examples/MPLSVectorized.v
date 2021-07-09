@@ -242,3 +242,7 @@ End MPLSVect.
 Module MPLSVectUnroll.
   Definition aut := Sum.sum MPLSPlain.aut MPLSInline.aut.
 End MPLSVectUnroll.
+
+Module MPLSUnrollInline.
+  Definition aut := Sum.sum MPLSUnroll.aut MPLSInline.aut.
+End MPLSUnrollInline.

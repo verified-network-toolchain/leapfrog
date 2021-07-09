@@ -1,10 +1,10 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.MPLSVectorizedSmall.
+Require Import Poulet4.P4automata.Examples.MPLSVectorized.
 From Hammer Require Import Tactics.
 
-Notation i := (separated _ _ _ MPLSVectUnroll.aut).
+Notation i := (separated _ _ _ MPLSUnrollInline.aut).
 Notation "⟦ x ⟧" := (interp_crel i x).
-Notation "⦇ x ⦈" := (interp_conf_rel (a:=MPLSVectUnroll.aut) x).
+Notation "⦇ x ⦈" := (interp_conf_rel (a:=MPLSUnrollInline.aut) x).
 Notation "R ⊨ q1 q2" := (⟦R⟧ q1 q2) (at level 40).
 Notation "R ⊨ S" := (forall q1 q2, ⟦R⟧ q1 q2 -> ⦇S⦈ q1 q2) (at level 40).
 
@@ -72,13 +72,13 @@ Admitted.
 
 Lemma no_state:
   forall R S,
-    (forall q1 q2 (_ : interp_crel (separated _ _ _ MPLSVectUnroll.aut) R q1 q2),
+    (forall q1 q2 (_ : interp_crel (separated _ _ _ MPLSUnrollInline.aut) R q1 q2),
         interp_conf_rel S q1 q2)
     <->
     (forall st1 (buf1: n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2 (buf2: n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
         let q1 := (S.(cr_st).(cs_st1).(st_state), st1, t2l _ _ buf1) in
         let q2 := (S.(cr_st).(cs_st2).(st_state), st2, t2l _ _ buf2) in
-        interp_crel (separated _ _ _ MPLSVectUnroll.aut) R q1 q2 ->
+        interp_crel (separated _ _ _ MPLSUnrollInline.aut) R q1 q2 ->
         forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
 Proof.
   intros.
@@ -94,16 +94,16 @@ Ltac break_store :=
   repeat match goal with
   | |- exists (x: P4A.store ?H), @?P x =>
     cut (exists y0 y1 y2 y3 y4 y5,
-                P ([(inl MPLSPlain.HdrMPLS, P4A.VBits y0);
-                    (inl MPLSPlain.HdrMPLS1, P4A.VBits y1)
-                    (inl MPLSPlain.HdrUDP, P4A.VBits y2);
+                P ([(inl MPLSUnroll.HdrMPLS0, P4A.VBits y0);
+                    (inl MPLSUnroll.HdrMPLS1, P4A.VBits y1)
+                    (inl MPLSUnroll.HdrUDP, P4A.VBits y2);
                     (inl MPLSInline.HdrMPLS0, P4A.VBits y3);
                     (inl MPLSInline.HdrMPLS1, P4A.VBits y4);
                     (inl MPLSInline.HdrUDP, P4A.VBits y5)]));
     [ intros [x0 [x1 [x2 [x3 [x4 [x5 ?]]]]]];
-      exists ([(inl MPLSPlain.HdrMPLS, P4A.VBits x0);
-              (inl MPLSPlain.HdrMPLS1, P4A.VBits x1)
-              (inl MPLSPlain.HdrUDP, P4A.VBits x2);
+      exists ([(inl MPLSUnroll.HdrMPLS0, P4A.VBits x0);
+              (inl MPLSUnroll.HdrMPLS1, P4A.VBits x1)
+              (inl MPLSUnroll.HdrUDP, P4A.VBits x2);
               (inl MPLSInline.HdrMPLS0, P4A.VBits x3);
               (inl MPLSInline.HdrMPLS1, P4A.VBits x4);
               (inl MPLSInline.HdrUDP, P4A.VBits x5)]);
@@ -117,9 +117,9 @@ Ltac break_store :=
       intros
   | H: forall (x: P4A.store ?H), @?P x |- _ =>
       assert (forall y0 y1 y2 y3 y4 y5,
-                  P ([(inl MPLSPlain.HdrMPLS, P4A.VBits y0);
-                  (inl MPLSPlain.HdrMPLS1, P4A.VBits y1)
-                  (inl MPLSPlain.HdrUDP, P4A.VBits y2);
+                  P ([(inl MPLSUnroll.HdrMPLS0, P4A.VBits y0);
+                  (inl MPLSUnroll.HdrMPLS1, P4A.VBits y1)
+                  (inl MPLSUnroll.HdrUDP, P4A.VBits y2);
                   (inl MPLSInline.HdrMPLS0, P4A.VBits y3);
                   (inl MPLSInline.HdrMPLS1, P4A.VBits y4);
                   (inl MPLSInline.HdrUDP, P4A.VBits y5)])); [
@@ -210,16 +210,16 @@ Ltac solve_bisim :=
 
 
 (* Lemma prebisim_mpls_vect_inline:
-  pre_bisimulation MPLSVectUnroll.aut
+  pre_bisimulation MPLSUnrollInline.aut
                    (WPSymLeap.wp (H:=_))
-                   (separated _ _ _ MPLSVectUnroll.aut)
+                   (separated _ _ _ MPLSUnrollInline.aut)
                    nil
-                   (mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS)
-                   (inl (inl MPLSPlain.ParseMPLS), [], [])
+                   (mk_init 10 MPLSUnrollInline.aut MPLSUnroll.ParseMPLS0 MPLSInline.ParseMPLS)
+                   (inl (inl MPLSUnroll.ParseMPLS0), [], [])
                    (inl (inr MPLSInline.ParseMPLS), [], []).
 Proof.
-  idtac "running MPLS plain <-> inlined small bisimulation".
-  set (rel0 := mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS).
+  idtac "running MPLS plain <-> inlined bisimulation".
+  set (rel0 := mk_init 10 MPLSUnrollInline.aut MPLSUnroll.ParseMPLS0 MPLSInline.ParseMPLS).
   cbv in rel0.
   subst rel0.
   

@@ -1,5 +1,5 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.MPLSVectorizedSmall.
+Require Import Poulet4.P4automata.Examples.MPLSVectorized.
 From Hammer Require Import Tactics.
 
 Notation i := (separated _ _ _ MPLSVectUnroll.aut).
@@ -94,14 +94,14 @@ Ltac break_store :=
   repeat match goal with
   | |- exists (x: P4A.store ?H), @?P x =>
     cut (exists y0 y1 y2 y3 y4 y5,
-                P ([(inl MPLSPlain.HdrMPLS, P4A.VBits y0);
+                P ([(inl MPLSPlain.HdrMPLS0, P4A.VBits y0);
                     (inl MPLSPlain.HdrMPLS1, P4A.VBits y1)
                     (inl MPLSPlain.HdrUDP, P4A.VBits y2);
                     (inl MPLSInline.HdrMPLS0, P4A.VBits y3);
                     (inl MPLSInline.HdrMPLS1, P4A.VBits y4);
                     (inl MPLSInline.HdrUDP, P4A.VBits y5)]));
     [ intros [x0 [x1 [x2 [x3 [x4 [x5 ?]]]]]];
-      exists ([(inl MPLSPlain.HdrMPLS, P4A.VBits x0);
+      exists ([(inl MPLSPlain.HdrMPLS0, P4A.VBits x0);
               (inl MPLSPlain.HdrMPLS1, P4A.VBits x1)
               (inl MPLSPlain.HdrUDP, P4A.VBits x2);
               (inl MPLSInline.HdrMPLS0, P4A.VBits x3);
@@ -117,7 +117,7 @@ Ltac break_store :=
       intros
   | H: forall (x: P4A.store ?H), @?P x |- _ =>
       assert (forall y0 y1 y2 y3 y4 y5,
-                  P ([(inl MPLSPlain.HdrMPLS, P4A.VBits y0);
+                  P ([(inl MPLSPlain.HdrMPLS0, P4A.VBits y0);
                   (inl MPLSPlain.HdrMPLS1, P4A.VBits y1)
                   (inl MPLSPlain.HdrUDP, P4A.VBits y2);
                   (inl MPLSInline.HdrMPLS0, P4A.VBits y3);
@@ -218,7 +218,7 @@ Ltac solve_bisim :=
                    (inl (inl MPLSPlain.ParseMPLS), [], [])
                    (inl (inr MPLSInline.ParseMPLS), [], []).
 Proof.
-  idtac "running MPLS plain <-> inlined small bisimulation".
+  idtac "running MPLS plain <-> inlined bisimulation".
   set (rel0 := mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS).
   cbv in rel0.
   subst rel0.
