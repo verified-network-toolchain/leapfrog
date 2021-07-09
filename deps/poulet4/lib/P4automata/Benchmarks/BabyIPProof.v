@@ -14,8 +14,7 @@ Proof.
   set (rel0 := mk_init 10 BabyIP.aut BabyIP1.Start BabyIP2.Start).
   cbv in rel0.
   subst rel0.
-  fail 1.
-  time (repeat (time solve_bisim')).
+  time (repeat (time solve_bisim)).
   cbv in *.
   intuition (try congruence).
 Time Qed.

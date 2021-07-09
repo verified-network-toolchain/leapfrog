@@ -13,7 +13,6 @@ Proof.
   set (rel0 := mk_init 10 comb_aut Loop.Start LoopUnroll.Start).
   cbv in rel0.
   subst rel0.
-  Print disprove_sat.
   unfold comb_aut.
   time (repeat solve_bisim).
   cbv in *.

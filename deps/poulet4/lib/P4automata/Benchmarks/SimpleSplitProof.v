@@ -22,7 +22,7 @@ Proof.
   set (r := possibly_unsound_init_rel).
   cbv in r.
   subst r.
-  time repeat (idtac "..."; time BisimChecker.solve_bisim).
+  time repeat (idtac "..."; time solve_bisim).
   repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template || cbn).
   intuition eauto;
     firstorder (try congruence);

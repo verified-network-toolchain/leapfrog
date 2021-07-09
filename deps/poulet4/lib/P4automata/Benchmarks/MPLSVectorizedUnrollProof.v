@@ -13,8 +13,7 @@ Proof.
   set (rel0 := mk_init 10 MPLSVectUnroll.aut MPLSPlain.ParseMPLS MPLSInline.ParseMPLS).
   cbv in rel0.
   subst rel0.
-  fail 1.
-  time (repeat (time solve_bisim_plain)).
+  time (repeat (time solve_bisim)).
   cbv in *.
   intuition (try congruence).
 Time Qed.
