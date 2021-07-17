@@ -1,3 +1,17 @@
 (lang dune 2.7)
 (using coq 0.2)
 (name poulet4)
+
+(package
+ (name poulet4)
+ (depends
+  bignum
+  coq-compcert
+  (coq :build)
+  (coq-equations :build))
+  (synopsis "Poulet4: Petr4 in Coq"))
+
+(package
+ (name p4abench)
+ (depends poulet4)
+  (synopsis "Proof benchmarks for P4automata"))
