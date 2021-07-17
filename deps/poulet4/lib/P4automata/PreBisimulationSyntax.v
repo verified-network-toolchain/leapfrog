@@ -350,6 +350,32 @@ Section ConfRel.
       interp_store_rel r1 valu c1 c2 -> interp_store_rel r2 valu c1 c2
     end.
 
+  (* correctness of smart constructors *)
+  Lemma bror_corr : 
+    forall c (l r: store_rel c) v c1 c2, 
+        interp_store_rel (BROr l r) v c1 c2 <-> interp_store_rel (bror l r) v c1 c2.
+  Proof.
+    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    auto || destruct H0; auto || contradiction.
+  Qed.
+
+  Lemma brand_corr : 
+    forall c (l r: store_rel c) v c1 c2, 
+        interp_store_rel (BRAnd l r) v c1 c2 <-> interp_store_rel (brand l r) v c1 c2.
+  Proof.
+    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    auto || destruct H0; auto || contradiction.
+  Qed.
+
+  Lemma brimpl_corr : 
+    forall c (l r: store_rel c) v c1 c2, 
+        interp_store_rel (BRImpl l r) v c1 c2 <-> interp_store_rel (brimpl l r) v c1 c2.
+  Proof.
+    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    auto || destruct H0; auto || contradiction.
+  Qed.
+
+
   Record conf_state :=
     { cs_st1: state_template;
       cs_st2: state_template; }.
