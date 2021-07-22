@@ -1,5 +1,4 @@
 Require Import Equations.Equations.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
 
 Set Universe Polymorphism.
 
@@ -54,6 +53,9 @@ Section FOL.
       forall ctx s s',
         var ctx s' ->
         var (CSnoc ctx s) s'.
+  Derive Signature NoConfusion Subterm for var.
+  Next Obligation.
+  Admitted.
 
   (* First-order terms. *)
   Inductive tm: ctx -> sig.(sig_sorts) -> Type :=
@@ -118,14 +120,16 @@ Section FOL.
         valu c ->
         valu (CSnoc c s).
     Derive Signature NoConfusion Subterm for valu.
+    Next Obligation.
+    Admitted.
 
     Equations find {c s} (x: var c s) (v: valu c) : m.(mod_sorts) s :=
       { find (VHere _ _) (VSnoc _ _ val _) := val;
         find (VThere _ _ _ x') (VSnoc _ _ _ v') := find x' v' }.
-    Derive Signature NoConfusion Subterm for var.
     Derive NoConfusion Subterm for signature.
 
-    Fail Equations interp_fm (c: ctx) (v: valu c) (f: fm c) : Prop :=
+    Equations interp_fm (c: ctx) (v: valu c) (f: fm c) : Prop
+      by struct f :=
       { interp_fm _ v (FRel c typs rel args) :=
           m.(mod_rels) typs rel (interp_tms c v _ args);
         interp_fm _ v (FNeg _ f) :=
@@ -137,15 +141,16 @@ Section FOL.
         interp_fm _ v (FForall c s f) :=
           forall val: m.(mod_sorts) s,
             interp_fm (CSnoc c s) (VSnoc _ _ val v) f }
-    where interp_tm (c: ctx) (v: valu c) s (t: tm c s) : m.(mod_sorts) s :=
+    where interp_tm (c: ctx) (v: valu c) s (t: tm c s) : m.(mod_sorts) s
+      by struct t :=
       { interp_tm _ v _ (TVar c s x) :=
           find x v;
         interp_tm _ v _ (TFun c typs rets fn args) :=
           m.(mod_fns) typs rets fn (interp_tms _ v _ args) }
-    where interp_tms (c: ctx) (v: valu c) typs (args: tms c typs) : HList.t m.(mod_sorts) typs :=
-      {
-        interp_tms _ _ _ (TSNil _) := HList.HNil _;
+    where interp_tms (c: ctx) (v: valu c) typs (args: tms c typs) : HList.t m.(mod_sorts) typs
+      by struct args :=
+      { interp_tms _ _ _ (TSNil _) := HList.HNil _;
         interp_tms _ _ _ (TSCons _ _ _ tm args') :=
           @HList.HCons _ _ _ _ (interp_tm _ v _ tm) (interp_tms _ v _ args') }.
-
+  End Interp.
 End FOL.
