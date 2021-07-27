@@ -25,6 +25,19 @@ Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
   | S n => fun p => t2l A n (fst p) ++ [snd p]
   end x.
 
+Fixpoint n_tuple_app' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
+  match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
+  | 0 =>
+    fun _ => xs
+  | S m0 =>
+    fun '(ys, y) => (n_tuple_app' xs ys, y)
+  end ys.
+
+Definition n_tuple_app {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m).
+  rewrite Plus.plus_comm.
+  exact (n_tuple_app' xs ys).
+Defined.
+
 Lemma split_ex:
   forall A B (P: A * B -> Prop),
     (exists x: A, exists y: B, P (x, y)) <->
@@ -324,7 +337,6 @@ Section ConfRel.
 
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
     store_rel_eq_dec.
-  
 
   Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
     match r with
@@ -437,13 +449,21 @@ Section ConfRel.
   Definition crel :=
     list (conf_rel).
 
-
   Notation "⊤" := rel_true.
   Notation "x ⊓ y" := (relation_conjunction x y) (at level 40).
   Notation "⟦ x ⟧" := (interp_conf_rel x).
   Definition interp_crel i (rel: crel) : relation conf :=
     interp_rels i (List.map interp_conf_rel rel).
 
+  Record entailment :=
+    { e_prem: crel;
+      e_concl: conf_rel }.
+
+  Definition interp_entailment (i: relation conf) (e: entailment) :=
+    forall q1 q2,
+      interp_crel i e.(e_prem) q1 q2 ->
+      interp_conf_rel e.(e_concl) q1 q2.
 End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} {_} _.
 Arguments interp_crel {_} {_} {_} {_} {_} _.
+Arguments interp_entailment {_} {_} {_} {_} {_} _.

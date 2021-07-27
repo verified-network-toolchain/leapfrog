@@ -647,7 +647,7 @@ Module SynPreSynWP.
     Notation "⟦ x ⟧" := (interp_crel i x).
     Notation "⦇ x ⦈" := (interp_conf_rel (a:=a) x).
     Notation "R ⊨ q1 q2" := (⟦R⟧ q1 q2) (at level 40).
-    Notation "R ⊨ S" := (forall q1 q2, ⟦R⟧ q1 q2 -> ⦇S⦈ q1 q2) (at level 40).
+    Notation "R ⊨ S" := (interp_entailment i {| e_prem := R; e_concl := S |}) (at level 40).
     Notation δ := step.
 
     Reserved Notation "R ⇝ S" (at level 10).

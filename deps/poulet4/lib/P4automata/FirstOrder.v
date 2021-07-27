@@ -37,7 +37,7 @@ Record signature: Type :=
     sig_rels: arity sig_sorts -> Type }.
 
 Section FOL.
-  Parameter sig: signature.
+  Variable sig: signature.
 
   (* Variable context. *)
   Inductive ctx: Type :=
@@ -76,6 +76,10 @@ Section FOL.
       tms c (s :: typs)
   (* First-order formulas. *)
   with fm: ctx -> Type :=
+  | FEq: forall c s,
+      tm c s ->
+      tm c s ->
+      fm c
   | FRel:
       forall c args,
         sig.(sig_rels) args ->
@@ -95,6 +99,86 @@ Section FOL.
 
   Derive Signature NoConfusion Subterm for tm tms fm.
   Next Obligation.
+    destruct a.
+    pose (Ptm c s t := Acc tm_subterm {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := t|}).
+    pose (Ptms c s ts := Acc tms_subterm {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := ts|}).
+    pose (Pfm c f := Acc fm_subterm {| pr1 := c; pr2 := f|}).
+    pose proof (tm_tms_fm_rect Ptm Ptms Pfm).
+    apply H.
+    - subst Ptm.
+      intros.
+      simpl.
+      constructor.
+      intros.
+      assert (~ tm_subterm y {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := TVar c s v |}).
+      {
+        repeat match goal with H: _ |- _ => clear H end.
+        intro.
+        induction H; tauto.
+      }
+      tauto.
+    - subst Ptms Ptm.
+      simpl.
+      intros.
+      constructor; intros.
+      induction H1; tauto.
+    - subst Ptms Ptm.
+      simpl.
+      intros.
+      constructor.
+      intros.
+      assert (~ tms_subterm y {| pr1 := {| pr1 := c; pr2 := nil |}; pr2 := TSNil c |}).
+      {
+        repeat match goal with H: _ |- _ => clear H end.
+        intro.
+        remember ({| pr1 := {| pr1 := c; pr2 := nil |}; pr2 := TSNil c |}) as t.
+        revert Heqt.
+        induction H; intros; subst; simpl in *.
+        - inversion H.
+        - apply IHclos_trans2.
+          tauto.
+      }
+      tauto.
+    - subst Ptms Ptm.
+      simpl.
+      intros.
+      constructor; intros.
+      remember ({| pr1 := {| pr1 := c; pr2 := (s :: typs)%list |}; pr2 := TSCons c s typs t t0 |}) as t'.
+      revert Heqt'.
+      revert t t0 H0 H1.
+      induction H2.
+      + intros.
+        subst. 
+        simpl in *.
+        destruct x as [[c' s'] t'].
+        simpl in *.
+        assert (Hcs: c' = c /\ s' = typs).
+        {
+          inversion H0.
+          subst.
+          tauto.
+        }
+        destruct Hcs.
+        subst c' s'.
+        assert (t' = t0).
+        {
+          inversion H0.
+          subst.
+          repeat match goal with
+                 | H: ?X = ?X |- _ => clear H
+                 | H: existT _ _ _ = existT _ _ _ |- _ =>
+                   eapply Eqdep.EqdepTheory.inj_pair2 in H; subst
+                 end.
+          tauto.
+        }
+        subst t'.
+        auto.
+      + admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
   Next Obligation.
   Admitted.
@@ -132,6 +216,8 @@ Section FOL.
       by struct f :=
       { interp_fm _ v (FRel c typs rel args) :=
           m.(mod_rels) typs rel (interp_tms c v _ args);
+        interp_fm _ v (FEq c s t1 t2) :=
+          interp_tm c v s t1 = interp_tm c v s t2;
         interp_fm _ v (FNeg _ f) :=
           ~ interp_fm _ v f;
         interp_fm _ v (FOr _ f1 f2) :=

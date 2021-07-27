@@ -371,7 +371,7 @@ Ltac prove_sat :=
   unfold interp_conf_rel;
   unfold interp_conf_state, interp_state_template;
   simpl;
-  sauto limit:5000.
+  sauto.
 
 Ltac skip_bisim a wp i R C :=
   let H := fresh "H" in
