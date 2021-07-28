@@ -15,6 +15,7 @@ Module HList.
         t rest ->
         t (a :: rest).
   End HList.
+  Derive NoConfusion Signature for t.
 
   Fixpoint mapl {A B} (f: forall a: A, B a) (l: list A): HList.t B l :=
     match l with
