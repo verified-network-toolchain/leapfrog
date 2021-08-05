@@ -728,32 +728,30 @@ Module SynPreSynWP.
     Notation bfalse := (BRFalse _ _).
     Notation "a ⇒ b" := (BRImpl a b) (at level 40).
 
-    Definition reachable_pair_to_partition '((s1, s2): Reachability.state_pair _ _)
-      : crel (S1 + S2) H :=
-      match s1.(st_state) with
-      | inl st =>
-        [BCEmp, ⟨inl st, s1.(st_buf_len)⟩ ⟨inr true, 0⟩ ⊢ bfalse]
-      | inr st =>
-        []
-      end
-        ++
-        match s2.(st_state) with
-        | inl st =>
-          [BCEmp, ⟨inr true, 0⟩ ⟨inl st, s2.(st_buf_len)⟩ ⊢ bfalse]
-        | inr st =>
-          []
-        end.
+    Definition not_equally_accepting (s: Reachability.state_pair S1 S2) : bool :=
+      let '(s1, s2) := s in
+      match s1.(st_state), s2.(st_state) with
+      | inr true, inr true => false
+      | inr true, _ => true
+      | _, inr true => true
+      | _, _ => false
+      end.
 
-    Definition reachable_pairs_to_partition (r: Reachability.state_pairs _ _)
+    Definition mk_rel '((s1, s2): Reachability.state_pair S1 S2)
+      : conf_rel (S1 + S2) H :=
+      {| cr_st := {| cs_st1 := s1;
+                     cs_st2 := s2 |};
+         cr_ctx := BCEmp;
+         cr_rel := bfalse |}.
+
+    Definition mk_partition (r: Reachability.state_pairs _ _)
       : crel (S1 + S2) H :=
-      List.concat (List.map reachable_pair_to_partition r).
+      List.map mk_rel (List.filter not_equally_accepting r).
 
     Definition mk_init (n: nat) s1 s2 :=
-      let s := ({| st_state := inl (inl s1); st_buf_len := 0 |}, 
-                {| st_state := inl (inr s2); st_buf_len := 0 |}) in
       List.nodup (@conf_rel_eq_dec _ _ _ _ _ _)
-                 (reachable_pairs_to_partition
-                    (Reachability.reachable_states a n [s])).
+                 (mk_partition
+                    (Reachability.reachable_states a n s1 s2)).
 
     Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
       match x with
@@ -766,14 +764,6 @@ Module SynPreSynWP.
        (exists y, fst (fst q1) = inr y)) /\
       ((exists x, fst (fst q2) = inl (inr x)) \/
        (exists y, fst (fst q2) = inr y)).
-
-    Definition reachable n s1 s2 (q1 q2: conf) : Prop :=
-      let s := ({| st_state := inl (inl s1); st_buf_len := 0 |}, 
-                {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-      List.Exists (fun '(t1, t2) =>
-                     interp_state_template t1 q1 /\
-                     interp_state_template t2 q2)
-                  (Reachability.reachable_states a n [s]).
 
     Definition topbdd (C: rel conf) : Prop :=
       forall q1 q2,

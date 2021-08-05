@@ -90,10 +90,21 @@ Section ReachablePairs.
     let r' := (List.concat (List.map reachable_pair_step r)) in
     List.nodup state_pair_eq_dec (r' ++ r).
 
-  Fixpoint reachable_states (fuel: nat) (r: state_pairs) :=
+  Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
     match fuel with
     | 0 => r
-    | Datatypes.S fuel => reachable_states fuel (reachable_step r)
+    | Datatypes.S fuel => reachable_states' fuel (reachable_step r)
     end.
+
+  Definition reachable_states n s1 s2 : state_pairs :=
+    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |}, 
+              {| st_state := inl (inr s2); st_buf_len := 0 |}) in
+    reachable_states' n [s].
+
+  Definition reachable_pair rs (q1 q2: conf) : Prop :=
+    List.Exists (fun '(t1, t2) =>
+                   interp_state_template t1 q1 /\
+                   interp_state_template t2 q2)
+                rs.
 
 End ReachablePairs.

@@ -27,6 +27,7 @@ Section WeakestPreSymbolicLeap.
   Context `{H_eq_dec: EquivDec.EqDec H eq}.
   Context `{H_finite: @Finite H _ H_eq_dec}.
 
+  Variable (reachable_states: list (state_template S * state_template S)).
   Variable (a: P4A.t S H).
 
   Definition lpred c : Type :=
@@ -116,7 +117,6 @@ Section WeakestPreSymbolicLeap.
     else false.
 
   Definition wp
-             (reachable_states: list (state_template S * state_template S))
              (phi: conf_rel S H)
     : list (conf_rel S H) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
