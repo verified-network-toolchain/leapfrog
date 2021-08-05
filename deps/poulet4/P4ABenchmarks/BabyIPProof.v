@@ -38,7 +38,7 @@ Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states BabyIP.aut 20 BabyIP1.Start BabyIP2.Start).
+  Eval vm_compute in (Reachability.reachable_states BabyIP.aut 200 BabyIP1.Start BabyIP2.Start).
 
 Ltac extend_bisim' :=
   match goal with
@@ -55,6 +55,7 @@ Ltac extend_bisim' :=
            match goal with |- ?G => idtac "admitting" G end; admit
          );
          pose (t := wp a C);
+         idtac C;
          eapply PreBisimulationExtend with (H0 := right H) (W := t);
          [ tauto | reflexivity |];
          compute in t;
@@ -93,9 +94,6 @@ Proof.
   extend_bisim'.
   extend_bisim'.
   extend_bisim'.
-  apply PreBisimulationClose.
-  unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template.
-  vm_compute.
-  sauto.
+  extend_bisim'.
+  extend_bisim'.
 Admitted.
-
