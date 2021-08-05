@@ -9,7 +9,7 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Lemma prebisim_incremental_sep:
   pre_bisimulation IncrementalSeparate.aut
                    (WPSymLeap.wp (H:=IncrementalSeparate.header))
-                   (separated _ _ _ IncrementalSeparate.aut)
+                   (reachable _ _ _ IncrementalSeparate.aut 10 IncrementalBits.Start BigBits.Parse)
                    nil
                    (mk_init 10 IncrementalSeparate.aut IncrementalBits.Start BigBits.Parse)
                    (inl (inl IncrementalBits.Start), [], [])
@@ -18,13 +18,47 @@ Proof.
   set (r := (mk_init 10 IncrementalSeparate.aut IncrementalBits.Start BigBits.Parse)).
   cbv in r.
   subst r.
-  repeat match goal with
-         | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-           extend_bisim a wp i R C;
-             idtac "Entailment does not hold:";
-             let g := constr:(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                          interp_crel i R q1 q2 -> interp_conf_rel C q1 q2) in
-             idtac g
+  match goal with
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+    let H := fresh "H" in
+    assert
+      (H :
+         ~
+           (forall q1 q2 : P4automaton.configuration (P4A.interp a),
+               interp_crel i R q1 q2 -> interp_conf_rel C q1 q2))
+  end.
+  
+  set (a:=IncrementalSeparate.aut).
+  set (i:=(reachable IncrementalBits.state BigBits.state
+        (Sum.H IncrementalBits.header BigBits.header) A 10 IncrementalBits.Start
+        BigBits.Parse)) in *.
+  rewrite (filter_entails (a:=a)) by typeclasses eauto.
+  simpl.
+  rewrite (no_state) by typeclasses eauto.
+  repeat
+    unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel
+     || cbn; eapply forall_exists; repeat (setoid_rewrite  <- split_univ; cbn).
+  repeat (setoid_rewrite  <- split_ex; cbn).
+  unfold not.
+  eexists.
+  eexists.
+  exact tt.
+  intros.
+  eapply H.
+  exact tt.
+  cbv.
+
+  break_store.
+  sauto.
+  solve [ sauto | unfold not; now break_store ].
+
+
+  ; pose (t := wp a C);
+    eapply PreBisimulationExtend with (H0 := right H) (W := t);
+      [ tauto | reflexivity |  ]; compute in t; simpl (_ ++ _); 
+        unfold t; clear t; clear H
+  end.
+  
          | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
            skip_bisim a wp i R C;
              idtac "Entailment holds:";

@@ -80,13 +80,6 @@ Section BisimChecker.
     : crel (S1 + S2) H :=
     List.concat (List.map reachable_pair_to_partition r).
 
-  Definition mk_init (n: nat) (a: P4A.t (S1 + S2) H) s1 s2 :=
-    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |}, 
-              {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _)
-               (reachable_pairs_to_partition
-                  (Reachability.reachable_states a n [s])).
-
   Lemma no_state:
     forall (a: P4A.t S H) i R (S: conf_rel S H),
       (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel i R q1 q2),

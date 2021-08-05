@@ -2,6 +2,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Classes.EquivDec.
 Require Import Poulet4.FinType.
 Require Poulet4.P4automata.Syntax.
+Require Poulet4.P4automata.Reachability.
 Module P4A := Poulet4.P4automata.Syntax.
 Require Import Poulet4.P4automata.PreBisimulationSyntax.
 Require Poulet4.P4automata.WP.
@@ -105,12 +106,25 @@ Section WeakestPreSymbolicLeap.
                     cs_st2 := st_lpred sr |};
         cr_rel := wp_lpred Left b sl (wp_lpred Right b sr phi_rel) |}].
 
-  Definition wp (phi: conf_rel S H) : list (conf_rel S H) :=
+  Definition reachable_conf_rel
+             (reachable_states: list (state_template S * state_template S))
+             (c: conf_rel S H) : bool :=
+    if List.In_dec (@Reachability.state_pair_eq_dec S1 _ _ S2 _ _)
+                   (c.(cr_st).(cs_st1), c.(cr_st).(cs_st2))
+                   reachable_states
+    then true
+    else false.
+
+  Definition wp
+             (reachable_states: list (state_template S * state_template S))
+             (phi: conf_rel S H)
+    : list (conf_rel S H) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in
     let pred_pairs := list_prod (max_preds Left (List.map (fun s => inl (inl s)) (enum S1)) cur_st_left)
                                 (max_preds Right (List.map (fun s => inl (inr s)) (enum S2)) cur_st_right) in
-    List.concat (List.map (wp_pred_pair phi) pred_pairs).
+    let candidates := List.concat (List.map (wp_pred_pair phi) pred_pairs) in
+    List.filter (reachable_conf_rel reachable_states) candidates.
 
 End WeakestPreSymbolicLeap.
 

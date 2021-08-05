@@ -4,9 +4,6 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.PreBisimulationSyntax.
-Require Poulet4.P4automata.WP.
-Require Poulet4.P4automata.WPSymBit.
-Require Poulet4.P4automata.WPSymLeap.
 
 Import List.ListNotations.
 
@@ -62,28 +59,32 @@ Section ReachablePairs.
       default :: List.map (fun c => P4A.sc_st c) cases
     end.
 
-  Definition reads_left (s: S) (buf_len: nat) :=
-    P4A.size a s - buf_len.
+  Definition reads_left (s: P4A.state_ref S) (buf_len: nat) :=
+    match s with
+    | inl s => P4A.size a s - buf_len
+    | inr b => 1
+    end.
 
-  Definition advance (steps: nat) (t1: state_template S) (st: P4A.state S H) :=
-    if t1.(st_buf_len) + steps == P4A.state_size st
-    then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states st)
-    else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + steps |}].
+  Definition advance (steps: nat) (t1: state_template S) (s: P4A.state_ref S) :=
+    match s with
+    | inl s =>
+      let st := P4A.t_states a s in
+      if t1.(st_buf_len) + steps == P4A.state_size st
+      then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states st)
+      else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + steps |}]
+    | inr b => [{| st_state := inr false; st_buf_len := 0 |}]
+    end.
 
   Definition reachable_pair_step (r0: state_pair) : state_pairs :=
     let '(t1, t2) := r0 in
-    match t1.(st_state), t2.(st_state) with
-    | inl s1, inl s2 => 
-      let st1 := P4A.t_states a s1 in
-      let st2 := P4A.t_states a s2 in
-      let len1 := t1.(st_buf_len) in
-      let len2 := t2.(st_buf_len) in
-      let steps := Nat.min (reads_left s1 len1)
-                           (reads_left s2 len2) in
-      List.list_prod (advance steps t1 st1)
-                     (advance steps t2 st2)
-    | _, _ => [] (* is this right? *)
-    end.
+    let s1 := t1.(st_state) in
+    let s2 := t2.(st_state) in
+    let len1 := t1.(st_buf_len) in
+    let len2 := t2.(st_buf_len) in
+    let steps := Nat.min (reads_left s1 len1)
+                         (reads_left s2 len2) in
+    List.list_prod (advance steps t1 s1)
+                   (advance steps t2 s2).
   
   Definition reachable_step (r: state_pairs) : state_pairs :=
     let r' := (List.concat (List.map reachable_pair_step r)) in
