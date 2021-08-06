@@ -470,6 +470,43 @@ Module SemPre.
         firstorder.
     Qed.
 
+    Lemma fold_right_conj:
+      forall A (r: rel A) (R: list (rel A)) x y,
+        fold_right relation_conjunction r R x y <->
+        r x y /\ fold_right relation_conjunction rel_true R x y.
+    Proof.
+      induction R; intros; simpl.
+      - unfold rel_true.
+        tauto.
+      - split; cbn; intuition.
+    Qed.
+
+    Lemma interp_rels_app:
+      forall R S x y,
+        ⟦R ++ S⟧ x y <->
+        ⟦R⟧ x y /\
+        ⟦S⟧ x y.
+    Proof.
+      intros.
+      split; intros.
+      - assert (top x y) by (apply fold_right_conj in H; tauto).
+        split.
+        + apply in_interp_rels; auto.
+          intros.
+          eapply interp_rels_in; eauto with datatypes.
+        + apply in_interp_rels; auto.
+          intros.
+          eapply interp_rels_in; eauto with datatypes.
+      - destruct H.
+        assert (top x y) by (apply fold_right_conj in H; tauto).
+        apply in_interp_rels; auto.
+        intros.
+        apply in_app_or in H2;
+          destruct H2;
+          eapply interp_rels_in in H2;
+          eauto with datatypes.
+    Qed.
+
     Lemma sem_pre_implies_sem_bisim' :
       forall R T,
         (forall q1 q2, ⟦R ++ T⟧ q1 q2 -> accepting q1 <-> accepting q2) ->
@@ -496,72 +533,34 @@ Module SemPre.
       - apply IHpre_bisimulation.
         + intros.
           apply H.
-          eapply in_interp_rels; eauto using interp_rels_top.
-          intros.
-          (*
-          apply in_app_or in H4.
-          destruct H4.
-          * eapply interp_rels_in in H3; eauto with datatypes.
-          * destruct H4; subst.
-            -- eapply H1.
-               eauto using interp_rels_mono, interp_rels_i with datatypes.
-            -- eapply interp_rels_in in H3; eauto with datatypes.
+          rewrite interp_rels_app in *.
+          cbn.
+          intuition.
+          destruct H1; simpl in H2; [|contradiction].
+          auto.
         + intros.
           apply H0.
-          eapply in_interp_rels; eauto using interp_rels_i.
-          intros.
-          apply in_app_or in H4.
-          destruct H4.
-          * eapply interp_rels_in in H3; eauto with datatypes.
-          * destruct H4; subst.
-            -- eapply H1.
-               eauto using interp_rels_mono, interp_rels_i with datatypes.
-            -- eapply interp_rels_in in H3; eauto with datatypes.
+          rewrite interp_rels_app in *.
+          cbn.
+          intuition.
+          destruct H1; simpl in H2; [|contradiction].
+          auto.
       - apply IHpre_bisimulation.
         + intros.
           apply H.
-          apply in_interp_rels; eauto using interp_rels_i.
-          intros ? ?.
-          eapply interp_rels_in in H3; eauto with datatypes.
-          rewrite in_app_iff in H4.
-          destruct H4.
-          * apply in_app_iff.
-            left.
-            right.
-            apply H4.
-          * destruct H4.
-            -- subst.
-               apply in_app_iff.
-               left.
-               left.
-               reflexivity.
-            -- apply in_app_iff.
-               right.
-               apply in_app_iff.
-               right.
-               apply H4.
+          rewrite !interp_rels_app in *.
+          cbn in *.
+          intuition.
         + intros.
-          eapply in_interp_rels;
-            eauto using i_closed, interp_rels_i.
-          intros ? ?.
-          destruct H4.
-          * subst.
-            apply H2.
-            eapply in_interp_rels;
-              eauto using i_closed, interp_rels_i.
-            intros ? ?.
-            eapply interp_rels_in in H3; eauto with datatypes.
-          * eapply interp_rels_in; try eassumption.
-            eapply H0; auto.
-            eapply in_interp_rels;
-              eauto using i_closed, interp_rels_i.
-            intros ? ?.
-            eapply interp_rels_in in H3; eauto.
-            apply in_app_iff in H5.
-            destruct H5; eauto with datatypes.
-            destruct H5; subst; eauto with datatypes.
-           *)
-    Admitted.
+          rewrite !interp_rels_app in *.
+          simpl.
+          cbn.
+          intuition.
+          eapply H0.
+          rewrite !interp_rels_app in *.
+          cbn in *.
+          intuition.
+    Qed.
 
     Lemma sem_pre_implies_sem_bisim :
       forall T,
