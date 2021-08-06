@@ -90,11 +90,6 @@ Proof.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
-  repeat solve_bisim.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
   extend_bisim'.
   extend_bisim'.
 Admitted.
