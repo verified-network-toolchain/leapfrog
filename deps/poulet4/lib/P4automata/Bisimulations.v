@@ -1444,8 +1444,7 @@ Module SynPreSynWP1bit.
       simpl (PreBisimulationSyntax.cr_st _) in *.
       simpl (PreBisimulationSyntax.cr_ctx _) in *.
       simpl (PreBisimulationSyntax.cr_rel _) in *.
-      admit.
-      (* destruct H2 as [[? ?] [? ?]].
+      destruct H2 as [? [? [? [? [? ?]]]]].
       subst.
       unfold step; cbn.
       simpl in *.
@@ -1457,11 +1456,11 @@ Module SynPreSynWP1bit.
       destruct vs as [vs | vs], us as [us | us]; simpl.
       simpl in * |-.
       destruct (equiv_dec (S (length ubuf)) (P4A.size a us)),
-               (equiv_dec (S (length vbuf)) (P4A.size a vs)). *)
-      (* - admit.
+               (equiv_dec (S (length vbuf)) (P4A.size a vs)).
       - admit.
       - admit.
-      - admit. *)
+      - admit.
+      - admit.
     Admitted.
 
     Lemma be_subst_buf_left:
@@ -1499,6 +1498,8 @@ Module SynPreSynWP1bit.
       - simpl.
         eauto.
       - simpl.
+        rewrite beslice_interp.
+        simpl.
         admit.
       - simpl.
         erewrite IHphi1, IHphi2; auto.
@@ -1563,13 +1564,12 @@ Module SynPreSynWP1bit.
            interp_bit_expr exp valu (s1, st1, buf1) c2)
           c2.
     Proof.
-      (*
-      induction phi; simpl in *; try tauto; intuition eauto;
-        try solve [erewrite <- !be_subst_buf_left in *;
+      induction phi; simpl in *; try tauto; split; intros;
+        rewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
+        try solve [erewrite <- ?be_subst_buf_left in *;
                    eauto
-                  |intuition].
-       *)
-    Admitted.
+                  |simpl in *; intuition].
+    Qed.
 
     Lemma sr_subst_buf_right:
       forall c (valu: bval c) exp phi c1 s2 st2 buf2,
@@ -1588,13 +1588,12 @@ Module SynPreSynWP1bit.
            st2,
            interp_bit_expr exp valu c1 (s2, st2, buf2)).
     Proof.
-      (*
-      induction phi; simpl in *; try tauto; intuition eauto;
-        try solve [erewrite <- !be_subst_buf_right in *;
+      induction phi; simpl in *; try tauto; split; intros;
+        rewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
+        try solve [erewrite <- ?be_subst_buf_right in *;
                    eauto
-                  |intuition].
-       *)
-    Admitted.
+                  |simpl in *; intuition].
+    Qed.
 
     Lemma interp_bit_expr_ignores_state:
       forall {c} (e: bit_expr H c) valu s1 st1 buf1 s2 st2 buf2 s1' s2',
