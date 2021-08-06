@@ -159,7 +159,7 @@ Section ConfRel.
   Definition beslice {c} (be: bit_expr c) (hi lo: nat) := 
     match be with 
     | BELit l => BELit (P4A.slice l hi lo)
-    | BESlice x hi' lo' => BESlice x (hi' - hi) (lo' + lo)
+    | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
     | _ => BESlice be hi lo
     end.
 
@@ -168,7 +168,6 @@ Section ConfRel.
     | BELit l, BELit r => BELit (l ++ r)
     | _, _ => BEConcat l r
     end.
-  
 
   Fixpoint weaken_bit_expr {c} (size: nat) (b: bit_expr c) : bit_expr (BCSnoc c size) :=
     match b with
@@ -297,7 +296,6 @@ Section ConfRel.
         | _ => BRImpl l r
         end
       end.
-  
 
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;

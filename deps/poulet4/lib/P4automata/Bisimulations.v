@@ -839,31 +839,29 @@ Module SynPreSynWP.
         constructor.
         eauto.
       - simpl.
-        (*
-        constructor 2; eauto.
+        intros.
+        econstructor 2; eauto.
         eapply IHHstep; eauto.
-        unfold cibdd; intros.
+        unfold ctopbdd; intros.
         eauto with datatypes.
       - rewrite map_app in IHHstep.
         subst.
         intros.
-        econstructor 3.
+        econstructor 3; eauto.
         eapply IHHstep; eauto.
-        + unfold cibdd in *.
+        + unfold ctopbdd in *.
           intros.
           simpl (In _ _) in *.
           intuition.
-        + eapply cibdd_app.
-          * eapply H3.
-            eapply H1.
+        + eapply ctopbdd_app.
+          * eapply H5.
+            eapply H3.
             eauto with datatypes.
-          * unfold cibdd in *; simpl (In _ _ ) in *; eauto.
+          * unfold ctopbdd in *; simpl (In _ _ ) in *; eauto.
         + intros.
-          eapply H2; eauto.
-          eapply SemPre.interp_rels_i; eauto.
+          eapply H4; eauto.
+          eapply SemPre.interp_rels_top; eauto.
     Qed.
-*)
-    Admitted.
 
   End SynPreSynWP.
   Arguments pre_bisimulation {S1 S2 H equiv2 H_eq_dec} a wp.
@@ -894,6 +892,75 @@ Module SynPreSynWP1bit.
       SynPreSynWP.wp_bdd S1 S2 H a (WP.wp (H:=H)) top.
     Proof.
     Admitted.
+
+    Lemma skipn_skipn:
+      forall A (x: list A) n m,
+        skipn n (skipn m x) = skipn (n + m) x.
+    Proof.
+      induction x; intros.
+      - rewrite !skipn_nil.
+        reflexivity.
+      - destruct m.
+        + simpl.
+          rewrite <- plus_n_O.
+          reflexivity.
+        + rewrite <- plus_n_Sm.
+          simpl.
+          apply IHx.
+    Qed.
+
+    Lemma firstn_firstn:
+      forall A (x: list A) n m,
+        firstn n (firstn m x) = firstn (min n m) x.
+    Proof.
+      induction x; intros.
+      - rewrite !firstn_nil.
+        reflexivity.
+      - destruct m.
+        + rewrite Min.min_0_r.
+          rewrite firstn_nil.
+          reflexivity.
+        + simpl.
+          destruct n; [reflexivity|].
+          simpl.
+          rewrite IHx.
+          reflexivity.
+    Qed.
+
+    Lemma slice_slice:
+      forall A (x: list A) hi lo hi' lo',
+        P4A.slice (P4A.slice x hi lo) hi' lo' = 
+        P4A.slice x (Nat.min (lo + hi') hi) (lo + lo').
+    Proof.
+      intros.
+      unfold P4A.slice.
+      rewrite firstn_skipn_comm.
+      rewrite skipn_skipn.
+      rewrite PeanoNat.Nat.add_comm.
+      rewrite firstn_firstn.
+      replace (Nat.min (lo + (1 + hi')) (1 + hi))
+        with (1 + Nat.min (lo + hi') hi)
+        by Lia.lia.
+      reflexivity.
+    Qed.
+
+    Lemma beslice_interp:
+      forall ctx (e: bit_expr H ctx) hi lo valu (q1 q2: conf),
+        interp_bit_expr (beslice e hi lo) valu q1 q2 =
+        interp_bit_expr (BESlice e hi lo) valu q1 q2.
+    Proof.
+      induction e; intros; simpl; auto.
+      rewrite slice_slice.
+      reflexivity.
+    Qed.
+
+    Lemma beconcat_interp:
+      forall ctx (e1 e2: bit_expr H ctx) valu (q1 q2: conf),
+        interp_bit_expr (beconcat e1 e2) valu q1 q2 =
+        interp_bit_expr (BEConcat e1 e2) valu q1 q2.
+    Proof.
+      induction e1; destruct e2; intros; simpl; auto.
+    Qed.
 
     Lemma be_subst_hdr_left:
       forall c (valu: bval c) hdr exp phi s1 st1 buf1 c2 v,
@@ -929,12 +996,13 @@ Module SynPreSynWP1bit.
             congruence.
       - reflexivity.
       - simpl.
-        admit.
-        (* rewrite IHphi; eauto. *)
-        (* admit. *)
+        rewrite IHphi; eauto.
+        rewrite beslice_interp.
+        reflexivity.
       - simpl.
+        rewrite beconcat_interp.
         rewrite IHphi1, IHphi2; auto.
-    Admitted.
+    Qed.
 
     Lemma be_subst_hdr_right:
       forall c (valu: bval c) hdr exp phi s2 st2 buf2 c1 v,
@@ -971,12 +1039,40 @@ Module SynPreSynWP1bit.
             congruence.
       - reflexivity.
       - simpl.
-        admit.
-        (* rewrite IHphi; eauto. *)
-        (* admit. *)
+        rewrite IHphi; eauto.
+        rewrite beslice_interp.
+        reflexivity.
       - simpl.
+        rewrite beconcat_interp.
         rewrite IHphi1, IHphi2; auto.
-    Admitted.
+    Qed.
+
+    Lemma brand_interp:
+      forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
+        interp_store_rel (a:=a) (brand r1 r2) valu q1 q2 <->
+        interp_store_rel (a:=a) (BRAnd r1 r2) valu q1 q2.
+    Proof.
+      intros.
+      destruct r1, r2; simpl; tauto.
+    Qed.
+
+    Lemma bror_interp:
+      forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
+        interp_store_rel (a:=a) (bror r1 r2) valu q1 q2 <->
+        interp_store_rel (a:=a) (BROr r1 r2) valu q1 q2.
+    Proof.
+      intros.
+      destruct r1, r2; simpl; tauto.
+    Qed.
+
+    Lemma brimpl_interp:
+      forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
+        interp_store_rel (a:=a) (brimpl r1 r2) valu q1 q2 <->
+        interp_store_rel (a:=a) (BRImpl r1 r2) valu q1 q2.
+    Proof.
+      intros.
+      destruct r1, r2; simpl; tauto.
+    Qed.
 
     Lemma sr_subst_hdr_left:
       forall c (valu: bval c) hdr exp phi s1 st1 buf1 c2,
@@ -997,27 +1093,20 @@ Module SynPreSynWP1bit.
            buf1)
           c2.
     Proof.
-      unfold bror in *;
-      unfold brand in *;
       induction phi; 
-        
         simpl in *;
-        unfold bror in *;
-        unfold brand in *;
+        erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         repeat match goal with
-        | |- forall _, _ => intro
-        | |- _ /\ _ => split
-        | |- _ <-> _ => split
-        | H: _ /\ _ |- _ => destruct H
-        | H: _ <-> _ |- _ => destruct H
-        end;
-          auto with *;
-          unfold bror in *;
-          unfold brand in *;
-          try solve [erewrite !be_subst_hdr_left in *; eauto
-                    |tauto
-                    |intuition].
-    Admitted.
+               | |- forall _, _ => intro
+               | |- _ /\ _ => split
+               | |- _ <-> _ => split
+               | H: _ /\ _ |- _ => destruct H
+               | H: _ <-> _ |- _ => destruct H
+               end;
+        try erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
+        simpl in *;
+        try solve [erewrite !be_subst_hdr_left in *; eauto|intuition].
+    Qed.
 
     Lemma sr_subst_hdr_right:
       forall c (valu: bval c) hdr exp phi c1 s2 st2 buf2,
@@ -1039,19 +1128,20 @@ Module SynPreSynWP1bit.
                       st2,
            buf2).
     Proof.
-      induction phi; simpl in *;
+      induction phi; 
+        simpl in *;
+        erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         repeat match goal with
-        | |- forall _, _ => intro
-        | |- _ /\ _ => split
-        | |- _ <-> _ => split
-        | H: _ /\ _ |- _ => destruct H
-        | H: _ <-> _ |- _ => destruct H
-        end;
-          auto with *;
-          try solve [erewrite !be_subst_hdr_right in *; eauto
-                    |tauto
-                    |intuition].
-    Admitted.
+               | |- forall _, _ => intro
+               | |- _ /\ _ => split
+               | |- _ <-> _ => split
+               | H: _ /\ _ |- _ => destruct H
+               | H: _ <-> _ |- _ => destruct H
+               end;
+        try erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
+        simpl in *;
+        try solve [erewrite !be_subst_hdr_right in *; eauto|intuition].
+    Qed.
 
     Lemma wp_op'_size:
       forall (c: bctx) si o n phi m phi',
@@ -1097,24 +1187,6 @@ Module SynPreSynWP1bit.
       | H: context [match ?x with _ => _ end] |- _ =>
         destruct x eqn:?
       end.
-
-    Lemma skipn_skipn:
-      forall A (l: list A) m n,
-        skipn n (skipn m l) = skipn (n + m) l.
-    Proof.
-      induction l; intros.
-      - rewrite !skipn_nil.
-        reflexivity.
-      - destruct m.
-        + simpl.
-          rewrite <- plus_n_O.
-          reflexivity.
-        + rewrite skipn_cons.
-          replace (n + S m) with (S (n + m))
-            by eauto with *.
-          rewrite skipn_cons.
-          eauto.
-    Qed.
 
     Lemma wp_op'_mono:
       forall (c: bctx) si o n phi,
