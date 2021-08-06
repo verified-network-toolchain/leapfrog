@@ -17,7 +17,7 @@ Definition configuration (a: p4automaton) : Type :=
   (states a + bool) * store a * list bool
 .
 
-Definition size' {a: p4automaton} (s: a.(states) + bool) : nat :=
+Definition size' (a: p4automaton) (s: a.(states) + bool) : nat :=
   match s with
   | inl s => a.(size) s
   | inr _ => 1
@@ -31,7 +31,7 @@ Definition step
 :=
   let '(state, st, buf) := c in
   let buf' := buf ++ b :: nil in
-  if length buf' == size' state
+  if length buf' == size' a state
   then
     match state with
     | inl state =>

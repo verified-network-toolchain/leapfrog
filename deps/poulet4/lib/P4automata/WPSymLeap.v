@@ -30,109 +30,90 @@ Section WeakestPreSymbolicLeap.
   Variable (reachable_states: list (state_template S * state_template S)).
   Variable (a: P4A.t S H).
 
-  Definition lpred c : Type :=
-    nat * WP.pred S1 S2 H c.
+  Inductive lkind :=
+  | Jump
+  | Read.
 
-  Definition jump_pred
+  Definition leap_kind (pred cur: state_template S) : lkind :=
+    match cur.(st_buf_len) with
+    | 0 => Jump
+    | _ => Read
+    end.
+
+  Definition jump_cond
              {c}
              (si: side)
-             (s: state_template S)
-             (candidate: P4A.state_ref S)
-    : lpred c :=
-    match candidate with
+             (prev cur: state_template S)
+    : store_rel H c :=
+    match prev.(st_state) with
     | inl cand => 
       let st := a.(P4A.t_states) cand in
-      (P4A.size a cand,
-       WP.PredJump (WP.trans_cond si (P4A.st_trans st) s.(st_state)) candidate)
+      WP.trans_cond si (P4A.st_trans st) cur.(st_state)
     | inr cand =>
-      (1, WP.PredJump (match s.(st_state) with
-                       | inr false => BRTrue _ _
-                       | _ => BRFalse _ _
-                       end)
-                      candidate)
+      match cur.(st_state) with
+      | inr false => BRTrue _ _
+      | _ => BRFalse _ _
+      end
     end.
 
-  Definition weaken_lpred {c} (size: nat) (p: lpred c) : lpred (BCSnoc c size) :=
-    (fst p, WP.weaken_pred size (snd p)).
-
-  Definition max_preds
-             {c}
+  Definition wp_lpred {c: bctx}
              (si: side)
-             (candidates: list (P4A.state_ref S))
-             (s: state_template S)
-    : list (lpred c) :=
-    if s.(st_buf_len) == 0
-    then List.map (jump_pred si s) candidates
-    else [(s.(st_buf_len),
-           WP.PredRead _ _ {| st_state := s.(st_state); st_buf_len := 0 |})].
-
-  Definition modify_pred {c} (max: nat) (pred: lpred c) : lpred c :=
-    (max, 
-     match snd pred with
-     | WP.PredJump phi s => WP.PredJump phi s
-     | WP.PredRead _ _ s => WP.PredRead _ c {| st_state := s.(st_state);
-                                               st_buf_len := fst pred - max |}
-     end).
-
-  Definition wp_lpred {c: bctx} (si: side) (b: bit_expr H c) (p: lpred c) (phi: store_rel H c) : store_rel H c :=
+             (b: bit_expr H c)
+             (prev cur: state_template S)
+             (k: lkind)
+             (phi: store_rel H c)
+    : store_rel H c :=
     let phi' := WP.sr_subst phi (beconcat (BEBuf _ _ si) b) (BEBuf _ _ si) in
-    match snd p with
-    | WP.PredRead _ _ s =>
+    match k with
+    | Read =>
       phi'
-    | WP.PredJump cond s =>
-      WP.sr_subst match s with
-                  | inl s =>
-                    brimpl cond (WP.wp_op si (a.(P4A.t_states) s).(P4A.st_op) phi')
-                  | inr s =>
-                    phi'
-                  end
-                  (BELit _ _ [])
-                  (BEBuf _ _ si)
+    | Jump =>
+      WP.sr_subst
+        match prev.(st_state) with
+        | inl s =>
+          let cond := jump_cond si prev cur in
+          brimpl cond (WP.wp_op si (a.(P4A.t_states) s).(P4A.st_op) phi')
+        | inr s =>
+          phi'
+        end
+        (BELit _ _ [])
+        (BEBuf _ _ si)
     end.
-
-  Definition st_lpred {c} (p: lpred c) :=
-    WP.st_pred a (snd p).
 
   Definition wp_pred_pair
              (phi: conf_rel S H)
-             (preds: lpred phi.(cr_ctx) * lpred phi.(cr_ctx))
+             (preds: nat * (state_template S * state_template S))
     : list (conf_rel S H) :=
-    let '(sl, sr) := preds in
-    let size := Nat.min (fst sl) (fst sr) in
-    let sl := weaken_lpred size (modify_pred size sl) in
-    let sr := weaken_lpred size (modify_pred size sr) in
-    let phi_rel := weaken_store_rel size phi.(cr_rel) in
+    let '(size, (prev_l, prev_r)) := preds in
+    let phi_rel := phi.(cr_rel) in
+    let cur_l := phi.(cr_st).(cs_st1) in
+    let cur_r := phi.(cr_st).(cs_st2) in
+    let leap_l := leap_kind prev_l cur_l in
+    let leap_r := leap_kind prev_r cur_r in
     let b := (BEVar H (BVarTop phi.(cr_ctx) size)) in
-    [{| cr_st := {| cs_st1 := st_lpred sl;
-                    cs_st2 := st_lpred sr |};
-        cr_rel := wp_lpred Left b sl (wp_lpred Right b sr phi_rel) |}].
+    let phi_rel := weaken_store_rel size phi_rel in
+    [{| cr_st := {| cs_st1 := prev_l;
+                    cs_st2 := prev_r |};
+        cr_rel := wp_lpred Left b prev_l cur_l leap_l
+                           (wp_lpred Right b prev_r cur_r leap_r phi_rel) |}].
 
-  Definition reachable_conf_rel
-             (reachable_states: list (state_template S * state_template S))
-             (c: conf_rel S H) : bool :=
+  Definition reaches (cur prev: state_template S * state_template S) :=
+    let '(n, successors) := Reachability.reachable_pair_step' a prev in
     if List.In_dec (@Reachability.state_pair_eq_dec S1 _ _ S2 _ _)
-                   (c.(cr_st).(cs_st1), c.(cr_st).(cs_st2))
-                   reachable_states
-    then true
-    else false.
+                   cur 
+                   successors
+    then [(n, prev)]
+    else [].
 
   Definition wp
              (phi: conf_rel S H)
     : list (conf_rel S H) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in
-    let pred_pairs := list_prod
-                        (max_preds Left ([inr false; inr true] ++ List.map (fun s => inl (inl s)) (enum S1)) cur_st_left)
-                        (max_preds Right ([inr false; inr true] ++ List.map (fun s => inl (inr s)) (enum S2)) cur_st_right) in
-    let candidates := List.concat (List.map (wp_pred_pair phi) pred_pairs) in
-    List.filter (reachable_conf_rel reachable_states) candidates.
+    let pred_pairs := List.flat_map (reaches (cur_st_left, cur_st_right)) reachable_states in
+    List.flat_map (wp_pred_pair phi) pred_pairs.
 
 End WeakestPreSymbolicLeap.
 
-Global Hint Unfold jump_pred: wp.
-Global Hint Unfold weaken_lpred: wp.
-Global Hint Unfold max_preds: wp.
-Global Hint Unfold modify_pred: wp.
 Global Hint Unfold wp_lpred: wp.
-Global Hint Unfold st_lpred: wp.
 Global Hint Unfold wp_pred_pair: wp.

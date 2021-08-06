@@ -167,7 +167,7 @@ Section WeakestPre.
     match p with
     | PredRead _ s => s
     | PredJump _ s => {| st_state := s;
-                         st_buf_len := P4A.P4A.size' (a:=P4A.interp a) s - 1 |}
+                         st_buf_len := P4A.P4A.size' (P4A.interp a) s - 1 |}
     end.
 
   Definition wp_pred_pair (phi: conf_rel S H) (preds: pred phi.(cr_ctx) * pred phi.(cr_ctx)) : list (conf_rel S H) :=

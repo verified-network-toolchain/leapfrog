@@ -59,10 +59,19 @@ Section ReachablePairs.
       default :: List.map (fun c => P4A.sc_st c) cases
     end.
 
-  Definition reads_left (s: P4A.state_ref S) (buf_len: nat) :=
-    match s with
-    | inl s => P4A.size a s - buf_len
-    | inr b => 1
+  Definition reads_left (s: state_pair) : nat:=
+    let '(s1, s2) := s in
+    let len1 := s1.(st_buf_len) in
+    let len2 := s2.(st_buf_len) in
+    match s1.(st_state), s2.(st_state) with
+    | inl s1, inl s2 =>
+      Nat.min (P4A.size a s1 - len1)
+              (P4A.size a s2 - len2)
+    | inl s1, inr _ =>
+      (P4A.size a s1 - len1)
+    | inr _, inl s2 =>
+      (P4A.size a s2 - len2)
+    | inr _, inr _ => 1
     end.
 
   Definition advance (steps: nat) (t1: state_template S) (s: P4A.state_ref S) :=
@@ -75,16 +84,16 @@ Section ReachablePairs.
     | inr b => [{| st_state := inr false; st_buf_len := 0 |}]
     end.
 
-  Definition reachable_pair_step (r0: state_pair) : state_pairs :=
+  Definition reachable_pair_step' (r0: state_pair) : nat * state_pairs :=
     let '(t1, t2) := r0 in
     let s1 := t1.(st_state) in
     let s2 := t2.(st_state) in
-    let len1 := t1.(st_buf_len) in
-    let len2 := t2.(st_buf_len) in
-    let steps := Nat.min (reads_left s1 len1)
-                         (reads_left s2 len2) in
-    List.list_prod (advance steps t1 s1)
-                   (advance steps t2 s2).
+    let steps := reads_left r0 in
+    (steps, List.list_prod (advance steps t1 s1)
+                           (advance steps t2 s2)).
+
+  Definition reachable_pair_step (r0: state_pair) : state_pairs :=
+    snd (reachable_pair_step' r0).
   
   Definition reachable_step (r: state_pairs) : state_pairs :=
     let r' := (List.concat (List.map reachable_pair_step r)) in
