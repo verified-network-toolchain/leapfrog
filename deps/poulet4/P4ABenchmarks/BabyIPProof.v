@@ -92,4 +92,25 @@ Proof.
   subst rel0.
   extend_bisim'.
   extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  extend_bisim'.
+  skip_bisim'.
+  skip_bisim'.
+  skip_bisim'.
+  apply PreBisimulationClose.
+  unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template.
+  cbn.
+  sauto.
 Admitted.
