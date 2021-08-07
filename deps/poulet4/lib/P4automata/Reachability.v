@@ -4,6 +4,7 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Lia.
 
 Import List.ListNotations.
 
@@ -94,7 +95,7 @@ Section ReachablePairs.
 
   Definition reachable_pair_step (r0: state_pair) : state_pairs :=
     snd (reachable_pair_step' r0).
-  
+
   Definition reachable_step (r: state_pairs) : state_pairs :=
     let r' := (List.concat (List.map reachable_pair_step r)) in
     List.nodup state_pair_eq_dec (r' ++ r).
@@ -102,11 +103,137 @@ Section ReachablePairs.
   Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
     match fuel with
     | 0 => r
-    | Datatypes.S fuel => reachable_states' fuel (reachable_step r)
+    | Datatypes.S fuel => reachable_step (reachable_states' fuel r)
     end.
 
+  Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
+    forall (l1 l2: list X),
+      List.incl l1 l2 <-> List.incl (List.nodup Heq l1) l2.
+  Proof.
+    split; intros.
+    - induction l1; try easy.
+      simpl.
+      destruct (List.in_dec Heq a0 l1).
+      + apply IHl1.
+        apply List.incl_cons_inv in H0.
+        intuition.
+      + apply List.incl_cons_inv in H0.
+        apply List.incl_cons; try easy.
+        intuition.
+    - induction l1; try easy.
+      apply List.incl_cons.
+      + apply H0.
+        simpl.
+        destruct (List.in_dec Heq a0 l1).
+        * now apply List.nodup_In.
+        * now left.
+      + apply IHl1.
+        simpl in H0.
+        destruct (List.in_dec Heq a0 l1).
+        * assumption.
+        * apply List.incl_cons_inv in H0.
+          intuition.
+  Qed.
+
+  Lemma reachable_step_mono:
+    forall r1 r2,
+      List.incl r1 r2 ->
+      List.incl (reachable_step r1) (reachable_step r2).
+  Proof.
+    intros.
+    unfold reachable_step.
+    rewrite List.nodup_incl.
+    rewrite <- nodup_incl'.
+    repeat rewrite <- List.flat_map_concat_map.
+    apply List.incl_app.
+    - apply List.incl_appl.
+      intros ? ?.
+      rewrite List.in_flat_map_Exists in *.
+      now apply List.incl_Exists with (l1 := r1).
+    - now apply List.incl_appr.
+  Qed.
+
+  Lemma reachable_states_mono:
+    forall fuel r1 r2,
+      List.incl r1 r2 ->
+      List.incl (reachable_states' fuel r1)
+                (reachable_states' fuel r2).
+  Proof.
+    induction fuel; intros.
+    - simpl in *.
+      now apply H0.
+    - simpl in *.
+      apply reachable_step_mono.
+      unfold reachable_step in *.
+      now apply IHfuel.
+  Qed.
+
+  Lemma reachable_states_plus:
+    forall f1 f2 r,
+      reachable_states' (f1 + f2) r =
+      reachable_states' f1 (reachable_states' f2 r).
+  Proof.
+    induction f1; intros.
+    - rewrite plus_O_n.
+      reflexivity.
+    - replace (Datatypes.S f1 + f2) with (Datatypes.S (f1 + f2)) by lia.
+      simpl.
+      now rewrite IHf1.
+  Qed.
+
+  Lemma reachable_states_expansive:
+    forall fuel r,
+      List.incl r (reachable_states' fuel r).
+  Proof.
+    induction fuel; intros.
+    - easy.
+    - simpl.
+      unfold reachable_step.
+      rewrite List.nodup_incl.
+      apply List.incl_appr.
+      apply IHfuel.
+  Qed.
+
+  Lemma reachable_states_mono_fuel:
+    forall f1 f2 r,
+      f1 <= f2 ->
+      List.incl (reachable_states' f1 r) (reachable_states' f2 r).
+  Proof.
+    intros.
+    replace f2 with (f1 + (f2-f1)) by lia.
+    rewrite reachable_states_plus.
+    apply reachable_states_mono.
+    apply reachable_states_expansive.
+  Qed.
+
+  Lemma reachable_states_bound:
+    forall fuel bound r,
+      (* FIXME: this bound is wrong... *)
+      bound = (length (enum S1)) * (length (enum S2)) ->
+      List.incl (reachable_states' fuel r) (reachable_states' bound r).
+  Proof.
+    intros.
+    destruct (Compare_dec.le_gt_dec fuel bound).
+    - now apply reachable_states_mono_fuel.
+    - (* Plan:
+         1. Show that p is reachable from r with fuel if and only if
+            there exists a non-empty list of states l such that
+            - l is a chain
+            - l[0] appears in r
+            - l[-1] = p
+            - l does not have any duplicates
+            - |l| <= fuel + 2
+         2. Show that if l and c are such that
+            - every element of l appears in c; and
+            - l does not have any duplicates
+            then |l| <= |c|
+         3. Conclude that if p is reachable from r in fuel steps, then
+            p is also reachable from r in as many steps as there are pairs.
+       *)
+  Admitted.
+
   Definition reachable_states n s1 s2 : state_pairs :=
-    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |}, 
+    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
               {| st_state := inl (inr s2); st_buf_len := 0 |}) in
     reachable_states' n [s].
 
