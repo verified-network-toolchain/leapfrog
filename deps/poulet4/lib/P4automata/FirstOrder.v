@@ -1,4 +1,5 @@
 From Equations Require Import Equations.
+Require Import Coq.Program.Equality.
 
 Set Universe Polymorphism.
 
@@ -46,6 +47,13 @@ Section FOL.
   | CSnoc: ctx -> sig.(sig_sorts) -> ctx.
   Derive NoConfusion for ctx.
 
+  Ltac solve_existT :=
+    repeat match goal with
+           | H: ?X = ?X |- _ => clear H
+           | H: existT _ _ _ = existT _ _ _ |- _ =>
+             eapply Eqdep.EqdepTheory.inj_pair2 in H; subst
+           end.
+
   Inductive var: ctx -> sig.(sig_sorts) -> Type :=
   | VHere:
       forall ctx s,
@@ -56,7 +64,51 @@ Section FOL.
         var (CSnoc ctx s) s'.
   Derive Signature NoConfusion Subterm for var.
   Next Obligation.
-  Admitted.
+    destruct a as [[c s] a].
+    simpl in *.
+    constructor; intros.
+    remember {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := a |}
+      as a'.
+    revert Heqa'.
+    dependent induction H; intros; subst; cbn in *.
+    - generalize dependent x.
+      dependent induction a.
+      + intros.
+        inversion H.
+      + intros.
+        destruct x as [[cx sx] x]; cbn in *.
+        assert (cx = ctx0 /\ s' = sx).
+        {
+          inversion H.
+          solve_existT.
+          tauto.
+        }
+        destruct H0; subst.
+        assert (x = a).
+        {
+          inversion H.
+          solve_existT.
+          tauto.
+        }
+        subst.
+        destruct a.
+        * constructor; intros.
+          remember {| pr1 := {| pr1 := CSnoc ctx0 s0; pr2 := s0 |}; pr2 := VHere ctx0 s0 |}
+            as s0'.
+          revert Heqs0'.
+          induction H0; intros; subst; cbn in *.
+          -- inversion H0.
+          -- intuition.
+        * constructor; intros.
+          remember {| pr1 := {| pr1 := CSnoc ctx0 s0; pr2 := s' |}; pr2 := VThere ctx0 s0 s' a |}
+            as s0'.
+          revert Heqs0'.
+          induction H0; intros; subst; cbn in *.
+          -- inversion H0; solve_existT.
+             eauto.
+          -- intuition.
+    - intuition.
+  Qed.
 
   (* First-order terms. *)
   Inductive tm: ctx -> sig.(sig_sorts) -> Type :=
@@ -174,11 +226,7 @@ Section FOL.
         {
           inversion H.
           subst.
-          repeat match goal with
-                 | H: ?X = ?X |- _ => clear H
-                 | H: existT _ _ _ = existT _ _ _ |- _ =>
-                   eapply Eqdep.EqdepTheory.inj_pair2 in H; subst
-                 end.
+          solve_existT.
           tauto.
         }
         subst t'.
@@ -191,14 +239,68 @@ Section FOL.
         constructor; intros.
         eapply IHclos_trans2; eauto.
         econstructor 2; eauto.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-  Admitted.
+    - subst Ptm Pfm.
+      intros.
+      cbn in *.
+      inversion H.
+      inversion H0.
+      constructor.
+      intros.
+      remember ({| pr1 := c; pr2 := FEq c s t t0 |}) as x.
+      revert Heqx.
+      induction H3; intros; subst; cbn in *.
+      + inversion H3.
+      + apply IHclos_trans2; eauto.
+    - subst Ptms Pfm.
+      intros; cbn in *.
+      constructor; intros.
+      remember ({| pr1 := c; pr2 := FRel c args s t |}) as x.
+      revert Heqx.
+      induction H0; intros; subst; cbn in *.
+      + inversion H0.
+      + apply IHclos_trans2; eauto.
+    - subst Ptms Pfm.
+      intros; cbn in *.
+      constructor; intros.
+      remember ({| pr1 := c; pr2 := FNeg c f |}) as x.
+      revert Heqx.
+      induction H0; intros; subst; cbn in *.
+      + inversion H0.
+        subst.
+        solve_existT.
+        auto.
+      + apply IHclos_trans2; eauto.
+    - subst Pfm.
+      intros; cbn in *.
+      constructor; intros.
+      remember ({| pr1 := c; pr2 := FOr c f f0 |}) as x.
+      revert Heqx.
+      induction H1; intros; subst; cbn in *.
+      + inversion H1; subst; solve_existT; auto.
+      + apply IHclos_trans2; eauto.
+    - subst Pfm.
+      intros; cbn in *.
+      constructor; intros.
+      remember ({| pr1 := c; pr2 := FAnd c f f0 |}) as x.
+      revert Heqx.
+      induction H1; intros; subst; cbn in *.
+      + inversion H1; subst; solve_existT; auto.
+      + apply IHclos_trans2; eauto.
+    - subst Pfm; intros; cbn in *.
+      constructor; intros.
+      remember ({| pr1 := c; pr2 := FForall c s f |}) as x.
+      revert Heqx.
+      induction H0; intros; subst; cbn in *.
+      + destruct x.
+        inversion H0; subst; solve_existT; auto.
+      + apply IHclos_trans2; eauto.
+  Qed.
   Next Obligation.
-  Admitted.
+    apply subterm_wf.
+  Qed.
+  Next Obligation.
+    apply subterm_wf.
+  Qed.
 
   Record model :=
     { mod_sorts: sig.(sig_sorts) -> Type;
@@ -222,7 +324,53 @@ Section FOL.
         valu (CSnoc c s).
     Derive Signature NoConfusion Subterm for valu.
     Next Obligation.
-    Admitted.
+      constructor.
+      intros.
+      destruct y as [c y].
+      induction c.
+      - constructor; intros.
+        dependent destruction y.
+        remember {| pr1 := CEmp; pr2 := VEmp |} as y.
+        revert Heqy.
+        induction H0.
+        + intros; subst.
+          inversion H0.
+        + intros; subst.
+          apply IHclos_trans2; eauto.
+      - dependent destruction y.
+        constructor.
+        intros.
+        remember {| pr1 := CSnoc c s; pr2 := VSnoc s c m0 y |} as y'.
+        revert Heqy'.
+        induction H0.
+        + intros; subst.
+          destruct x; simpl in *.
+          assert (pr1 = c).
+          {
+            inversion H0.
+            solve_existT.
+            auto.
+          }
+          subst.
+          assert (pr2 = y).
+          {
+            inversion H0.
+            solve_existT.
+            auto.
+          }
+          subst.
+          apply IHc.
+          set (g := ({|pr1 := CSnoc c s; pr2 := VSnoc s c m0 y|})).
+          change (CSnoc c s) with (pr1 g) in H0.
+          change (VSnoc s c m0 y) with (pr2 g) in H0.
+          econstructor 2.
+          econstructor 1.
+          simpl.
+          eapply H0.
+          eapply H.
+        + intros.
+          intuition eauto with *.
+    Qed.
 
     Equations find {c s} (x: var c s) (v: valu c) : m.(mod_sorts) s :=
       { find (VHere _ _) (VSnoc _ _ val _) := val;
