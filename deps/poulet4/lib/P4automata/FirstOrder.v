@@ -99,13 +99,17 @@ Section FOL.
   Combined Scheme tm_tms_fm_rect from tm_rect', tms_rect', fm_rect'.
 
   Derive Signature NoConfusion Subterm for tm tms fm.
-  Next Obligation.
-    destruct a.
+  Lemma subterm_wf:
+    (forall c (s : sig_sorts sig) (t : tm c s),
+        Acc tm_subterm {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := t|}) *
+    ((forall (c : ctx) (l : list (sig_sorts sig)) (t : tms c l), 
+        Acc tms_subterm {| pr1 := {| pr1 := c; pr2 := l |}; pr2 := t|}) *
+    (forall (c : ctx) (fg : fm c), Acc fm_subterm {| pr1 := c; pr2 := fg|})).
+  Proof.
     pose (Ptm c s t := Acc tm_subterm {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := t|}).
-    pose (Ptms c s ts := Acc tms_subterm {| pr1 := {| pr1 := c; pr2 := s |}; pr2 := ts|}).
-    pose (Pfm c f := Acc fm_subterm {| pr1 := c; pr2 := f|}).
-    pose proof (tm_tms_fm_rect Ptm Ptms Pfm).
-    apply H.
+    pose (Ptms c l t := Acc tms_subterm {| pr1 := {| pr1 := c; pr2 := l |}; pr2 := t|}).
+    pose (Pfm c fg := Acc fm_subterm {| pr1 := c; pr2 := fg|}).
+    apply (tm_tms_fm_rect Ptm Ptms Pfm).
     - subst Ptm.
       intros.
       simpl.
@@ -122,7 +126,7 @@ Section FOL.
       simpl.
       intros.
       constructor; intros.
-      induction H1; tauto.
+      induction H0; tauto.
     - subst Ptms Ptm.
       simpl.
       intros.
@@ -145,9 +149,14 @@ Section FOL.
       intros.
       constructor; intros.
       remember ({| pr1 := {| pr1 := c; pr2 := (s :: typs)%list |}; pr2 := TSCons c s typs t t0 |}) as t'.
+      remember (TSCons c s typs t t0) as t0'.
       revert Heqt'.
-      revert t t0 H0 H1.
-      induction H2.
+      revert Heqt0'.
+      revert t0'.
+      destruct t' as [[c_ s_] t_].
+      simpl in *.
+      revert t t0 H H0.
+      induction H1.
       + intros.
         subst. 
         simpl in *.
@@ -155,7 +164,7 @@ Section FOL.
         simpl in *.
         assert (Hcs: c' = c /\ s' = typs).
         {
-          inversion H0.
+          inversion H.
           subst.
           tauto.
         }
@@ -163,7 +172,7 @@ Section FOL.
         subst c' s'.
         assert (t' = t0).
         {
-          inversion H0.
+          inversion H.
           subst.
           repeat match goal with
                  | H: ?X = ?X |- _ => clear H
@@ -174,7 +183,14 @@ Section FOL.
         }
         subst t'.
         auto.
-      + admit.
+      + intros.
+        subst.
+        destruct x as [[c' s'] t'].
+        destruct y as [[c'' s''] t''].
+        simpl in *.
+        constructor; intros.
+        eapply IHclos_trans2; eauto.
+        econstructor 2; eauto.
     - admit.
     - admit.
     - admit.
