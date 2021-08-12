@@ -25,8 +25,14 @@ Section Sum.
   (* Header identifiers. *)
   Variable (H1: nat -> Type).
   Context `{H1_eq_dec: forall n, EquivDec.EqDec (H1 n) eq}.
+  Definition H1' := Syntax.H' H1.
+  Instance H1'_eq_dec: EquivDec.EqDec H1' eq := Syntax.H'_eq_dec (H_eq_dec:=H1_eq_dec).
+  Context `{H1_finite: @Finite (Syntax.H' H1) _ H1'_eq_dec}.
   Variable (H2: nat -> Type).
   Context `{H2_eq_dec: forall n, EquivDec.EqDec (H2 n) eq}.
+  Definition H2' := Syntax.H' H2.
+  Instance H2'_eq_dec: EquivDec.EqDec H2' eq := Syntax.H'_eq_dec (H_eq_dec:=H2_eq_dec).
+  Context `{H2_finite: @Finite (Syntax.H' H2) _ H2'_eq_dec}.
 
   Variable (a1: Syntax.t S1 H1).
   Variable (a2: Syntax.t S2 H2).
@@ -62,4 +68,59 @@ Section Sum.
     destruct a1, a2, s;
       erewrite Syntax.state_fmapSH_size; eauto.
   Qed.
+
+  Definition inl_sig (h: Syntax.H' H1) : Syntax.H' H :=
+    match h with
+    | existT _ n h' => existT _ n (inl h')
+    end.
+  
+  Definition inr_sig (h: Syntax.H' H2) : Syntax.H' H :=
+    match h with
+    | existT _ n h' => existT _ n (inr h')
+    end.
+  
+  Global Program Instance H_finite: @Finite (Syntax.H' H) _ (Syntax.H'_eq_dec (H_eq_dec:=H_eq_dec)) :=
+    {| enum := List.map inl_sig (enum (Syntax.H' H1)) ++ List.map inr_sig (enum (Syntax.H' H2)) |}.
+  Next Obligation.
+    destruct H1_finite, H2_finite.
+    apply NoDup_app.
+    - apply NoDup_map; auto.
+      unfold inl_sig; intros [n x] [m y].
+      intro H.
+      pose proof H as Hfst.
+      inversion H.
+      congruence.
+    - apply NoDup_map; auto.
+      unfold inr_sig; intros [n x] [m y].
+      intro H.
+      inversion H.
+      congruence.
+    - unfold not; intros.
+      rewrite !List.in_map_iff in *.
+      destruct H0 as [[n x'] [Hxeq Hxin]].
+      destruct H3 as [[m y'] [Hyeq Hyin]].
+      subst.
+      inversion Hyeq.
+    - unfold not; intros.
+      rewrite !List.in_map_iff in *.
+      destruct H0 as [[n x'] [Hxeq Hxin]].
+      destruct H3 as [[m y'] [Hyeq Hyin]].
+      subst.
+      inversion Hyeq.
+  Qed.
+  Next Obligation.
+    destruct H1_finite, H2_finite.
+    destruct x as [n [x | x]]; pose (existT _ n x) as x'.
+    - rewrite List.in_app_iff.
+      left.
+      rewrite List.in_map_iff.
+      exists x'.
+      auto.
+    - rewrite List.in_app_iff.
+      right.
+      rewrite List.in_map_iff.
+      exists x'.
+      auto.
+  Qed.
+
 End Sum.

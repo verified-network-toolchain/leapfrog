@@ -13,31 +13,6 @@ Module P4A := Poulet4.P4automata.Syntax.
 
 Open Scope list_scope.
 
-Fixpoint n_tuple A (n: nat): Type :=
-  match n with
-  | 0 => unit
-  | S n => n_tuple A n * A
-  end.
-
-Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
-  match n as n' return n_tuple A n' -> list A with
-  | 0 => fun _ => []
-  | S n => fun p => t2l A n (fst p) ++ [snd p]
-  end x.
-
-Fixpoint n_tuple_app' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
-  match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
-  | 0 =>
-    fun _ => xs
-  | S m0 =>
-    fun '(ys, y) => (n_tuple_app' xs ys, y)
-  end ys.
-
-Definition n_tuple_app {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m).
-  rewrite Plus.plus_comm.
-  exact (n_tuple_app' xs ys).
-Defined.
-
 Lemma split_ex:
   forall A B (P: A * B -> Prop),
     (exists x: A, exists y: B, P (x, y)) <->

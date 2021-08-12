@@ -15,9 +15,10 @@ Section AutModel.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).
 
@@ -27,16 +28,17 @@ Section AutModel.
   | Bits (n: nat)
   | State
   | Store
-  | Key
+  | Key (n: nat)
   | ConfigPair (n m: nat).
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
-  | KeyLit: H -> funs [] Key
+  | KeyLit: forall n, H n -> funs [] (Key n)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo,
       funs [Bits n] (Bits (1 + hi - lo))
-  | Update: forall n, funs [Store; Key; Bits n] Store
+  | Lookup: forall n, funs [Store; Key n] (Bits n)
+  | Update: forall n, funs [Store; Key n; Bits n] Store
   | State1: forall n m, funs [ConfigPair n m] State
   | Store1: forall n m, funs [ConfigPair n m] Store
   | State2: forall n m, funs [ConfigPair n m] State
@@ -44,8 +46,7 @@ Section AutModel.
   | Buf1: forall n m, funs [ConfigPair n m] (Bits n)
   | Buf2: forall n m, funs [ConfigPair n m] (Bits m).
 
-  Inductive rels: arity sorts -> Type :=
-  | Lookup: forall n, rels [Store; Key; Bits n].
+  Inductive rels: arity sorts -> Type :=.
 
   Definition sig: signature :=
     {| sig_sorts := sorts;
@@ -61,8 +62,8 @@ Section AutModel.
     | Bits n => n_tuple bool n
     | State => states (P4A.interp a) + bool
     | Store => store (P4A.interp a)
-    | Key => H
-    | ConfigPair => conf * conf
+    | Key n => H n
+    | ConfigPair n m => conf * conf
     end.
 
   Definition n_tuple_take_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (Nat.min n m).
@@ -85,12 +86,18 @@ Section AutModel.
         n_tuple_app xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
+      mod_fns (Lookup n) (store ::: k ::: hnil) :=
+        match P4A.find (P4A.HRVar (existT _ n k)) store with 
+        | P4A.VBits v => v
+        end;
       mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
         P4A.assign (P4A.HRVar k) (P4A.VBits (t2l _ _ v)) store;
-      mod_fns State1 ((q1, q2) ::: hnil) := fst (fst q1);
-      mod_fns Store1 ((q1, q2) ::: hnil) := snd (fst q1);
-      mod_fns State2 ((q1, q2) ::: hnil) := fst (fst q2);
-      mod_fns Store2 ((q1, q2) ::: hnil) := snd (fst q2)
+      mod_fns (State1 _ _) ((q1, q2) ::: hnil) := fst (fst q1);
+      mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := snd (fst q1);
+      mod_fns (State2 _ _) ((q1, q2) ::: hnil) := fst (fst q2);
+      mod_fns (Store2 _ _) ((q1, q2) ::: hnil) := snd (fst q2);
+      mod_fns (Buf1 _ _) ((q1, q2) ::: hnil) := snd (snd q1);
+      mod_fns (Buf2 _ _) ((q2, q2) ::: hnil) := snd (snd q2)
     }.
 
   Fixpoint tr_bctx (b: bctx): ctx sig :=

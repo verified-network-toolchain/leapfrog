@@ -35,37 +35,51 @@ Module Reference.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header: Set :=
-  | HPref
-  | HDest
-  | HSrc
-  | HProto.
+  Inductive header: nat -> Set :=
+  | HPref: header 1
+  | HDest: header 1
+  | HSrc: header 1
+  | HProto: header 1.
+  Derive Signature for header.
 
-  Scheme Equality for header.
-
-  Global Program Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-
-  Global Program Instance header_finite: @Finite header _ header_eqdec :=
-    {| enum := [HPref; HDest; HSrc; HProto] |}.
+  Equations header_eq_dec: forall n, forall x y: header n, {x = y} + {x <> y} :=
+    { header_eq_dec 1 HPref HPref := in_left;
+      header_eq_dec 1 HDest HDest := in_left;
+      header_eq_dec 1 HSrc HSrc := in_left;
+      header_eq_dec 1 HProto HProto := in_left;
+      header_eq_dec _ _ _ := in_right }.
   Next Obligation.
-    repeat constructor; eauto with datatypes;
-    cbn;
-    intuition congruence.
+    dependent destruction wildcard.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+    dependent destruction wildcard.
+  Qed.
+
+  Global Program Instance header_eqdec (n: nat) : EquivDec.EqDec (header n) eq := header_eq_dec n.
+
+  Global Program Instance header_finite: @Finite (P4A.H' header) _ (P4A.H'_eq_dec (H_eq_dec:=header_eqdec)) :=
+    {| enum := [existT _ 1 HPref;
+                existT _ 1 HDest;
+                existT _ 1 HSrc;
+                existT _ 1 HProto] |}.
+  Next Obligation.
+    repeat constructor; cbn; intuition.
+  Qed.
+  Next Obligation.
+    destruct x.
+    destruct h; tauto.
   Qed.
 
   Definition states (s: state) := 
     match s with 
-    | SPref => {| st_op := OpExtract 1 (HRVar HPref);
+    | SPref => {| st_op := OpExtract (existT _ 1 HPref);
                   st_trans := TGoto _ (inl SDest) |}
-    | SDest => {| st_op := OpExtract 1 (HRVar HDest);
+    | SDest => {| st_op := OpExtract (existT _ 1 HDest);
                   st_trans := TGoto _ (inl SSrc) |}
-    | SSrc => {| st_op := OpExtract 1 (HRVar HSrc);
+    | SSrc => {| st_op := OpExtract (existT _ 1 HSrc);
                   st_trans := TGoto _ (inl SProto) |}
-    | SProto => {| st_op := OpExtract 1 (HRVar HProto);
-                  st_trans := P4A.TSel (CExpr (EHdr (HRVar HProto)))
+    | SProto => {| st_op := OpExtract (existT _ 1 HProto);
+                  st_trans := P4A.TSel (CExpr (EHdr (HRVar (existT _ 1 HProto))))
                     [{| sc_pat := PExact (VBits [true]);
                         sc_st := inr true |}]
                     (inr false) |}
@@ -105,18 +119,21 @@ Module Combined.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrVar.
+  Inductive header: nat -> Set :=
+  | HdrVar: header 4.
 
-  Global Instance header_eqdec: EquivDec.EqDec header eq.
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
     vm_compute.
-    intros.
+    intros n x y.
+    dependent destruction x.
+    dependent destruction y.
     left.
-    destruct x; destruct x0; trivial.
+    reflexivity.
   Defined.
 
-  Global Program Instance header_finite: @Finite header _ header_eqdec :=
-    {| enum := [HdrVar] |}.
+  Global Program Instance header_finite:
+    @Finite (P4A.H' header) _ (P4A.H'_eq_dec (H_eq_dec:=header_eqdec)) :=
+    {| enum := [existT _ 4 HdrVar] |}.
   Next Obligation.
   repeat constructor;
     repeat match goal with
@@ -128,14 +145,14 @@ Module Combined.
            end.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+    destruct x as [_ []]; tauto.
   Qed.
 
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := (OpExtract 4 (HRVar HdrVar));
-        st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrVar)) 4 3))
+      {| st_op := (OpExtract (existT _ 4 HdrVar));
+        st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar (existT _ 4 HdrVar))) 4 3))
                               [{| sc_pat := PExact (VBits [true]);
                                   sc_st := inr true |}]
                               (inr (A := state) false) |}
@@ -153,9 +170,10 @@ Module RefComb.
     ltac:(typeclasses eauto).
 
   Definition header := Sum.H Reference.header Combined.header.
-  Global Instance header_eq_dec: EquivDec.EqDec header eq :=
+  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq :=
     ltac:(typeclasses eauto).
-  Global Instance header_finite: @Finite header _ header_eq_dec :=
+  Global Instance header_finite: @Finite (P4A.H' header) _ (P4A.H'_eq_dec (H_eq_dec:=header_eq_dec)).
+  apply Sum.H_eq_dec.
     ltac:(typeclasses eauto).
 
   Definition aut := sum Reference.aut Combined.aut.
