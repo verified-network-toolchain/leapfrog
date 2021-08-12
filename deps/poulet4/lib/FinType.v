@@ -87,3 +87,103 @@ Next Obligation.
     right; eapply in_map; eapply elem_of_enum.
 Qed.
 
+Lemma NoDup_prod:
+  forall A B (l1: list A) (l2: list B),
+    NoDup l1 ->
+    NoDup l2 ->
+    NoDup (list_prod l1 l2).
+Proof.
+  induction l1; intros.
+  - constructor.
+  - simpl.
+    apply NoDup_app.
+    + apply NoDup_map; auto.
+      intros.
+      now inversion H1.
+    + apply IHl1; auto.
+      now inversion H.
+    + intros.
+      rewrite in_map_iff in H1.
+      destruct x.
+      destruct H1 as [? [? ?]].
+      inversion H1; subst.
+      inversion H.
+      contradict H5.
+      apply in_prod_iff in H5.
+      intuition.
+    + intros.
+      inversion_clear H.
+      contradict H2.
+      apply in_map_iff in H2.
+      destruct H2 as [? [? ?]].
+      subst.
+      apply in_prod_iff in H1.
+      intuition.
+Qed.
+
+Global Program Instance ProdFinite A B `{Finite A} `{Finite B} : Finite (A * B) :=
+  {| enum := List.list_prod (enum A) (enum B) |}.
+Next Obligation.
+  apply NoDup_prod; apply NoDup_enum.
+Qed.
+
+Global Program Instance DepProdEqDec
+  (A: Type)
+  (f: A -> Type)
+  `{EqDec A eq}
+  `{forall a, EqDec (f a) eq}: EqDec {a: A & f a} eq.
+Next Obligation.
+  destruct (x == y).
+  - unfold equiv in e; subst.
+    destruct (X0 == X).
+    + unfold equiv in e; subst.
+      now left.
+    + right; intro.
+      unfold equiv, complement in c.
+      contradict c.
+      intuition.
+  - right; intro.
+    inversion H1.
+    contradiction.
+Qed.
+
+Global Program Instance DepProdFinite
+  A
+  (f: A -> Type)
+  `{Finite A}
+  `{EqDec A}
+  `{forall a, EqDec (f a) eq}
+  `{forall a, Finite (f a)}
+  : Finite {a : A & f a}
+:=
+  {| enum := flat_map (fun a => map (existT f a) (enum (f a))) (enum A) |}.
+Next Obligation.
+  induction NoDup_enum.
+  - simpl; constructor.
+  - simpl.
+    apply NoDup_app; auto.
+    + apply NoDup_map.
+      * intros.
+        intuition.
+      * apply H3.
+    + intros.
+      contradict H4.
+      rewrite in_flat_map_Exists, Exists_exists in H4.
+      destruct H4 as [? [? ?]].
+      rewrite in_map_iff in *.
+      destruct H5 as [? [? ?]].
+      destruct H6 as [? [? ?]].
+      rewrite <- H5 in H6.
+      now inversion H6.
+    + intros.
+      contradict H4.
+      rewrite in_map_iff in H4.
+      destruct H4 as [? [? ?]].
+      rewrite in_flat_map_Exists, Exists_exists in H5.
+      destruct H5 as [? [? ?]].
+      rewrite in_map_iff in H7.
+      destruct H7 as [? [? ?]].
+      rewrite <- H7 in H4.
+      inversion H4.
+      congruence.
+Qed.
