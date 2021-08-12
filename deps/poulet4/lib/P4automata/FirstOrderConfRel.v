@@ -28,7 +28,7 @@ Section AutModel.
   | State
   | Store
   | Key
-  | ConfigPair.
+  | ConfigPair (n m: nat).
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
@@ -37,22 +37,24 @@ Section AutModel.
   | Slice: forall n hi lo,
       funs [Bits n] (Bits (1 + hi - lo))
   | Update: forall n, funs [Store; Key; Bits n] Store
-  | State1: funs [ConfigPair] State
-  | Store1: funs [ConfigPair] Store
-  | State2: funs [ConfigPair] State
-  | Store2: funs [ConfigPair] Store.
+  | State1: forall n m, funs [ConfigPair n m] State
+  | Store1: forall n m, funs [ConfigPair n m] Store
+  | State2: forall n m, funs [ConfigPair n m] State
+  | Store2: forall n m, funs [ConfigPair n m] Store
+  | Buf1: forall n m, funs [ConfigPair n m] (Bits n)
+  | Buf2: forall n m, funs [ConfigPair n m] (Bits m).
 
-  (* I'm making the buffers relations which have to be constrained with
-   axioms because they might return (Bits n) for any n. *)
   Inductive rels: arity sorts -> Type :=
-  | Buf1: forall n, rels [ConfigPair; (Bits n)]
-  | Buf2: forall n, rels [ConfigPair; (Bits n)]
   | Lookup: forall n, rels [Store; Key; Bits n].
 
   Definition sig: signature :=
     {| sig_sorts := sorts;
        sig_funs := funs;
        sig_rels := rels |}.
+
+  Definition fm ctx := FirstOrder.fm sig ctx.
+  Definition tm ctx := FirstOrder.tm sig ctx.
+  Definition tms ctx := FirstOrder.tms sig ctx.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with

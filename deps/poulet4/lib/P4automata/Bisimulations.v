@@ -888,6 +888,9 @@ Module SynPreSynWP1bit.
     Notation conf := (configuration (P4A.interp a)).
 
     Variable (top: conf -> conf -> Prop).
+
+    Notation "⟨ R , v ⟩ ⊨ c1 c2" := (interp_store_rel R v c1 c2) (at level 50).
+
     Lemma wp_concrete_bdd:
       SynPreSynWP.wp_bdd S1 S2 H a (WP.wp (H:=H)) top.
     Proof.
@@ -1223,8 +1226,6 @@ Module SynPreSynWP1bit.
         rewrite -> IHexpr in Heqv.
         congruence.
     Qed.
-
-    Notation "⟨ R , v ⟩ ⊨ c1 c2" := (interp_store_rel R v c1 c2) (at level 50).
 
     Lemma eval_op_size:
       forall op st n buf st' n',
@@ -1670,148 +1671,15 @@ because you're not branching on the same thing.
         + admit.
         + simpl in *.
           admit.
-          (*
-          subst cst1 cst2.
-          cbn in *.
-          
-          pose (pred_l := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st1)).
-          pose (pred_r := WP.PredJump (S1:=S1) (S2:=S2) (BRTrue H cr_ctx) (inr st2)).
-          pose (wp_lr :=
-                  (WP.wp_pred_pair
-                     {|
-                       WPSymLeap.P4A.t_states := t_states;
-                       WPSymLeap.P4A.t_nonempty := t_nonempty;
-                       WPSymLeap.P4A.t_has_extract := t_has_extract
-                     |}
-                     {|
-                       cr_st := {| cs_st1 := cs_st1; cs_st2 := cs_st2 |};
-                       cr_ctx := cr_ctx;
-                       cr_rel := cr_rel
-                     |} (pred_l, pred_r))).
-          assert (forall r, In r wp_lr ->
-                       interp_conf_rel (a:=a) r (inr st1, s1, buf1) (inr st2, s2, buf2)).
-          {
-            intros.
-            eapply interp_rels_in; eauto.
-            rewrite in_map_iff.
-            eexists; intuition eauto.
-            rewrite in_concat.
-            eexists wp_lr.
-            split; auto.
-            rewrite in_map_iff.
-            exists (pred_l, pred_r).
-            split; [reflexivity|].
-            rewrite in_prod_iff.
-            unfold WP.preds.
-            simpl.
-            subst bl1 bl2.
-            simpl.
-            destruct st1, st2;
-              unfold pred_l, pred_r;
-              simpl;
-              tauto.
-          }
-          cbn in wp_lr.
-          match goal with
-          | wp_lr := ?a :: ?b :: nil : _ |- _ => pose (wp_lr' := (a, b))
-          end.
-          assert (Hfst:In (fst wp_lr') wp_lr /\
-                       In (snd wp_lr') wp_lr)
-            by (unfold wp_lr', wp_lr; simpl; tauto).
-          destruct Hfst as [Hfst Hsnd].
-          pose proof (H2 (fst wp_lr') Hfst) as Hf.
-          cbn in Hf.
-          unfold interp_conf_rel, interp_conf_state, interp_state_template in Hf.
-          subst.
-          cbn in Hf.
-          (*
-          specialize (Hf ltac:(intuition Lia.lia) valu I I).
-          rewrite !sr_subst_buf_left, !sr_subst_buf_right in Hf.
-          simpl in Hf.
-          eapply interp_store_rel_ignores_state; eauto.
-           *)
-          admit.
+        + admit.
+        + admit.
+        + admit.
+        + admit.
+        + admit.
       - admit.
       - admit.
-      - (* this is a read*)
-        cbn in *.
-        unfold complement in *.
-        rewrite app_length in *.
-        simpl in *.
-        replace (length buf2 + 1) with (S (length buf2)) in * by Lia.lia.
-        replace (length buf1 + 1) with (S (length buf1)) in * by Lia.lia.
-        destruct cs_st1 as [cst1 bl1] eqn:?, cs_st2 as [cst2 bl2] eqn:?; simpl in *.
-        assert (Hsize: bl1 <> 0 /\ bl2 <> 0) by Lia.lia.
-        destruct Hsize.
-        pose (pred_l :=
-                WP.PredRead H cr_ctx {| st_state := cst1; st_buf_len := bl1 - 1 |}).
-        pose (pred_r :=
-                WP.PredRead H cr_ctx {| st_state := cst2; st_buf_len := bl2 - 1 |}).
-        pose (wp_lr :=
-                (WP.wp_pred_pair
-                   {|
-                     WPSymLeap.P4A.t_states := t_states;
-                     WPSymLeap.P4A.t_nonempty := t_nonempty;
-                     WPSymLeap.P4A.t_has_extract := t_has_extract
-                   |}
-                   {|
-                     cr_st := {| cs_st1 := cs_st1; cs_st2 := cs_st2 |};
-                     cr_ctx := cr_ctx;
-                     cr_rel := cr_rel
-                   |} (pred_l, pred_r))).
-        assert (forall r, In r wp_lr ->
-                     interp_conf_rel (a:=a) r (st1, s1, buf1) (st2, s2, buf2)).
-        {
-          intros.
-          eapply interp_rels_in; eauto.
-          rewrite in_map_iff.
-          eexists; intuition eauto.
-          rewrite in_concat.
-          eexists wp_lr.
-          split; auto.
-          rewrite in_map_iff.
-          exists (pred_l, pred_r).
-          split; [reflexivity|].
-          rewrite in_prod_iff.
-          unfold WP.preds.
-          destruct (equiv_dec _ _), (equiv_dec _ _);
-            try solve [exfalso; tauto].
-          unfold pred_l, pred_r.
-          split; eauto with datatypes.
-        }
-        simpl in wp_lr.
-        match goal with
-        | wp_lr := ?a :: ?b :: nil : _ |- _ => pose (wp_lr' := (a, b))
-        end.
-        assert (Hfst:In (fst wp_lr') wp_lr /\
-                     In (snd wp_lr') wp_lr)
-          by (unfold wp_lr', wp_lr; simpl; tauto).
-        destruct Hfst as [Hfst Hsnd].
-        destruct bit;
-          [specialize (H8 (snd wp_lr') Hsnd)
-          |specialize (H8 (fst wp_lr') Hfst)];
-          simpl in H8.
-        + unfold interp_conf_rel, interp_conf_state, interp_state_template in H8.
-          subst.
-          simpl in H8.
-          specialize (H8 ltac:(intuition Lia.lia) valu).
-          subst wp_lr wp_lr'.
-          clear Hfst Hsnd.
-          rewrite sr_subst_buf_left in H8.
-          rewrite sr_subst_buf_right in H8.
-          simpl in H8.
-          eauto.
-        + unfold interp_conf_rel, interp_conf_state, interp_state_template in H8.
-          subst.
-          simpl in H8.
-          specialize (H8 ltac:(intuition Lia.lia) valu).
-          subst wp_lr wp_lr'.
-          clear Hfst Hsnd.
-          rewrite sr_subst_buf_left in H8.
-          rewrite sr_subst_buf_right in H8.
-          simpl in H8.
-          eauto.
-*)
+      - (* easiest case probably *)
+        admit.
     Admitted.
 
     Lemma syn_pre_1bit_concrete_implies_sem_pre:
@@ -1826,7 +1694,7 @@ because you're not branching on the same thing.
                               q1 q2.
     Proof.
       eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
-    Admitted.
+    Qed.
   
   End SynPreSynWP1bit.
 End SynPreSynWP1bit.

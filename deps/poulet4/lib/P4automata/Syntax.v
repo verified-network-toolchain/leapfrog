@@ -21,19 +21,40 @@ Section Syntax.
   Context `{S_eq_dec: EquivDec.EqDec S eq}.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
-  (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
+  (* Typed header identifiers. *)
+  Variable (H: nat -> Type).
+  Definition H' := {n: nat & H n}.
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eq_dec: EquivDec.EqDec H' eq.
+  Proof.
+    intros [n x] [m y].
+    destruct (n == m).
+    - unfold "===" in e.
+      subst m.
+      destruct (x == y).
+      + left.
+        now apply f_equal.
+      + right.
+        intro.
+        apply c.
+        now apply Eqdep.EqdepTheory.inj_pair2.
+    - right.
+      intro.
+      apply c.
+      eapply EqdepFacts.eq_sigT_fst; eauto.
+  Defined.
+
+  Context `{H'_finite: @Finite H' _ H'_eq_dec}.
 
   Inductive hdr_ref: Type :=
-  | HRVar (var: H).
+  | HRVar (var: H').
   (*| HRField (hdr: hdr_ref) (field: string).*)
   Derive NoConfusion for hdr_ref.
   Global Program Instance hdr_ref_eq_dec : EquivDec.EqDec hdr_ref eq :=
     { equiv_dec x y :=
         match x, y with
-        | HRVar x, HRVar y => if x == y then in_left else in_right
+        | @HRVar x, @HRVar y =>
+          if x == y then in_left else in_right
         end }.
   Solve Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
@@ -80,15 +101,17 @@ Section Syntax.
   Inductive op :=
   | OpNil
   | OpSeq (o1 o2: op)
-  | OpExtract (width: nat) (hdr: hdr_ref)
-  | OpAsgn (lhs: hdr_ref) (rhs: expr).
+  | OpExtract (hdr: H')
+  | OpAsgn (lhs: H') (rhs: expr).
+  Arguments OpExtract : clear implicits.
+  Arguments OpAsgn : clear implicits.
   
   Fixpoint op_size (o: op) : nat :=
     match o with
     | OpNil => 0
     | OpSeq o1 o2 =>
       op_size o1 + op_size o2
-    | OpExtract width _ => width
+    | OpExtract h => projT1 h
     | OpAsgn _ _ => 0
     end.
 
@@ -97,7 +120,7 @@ Section Syntax.
     | OpAsgn _ _
     | OpNil => True
     | OpSeq o1 o2 => nonempty o1 /\ nonempty o2
-    | OpExtract width hdr => width > 0
+    | OpExtract hdr => projT1 hdr > 0
     end.
 
   Record state: Type :=
@@ -144,54 +167,58 @@ End Syntax.
 
 Section Fmap.
   Set Implicit Arguments.
-  Variables (S H S' H': Type).
-  Variable (f: S -> S').
-  Variable (g: H -> H').
+  Variables (S1 S2: Type).
+  Variables (H1 H2: nat -> Type).
+  Variable (f: S1 -> S2).
+  Variable (g: forall n, H1 n -> H2 n).
 
-  Definition hdr_ref_fmapH (h: hdr_ref H) : hdr_ref H' :=
+  Definition sigma_fmapH (h: H' H1) : H' H2 :=
+    existT _ (projT1 h) (g (projT2 h)).
+
+  Definition hdr_ref_fmapH (h: hdr_ref H1) : hdr_ref H2 :=
     match h with
-    | HRVar h => HRVar (g h)
+    | HRVar h => HRVar (sigma_fmapH h)
     end.
     
-  Fixpoint expr_fmapH (e: expr H) : expr H' :=
+  Fixpoint expr_fmapH (e: expr H1) : expr H2 :=
     match e with
     | EHdr h => EHdr (hdr_ref_fmapH h)
     | ELit _ bs => ELit _ bs
     | ESlice e hi lo => ESlice (expr_fmapH e) hi lo
     end.
   
-  Definition state_ref_fmapS (s: state_ref S) : state_ref S' :=
+  Definition state_ref_fmapS (s: state_ref S1) : state_ref S2 :=
     match s with
     | inl s' => inl (f s')
     | inr r => inr r
     end.
 
-  Definition sel_case_fmapS (c: sel_case S) : sel_case S' :=
+  Definition sel_case_fmapS (c: sel_case S1) : sel_case S2 :=
     {| sc_pat := c.(sc_pat);
        sc_st := state_ref_fmapS c.(sc_st) |}.
 
-  Fixpoint cond_fmapH (c: cond H) : cond H' :=
+  Fixpoint cond_fmapH (c: cond H1) : cond H2 :=
     match c with
     | CExpr e => CExpr (expr_fmapH e)
     | CPair c1 c2 => CPair (cond_fmapH c1) (cond_fmapH c2)
     end.
 
-  Definition transition_fmapSH (t: transition S H) : transition S' H' :=
+  Definition transition_fmapSH (t: transition S1 H1) : transition S2 H2 :=
     match t with
     | TGoto _ s => TGoto _ (state_ref_fmapS s)
     | TSel cond cases default =>
       TSel (cond_fmapH cond) (List.map sel_case_fmapS cases) (state_ref_fmapS default)
     end.
 
-  Fixpoint op_fmapH (o: op H) : op H' :=
+  Fixpoint op_fmapH (o: op H1) : op H2 :=
     match o with
     | OpNil _ => OpNil _
     | OpSeq o1 o2 => OpSeq (op_fmapH o1) (op_fmapH o2)
-    | OpExtract width hdr => OpExtract width (hdr_ref_fmapH hdr)
-    | OpAsgn lhs rhs => OpAsgn (hdr_ref_fmapH lhs) (expr_fmapH rhs)
+    | OpExtract hdr => OpExtract (sigma_fmapH hdr)
+    | OpAsgn lhs rhs => OpAsgn (sigma_fmapH lhs) (expr_fmapH rhs)
     end.
 
-  Definition state_fmapSH (s: state S H) : state S' H' :=
+  Definition state_fmapSH (s: state S1 H1) : state S2 H2 :=
     {| st_op := op_fmapH s.(st_op);
        st_trans := transition_fmapSH s.(st_trans) |}.
 
@@ -225,17 +252,24 @@ Section Interp.
   Context `{S_eqdec: EquivDec.EqDec S eq}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eqdec: EquivDec.EqDec H eq}.
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eqdec: EquivDec.EqDec (H' H) eq := H'_eq_dec (H_eq_dec:=H_eq_dec).
 
   Variable (a: t S H).
 
-  Definition store := Env.t H v.
-  
-  Definition assign (h: hdr_ref H) (v: v) (st: store) : store :=
-    match h with
-    | HRVar x => Env.bind x v st
+  Definition store := Env.t (H' H) v.
+
+  Definition clamp_list (n: nat) (l: list bool) :=
+    List.firstn n (l ++ (List.repeat false (List.length l - n))).
+
+  Definition clamp_v (n: nat) (x: v): v :=
+    match x with
+    | VBits x => VBits (clamp_list n x)
     end.
+  
+  Definition assign (h: H' H) (v: v) (st: store) : store :=
+    Env.bind h (clamp_v (projT1 h) v) st.
 
   Definition find (h: hdr_ref H) (st: store) : v :=
     match h with
@@ -269,7 +303,8 @@ Section Interp.
     | OpSeq o1 o2 =>
       let '(st, idx) := eval_op st idx bits o1 in
       eval_op st idx bits o2
-    | OpExtract width hdr =>
+    | OpExtract hdr =>
+      let width := projT1 hdr in
       (assign hdr (VBits (List.firstn width (List.skipn idx bits))) st, idx + width)
     | OpAsgn hdr expr =>
       (assign hdr (eval_expr st expr) st, idx)
@@ -323,9 +358,7 @@ Section Inline.
   Context `{S_eq_dec: EquivDec.EqDec S eq}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-
+  Variable (H: nat -> Type).
 
   Program Definition inline (pref: S) (suff: S) (auto: t S H) : t S H := 
     match auto.(t_states) pref with 
