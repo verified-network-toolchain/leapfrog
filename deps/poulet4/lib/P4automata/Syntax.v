@@ -53,6 +53,7 @@ Next Obligation.
 Admitted.
 
 Section Syntax.
+
   Set Implicit Arguments.
 
   (* State identifiers. *)
@@ -146,6 +147,8 @@ Section Syntax.
   | OpSeq {n1 n2} (o1: op n1) (o2: op n2): op (n1 + n2)
   | OpExtract (hdr: H'): op (projT1 hdr)
   | OpAsgn {n} (lhs: H n) (rhs: expr n): op 0.
+
+  Definition op_size {n} (o: op n) := n.
   
   Fixpoint nonempty {n} (o: op n) : Prop :=
     match o with
@@ -273,6 +276,7 @@ Section Fmap.
 End Fmap.
 
 Section Interp.
+  Unset Implicit Arguments.
   (* State identifiers. *)
   Variable (S: Type).
   Context `{S_eqdec: EquivDec.EqDec S eq}.
@@ -313,29 +317,47 @@ Section Interp.
   Admitted. 
 
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
-    { eval_expr st (EHdr n h) :=
+    { eval_expr n st (EHdr n h) :=
         match find h st with
         | Some v => v
         | None => VBits _ (n_tuple_repeat _ false)
         end;
-      eval_expr st (ELit _ bs) := VBits _ bs;
-      eval_expr st (ESlice e hi lo) :=
-        let '(VBits _ bs) := eval_expr st e in
+      eval_expr n st (ELit _ bs) := VBits _ bs;
+      eval_expr n st (ESlice e hi lo) :=
+        let '(VBits _ bs) := eval_expr _ st e in
         VBits _ (n_slice bs hi lo)
     }.
 
-  Fixpoint eval_op {n size: nat} (st: store) (idx: nat) (bits: n_tuple bool n) (o: op H size) : store * n_tuple bool (n - size) :=
-    match o with
-    | OpNil _ => st
-    | OpSeq o1 o2 =>
-      let '(st, idx) := eval_op st idx bits o1 in
-      eval_op st idx bits o2
-    | OpExtract hdr =>
-      let width := projT1 hdr in
-      (assign (projT2 hdr) (VBits _ (List.firstn width (List.skipn idx bits))) st, idx + width)
-    | OpAsgn hdr expr =>
-      (assign hdr (eval_expr st expr) st, idx)
-    end.
+  Definition extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess.
+  Admitted.
+
+  Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m :=
+    eq_rect_r (fun m' => n_tuple A m') l pf.
+
+  Equations eval_op (sz excess: nat) (st: store) (bits: n_tuple bool (sz + excess)) (o: op H sz) : store * n_tuple bool excess :=
+    {
+      eval_op _ _ st bits (OpNil _) := (st, bits);
+      eval_op _ _ st bits (OpSeq o1 o2) :=
+        let '(st, buf') := eval_op (op_size o1)
+                                   (excess + op_size o2)
+                                   st
+                                   (rewrite_size _ bits)
+                                   o1 in
+        eval_op _ excess st (rewrite_size _ buf') o2;
+      eval_op sz excess st bits (OpExtract hdr) :=
+        let (h, buf) := extract _ excess bits in
+        (assign (projT2 hdr) (VBits _ h) st, buf);
+      eval_op _ _ st bits (OpAsgn hdr expr) :=
+        (assign hdr (eval_expr _ st expr) st, bits)
+    }.
+  Next Obligation.
+    unfold op_size.
+    Lia.lia.
+  Qed.
+  Next Obligation.
+    unfold op_size.
+    Lia.lia.
+  Qed.
 
   Definition update (state: S) (bits: list bool) (st: store) : store :=
     fst (eval_op st 0 bits (a.(t_states) state).(st_op)).
