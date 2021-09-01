@@ -104,9 +104,9 @@ Section Syntax.
   | ELit {n} (bs: n_tuple bool n): expr n
   | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo).
   (* todo: binops, ...? *)
-  
+
   Definition state_ref: Type := S + bool.
-  
+
   Inductive v n :=
   | VBits: n_tuple bool n -> v n.
 
@@ -124,6 +124,7 @@ Section Syntax.
   Inductive typ :=
   | TBits (n: nat)
   | TPair (t1 t2: typ).
+  Derive NoConfusion for typ.
 
   Inductive pat: typ -> Type :=
   | PExact {n} (val: v n) : pat (TBits n)
@@ -149,7 +150,7 @@ Section Syntax.
   | OpAsgn {n} (lhs: H n) (rhs: expr n): op 0.
 
   Definition op_size {n} (o: op n) := n.
-  
+
   Fixpoint nonempty {n} (o: op n) : Prop :=
     match o with
     | OpAsgn _ _
@@ -215,14 +216,14 @@ Section Fmap.
     match h with
     | HRVar h => HRVar (sigma_fmapH h)
     end.
-    
+
   Fixpoint expr_fmapH {n} (e: expr H1 n) : expr H2 n :=
     match e with
     | EHdr _ h => EHdr _ (g h)
     | ELit _ bs => ELit _ bs
     | ESlice e hi lo => ESlice (expr_fmapH e) hi lo
     end.
-  
+
   Definition state_ref_fmapS (s: state_ref S1) : state_ref S2 :=
     match s with
     | inl s' => inl (f s')
@@ -312,9 +313,9 @@ Section Interp.
     rewrite List.firstn_length.
     reflexivity.
   Qed.
-  
+
   Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
-  Admitted. 
+  Admitted.
 
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
     { eval_expr n st (EHdr n h) :=
@@ -359,21 +360,34 @@ Section Interp.
     Lia.lia.
   Qed.
 
-  Definition update (state: S) (bits: list bool) (st: store) : store :=
-    fst (eval_op st 0 bits (a.(t_states) state).(st_op)).
+  Definition update
+    (state: S)
+    (bits: n_tuple bool (st_size (t_states a state)))
+    (st: store)
+    : store :=
+    fst (eval_op (st_size (t_states a state))
+                 0
+                 st
+                 (* Deal with conversion of n-tuple to (n+0)-tuple *)
+                 (eq_rect _ _ bits _ (plus_n_O _))
+                 (a.(t_states) state).(st_op)).
 
-  Fixpoint match_pat (st: store) (c: cond H) (p: pat) :=
-    match c, p with
-    | CExpr e, PAny =>
-      true
-    | CExpr e, PExact v =>
-      if eval_expr st e == v then true else false
-    | CPair c1 c2, PPair p1 p2 =>
+  Equations match_pat {T: typ} (st: store) (c: cond H T) (p: pat T) : bool := {
+    match_pat st (CExpr e) (PExact val) :=
+      if eval_expr _ st e == val then true else false;
+    match_pat st (CExpr e) (PAny _) :=
+      true;
+    match_pat st (CPair c1 c2) (PPair p1 p2) =>
       andb (match_pat st c1 p1) (match_pat st c2 p2)
-    | _, _ => false
-    end.
+  }.
 
-  Fixpoint eval_sel (st: store) (c: cond H) (cases: list (sel_case S)) (default: state_ref S) : state_ref S :=
+  Fixpoint eval_sel
+    {T: typ}
+    (st: store)
+    (c: cond H T)
+    (cases: list (sel_case S T))
+    (default: state_ref S)
+    : state_ref S :=
     match cases with
     | sc::cases =>
       if match_pat st c sc.(sc_pat)
@@ -409,15 +423,15 @@ Section Inline.
   (* Header identifiers. *)
   Variable (H: nat -> Type).
 
-  Program Definition inline (pref: S) (suff: S) (auto: t S H) : t S H := 
-    match auto.(t_states) pref with 
-    | Build_state op (TGoto _ (inl nxt)) => 
-      if nxt == suff 
-      then 
-      let pref' := 
-        match auto.(t_states) suff with 
+  Program Definition inline (pref: S) (suff: S) (auto: t S H) : t S H :=
+    match auto.(t_states) pref with
+    | Build_state op (TGoto _ (inl nxt)) =>
+      if nxt == suff
+      then
+      let pref' :=
+        match auto.(t_states) suff with
         | suff_st => {| st_op := OpSeq op (st_op suff_st); st_trans := st_trans suff_st |}
-        end in 
+        end in
       bind pref pref' _ _ auto
       else auto
     | _ => auto
@@ -436,9 +450,9 @@ Section Inline.
     intuition.
   Qed.
 
-  (* Lemma inline_corr : 
-    forall pref suff auto (s: store), 
-      let start_config : P4A.configuration (interp _ _ auto) := (SNStart, s, nil) in 
+  (* Lemma inline_corr :
+    forall pref suff auto (s: store),
+      let start_config : P4A.configuration (interp _ _ auto) := (SNStart, s, nil) in
       True. *)
 
 End Inline.
