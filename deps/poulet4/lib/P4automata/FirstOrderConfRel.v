@@ -163,19 +163,6 @@ Section BitsBV.
 
   Definition bv_sig : signature := 
     {| sig_sorts := bv_sorts; sig_funs := bv_funs; sig_rels := bv_rels |}.
-
-
-    (* Record model :=
-    { mod_sorts: sig.(sig_sorts) -> Type;
-      mod_fns: forall args ret,
-          sig.(sig_funs) args ret ->
-          HList.t mod_sorts args ->
-          mod_sorts ret;
-      mod_rels: forall args,
-          sig.(sig_rels) args ->
-          HList.t mod_sorts args ->
-          Prop }. *)
-
   
   Definition bitvector (n: nat) : Type := {bs: list bool | length bs = n}.
   
@@ -217,15 +204,47 @@ Section BitsBV.
     - admit.
   Admitted.
 
-  Definition bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
+  Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
+
+  Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
+    (sf: bv_sig.(sig_funs) args ret) 
+    (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret := {
+      bv_mod_fns (BoolLit b) _ := b;
+      bv_mod_fns (BVLit bv _) _ := exist _ bv _;
+      bv_mod_fns (BoolBop op) (l ::: r ::: _) := 
+        match op with 
+        | BImpl => implb l r
+        | BXor => xorb l r
+        end;
+      (* I'm not sure why but the plain arguments of BVExtract are bound to sf and sf0 *)
+      bv_mod_fns (BVExtract _ _ _) (x ::: _) := exist _ (slice sf sf0 (proj1_sig x)) _;
+      bv_mod_fns (BVConcat _ _) (l ::: r ::: _) := 
+        let (x, _) := l in 
+        let (y, _) := r in 
+          exist _ (x ++ y) _;
+  }.
+  Next Obligation.
+  eapply app_length.
+  Qed.
+  Next Obligation.
+  destruct x.
+  eapply slice_len; simpl; lia.
+  Qed.
+
+  
+
+  Definition bv_mod_fns' {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
     (sf: bv_sig.(sig_funs) args ret) 
     (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret.
   destruct sf eqn:?.
-  - exact b.
-  - simpl. 
+  - (* Boolean literal case *)
+    exact b.
+  - (* Bitvector literal case *)
+    simpl. 
     eapply (exist _ bv).
     trivial.
-  - inversion env.
+  - (* Boolean binop case *)
+    inversion env.
     simpl in X.
     clear env H0 a H1 rest.
     inversion X0.
@@ -234,7 +253,8 @@ Section BitsBV.
     destruct bop eqn:?.
     * exact (implb X X1).
     * exact (xorb X X1).
-  - inversion env.
+  - (* Bitvector concatenation case *)
+    inversion env.
     simpl in X.
     clear env H0 a H1 rest.
     inversion X0.
@@ -252,7 +272,8 @@ Section BitsBV.
     rewrite <- e0.
 
     eapply app_length.
-  - rewrite e.
+  - (* Bitvector extract binop case *)
+    rewrite e.
     simpl.
 
     inversion env.
@@ -294,33 +315,78 @@ Section BitsBV.
     * constructor.
   Defined.
 
+  (* Equations ex0' : fm bv_sig (CEmp _) := {
+    ex0' := FEq _ (CEmp _) _ (TFun _ _ _ _ (BoolLit true) _) (TFun _ _ _ _ (BoolLit true) _)
+  }. *)
+
+  (* Transparent interp_fm. *)
+
+  Require Import SMTCoq.SMTCoq.
+
+  Print Rewrite HintDb interp_fm.
+
   Lemma ex0_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex0.
   Proof.
+    unfold ex0.
+    autorewrite with interp_fm bv_mod_fns.
+    simpl.
+    smt_uncheck; admit.
   Admitted.
   
 
   (* forall x, x -> x *)
 
-  (* Definition ex1 := 
-    FForall _ _ _ TEq.
+  Definition ex1 : fm bv_sig (CEmp _).
+  refine (
+    FForall _ (CEmp _) _ _
+  ).
+  refine (
+    FEq _ _ _ _ _
+  ).
+  - refine (TFun _ _ _ _ _ _).
+    * refine (BoolBop BImpl).
+    * repeat constructor;  refine (TVar _ _ _ _); constructor.
+  - refine (TFun _ _ _ _ _ _).
+    * refine (BoolLit true).
+    * constructor.
+  Defined.
 
-  Check ex1. *)
-  
-
+  Lemma ex1_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex1.
+  Proof.
+    unfold ex1.
+    autorewrite with interp_fm.
+    intros.
+    autorewrite with interp_fm bv_mod_fns.
+    autorewrite with find.
+    simpl in *. (* we need this to reduce the hypothesis' type to bool, otherwise smtcoq breaks*)
+    smt_uncheck; admit.
+    (* confusingly, vm_compute reduces to an if-then-else, which is not recognized by smtcoq *)
+  Admitted.
 
   (* forall a b c, (a -> b) -> (b -> c) -> (a -> c) *)
 
+  (* Definition ex2 : fm bv_sig (CEmp _).
+  refine (
+    FForall _ (CEmp _) _ _
+  ).
+  refine (
+    FForall _ _ _ _
+  ).
+  refine (
+    FForall _ _ _ _
+  ).
+  refine (
+    FEq _ _ _ _ _
+  ).
+  - refine (TFun _ _ _ _ _ _).
+    * refine (BoolBop BImpl).
+    * constructor.
+      + refine (TFun _ _ _ _ _ _).
 
-  
-  (* | KeyLit: H -> funs [] Key
-  | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
-  | Slice: forall n hi lo,
-      funs [Bits n] (Bits (1 + hi - lo))
-  | Update: forall n, funs [Store; Key; Bits n] Store
-  | State1: funs [ConfigPair] State
-  | Store1: funs [ConfigPair] Store
-  | State2: funs [ConfigPair] State
-  | Store2: funs [ConfigPair] Store. *)
+  - refine (TFun _ _ _ _ _ _).
+    * refine (BoolLit true).
+    * constructor.
+  Defined. *)
 
 
 
