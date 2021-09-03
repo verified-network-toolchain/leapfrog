@@ -4,6 +4,7 @@ Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.PreBisimulationSyntax.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.FirstOrder.
+Require Import Poulet4.P4automata.Ntuple.
 
 Print conf_rel.
 
@@ -22,7 +23,7 @@ Section AutModel.
 
   Variable (a: P4A.t S H).
 
-  Notation conf := (configuration (P4A.interp a)).
+  Notation conf := (configuration (P4A.interp S H a)).
 
   Inductive sorts: Type :=
   | Bits (n: nat)
@@ -60,18 +61,11 @@ Section AutModel.
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
     | Bits n => n_tuple bool n
-    | State => states (P4A.interp a) + bool
-    | Store => store (P4A.interp a)
+    | State => states (P4A.interp S H a) + bool
+    | Store => store (P4A.interp S H a)
     | Key n => H n
     | ConfigPair n m => conf * conf
     end.
-
-  Definition n_tuple_take_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (Nat.min n m).
-  Admitted.
-  Definition n_tuple_skip_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (m - n).
-  Admitted.
-  Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple A (1 + hi - lo).
-  Admitted.
 
   Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
 
@@ -83,12 +77,12 @@ Section AutModel.
     { mod_fns (BitsLit n xs) hnil := xs;
       mod_fns (KeyLit k) hnil := k;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
-        n_tuple_app xs ys;
+        n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
       mod_fns (Lookup n) (store ::: k ::: hnil) :=
-        match P4A.find (P4A.HRVar (existT _ n k)) store with 
-        | P4A.VBits v => v
+        match P4A.find H (P4A.HRVar (existT _ n k)) store with
+        | P4A.VBits _ v => v
         end;
       mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
         P4A.assign (P4A.HRVar k) (P4A.VBits (t2l _ _ v)) store;
@@ -113,7 +107,7 @@ Section AutModel.
     match e with
     | BELit _ _ l => Bits (List.length l)
     | BEBuf a => Bits b1
-    | BEHdr a h => 
+    | BEHdr a h =>
     | BEVar b => _
     | BESlice e hi lo => _
     | BEConcat e1 e2 => _

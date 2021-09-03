@@ -6,6 +6,7 @@ Require Import Poulet4.P4cub.BigStep.Value.Value
         Poulet4.P4cub.Syntax.Auxilary
         Poulet4.P4cub.Envn.
 Require Import Poulet4.P4automata.P4automaton.
+Require Import Poulet4.P4automata.Ntuple.
 Require Import Poulet4.Monads.Monad Poulet4.Monads.Error.
 Require Poulet4.Bitwise Poulet4.P4cub.BigStep.ExprUtil.
 
@@ -26,7 +27,7 @@ Module PR := P4cub.Parser.
 Section parser_to_p4automaton.
 
   Variable tags_t : Type.
-  
+
   Inductive state_operation :=
   | SONil
   | SOSeq (s1 s2 : state_operation)
@@ -41,10 +42,10 @@ Section parser_to_p4automaton.
 
   Section compile.
     (*Variables (pkt_name hdr_name: string).*)
-    
+
     (*Definition compile_expression (expr: E.e tags_t) : E.e tags_t :=
       expr.*)
-    Inductive compile_error := 
+    Inductive compile_error :=
     | CEBadLValue (e: E.e tags_t)
     | CEBadExternArgs (args: E.arrowE tags_t)
     | CEUnsupportedExtern (name: string)
@@ -87,7 +88,7 @@ Section parser_to_p4automaton.
         else
           err $ CEUnsupportedExtern func
       | _ => err $ CEUnsupportedStmt stmt end.
-    
+
     Definition compile_state_block
                (stblk : PR.state_block tags_t)
       : @error_monad compile_error (state_operation * (PR.e tags_t)) :=
@@ -130,7 +131,7 @@ Section parser_to_p4automaton.
       | Some stvar => operation_size (fst stvar)
       | None => 0 end
     end.
-    
+
   Theorem P4Automaton_Size_Cap : forall strt states st, 0%nat < P4Automaton_size strt states st.
   Admitted.
 
@@ -139,7 +140,7 @@ Section parser_to_p4automaton.
     | <{ BOOL b @ _ }> => mret ~{ VBOOL b }~
     | <{ w W n @ _ }> => mret ~{ w VW n }~
     | <{ w S n @ _ }> => mret ~{ w VS n }~
-    | <{ Var x : _ @ _ }> => 
+    | <{ Var x : _ @ _ }> =>
       lift_opt_error (CEInconceivable (String.append "missing variable " x)) (Env.find x ϵ)
     | <{ Slice e : _ [ h : l ] @ _ }> =>
       v <- interp_expr ϵ e ;;
@@ -189,7 +190,7 @@ Section parser_to_p4automaton.
         v <<| lift_opt_error (CEInconceivable "bad stack index") (List.nth_error vs (BinInt.Z.to_nat n)) ;;
         let '(b, fs) := v in
         ~{ HDR { fs } VALID := b }~
-      | _ => err (CEUnsupportedExpr expr) end    
+      | _ => err (CEUnsupportedExpr expr) end
     end.
 
   Fixpoint interp_extract (τ : E.t) (pkt : list bool) : option V.v :=
@@ -261,14 +262,14 @@ Section parser_to_p4automaton.
              (strt : state_operation * (PR.e tags_t))
              (states : F.fs string (state_operation * (PR.e tags_t)))
              (st : P4Automaton_State)
-             (pkt : list bool)
+             (pkt : n_tuple bool (P4Automaton_size strt states st))
              (e : option epsilon) : option epsilon :=
     e <- e ;;
     match st with
-    | START => interp_operation pkt e (fst strt)
+    | START => interp_operation (t2l _ _ pkt) e (fst strt)
     | ST_VAR x =>
       stvar <- F.get x states ;;
-      interp_operation pkt e (fst stvar)  end.
+      interp_operation (t2l _ _ pkt) e (fst stvar)  end.
 
   Fixpoint interp_transition
            (ϵ : epsilon)
@@ -297,7 +298,7 @@ Section parser_to_p4automaton.
       end
     end.
   (**[]*)
-  
+
   Definition P4Automaton_transitions
              (strt : state_operation * (PR.e tags_t))
              (states : F.fs string (state_operation * (PR.e tags_t)))

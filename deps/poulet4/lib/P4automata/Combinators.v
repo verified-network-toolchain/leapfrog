@@ -36,27 +36,51 @@ Next Obligation.
   - apply r.
 Qed.
 
-Definition concat_config_l
+Program Definition concat_config_l
   {l r: p4automaton} {r_start store_r}
   (c: configuration l) : configuration (concat l r r_start) :=
-  let '(state, store_l, bs) := c in
-  match state with
-  | inl st => (inl (inl st), (store_l, store_r), bs)
-  | inr b => (inr b, (store_l, store_r), bs)
-  end.
+  let conf_state' : state_ref (concat l r r_start) :=
+    match conf_state _ c with
+    | inl s => inl (inl s)
+    | inr b => inr b
+    end in
+  {|
+    conf_state := conf_state';
+    conf_buf := conf_buf _ c;
+    conf_store := (conf_store _ c, store_r);
+  |}.
+Next Obligation.
+  destruct c, conf_state; simpl.
+  - now rewrite size'_equation_1 in *.
+  - now rewrite size'_equation_2 in *.
+Qed.
 
-Definition concat_config_r
+Program Definition concat_config_r
   {l r: p4automaton} {r_start store_l}
   (c: configuration r) : configuration (concat l r r_start) :=
-  let '(state, store_r, bs) := c in
-  match state with
-  | inl st => (inl (inr st), (store_l, store_r), bs)
-  | inr b => (inr b, (store_l, store_r), bs)
-  end.
+  let conf_state' : state_ref (concat l r r_start) :=
+    match conf_state _ c with
+    | inl s => inl (inr s)
+    | inr b => inr b
+    end in
+  {|
+    conf_state := conf_state';
+    conf_buf := conf_buf _ c;
+    conf_store := (store_l, conf_store _ c);
+  |}.
+Next Obligation.
+  destruct c, conf_state; simpl.
+  - now rewrite size'_equation_1 in *.
+  - now rewrite size'_equation_2 in *.
+Qed.
 
 Lemma accepted_concat:
   forall l r state_l store_l state_r store_r bs_pref bs_suff,
-  accepted (a := l) (inl state_l, store_l, nil) bs_pref ->
-  accepted (a := r) (inl state_r, store_r, nil) bs_suff ->
-  accepted (a := concat l r state_r) (inl (inl state_l), (store_l, store_r), nil) (bs_pref ++ bs_suff).
+  accepted (a := l) (initial_configuration state_l store_l) bs_pref ->
+  accepted (a := r) (initial_configuration state_r store_r) bs_suff ->
+  accepted (a := concat l r state_r)
+           (initial_configuration (a := concat l r state_r)
+                                  (inl state_l)
+                                  (store_l, store_r))
+           (bs_pref ++ bs_suff).
 Admitted.

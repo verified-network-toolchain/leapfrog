@@ -8,6 +8,7 @@ From Equations Require Import Equations.
 Require Import Poulet4.Relations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
+Require Import Poulet4.P4automata.Ntuple.
 Require Poulet4.P4automata.Syntax.
 Module P4A := Poulet4.P4automata.Syntax.
 
@@ -91,7 +92,7 @@ Section ConfRel.
 
   Variable (a: P4A.t S H).
 
-  Notation conf := (configuration (P4A.interp a)).
+  Notation conf := (configuration (P4A.interp S H a)).
 
   Record state_template :=
     { st_state: P4A.state_ref S;
@@ -110,14 +111,16 @@ Section ConfRel.
                            congruence).
 
   Definition interp_state_template (st: state_template) (c: conf) :=
-    st.(st_state) = fst (fst c).
+    st.(st_state) = conf_state _ c.
     (* /\
-    exists (tup : n_tuple _ st.(st_buf_len)), 
+    exists (tup : n_tuple _ st.(st_buf_len)),
       snd c = t2l _ st.(st_buf_len) tup. *)
 
   Inductive side := Left | Right.
   Derive NoConfusion for side.
   Derive EqDec for side.
+
+  Check (P4A.hdr_ref H).
 
   Inductive bit_expr (c: bctx) :=
   | BELit (l: list bool)
@@ -131,15 +134,15 @@ Section ConfRel.
   Arguments BEHdr {c} _ _.
   Derive NoConfusion for bit_expr.
 
-  Definition beslice {c} (be: bit_expr c) (hi lo: nat) := 
-    match be with 
+  Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+    match be with
     | BELit l => BELit (P4A.slice l hi lo)
     | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
     | _ => BESlice be hi lo
     end.
 
-  Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) := 
-    match l, r with 
+  Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) :=
+    match l, r with
     | BELit l, BELit r => BELit (l ++ r)
     | _, _ => BEConcat l r
     end.
@@ -195,19 +198,25 @@ Section ConfRel.
   Global Program Instance bit_expr_eqdec {c} : EquivDec.EqDec (bit_expr c) eq :=
     { equiv_dec := bit_expr_eq_dec }.
 
-  Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) : list bool :=
+  Check (H).
+
+  Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) :=
     match e with
     | BELit l => l
-    | BEBuf Left => snd c1
-    | BEBuf Right => snd c2
+    | BEBuf Left => t2l _ _ (conf_buf _ c1)
+    | BEBuf Right => t2l _ _ (conf_buf _ c2)
     | BEHdr a h =>
       let c := match a with
                | Left => c1
                | Right => c2
                end
       in
-      match P4A.find h (snd (fst c)) with
-      | P4A.VBits v => v
+      match h with
+      | P4A.HRVar var =>
+        match P4A.find H (projT2 var) (conf_store _ c)  with
+        | Some (P4A.VBits _ v) => t2l _ _ v
+        | None => nil (* ??? *)
+        end
       end
     | BEVar x => interp_bvar valu x
     | BESlice e hi lo =>
@@ -234,39 +243,39 @@ Section ConfRel.
 
   (* smart constructors *)
 
-  Definition brand {c} (l: store_rel c) (r: store_rel c) :=  
+  Definition brand {c} (l: store_rel c) (r: store_rel c) :=
     (* BRAnd l r. *)
-    match l with 
+    match l with
     | BRTrue _ => r
     | BRFalse _ => BRFalse c
-    | _ => 
-      match r with 
+    | _ =>
+      match r with
       | BRTrue _ => l
       | BRFalse _ => BRFalse c
       | _ => BRAnd l r
       end
     end.
 
-  Definition bror {c} (l: store_rel c) (r: store_rel c) := 
+  Definition bror {c} (l: store_rel c) (r: store_rel c) :=
     (* BROr l r. *)
-    match l with 
+    match l with
     | BRTrue _ => BRTrue c
     | BRFalse _ => r
-    | _ => 
-      match r with 
+    | _ =>
+      match r with
       | BRTrue _ => BRTrue c
       | BRFalse _ => l
       | _ => BROr l r
       end
     end.
 
-  Definition brimpl {c} (l: store_rel c) (r: store_rel c) := 
+  Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
     (* BRImpl l r. *)
-      match l with 
+      match l with
       | BRTrue _ => r
       | BRFalse _ => BRTrue c
-      | _ => 
-        match r with 
+      | _ =>
+        match r with
         | BRTrue _ => BRTrue c
         | _ => BRImpl l r
         end
@@ -275,23 +284,23 @@ Section ConfRel.
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;
       store_rel_eq_dec (BRFalse _) (BRFalse _) := in_left;
-      store_rel_eq_dec (BREq e11 e12) (BREq e21 e22) := 
+      store_rel_eq_dec (BREq e11 e12) (BREq e21 e22) :=
         if Sumbool.sumbool_and _ _ _ _ (e11 == e21) (e12 == e22)
         then in_left
         else in_right;
-      store_rel_eq_dec (BRAnd r11 r12) (BRAnd r21 r22) := 
+      store_rel_eq_dec (BRAnd r11 r12) (BRAnd r21 r22) :=
         if (store_rel_eq_dec r11 r21)
         then if (store_rel_eq_dec r12 r22)
              then in_left
              else in_right
         else in_right;
-      store_rel_eq_dec (BROr r11 r12) (BROr r21 r22) := 
+      store_rel_eq_dec (BROr r11 r12) (BROr r21 r22) :=
         if (store_rel_eq_dec r11 r21)
         then if (store_rel_eq_dec r12 r22)
              then in_left
              else in_right
         else in_right;
-      store_rel_eq_dec (BRImpl r11 r12) (BRImpl r21 r22) := 
+      store_rel_eq_dec (BRImpl r11 r12) (BRImpl r21 r22) :=
         if (store_rel_eq_dec r11 r21)
         then if (store_rel_eq_dec r12 r22)
              then in_left
@@ -336,27 +345,27 @@ Section ConfRel.
     end.
 
   (* correctness of smart constructors *)
-  Lemma bror_corr : 
-    forall c (l r: store_rel c) v c1 c2, 
+  Lemma bror_corr :
+    forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BROr l r) v c1 c2 <-> interp_store_rel (bror l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    split; intros; induction l; induction r; unfold bror in *; simpl in *;
     auto || destruct H0; auto || contradiction.
   Qed.
 
-  Lemma brand_corr : 
-    forall c (l r: store_rel c) v c1 c2, 
+  Lemma brand_corr :
+    forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BRAnd l r) v c1 c2 <-> interp_store_rel (brand l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    split; intros; induction l; induction r; unfold bror in *; simpl in *;
     auto || destruct H0; auto || contradiction.
   Qed.
 
-  Lemma brimpl_corr : 
-    forall c (l r: store_rel c) v c1 c2, 
+  Lemma brimpl_corr :
+    forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BRImpl l r) v c1 c2 <-> interp_store_rel (brimpl l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *; 
+    split; intros; induction l; induction r; unfold bror in *; simpl in *;
     auto || destruct H0; auto || contradiction.
   Qed.
 
@@ -367,7 +376,7 @@ Section ConfRel.
   Global Program Instance conf_state_eq_dec: EquivDec.EqDec conf_state eq :=
     { equiv_dec x y :=
         if x.(cs_st1) == y.(cs_st1)
-        then if x.(cs_st2) == y.(cs_st2) 
+        then if x.(cs_st2) == y.(cs_st2)
              then in_left
              else in_right
         else in_right }.
@@ -408,14 +417,10 @@ Section ConfRel.
     fun c1 c2 =>
       interp_state_template c.(cs_st1) c1 /\
       interp_state_template c.(cs_st2) c2.
-  
+
   Definition interp_conf_rel (phi: conf_rel) : relation conf :=
-    fun x y => 
-      (exists (t1: n_tuple _ phi.(cr_st).(cs_st1).(st_buf_len)) 
-         (t2: n_tuple _ phi.(cr_st).(cs_st2).(st_buf_len)),
-             t2l _ _ t1 = snd x /\
-             t2l _ _ t2 = snd y /\
-             interp_conf_state phi.(cr_st) x y) ->
+    fun x y =>
+      interp_conf_state phi.(cr_st) x y ->
       forall valu,
         interp_store_rel phi.(cr_rel) valu x y.
 

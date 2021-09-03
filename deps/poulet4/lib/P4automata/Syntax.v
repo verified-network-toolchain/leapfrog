@@ -6,6 +6,7 @@ Require Import Equations.Prop.EqDecInstances.
 Require Import Coq.Program.Program.
 Require Import Poulet4.HAList.
 Require Import Poulet4.FinType.
+Require Import Poulet4.P4automata.Ntuple.
 Require Poulet4.P4automata.DepEnv.
 Require Poulet4.P4automata.P4automaton.
 Module P4A := P4automaton.
@@ -13,44 +14,6 @@ Module P4A := P4automaton.
 Module Env := Poulet4.P4automata.DepEnv.
 
 Open Scope list_scope.
-
-Fixpoint n_tuple A (n: nat): Type :=
-  match n with
-  | 0 => unit
-  | S n => n_tuple A n * A
-  end.
-
-Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
-  match n as n' return n_tuple A n' -> list A with
-  | 0 => fun _ => []
-  | S n => fun p => t2l A n (fst p) ++ [snd p]
-  end x.
-
-Fixpoint n_tuple_app' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
-  match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
-  | 0 =>
-    fun _ => xs
-  | S m0 =>
-    fun '(ys, y) => (n_tuple_app' xs ys, y)
-  end ys.
-
-Fixpoint n_tuple_repeat {A: Type} (n: nat) (a: A) : n_tuple A n :=
-  match n with
-  | 0 => tt
-  | S n => ((n_tuple_repeat n a), a)
-  end.
-
-Definition n_tuple_app {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m).
-  rewrite Plus.plus_comm.
-  exact (n_tuple_app' xs ys).
-Defined.
-
-Program Instance n_tuple_eq_dec
-         {A: Type}
-         `{A_eq_dec: EquivDec.EqDec A eq}
-         (n: nat) : EquivDec.EqDec (n_tuple A n) eq.
-Next Obligation.
-Admitted.
 
 Section Syntax.
 
