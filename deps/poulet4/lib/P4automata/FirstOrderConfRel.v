@@ -127,6 +127,11 @@ Section BitsBV.
 
   Require Import Coq.Init.Specif.
   Require Import Coq.micromega.Lia.
+  Require Import SMTCoq.SMTCoq.
+  Import BVList.BITVECTOR_LIST.
+  Require Import Coq.NArith.BinNat.
+
+
 
   Inductive bv_sorts: Type :=
   | BVBits (len: {n: nat | n > 0})
@@ -151,7 +156,7 @@ Section BitsBV.
 
   Inductive bv_funs: arity bv_sorts -> bv_sorts -> Type :=
   | BoolLit: forall (b: bool), bv_funs [] BVBool
-  | BVLit: forall (bv: list bool) (pf: length bv > 0), bv_funs [] (BVBits (exist _ (length bv) pf))
+  | BVLit: forall (bv: list bool) (pf: List.length bv > 0), bv_funs [] (BVBits (exist _ (List.length bv) pf))
   | BoolBop: forall (bop: bool_bop), bv_funs [BVBool; BVBool] BVBool
   | BVConcat : forall i j, bv_funs [BVBits i; BVBits j] (BVBits (plus i j))
   | BVExtract : forall (i j: nat) (m n : {x: nat | x > 0}) (pf: i >= j),
@@ -163,14 +168,11 @@ Section BitsBV.
 
   Definition bv_sig : signature := 
     {| sig_sorts := bv_sorts; sig_funs := bv_funs; sig_rels := bv_rels |}.
-  
-  Definition bitvector (n: nat) : Type := {bs: list bool | length bs = n}.
-  
 
   Definition bv_mod_sorts (sig: bv_sig.(sig_sorts)) : Type := 
     match sig with 
     | BVBool => bool
-    | BVBits n => bitvector (proj1_sig n)
+    | BVBits n => bitvector (N_of_nat (proj1_sig n))
     end.
 
   (* inclusive slicing *)
@@ -181,9 +183,9 @@ Section BitsBV.
 
   Lemma slice_len:
     forall A hi lo (xs : list A),
-      length xs > hi -> 
+      List.length xs > hi -> 
       hi >= lo -> 
-      length (slice hi lo xs) = hi - lo + 1.
+      List.length (slice hi lo xs) = hi - lo + 1.
   Proof.
     intros.
     induction hi; induction lo; simpl.
@@ -206,34 +208,34 @@ Section BitsBV.
 
   Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
 
+  Require Import Coq.NArith.Nnat.
+
+  Definition bv_concat' {x y} (l: bv_mod_sorts (BVBits x)) (r: bv_mod_sorts (BVBits y)) : bv_mod_sorts (BVBits (plus x y)).
+  unfold plus.
+  simpl in *.
+  erewrite Nat2N.inj_add.
+  exact (bv_concat l r).
+  Defined.
+  
+
   Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
     (sf: bv_sig.(sig_funs) args ret) 
     (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret := {
       bv_mod_fns (BoolLit b) _ := b;
-      bv_mod_fns (BVLit bv _) _ := exist _ bv _;
+      bv_mod_fns (BVLit bv _) _ := of_bits bv;
       bv_mod_fns (BoolBop op) (l ::: r ::: _) := 
         match op with 
         | BImpl => implb l r
         | BXor => xorb l r
         end;
-      (* I'm not sure why but the plain arguments of BVExtract are bound to sf and sf0 *)
-      bv_mod_fns (BVExtract _ _ _) (x ::: _) := exist _ (slice sf sf0 (proj1_sig x)) _;
-      bv_mod_fns (BVConcat _ _) (l ::: r ::: _) := 
-        let (x, _) := l in 
-        let (y, _) := r in 
-          exist _ (x ++ y) _;
+      (* I'm not sure why but the arguments of BVExtract are bound to a bunch of sf* variables *)
+      bv_mod_fns (BVExtract _ _ _) (x ::: _) := @bv_extr (N.of_nat (proj1_sig sf1)) (N.of_nat (proj1_sig sf2)) (N.of_nat (proj1_sig sf1)) x;
+      bv_mod_fns (BVConcat _ _) (l ::: r ::: _) := bv_concat' l r;
   }.
-  Next Obligation.
-  eapply app_length.
-  Qed.
-  Next Obligation.
-  destruct x.
-  eapply slice_len; simpl; lia.
-  Qed.
 
   
 
-  Definition bv_mod_fns' {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
+  (* Definition bv_mod_fns' {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
     (sf: bv_sig.(sig_funs) args ret) 
     (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret.
   destruct sf eqn:?.
@@ -285,7 +287,7 @@ Section BitsBV.
     eapply (exist _ (slice i j x)).
 
     eapply slice_len; lia.
-  Defined.
+  Defined. *)
 
   Definition bv_mod_rels {args}
     (sig_args: bv_sig.(sig_rels) args) 
@@ -321,9 +323,7 @@ Section BitsBV.
 
   (* Transparent interp_fm. *)
 
-  Require Import SMTCoq.SMTCoq.
-
-  Print Rewrite HintDb interp_fm.
+  (* Print Rewrite HintDb interp_fm. *)
 
   Lemma ex0_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex0.
   Proof.
@@ -356,8 +356,7 @@ Section BitsBV.
     unfold ex1.
     autorewrite with interp_fm.
     intros.
-    autorewrite with interp_fm bv_mod_fns.
-    autorewrite with find.
+    autorewrite with interp_fm bv_mod_fns find.
     simpl in *. (* we need this to reduce the hypothesis' type to bool, otherwise smtcoq breaks*)
     smt_uncheck; admit.
     (* confusingly, vm_compute reduces to an if-then-else, which is not recognized by smtcoq *)
