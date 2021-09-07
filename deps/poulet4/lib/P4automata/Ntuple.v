@@ -17,10 +17,10 @@ Fixpoint n_tuple_app {A n} (xs: n_tuple A n) (x: A) : n_tuple A (n + 1) :=
     fun '(xs, x') => (n_tuple_app xs x, x')
   end xs.
 
-Fixpoint t2l A (n: nat) (x: n_tuple A n) : list A :=
+Fixpoint t2l {A: Type} {n: nat} (x: n_tuple A n) : list A :=
   match n as n' return n_tuple A n' -> list A with
   | 0 => fun _ => nil
-  | S n => fun p => t2l A n (fst p) ++ [snd p]
+  | S n => fun p => t2l (fst p) ++ [snd p]
   end x.
 
 Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=

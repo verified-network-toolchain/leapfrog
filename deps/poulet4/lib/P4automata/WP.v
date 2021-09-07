@@ -21,22 +21,23 @@ Section WeakestPre.
   Definition S: Type := S1 + S2.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).
 
-  Fixpoint expr_to_bit_expr {c} (s: side) (e: P4A.expr H) : bit_expr H c :=
+  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr H n) : bit_expr H c :=
     match e with
-    | P4A.EHdr h => BEHdr c s h
-    | P4A.ELit _ bs => BELit _ c bs
+    | P4A.EHdr h => BEHdr c s (P4A.HRVar (existT _ _ h))
+    | P4A.ELit bs => BELit _ c (Ntuple.t2l bs)
     | P4A.ESlice e hi lo => BESlice (expr_to_bit_expr s e) hi lo
     end.
 
-  Definition val_to_bit_expr {c} (value: P4A.v) : bit_expr H c :=
+  Definition val_to_bit_expr {c n} (value: P4A.v n) : bit_expr H c :=
     match value with
-    | P4A.VBits bs => BELit _ c bs
+    | P4A.VBits _ bs => BELit _ c (Ntuple.t2l bs)
     end.
 
   Fixpoint be_subst {c} (be: bit_expr H c) (e: bit_expr H c) (x: bit_expr H c) : bit_expr H c :=
@@ -60,22 +61,20 @@ Section WeakestPre.
   | BRImpl r1 r2 => brimpl (sr_subst r1 e x) (sr_subst r2 e x)
   end.
 
-  Fixpoint pat_cond {ctx: bctx} (si: side) (p: P4A.pat) (c: P4A.cond H) : store_rel H ctx :=
-    match p, c with
-    | P4A.PExact val, P4A.CExpr e =>
-      BREq (expr_to_bit_expr si e) (val_to_bit_expr val)
-    | P4A.PAny, _ => BRTrue _ _
-    | P4A.PPair p1 p2, P4A.CPair e1 e2 =>
-      BRAnd (pat_cond si p1 e1) (pat_cond si p2 e2)
-    | _, _ => BRFalse _ _
-    end.
+  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond H ty) : store_rel H ctx :=
+    { pat_cond si (P4A.PExact val) (P4A.CExpr e) :=
+        BREq (expr_to_bit_expr si e) (val_to_bit_expr val);
+      pat_cond _ (P4A.PAny _) _ :=
+        BRTrue _ _;
+      pat_cond si (P4A.PPair p1 p2) (P4A.CPair e1 e2) :=
+        BRAnd (pat_cond si p1 e1) (pat_cond si p2 e2) }.
   
-  Definition case_cond {ctx: bctx} (si: side) (cn: Syntax.cond H) (st': P4A.state_ref S) (s: P4A.sel_case S) : store_rel H ctx :=
+  Definition case_cond {ctx: bctx} {ty} (si: side) (cn: Syntax.cond H ty) (st': P4A.state_ref S) (s: P4A.sel_case S ty) : store_rel H ctx :=
     if st' == P4A.sc_st s
     then pat_cond si s.(P4A.sc_pat) cn
     else BRFalse _ _.
 
-  Definition cases_cond {ctx: bctx} (si: side) (cond: Syntax.cond H) (st': P4A.state_ref S) (s: list (P4A.sel_case S)) : store_rel H ctx :=
+  Definition cases_cond {ctx: bctx} {ty} (si: side) (cond: Syntax.cond H ty) (st': P4A.state_ref S) (s: list (P4A.sel_case S ty)) : store_rel H ctx :=
     List.fold_right (@bror _ _) (BRFalse _ _) (List.map (case_cond si cond st') s).
 
   Definition trans_cond
@@ -97,21 +96,22 @@ Section WeakestPre.
             else BRFalse _ _)
     end.
 
-  Fixpoint wp_op' {c} (s: side) (o: P4A.op H) : nat * store_rel H c -> nat * store_rel H c :=
+  Fixpoint wp_op' {c n} (s: side) (o: P4A.op H n) : nat * store_rel H c -> nat * store_rel H c :=
     fun '(buf_hi_idx, phi) =>
       match o with
       | P4A.OpNil _ => (buf_hi_idx, phi)
       | P4A.OpSeq o1 o2 =>
         wp_op' s o1 (wp_op' s o2 (buf_hi_idx, phi))
-      | P4A.OpExtract width hdr =>
+      | P4A.OpExtract hdr =>
+        let width := projT1 hdr in
         let new_idx := buf_hi_idx - width in
         let slice := beslice (BEBuf _ _ s) (buf_hi_idx - 1) new_idx in
-        (new_idx, sr_subst phi slice (BEHdr _ s hdr))
+        (new_idx, sr_subst phi slice (BEHdr _ s (P4A.HRVar hdr)))
       | P4A.OpAsgn lhs rhs =>
-        (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s lhs))
+        (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar (existT _ _ lhs))))
       end.
 
-  Definition wp_op {c} (s: side) (o: P4A.op H) (phi: store_rel H c) : store_rel H c :=
+  Definition wp_op {c n} (s: side) (o: P4A.op H n) (phi: store_rel H c) : store_rel H c :=
     snd (wp_op' s o (P4A.op_size o, phi)).
 
   Inductive pred (c: bctx) :=

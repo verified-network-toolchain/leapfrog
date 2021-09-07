@@ -23,7 +23,7 @@ Section AutModel.
 
   Variable (a: P4A.t S H).
 
-  Notation conf := (configuration (P4A.interp S H a)).
+  Notation conf := (configuration (P4A.interp a)).
 
   Inductive sorts: Type :=
   | Bits (n: nat)
@@ -63,8 +63,8 @@ Section AutModel.
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
     | Bits n => n_tuple bool n
-    | State => states (P4A.interp S H a) + bool
-    | Store => store (P4A.interp S H a)
+    | State => states (P4A.interp a) + bool
+    | Store => store (P4A.interp a)
     | Key n => H n
     | ConfigPair n m => conf' n * conf' m
     end.

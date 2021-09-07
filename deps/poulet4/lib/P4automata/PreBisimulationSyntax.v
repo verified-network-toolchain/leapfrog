@@ -74,7 +74,7 @@ Fixpoint check_bvar {c} (x: bvar c) : nat :=
   end.
 
 Equations interp_bvar {c} (valu: bval c) (x: bvar c) : list bool :=
-  { interp_bvar (_, bs)    (BVarTop _ _)  := t2l _ _ bs;
+  { interp_bvar (_, bs)    (BVarTop _ _)  := t2l bs;
     interp_bvar (valu', bs) (BVarRest x')  := interp_bvar valu' x' }.
 
 Section ConfRel.
@@ -92,7 +92,7 @@ Section ConfRel.
 
   Variable (a: P4A.t S H).
 
-  Notation conf := (configuration (P4A.interp S H a)).
+  Notation conf := (configuration (P4A.interp a)).
 
   Record state_template :=
     { st_state: P4A.state_ref S;
@@ -203,8 +203,8 @@ Section ConfRel.
   Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) :=
     match e with
     | BELit l => l
-    | BEBuf Left => t2l _ _ (conf_buf _ c1)
-    | BEBuf Right => t2l _ _ (conf_buf _ c2)
+    | BEBuf Left => t2l (conf_buf _ c1)
+    | BEBuf Right => t2l (conf_buf _ c2)
     | BEHdr a h =>
       let c := match a with
                | Left => c1
@@ -214,7 +214,7 @@ Section ConfRel.
       match h with
       | P4A.HRVar var =>
         match P4A.find H (projT2 var) (conf_store _ c)  with
-        | Some (P4A.VBits _ v) => t2l _ _ v
+        | Some (P4A.VBits _ v) => t2l v
         | None => nil (* ??? *)
         end
       end

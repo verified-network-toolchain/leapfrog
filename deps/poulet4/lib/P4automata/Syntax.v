@@ -377,6 +377,10 @@ Section Interp.
        P4A.transitions := transitions;
        P4A.cap := a.(t_has_extract) |}.
 End Interp.
+Arguments EHdr {_ _} _.
+Arguments ELit {_ _} _.
+Arguments ESlice {_ _} _ _ _.
+Arguments interp {_ _ _ _ _}.
 
 Section Inline.
   (* State identifiers. *)
