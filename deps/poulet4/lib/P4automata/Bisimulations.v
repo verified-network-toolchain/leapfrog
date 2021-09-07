@@ -43,7 +43,7 @@ Module SemBisim.
         destruct H as [R [? ?]].
         now apply H in H0.
       - unfold accepted.
-        repeat rewrite follow_cons.
+        autorewrite with follow.
         apply IHinput.
         unfold bisimilar in H.
         destruct H as [R [? ?]].
@@ -60,10 +60,9 @@ Module SemBisim.
       split.
       - apply (H nil).
       - intros.
-        unfold lang_equiv.
+        unfold lang_equiv in *.
         intros.
-        unfold accepted.
-        repeat rewrite <- follow_cons.
+        specialize (H (b :: input)).
         apply H.
     Qed.
 

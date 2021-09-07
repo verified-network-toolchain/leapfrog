@@ -23,9 +23,10 @@ Section WeakestPreSymbolicLeap.
   Definition S: Type := S1 + S2.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (reachable_states: list (state_template S * state_template S)).
   Variable (a: P4A.t S H).
