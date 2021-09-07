@@ -380,9 +380,9 @@ Section FOL.
     Equations interp_fm (c: ctx) (v: valu c) (f: fm c) : Prop
       by struct f :=
       { interp_fm _ v (FRel c typs rel args) :=
-          m.(mod_rels) typs rel (interp_tms c v _ args);
+          m.(mod_rels) typs rel (interp_tms c _ v args);
         interp_fm _ v (FEq c s t1 t2) :=
-          interp_tm c v s t1 = interp_tm c v s t2;
+          interp_tm c s v t1 = interp_tm c s v t2;
         interp_fm _ v (FNeg _ f) :=
           ~ interp_fm _ v f;
         interp_fm _ v (FOr _ f1 f2) :=
@@ -392,16 +392,31 @@ Section FOL.
         interp_fm _ v (FForall c s f) :=
           forall val: m.(mod_sorts) s,
             interp_fm (CSnoc c s) (VSnoc _ _ val v) f }
-    where interp_tm (c: ctx) (v: valu c) s (t: tm c s) : m.(mod_sorts) s
+    where interp_tm (c: ctx) (s: sig_sorts sig) (v: valu c) (t: tm c s) : m.(mod_sorts) s
       by struct t :=
-      { interp_tm _ v _ (TVar c s x) :=
+      { interp_tm _ _ v (TVar c s x) :=
           find x v;
-        interp_tm _ v _ (TFun c typs rets fn args) :=
-          m.(mod_fns) typs rets fn (interp_tms _ v _ args) }
-    where interp_tms (c: ctx) (v: valu c) typs (args: tms c typs) : HList.t m.(mod_sorts) typs
+        interp_tm _ _ v (TFun c typs rets fn args) :=
+          m.(mod_fns) typs rets fn (interp_tms _ _ v args) }
+    where interp_tms (c: ctx) typs (v: valu c) (args: tms c typs) : HList.t m.(mod_sorts) typs
       by struct args :=
       { interp_tms _ _ _ (TSNil _) := HList.HNil _;
         interp_tms _ _ _ (TSCons _ _ _ tm args') :=
-          @HList.HCons _ _ _ _ (interp_tm _ v _ tm) (interp_tms _ v _ args') }.
+          @HList.HCons _ _ _ _ (interp_tm _ _ v tm) (interp_tms _ _ v args') }.
   End Interp.
 End FOL.
+
+Arguments TVar {_ _ _}.
+Arguments TFun _ {_ _ _} _ _.
+Arguments TSNil {_ _}.
+Arguments TSCons {_ _ _ _} _ _.
+Arguments FEq {_ _ _} _ _.
+Arguments FRel {_ _} _ _.
+Arguments FNeg {_} _.
+Arguments FOr {_} _ _.
+Arguments FAnd {_} _ _.
+Arguments FForall {_ _} _.
+
+Arguments interp_fm {_ _ _} _ _.
+Arguments interp_tm {_ _ _ _} _ _.
+Arguments interp_tms {_ _ _ _} _ _.
