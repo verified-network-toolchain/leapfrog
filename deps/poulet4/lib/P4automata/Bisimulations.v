@@ -258,19 +258,21 @@ Module SemBisimLeaps.
       | InterpolateBase:
           forall c1 c2,
             R c1 c2 -> close_interpolate _ c1 c2
-      | InterpolateStep:
-          forall s1 st1 buf1 s2 st2 buf2 b,
-            close_interpolate R (inl s1, st1, buf1)
-                                (inl s2, st2, buf2) ->
-            length buf1 + 1 < size a s1 ->
-            length buf2 + 1 < size a s2 ->
-            (forall buf,
-                length buf = min (size a s1 - length buf1)
-                                 (size a s2 - length buf2) ->
-                R (follow (inl s1, st1, buf1) buf)
-                  (follow (inl s2, st2, buf2) buf)) ->
-            close_interpolate R (inl s1, st1, buf1 ++ b :: nil)
-                                (inl s2, st2, buf2 ++ b :: nil)
+      | InterpolateStep
+          (c1 c2: conf)
+          (s1 s2: states a)
+          (b: bool)
+          (H1: configuration_has_room c1)
+          (H2: configuration_has_room c2):
+          P4automaton.conf_state _ c1 = inl s1 ->
+          P4automaton.conf_state _ c2 = inl s2 ->
+          close_interpolate R c1 c2 ->
+          (forall buf,
+              length buf = min
+                (configuration_room_left c1)
+                (configuration_room_left c2) ->
+              R (follow c1 buf) (follow c2 buf)) ->
+          close_interpolate R (step c1 b) (step c2 b)
     .
 
     Program Instance close_interpolate_sound
@@ -280,35 +282,41 @@ Module SemBisimLeaps.
       eauto using InterpolateBase.
     Qed.
     Next Obligation.
-      induction H0; firstorder.
+      induction H0; eauto.
+      unfold configuration_has_room in H1, H2.
+      repeat (unfold step; destruct (le_lt_dec _ _); try lia).
+      unfold accepting; simpl.
+      subst; easy.
     Qed.
     Next Obligation.
-      revert b.
-      induction H0; intros; eauto.
-      repeat rewrite <- step_with_space; auto.
-      destruct (le_lt_dec (Nat.min (size a s1 - length buf1)
-                                   (size a s2 - length buf2)) 2).
+      revert b; induction H0; intros; eauto.
+      destruct (le_lt_dec (Nat.min (configuration_room_left c1)
+                                   (configuration_room_left c2)) 2).
       - apply InterpolateBase.
-        rewrite <- follow_nil.
-        rewrite <- follow_nil at 1.
-        repeat rewrite <- follow_cons.
-        apply H3.
-        simpl length.
+        replace (step (step c1 b) b0) with (follow c1 [b; b0]) by auto.
+        replace (step (step c2 b) b0) with (follow c2 [b; b0]) by auto.
+        apply H5; simpl.
+        unfold configuration_room_left in *.
+        unfold configuration_has_room in H1, H2.
         lia.
-      - repeat rewrite step_with_space;
-          repeat rewrite app_length;
-          simpl length;
-          try lia.
-        apply InterpolateStep;
-          repeat rewrite app_length;
-          simpl length;
-          try lia.
-        + repeat rewrite <- step_with_space; eauto.
+      - unfold configuration_room_left in *.
+        eapply InterpolateStep with (s1 := s1) (s2 := s2); auto.
+        + unfold configuration_has_room, step.
+          destruct (le_lt_dec _ _); simpl; lia.
+        + unfold configuration_has_room, step.
+          destruct (le_lt_dec _ _); simpl; lia.
+        + unfold step.
+          destruct (le_lt_dec _ _); try lia.
+          easy.
+        + unfold step.
+          destruct (le_lt_dec _ _); try lia.
+          easy.
         + intros.
-          repeat rewrite <- follow_with_space; try lia.
-          apply H3.
-          simpl length.
-          lia.
+          repeat rewrite <- follow_equation_2.
+          apply H5; simpl.
+          unfold configuration_room_left in H6.
+          rewrite H6; unfold step.
+          repeat (destruct (le_lt_dec _ _)); simpl; lia.
     Qed.
     Next Obligation.
       induction H0.
@@ -323,7 +331,9 @@ Module SemBisimLeaps.
           R c1 c2 ->
           (accepting c1 <-> accepting c2) /\
           forall buf,
-            length buf = min (min_step c1) (min_step c2) ->
+            length buf = min
+              (configuration_room_left c1)
+              (configuration_room_left c2) ->
             R (follow c1 buf) (follow c2 buf)
     .
 
@@ -331,7 +341,7 @@ Module SemBisimLeaps.
       exists R,
         R c1 c2 /\ bisimulation_with_leaps R
     .
-    
+
     Lemma bisimilar_with_leaps_implies_bisimilar_upto
           (c1 c2: conf)
       :
@@ -343,38 +353,51 @@ Module SemBisimLeaps.
       destruct H as [R [? ?]].
       exists R.
       split; auto.
-      intros c1' c2' ?; split.
-      - now apply H0.
-      - intros.
-        rewrite <- follow_nil.
-        rewrite <- follow_nil at 1.
-        repeat rewrite <- follow_cons.
-        destruct c1' as (([s1' | h1'], st1'), buf1'),
-                        c2' as (([s2' | h2'], st2'), buf2').
-        + destruct (Compare_dec.le_lt_dec 2 (min (min_step (inl s1', st1', buf1'))
-                                                 (min_step (inl s2', st2', buf2')))).
-          * repeat rewrite follow_with_space.
-            all: unfold min_step; simpl in l; try lia.
-            apply InterpolateStep; try lia.
-            now apply InterpolateBase.
-            intros.
-            apply H0; auto.
-            simpl min_step.
-            lia.
-          * apply InterpolateBase, H0; auto.
-            simpl min_step in *.
-            simpl length.
-            lia.
-        + apply InterpolateBase, H0; auto.
-          simpl min_step in *.
-          simpl length.
+      intros c1' c2' ?; split; [now apply H0|]; intros.
+      destruct (P4automaton.conf_state _ c1') eqn:?;
+      destruct (P4automaton.conf_state _ c2') eqn:?.
+      - destruct (le_lt_dec 2 (min (configuration_room_left c1')
+                                   (configuration_room_left c2'))).
+        + unfold configuration_room_left in *.
+          eapply InterpolateStep with (s1 := s) (s2 := s0); auto.
+          * unfold configuration_has_room in *; lia.
+          * unfold configuration_has_room in *; lia.
+          * now apply InterpolateBase.
+          * now apply H0.
+        + rewrite <- follow_equation_1.
+          rewrite <- follow_equation_1 at 1.
+          repeat rewrite <- follow_equation_2.
+          apply InterpolateBase, H0; auto; simpl.
+          unfold configuration_room_left in *.
+          destruct c1', c2'; simpl in *.
           lia.
-        + apply InterpolateBase, H0; auto.
-          simpl min_step in *.
-          simpl length.
-          lia.
-        + apply InterpolateBase.
-          apply H0; auto.
+      - rewrite <- follow_equation_1.
+        rewrite <- follow_equation_1 at 1.
+        repeat rewrite <- follow_equation_2.
+        apply InterpolateBase, H0; auto; simpl.
+        unfold configuration_room_left.
+        clear H1.
+        destruct c1', c2'; simpl in *; subst.
+        autorewrite with size' in *.
+        lia.
+      - rewrite <- follow_equation_1.
+        rewrite <- follow_equation_1 at 1.
+        repeat rewrite <- follow_equation_2.
+        apply InterpolateBase, H0; auto; simpl.
+        unfold configuration_room_left.
+        clear H1.
+        destruct c1', c2'; simpl in *; subst.
+        autorewrite with size' in *.
+        lia.
+      - rewrite <- follow_equation_1.
+        rewrite <- follow_equation_1 at 1.
+        repeat rewrite <- follow_equation_2.
+        apply InterpolateBase, H0; auto; simpl.
+        unfold configuration_room_left.
+        clear H1.
+        destruct c1', c2'; simpl in *; subst.
+        autorewrite with size' in *.
+        lia.
     Qed.
 
     Lemma bisimilar_implies_bisimilar_with_leaps
@@ -393,12 +416,8 @@ Module SemBisimLeaps.
       - intros.
         clear H2.
         induction buf using rev_ind.
-        + now repeat rewrite follow_nil.
-        + unfold follow.
-          repeat rewrite fold_left_app.
-          fold (follow c1' buf).
-          fold (follow c2' buf).
-          simpl fold_left.
+        + now autorewrite with follow.
+        + repeat rewrite follow_append.
           now apply H.
     Qed.
 
@@ -424,7 +443,7 @@ Module SemPre.
     Variable (a: p4automaton).
     Notation conf := (configuration a).
     Variable (top: rel conf).
-    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)). 
+    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
 
     Notation "⟦ x ⟧" := (interp_rels top x).
     Notation "R ⊨ S" := (forall (q1 q2: conf),
@@ -583,7 +602,7 @@ Module SemPreLeaps.
     Variable (a: p4automaton).
     Notation conf := (configuration a).
     Variable (top: rel conf).
-    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)). 
+    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
 
     Notation "⟦ x ⟧" := (interp_rels top x).
     Notation "R ⊨ S" := (forall q1 q2,
@@ -611,7 +630,6 @@ Module SemPreLeaps.
 
   End SemPreLeaps.
 End SemPreLeaps.
-
 
 Module SynPreSynWP.
   Section SynPreSynWP.
@@ -641,7 +659,7 @@ Module SynPreSynWP.
     Notation conf := (configuration (P4A.interp a)).
 
     Variable (top: rel conf).
-    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)). 
+    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
 
     Notation "⟦ x ⟧" := (interp_crel top x).
     Notation "⦇ x ⦈" := (interp_conf_rel (a:=a) x).
@@ -680,40 +698,40 @@ Module SynPreSynWP.
       | Datatypes.S n => range n ++ [n]
       end.
 
-    Definition not_accept1 (a: P4A.t S H) (s: S) : crel S H := 
+    Definition not_accept1 (a: P4A.t S H) (s: S) : crel S H :=
       List.map (fun n =>
                   {| cr_st := {| cs_st1 := {| st_state := inr true; st_buf_len := 0 |};
                                  cs_st2 := {| st_state := inl s;    st_buf_len := n |} |};
                      cr_rel := BRFalse _ BCEmp |})
                (range (P4A.size a s)).
 
-    Definition not_accept2 (a: P4A.t S H) (s: S) : crel S H := 
+    Definition not_accept2 (a: P4A.t S H) (s: S) : crel S H :=
       List.map (fun n =>
                   {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := n |};
                                  cs_st2 := {| st_state := inr true; st_buf_len := 0 |} |};
                      cr_rel := BRFalse _ BCEmp |})
                (range (P4A.size a s)).
 
-    Definition init_rel (a: P4A.t S H) : crel S H := 
+    Definition init_rel (a: P4A.t S H) : crel S H :=
       List.concat (List.map (not_accept1 a) (enum S) ++
                             List.map (not_accept2 a) (enum S)).
-    
 
-    Definition sum_not_accept1 (a: P4A.t (S1 + S2) H) (s: S1) : crel (S1 + S2) H := 
+
+    Definition sum_not_accept1 (a: P4A.t (S1 + S2) H) (s: S1) : crel (S1 + S2) H :=
       List.map (fun n =>
                   {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                  cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                      cr_rel := BRFalse _ BCEmp |})
                (range (P4A.size a (inl s))).
 
-    Definition sum_not_accept2 (a: P4A.t (S1 + S2) H) (s: S2) : crel (S1 + S2) H := 
+    Definition sum_not_accept2 (a: P4A.t (S1 + S2) H) (s: S2) : crel (S1 + S2) H :=
       List.map (fun n =>
                   {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                  cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                      cr_rel := BRFalse _ BCEmp |})
                (range (P4A.size a (inr s))).
 
-    Definition sum_init_rel (a: P4A.t (S1 + S2) H) : crel (S1 + S2) H := 
+    Definition sum_init_rel (a: P4A.t (S1 + S2) H) : crel (S1 + S2) H :=
       List.concat (List.map (sum_not_accept1 a) (enum S1)
                             ++ List.map (sum_not_accept2 a) (enum S2)).
     Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
@@ -827,7 +845,7 @@ Module SynPreSynWP.
         safe_wp_1bit ->
         wp_bdd ->
         SemPre.pre_bisimulation (P4A.interp a)
-                                top 
+                                top
                                 (map interp_conf_rel R)
                                 (map interp_conf_rel S)
                                 q1 q2.
@@ -931,7 +949,7 @@ Module SynPreSynWP1bit.
 
     Lemma slice_slice:
       forall A (x: list A) hi lo hi' lo',
-        P4A.slice (P4A.slice x hi lo) hi' lo' = 
+        P4A.slice (P4A.slice x hi lo) hi' lo' =
         P4A.slice x (Nat.min (lo + hi') hi) (lo + lo').
     Proof.
       intros.
@@ -1095,7 +1113,7 @@ Module SynPreSynWP1bit.
            buf1)
           c2.
     Proof.
-      induction phi; 
+      induction phi;
         simpl in *;
         erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         repeat match goal with
@@ -1130,7 +1148,7 @@ Module SynPreSynWP1bit.
                       st2,
            buf2).
     Proof.
-      induction phi; 
+      induction phi;
         simpl in *;
         erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         repeat match goal with
@@ -1687,14 +1705,14 @@ because you're not branching on the same thing.
       SynPreSynWP.ctopbdd _ _ _ a top S ->
       SynPreSynWP.pre_bisimulation a (WP.wp (H:=H)) top R S q1 q2 ->
       SemPre.pre_bisimulation (P4A.interp a)
-                              top 
+                              top
                               (map interp_conf_rel R)
                               (map interp_conf_rel S)
                               q1 q2.
     Proof.
       eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
     Qed.
-  
+
   End SynPreSynWP1bit.
 End SynPreSynWP1bit.
 
@@ -1718,7 +1736,7 @@ Module SynPreSynWPSym.
 
     Notation conf := (configuration (P4A.interp a)).
     Variable (top: rel conf).
-    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)). 
+    Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
 
     Lemma wp_sym_safe :
       SynPreSynWP.safe_wp_1bit _ _ _ a (WPSymBit.wp (H:=H)) top.
@@ -1738,7 +1756,7 @@ Module SynPreSynWPSym.
       SynPreSynWP.ctopbdd _ _ _ a top S ->
       SynPreSynWP.pre_bisimulation a (WPSymBit.wp (H:=H)) top R S q1 q2 ->
       SemPre.pre_bisimulation (P4A.interp a)
-                              top 
+                              top
                               (map interp_conf_rel R)
                               (map interp_conf_rel S)
                               q1 q2.

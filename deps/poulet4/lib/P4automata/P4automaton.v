@@ -59,6 +59,12 @@ Record configuration (a: p4automaton) := MkConfiguration {
   conf_store: store a
 }.
 
+Definition configuration_room_left {a: p4automaton} (c: configuration a) :=
+  size' a (conf_state _ c) - conf_buf_len _ c.
+
+Definition configuration_has_room {a: p4automaton} (c: configuration a) :=
+  conf_buf_len _ c + 1 < size' a (conf_state _ c).
+
 Definition initial_configuration
   {a: p4automaton}
   (state: states a)
@@ -110,6 +116,20 @@ Equations follow
   follow c nil := c;
   follow c (b :: input) := follow (step c b) input
 }.
+
+Lemma follow_append
+  {a: p4automaton}
+  (c: configuration a)
+  (buf: list bool)
+  (b: bool):
+  follow c (buf ++ [b]) = step (follow c buf) b.
+Proof.
+  revert c; induction buf; intros.
+  - now autorewrite with follow.
+  - rewrite <- app_comm_cons.
+    autorewrite with follow.
+    now rewrite IHbuf.
+Qed.
 
 Definition accepting
   {a: p4automaton}
