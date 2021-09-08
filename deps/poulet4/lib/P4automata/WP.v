@@ -124,7 +124,7 @@ Section WeakestPre.
     | PredJump cond s => PredJump (weaken_store_rel size cond) s
     end.
 
-  Definition pick_template (s: side) (c: conf_state S) : state_template S :=
+  Definition pick_template (s: side) (c: conf_states S) : state_template S :=
     match s with
     | Left => c.(cs_st1)
     | Right => c.(cs_st2)

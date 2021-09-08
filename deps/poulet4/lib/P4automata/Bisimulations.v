@@ -2,6 +2,7 @@ Require Import Coq.micromega.Lia.
 Require Import Compare_dec.
 Require Import Coq.Lists.List.
 Require Import Coq.Classes.EquivDec.
+Require Import Coq.Program.Equality.
 Import List.ListNotations.
 
 Require Import Poulet4.P4automata.P4automaton.
@@ -264,8 +265,8 @@ Module SemBisimLeaps.
           (b: bool)
           (H1: configuration_has_room c1)
           (H2: configuration_has_room c2):
-          P4automaton.conf_state _ c1 = inl s1 ->
-          P4automaton.conf_state _ c2 = inl s2 ->
+          conf_state c1 = inl s1 ->
+          conf_state c2 = inl s2 ->
           close_interpolate R c1 c2 ->
           (forall buf,
               length buf = min
@@ -354,8 +355,8 @@ Module SemBisimLeaps.
       exists R.
       split; auto.
       intros c1' c2' ?; split; [now apply H0|]; intros.
-      destruct (P4automaton.conf_state _ c1') eqn:?;
-      destruct (P4automaton.conf_state _ c2') eqn:?.
+      destruct (conf_state c1') eqn:?;
+      destruct (conf_state c2') eqn:?.
       - destruct (le_lt_dec 2 (min (configuration_room_left c1')
                                    (configuration_room_left c2'))).
         + unfold configuration_room_left in *.
@@ -646,9 +647,10 @@ Module SynPreSynWP.
     Notation S := ((S1 + S2)%type).
 
     (* Header identifiers. *)
-    Variable (H: Type).
-    Context `{H_eq_dec: EquivDec.EqDec H eq}.
-    Context `{H_finite: @Finite H _ H_eq_dec}.
+    Variable (H: nat -> Type).
+    Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+    Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+    Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
     Variable (a: P4A.t S H).
 
@@ -661,10 +663,10 @@ Module SynPreSynWP.
     Variable (top: rel conf).
     Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
 
-    Notation "⟦ x ⟧" := (interp_crel top x).
-    Notation "⦇ x ⦈" := (interp_conf_rel (a:=a) x).
+    Notation "⟦ x ⟧" := (interp_crel a top x).
+    Notation "⦇ x ⦈" := (interp_conf_rel a x).
     Notation "R ⊨ q1 q2" := (⟦R⟧ q1 q2) (at level 40).
-    Notation "R ⊨ S" := (interp_entailment top {| e_prem := R; e_concl := S |}) (at level 40).
+    Notation "R ⊨ S" := (interp_entailment a top {| e_prem := R; e_concl := S |}) (at level 40).
     Notation δ := step.
 
     Reserved Notation "R ⇝ S" (at level 10).
@@ -765,7 +767,7 @@ Module SynPreSynWP.
       List.map mk_rel (List.filter not_equally_accepting r).
 
     Definition mk_init (n: nat) s1 s2 :=
-      List.nodup (@conf_rel_eq_dec _ _ _ _ _ _)
+      List.nodup (@conf_rel_eq_dec _ _ _ _ _)
                  (mk_partition
                     (Reachability.reachable_states a n s1 s2)).
 
@@ -776,10 +778,10 @@ Module SynPreSynWP.
       end.
 
     Definition separated (q1 q2: conf) : Prop :=
-      ((exists x, fst (fst q1) = inl (inl x)) \/
-       (exists y, fst (fst q1) = inr y)) /\
-      ((exists x, fst (fst q2) = inl (inr x)) \/
-       (exists y, fst (fst q2) = inr y)).
+      ((exists x, conf_state q1 = inl (inl x)) \/
+       (exists y, conf_state q1 = inr y)) /\
+      ((exists x, conf_state q2 = inl (inr x)) \/
+       (exists y, conf_state q2 = inr y)).
 
     Definition topbdd (C: rel conf) : Prop :=
       forall q1 q2,
@@ -846,8 +848,8 @@ Module SynPreSynWP.
         wp_bdd ->
         SemPre.pre_bisimulation (P4A.interp a)
                                 top
-                                (map interp_conf_rel R)
-                                (map interp_conf_rel S)
+                                (map (interp_conf_rel a) R)
+                                (map (interp_conf_rel a) S)
                                 q1 q2.
     Proof.
       intros R S q1 q2 Hstep.
@@ -881,7 +883,7 @@ Module SynPreSynWP.
     Qed.
 
   End SynPreSynWP.
-  Arguments pre_bisimulation {S1 S2 H equiv2 H_eq_dec} a wp.
+  Arguments pre_bisimulation {S1 equiv0 S1_eq_dec S2 equiv1 S2_eq_dec H H_eq_dec} a wp.
 End SynPreSynWP.
 
 Module SynPreSynWP1bit.
@@ -896,9 +898,10 @@ Module SynPreSynWP1bit.
     Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
 
     (* Header identifiers. *)
-    Variable (H: Type).
-    Context `{H_eq_dec: EquivDec.EqDec H eq}.
-    Context `{H_finite: @Finite H _ H_eq_dec}.
+    Variable (H: nat -> Type).
+    Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+    Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+    Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
     Variable (a: P4A.t (S1 + S2) H).
 
@@ -983,14 +986,20 @@ Module SynPreSynWP1bit.
     Qed.
 
     Lemma be_subst_hdr_left:
-      forall c (valu: bval c) hdr exp phi s1 st1 buf1 c2 v,
-          interp_bit_expr exp valu (s1, st1, buf1) c2 = v ->
+      forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size) v,
+          interp_bit_expr exp valu q c2 = v ->
+          conf_state q = s1 ->
+          conf_store q = st1 ->
+          conf_buf q = buf1 ->
+          v = Ntuple.t2l w ->
           interp_bit_expr (a:=a) phi valu
-                          (s1, P4A.assign hdr (P4A.VBits v) st1, buf1)
+                          (update_conf_store (a:=P4A.interp a)
+                                             (P4A.assign _ hdr (P4A.VBits size w) st1)
+                                             q)
                           c2 =
-          interp_bit_expr (WP.be_subst phi exp (BEHdr c Left hdr))
+          interp_bit_expr (WP.be_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
                           valu
-                          (s1, st1, buf1)
+                          q
                           c2.
     Proof.
       induction phi; intros.
@@ -1001,40 +1010,52 @@ Module SynPreSynWP1bit.
         destruct (bit_expr_eq_dec _ _).
         + inversion e; clear e; subst.
           simpl.
-          destruct hdr.
-          unfold P4A.assign, P4A.find; simpl.
-          change H_eq_dec with equiv_dec.
-          rewrite Utiliser.equiv_dec_refl.
-          reflexivity.
+          Search ({_} + {_}).
+          rewrite P4A.eq_dec_refl.
+          simpl.
+          rewrite P4A.eq_dec_refl.
+          congruence.
         + simpl.
-          unfold P4A.find, P4A.Env.find, P4A.assign.
+          destruct h.
+          dependent destruction var.
+          simpl in *.
+          unfold P4A.find, P4A.assign.
           repeat match goal with
                  | H: context[ match ?e with _ => _ end ] |- _ => destruct e eqn:?
                  | |- context[ match ?e with _ => _ end ] => destruct e eqn:?
+                 | |- _ => progress unfold "===" in *
                  | |- _ => progress simpl in *
+                 | |- _ => progress subst
                  end;
             congruence.
       - reflexivity.
       - simpl.
-        rewrite IHphi; eauto.
+        subst.
+        erewrite IHphi; eauto.
         rewrite beslice_interp.
         reflexivity.
       - simpl.
         rewrite beconcat_interp.
-        rewrite IHphi1, IHphi2; auto.
+        erewrite IHphi1, IHphi2; eauto.
     Qed.
 
     Lemma be_subst_hdr_right:
-      forall c (valu: bval c) hdr exp phi s2 st2 buf2 c1 v,
-          interp_bit_expr exp valu c1 (s2, st2, buf2) = v ->
+      forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s2 st2 buf2 c1 (w: Ntuple.n_tuple bool size) v,
+          interp_bit_expr exp valu c1 q = v ->
+          conf_state q = s2 ->
+          conf_store q = st2 ->
+          conf_buf q = buf2 ->
+          v = Ntuple.t2l w ->
           interp_bit_expr (a:=a) phi valu
                           c1
-                          (s2, P4A.assign hdr (P4A.VBits v) st2, buf2)
-          =
-          interp_bit_expr (WP.be_subst phi exp (BEHdr c Right hdr))
+                          (update_conf_store (a:=P4A.interp a)
+                                             (P4A.assign _ hdr (P4A.VBits size w) st2)
+                                             q)
+                          =
+          interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
                           valu
                           c1
-                          (s2, st2, buf2).
+                          q.
     Proof.
       induction phi; intros.
       - tauto.
@@ -1044,27 +1065,33 @@ Module SynPreSynWP1bit.
         destruct (bit_expr_eq_dec _ _).
         + inversion e; clear e; subst.
           simpl.
-          destruct hdr.
-          unfold P4A.assign, P4A.find; simpl.
-          change H_eq_dec with equiv_dec.
-          rewrite Utiliser.equiv_dec_refl.
-          reflexivity.
+          Search ({_} + {_}).
+          rewrite P4A.eq_dec_refl.
+          simpl.
+          rewrite P4A.eq_dec_refl.
+          congruence.
         + simpl.
-          unfold P4A.find, P4A.Env.find, P4A.assign.
+          destruct h.
+          dependent destruction var.
+          simpl in *.
+          unfold P4A.find, P4A.assign.
           repeat match goal with
                  | H: context[ match ?e with _ => _ end ] |- _ => destruct e eqn:?
                  | |- context[ match ?e with _ => _ end ] => destruct e eqn:?
+                 | |- _ => progress unfold "===" in *
                  | |- _ => progress simpl in *
+                 | |- _ => progress subst
                  end;
             congruence.
       - reflexivity.
       - simpl.
-        rewrite IHphi; eauto.
+        subst.
+        erewrite IHphi; eauto.
         rewrite beslice_interp.
         reflexivity.
       - simpl.
         rewrite beconcat_interp.
-        rewrite IHphi1, IHphi2; auto.
+        erewrite IHphi1, IHphi2; eauto.
     Qed.
 
     Lemma brand_interp:
@@ -1095,22 +1122,24 @@ Module SynPreSynWP1bit.
     Qed.
 
     Lemma sr_subst_hdr_left:
-      forall c (valu: bval c) hdr exp phi s1 st1 buf1 c2,
+      forall c (valu: bval c) size (hdr: H size) exp phi c1 s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
+        conf_state c1 = s1 ->
+        conf_store c1 = st1 ->
+        conf_buf c1 = buf1 ->
+        Ntuple.t2l w = interp_bit_expr exp valu c1 c2 ->
         interp_store_rel
           (a:=a)
-          (WP.sr_subst phi exp (BEHdr c Left hdr))
+          (WP.sr_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
           valu
-          (s1, st1, buf1)
+          c1
           c2 <->
         interp_store_rel
           (a:=a)
           phi
           valu
-          (s1,
-           P4A.assign hdr
-                      (P4A.VBits (interp_bit_expr exp valu (s1, st1, buf1) c2))
-                      st1,
-           buf1)
+          (update_conf_store (a:=P4A.interp a)
+                             (P4A.assign _ hdr (P4A.VBits size w) st1)
+                             c1)
           c2.
     Proof.
       induction phi;
@@ -1122,6 +1151,7 @@ Module SynPreSynWP1bit.
                | |- _ <-> _ => split
                | H: _ /\ _ |- _ => destruct H
                | H: _ <-> _ |- _ => destruct H
+               | |- _ => progress subst
                end;
         try erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         simpl in *;
@@ -1129,24 +1159,25 @@ Module SynPreSynWP1bit.
     Qed.
 
     Lemma sr_subst_hdr_right:
-      forall c (valu: bval c) hdr exp phi c1 s2 st2 buf2,
+      forall c (valu: bval c) size (hdr: H size) exp phi c1 c2 s2 st2 buf2 (w: Ntuple.n_tuple bool size),
+        conf_state c2 = s2 ->
+        conf_store c2 = st2 ->
+        conf_buf c2 = buf2 ->
+        Ntuple.t2l w = interp_bit_expr exp valu c1 c2 ->
         interp_store_rel
           (a:=a)
-          (WP.sr_subst phi exp (BEHdr c Right hdr))
+          (WP.sr_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
           valu
           c1
-          (s2, st2, buf2)
-        <->
+          c2 <->
         interp_store_rel
           (a:=a)
           phi
           valu
           c1
-          (s2,
-           P4A.assign hdr
-                      (P4A.VBits (interp_bit_expr exp valu c1 (s2, st2, buf2)))
-                      st2,
-           buf2).
+          (update_conf_store (a:=P4A.interp a)
+                             (P4A.assign _ hdr (P4A.VBits size w) st2)
+                             c2).
     Proof.
       induction phi;
         simpl in *;
@@ -1157,6 +1188,7 @@ Module SynPreSynWP1bit.
                | |- _ <-> _ => split
                | H: _ /\ _ |- _ => destruct H
                | H: _ <-> _ |- _ => destruct H
+               | |- _ => progress subst
                end;
         try erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
         simpl in *;
@@ -1164,27 +1196,28 @@ Module SynPreSynWP1bit.
     Qed.
 
     Lemma wp_op'_size:
-      forall (c: bctx) si o n phi m phi',
-        WP.wp_op' (c:=c) si o (P4A.op_size o + n, phi) = (m, phi') ->
+      forall (c: bctx) si size (o: P4A.op H size) n phi m phi',
+        WP.wp_op' (c:=c) si o (size + n, phi) = (m, phi') ->
         m = n.
     Proof.
       induction o; cbn; intros.
       - congruence.
-      - destruct (WP.wp_op' si o2 (P4A.op_size o1 + P4A.op_size o2 + n, phi)) eqn:?.
-        replace (P4A.op_size o1 + P4A.op_size o2 + n)
-          with (P4A.op_size o2 + (P4A.op_size o1 + n))
+      - destruct (WP.wp_op' si o2 (n1 + n2 + n, phi)) eqn:?.
+        replace (n1 + n2 + n)
+          with (n2 + (n1 + n))
           in *
           by Lia.lia.
         apply IHo2 in Heqp.
-        subst.
+        subst n0.
+        apply IHo1 in H0.
         eauto.
-      - replace (width + n - width) with n in * by Lia.lia.
+      - replace (projT1 hdr + n - projT1 hdr) with n in * by Lia.lia.
         congruence.
       - congruence.
     Qed.
 
     Lemma wp_op'_seq:
-      forall (c: bctx) o1 o2 si phi,
+      forall (c: bctx) n1 n2 (o1: P4A.op H n1) (o2: P4A.op H n2) si phi,
         WP.wp_op' (c:=c) si (P4A.OpSeq o1 o2) phi = WP.wp_op' si o1 (WP.wp_op' si o2 phi).
     Proof.
       induction o1; intros; simpl;
@@ -1192,12 +1225,8 @@ Module SynPreSynWP1bit.
                | H:context [match ?x with _ => _ end] |- _ => destruct x eqn:?; simpl
                | |- context [match ?x with _ => _ end] => destruct x eqn:?; simpl
                | H: (_, _) = (_, _) |- _ => inversion H; clear H; subst
-               end.
-      - reflexivity.
-      - rewrite <- IHo1_1.
+               end;
         reflexivity.
-      - reflexivity.
-      - reflexivity.
     Qed.
 
     Ltac break_match :=

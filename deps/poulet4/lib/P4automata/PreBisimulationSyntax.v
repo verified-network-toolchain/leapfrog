@@ -111,7 +111,7 @@ Section ConfRel.
                            congruence).
 
   Definition interp_state_template (st: state_template) (c: conf) :=
-    st.(st_state) = conf_state _ c.
+    st.(st_state) = conf_state c.
     (* /\
     exists (tup : n_tuple _ st.(st_buf_len)),
       snd c = t2l _ st.(st_buf_len) tup. *)
@@ -198,13 +198,27 @@ Section ConfRel.
   Global Program Instance bit_expr_eqdec {c} : EquivDec.EqDec (bit_expr c) eq :=
     { equiv_dec := bit_expr_eq_dec }.
 
-  Check (H).
+  Fixpoint be_size {c} b1 b2 (e: bit_expr c) : nat :=
+    match e with
+    | BELit l => List.length l
+    | BEBuf side =>
+      match side with
+      | Left => b1
+      | Right => b2
+      end
+    | BEHdr a (P4A.HRVar h) => projT1 h
+    | BEVar x => check_bvar x
+    | BESlice e hi lo =>
+      Nat.min (1 + hi) (be_size b1 b2 e) - lo
+    | BEConcat e1 e2 =>
+      be_size b1 b2 e1 + be_size b1 b2 e2
+    end.
 
-  Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) :=
+  Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) : list bool :=
     match e with
     | BELit l => l
-    | BEBuf Left => t2l (conf_buf _ c1)
-    | BEBuf Right => t2l (conf_buf _ c2)
+    | BEBuf Left => t2l (conf_buf c1)
+    | BEBuf Right => t2l (conf_buf c2)
     | BEHdr a h =>
       let c := match a with
                | Left => c1
@@ -213,7 +227,7 @@ Section ConfRel.
       in
       match h with
       | P4A.HRVar var =>
-        match P4A.find H (projT2 var) (conf_store _ c)  with
+        match P4A.find H (projT2 var) (conf_store c)  with
         | Some (P4A.VBits _ v) => t2l v
         | None => nil (* ??? *)
         end
@@ -224,13 +238,6 @@ Section ConfRel.
     | BEConcat e1 e2 =>
       interp_bit_expr e1 valu c1 c2 ++ interp_bit_expr e2 valu c1 c2
     end.
-
-  Lemma true_eq:
-    forall x y : True,
-      x = y.
-  Proof using.
-    destruct x, y; reflexivity.
-  Qed.
 
   Inductive store_rel c :=
   | BRTrue
@@ -370,10 +377,10 @@ Section ConfRel.
   Qed.
 
 
-  Record conf_state :=
+  Record conf_states :=
     { cs_st1: state_template;
       cs_st2: state_template; }.
-  Global Program Instance conf_state_eq_dec: EquivDec.EqDec conf_state eq :=
+  Global Program Instance conf_states_eq_dec: EquivDec.EqDec conf_states eq :=
     { equiv_dec x y :=
         if x.(cs_st1) == y.(cs_st1)
         then if x.(cs_st2) == y.(cs_st2)
@@ -383,7 +390,7 @@ Section ConfRel.
   Solve All Obligations with (destruct x, y; simpl in *; congruence).
 
   Record conf_rel :=
-    { cr_st: conf_state;
+    { cr_st: conf_states;
       cr_ctx: bctx;
       cr_rel: store_rel cr_ctx }.
   Equations conf_rel_eq_dec: EquivDec.EqDec conf_rel eq :=
@@ -395,7 +402,7 @@ Section ConfRel.
                               cr_ctx := c;
                               cr_rel := rel2 |})
                           (left eq_refl) :=
-            if conf_state_eq_dec st1 st2
+            if conf_states_eq_dec st1 st2
             then if store_rel_eq_dec rel1 rel2
                  then in_left
                  else in_right
@@ -413,7 +420,7 @@ Section ConfRel.
   Global Program Instance conf_rel_eqdec: EquivDec.EqDec conf_rel eq :=
     conf_rel_eq_dec.
 
-  Definition interp_conf_state (c: conf_state) : relation conf :=
+  Definition interp_conf_state (c: conf_states) : relation conf :=
     fun c1 c2 =>
       interp_state_template c.(cs_st1) c1 /\
       interp_state_template c.(cs_st2) c2.

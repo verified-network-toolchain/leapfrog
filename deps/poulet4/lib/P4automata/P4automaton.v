@@ -59,11 +59,24 @@ Record configuration (a: p4automaton) := MkConfiguration {
   conf_store: store a
 }.
 
+Arguments conf_state {a} _.
+Arguments conf_buf_len {a} _.
+Arguments conf_buf {a} _.
+Arguments conf_buf_sane {a} _.
+Arguments conf_store {a} _.
+
+Definition update_conf_store {a} (v: store a) (c: configuration a) : configuration a :=
+  {| conf_state := conf_state c;
+     conf_buf_len := conf_buf_len c;
+     conf_buf := conf_buf c;
+     conf_buf_sane := conf_buf_sane c;
+     conf_store := v |}.
+
 Definition configuration_room_left {a: p4automaton} (c: configuration a) :=
-  size' a (conf_state _ c) - conf_buf_len _ c.
+  size' a c.(conf_state) - c.(conf_buf_len).
 
 Definition configuration_has_room {a: p4automaton} (c: configuration a) :=
-  conf_buf_len _ c + 1 < size' a (conf_state _ c).
+  c.(conf_buf_len) + 1 < size' a c.(conf_state).
 
 Definition initial_configuration
   {a: p4automaton}
@@ -87,12 +100,12 @@ Definition step
   (c: configuration a)
   (b: bool)
   : configuration a :=
-  let buf_padded := n_tuple_app (conf_buf _ c) b in
-  match le_lt_dec (size' a (conf_state _ c)) (conf_buf_len _ c + 1) with
+  let buf_padded := n_tuple_app (conf_buf c) b in
+  match le_lt_dec (size' a (conf_state c)) (conf_buf_len c + 1) with
   | left Hle =>
-    let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane _ c) Hle) in
-    let conf_store' := update' a (conf_state _ c) buf_full (conf_store _ c) in
-    let conf_state' := transitions' a (conf_state _ c) conf_store' in
+    let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) Hle) in
+    let conf_store' := update' a (conf_state c) buf_full (conf_store c) in
+    let conf_state' := transitions' a (conf_state c) conf_store' in
     {|
       conf_state := conf_state';
       conf_buf := tt : n_tuple bool 0;
@@ -101,10 +114,10 @@ Definition step
     |}
   | right conf_buf_sane' =>
     {|
-      conf_state := conf_state _ c;
+      conf_state := conf_state c;
       conf_buf := buf_padded;
       conf_buf_sane := conf_buf_sane';
-      conf_store := conf_store _ c;
+      conf_store := conf_store c;
     |}
   end.
 
@@ -136,7 +149,7 @@ Definition accepting
   (c: configuration a)
   : Prop
 :=
-  conf_state _ c = inr true
+  conf_state c = inr true
 .
 
 Definition accepted

@@ -128,22 +128,6 @@ Section AutModel.
     | BCSnoc b size => CSnoc _ (tr_bctx b) (Bits size)
     end.
 
-  Fixpoint be_size {c} b1 b2 (e: bit_expr H c) : nat :=
-    match e with
-    | BELit _ _ l => List.length l
-    | BEBuf _ _ side =>
-      match side with
-      | Left => b1
-      | Right => b2
-      end
-    | BEHdr _ a (P4A.HRVar h) => projT1 h
-    | BEVar _ x => check_bvar x
-    | BESlice e hi lo =>
-      Nat.min (1 + hi) (be_size b1 b2 e) - lo
-    | BEConcat e1 e2 =>
-      be_size b1 b2 e1 + be_size b1 b2 e2
-    end.
-
   Definition be_sort {c} b1 b2 (e: bit_expr H c) : sorts :=
     Bits (be_size b1 b2 e).
 
