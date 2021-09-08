@@ -258,7 +258,7 @@ Section BitsBV.
   erewrite Nat2N.inj_add.
   exact (bv_concat l r).
   Defined.
-  
+
 
   Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
     (sf: bv_sig.(sig_funs) args ret) 
@@ -270,66 +270,12 @@ Section BitsBV.
         | BImpl => implb l r
         | BXor => xorb l r
         end;
-      (* I'm not sure why but the arguments of BVExtract are bound to a bunch of sf* variables *)
-      bv_mod_fns (BVExtract _ _ _) (x ::: _) := @bv_extr (N.of_nat (proj1_sig sf1)) (N.of_nat (proj1_sig sf2)) (N.of_nat (proj1_sig sf1)) x;
+      bv_mod_fns (@BVExtract hi lo n m _ _ _) (x ::: _) := _;
       bv_mod_fns (BVConcat _ _) (l ::: r ::: _) := bv_concat' l r
   }.
-
-  
-
-  (* Definition bv_mod_fns' {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
-    (sf: bv_sig.(sig_funs) args ret) 
-    (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret.
-  destruct sf eqn:?.
-  - (* Boolean literal case *)
-    exact b.
-  - (* Bitvector literal case *)
-    simpl. 
-    eapply (exist _ bv).
-    trivial.
-  - (* Boolean binop case *)
-    inversion env.
-    simpl in X.
-    clear env H0 a H1 rest.
-    inversion X0.
-    simpl in X1.
-    clear H0 H1 X0 rest X2 a.
-    destruct bop eqn:?.
-    * exact (implb X X1).
-    * exact (xorb X X1).
-  - (* Bitvector concatenation case *)
-    inversion env.
-    simpl in X.
-    clear env H0 a H1 rest.
-    inversion X0.
-    simpl in X1.
-    clear H0 H1 X0 rest X2 a.
-
-    destruct X.
-    destruct X1.
-
-    eapply (exist _ (x ++ x0)).
-
-    simpl.
-  
-    rewrite <- e.
-    rewrite <- e0.
-
-    eapply app_length.
-  - (* Bitvector extract binop case *)
-    rewrite e.
-    simpl.
-
-    inversion env.
-    simpl in X.
-    clear env H0 a H1 rest X0.
-
-    destruct X.
-
-    eapply (exist _ (slice i j x)).
-
-    eapply slice_len; lia.
-  Defined. *)
+  Next Obligation.
+  refine (@bv_extr (N.of_nat hi) _ _ x).
+  Defined.
 
   Definition bv_mod_rels {args}
     (sig_args: bv_sig.(sig_rels) args) 
@@ -347,8 +293,7 @@ Section BitsBV.
 
   (* true = true *)
 
-  (* Universe inconsistency error here...
-  Definition ex0 : fm (@CEmp bv_sig).
+  Definition ex0 : FirstOrder.fm bv_sig (CEmp _).
   refine (
     FEq _ (CEmp _) _ _ _
   ).
@@ -360,13 +305,6 @@ Section BitsBV.
     * constructor.
   Defined.
 
-  (* Equations ex0' : fm bv_sig (CEmp _) := {
-    ex0' := FEq _ (CEmp _) _ (TFun _ _ _ _ (BoolLit true) _) (TFun _ _ _ _ (BoolLit true) _)
-  }. *)
-
-  (* Transparent interp_fm. *)
-
-  (* Print Rewrite HintDb interp_fm. *)
 
   Lemma ex0_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex0.
   Proof.
@@ -379,7 +317,7 @@ Section BitsBV.
 
   (* forall x, x -> x *)
 
-  Definition ex1 : fm bv_sig (CEmp _).
+  Definition ex1 : FirstOrder.fm bv_sig (CEmp _).
   refine (
     FForall _ (CEmp _) _ _
   ).
@@ -430,7 +368,4 @@ Section BitsBV.
     * constructor.
   Defined. *)
 
-
-
-  *)
 End BitsBV.
