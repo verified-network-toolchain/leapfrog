@@ -40,14 +40,14 @@ Program Definition concat_config_l
   {l r: p4automaton} {r_start store_r}
   (c: configuration l) : configuration (concat l r r_start) :=
   let conf_state' : state_ref (concat l r r_start) :=
-    match conf_state _ c with
+    match conf_state c with
     | inl s => inl (inl s)
     | inr b => inr b
     end in
   {|
     conf_state := conf_state';
-    conf_buf := conf_buf _ c;
-    conf_store := (conf_store _ c, store_r);
+    conf_buf := conf_buf c;
+    conf_store := (conf_store c, store_r);
   |}.
 Next Obligation.
   destruct c, conf_state; simpl.
@@ -59,14 +59,14 @@ Program Definition concat_config_r
   {l r: p4automaton} {r_start store_l}
   (c: configuration r) : configuration (concat l r r_start) :=
   let conf_state' : state_ref (concat l r r_start) :=
-    match conf_state _ c with
+    match conf_state c with
     | inl s => inl (inr s)
     | inr b => inr b
     end in
   {|
     conf_state := conf_state';
-    conf_buf := conf_buf _ c;
-    conf_store := (store_l, conf_store _ c);
+    conf_buf := conf_buf c;
+    conf_store := (store_l, conf_store c);
   |}.
 Next Obligation.
   destruct c, conf_state; simpl.

@@ -58,7 +58,7 @@ Section AutModel.
   Definition tms ctx := FirstOrder.tms sig ctx.
 
   Definition conf' (n: nat) :=
-    {c: conf | c.(conf_buf_len _) = n}.
+    {c: conf | c.(conf_buf_len) = n}.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
@@ -96,17 +96,17 @@ Section AutModel.
         end;
       mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
         P4A.assign _ k (P4A.VBits _ v) store;
-      mod_fns (State1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_state _);
-      mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store _);
-      mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state _);
-      mod_fns (Store2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_store _);
+      mod_fns (State1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_state);
+      mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store);
+      mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state);
+      mod_fns (Store2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_store);
       mod_fns (Buf1 n m) ((q1, q2) ::: hnil) := _;
       mod_fns (Buf2 n m) ((q2, q2) ::: hnil) := _
     }.
   Next Obligation.
     unfold conf'.
     intros.
-    pose ((proj1_sig q1).(conf_buf _)).
+    pose ((proj1_sig q1).(conf_buf)).
     destruct q1.
     simpl in *.
     rewrite e in n0.
@@ -115,7 +115,7 @@ Section AutModel.
   Next Obligation.
     unfold conf'.
     intros.
-    pose ((proj1_sig q2).(conf_buf _)).
+    pose ((proj1_sig q2).(conf_buf)).
     destruct q2.
     simpl in *.
     rewrite e in n0.
@@ -294,19 +294,17 @@ Section BitsBV.
   (* true = true *)
 
   Definition ex0 : FirstOrder.fm bv_sig (CEmp _).
-  refine (
-    FEq _ (CEmp _) _ _ _
-  ).
-  - refine (TFun _ _ _ _ _ _).
+  refine (FEq _ _).
+  - refine (TFun _ _ _).
     * refine (BoolLit true).
     * constructor.
-  - refine (TFun _ _ _ _ _ _).
+  - refine (TFun _ _ _).
     * refine (BoolLit true).
     * constructor.
   Defined.
 
 
-  Lemma ex0_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex0.
+  Lemma ex0_interp : interp_fm (m := bv_model) (VEmp _ _) ex0.
   Proof.
     unfold ex0.
     autorewrite with interp_fm bv_mod_fns.
@@ -318,21 +316,16 @@ Section BitsBV.
   (* forall x, x -> x *)
 
   Definition ex1 : FirstOrder.fm bv_sig (CEmp _).
-  refine (
-    FForall _ (CEmp _) _ _
-  ).
-  refine (
-    FEq _ _ _ _ _
-  ).
-  - refine (TFun _ _ _ _ _ _).
+  refine (FForall _ (FEq _ _)).
+  - refine (TFun _ _ _).
     * refine (BoolBop BImpl).
     * repeat constructor;  refine (TVar _ _ _ _); constructor.
-  - refine (TFun _ _ _ _ _ _).
+  - refine (TFun _ _ _).
     * refine (BoolLit true).
     * constructor.
   Defined.
 
-  Lemma ex1_interp : interp_fm bv_sig bv_model (CEmp _) (VEmp _ _) ex1.
+  Lemma ex1_interp : interp_fm (m := bv_model) (VEmp _ _) ex1.
   Proof.
     unfold ex1.
     autorewrite with interp_fm.

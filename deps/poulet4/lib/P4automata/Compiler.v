@@ -266,10 +266,10 @@ Section parser_to_p4automaton.
              (e : option epsilon) : option epsilon :=
     e <- e ;;
     match st with
-    | START => interp_operation (t2l _ _ pkt) e (fst strt)
+    | START => interp_operation (t2l pkt) e (fst strt)
     | ST_VAR x =>
       stvar <- F.get x states ;;
-      interp_operation (t2l _ _ pkt) e (fst stvar)  end.
+      interp_operation (t2l pkt) e (fst stvar)  end.
 
   Fixpoint interp_transition
            (ϵ : epsilon)
