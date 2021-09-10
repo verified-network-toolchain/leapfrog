@@ -974,6 +974,7 @@ Module SynPreSynWP1bit.
     Proof.
     Admitted.
 
+    (*
     Lemma beslice_interp:
       forall ctx (e: bit_expr H ctx) hi lo valu (q1 q2: conf),
         Syntax.rewrite_size (beslice_interp_length _ _ _ _ _ _)
@@ -1731,6 +1732,7 @@ because you're not branching on the same thing.
     Proof.
       eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
     Qed.
+    *)
 
   End SynPreSynWP1bit.
 End SynPreSynWP1bit.
@@ -1747,9 +1749,10 @@ Module SynPreSynWPSym.
     Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
 
     (* Header identifiers. *)
-    Variable (H: Type).
-    Context `{H_eq_dec: EquivDec.EqDec H eq}.
-    Context `{H_finite: @Finite H _ H_eq_dec}.
+    Variable (H: nat -> Type).
+    Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+    Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+    Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
     Variable (a: P4A.t (S1 + S2) H).
 
@@ -1769,6 +1772,7 @@ Module SynPreSynWPSym.
     Proof.
     Admitted.
 
+    (*
     Lemma syn_pre_1bit_sym_implies_sem_pre:
     forall R S q1 q2,
       SynPreSynWP.ctopbdd _ _ _ a top R ->
@@ -1782,6 +1786,7 @@ Module SynPreSynWPSym.
     Proof.
       eauto using wp_sym_safe, wp_sym_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
     Qed.
+    *)
   End SynPreSynWPSym.
 End SynPreSynWPSym.
 

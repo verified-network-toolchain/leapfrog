@@ -97,6 +97,7 @@ Section Syntax.
   Inductive cond: typ -> Type :=
   | CExpr {n} (e: expr n) : cond (TBits n)
   | CPair {t1 t2} (c1: cond t1) (c2: cond t2) : cond (TPair t1 t2).
+  Derive Signature for cond.
 
   Record sel_case t: Type :=
     { sc_pat: pat t;

@@ -365,7 +365,7 @@ Section ConfRel.
     interp_store_rel (BROr r1 r2) valu c1 c2 :=
       interp_store_rel r1 valu c1 c2 \/ interp_store_rel r2 valu c1 c2;
     interp_store_rel (BRImpl r1 r2) valu c1 c2 :=
-      interp_store_rel r1 valu c1 c2 -> interp_store_rel r2 valu c1 c2;
+      interp_store_rel r1 valu c1 c2 -> interp_store_rel r2 valu c1 c2
   }.
 
   (* correctness of smart constructors *)
