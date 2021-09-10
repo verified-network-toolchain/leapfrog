@@ -36,9 +36,11 @@ Section BisimChecker.
   Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
   Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
 
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
+  (* Header identifiers. *)
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Notation S:=(S1 + S2)%type.
 
@@ -80,15 +82,17 @@ Section BisimChecker.
     : crel (S1 + S2) H :=
     List.concat (List.map reachable_pair_to_partition r).
 
+  (*
   Lemma no_state:
     forall (a: P4A.t S H) i R (S: conf_rel S H),
-      (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel i R q1 q2),
-          interp_conf_rel (a:=a) S q1 q2)
+      (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel a i R q1 q2),
+          interp_conf_rel a S q1 q2)
       <->
-      (forall st1 (buf1: n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2 (buf2: n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
-          let q1 := (S.(cr_st).(cs_st1).(st_state), st1, t2l _ _ buf1) in
-          let q2 := (S.(cr_st).(cs_st2).(st_state), st2, t2l _ _ buf2) in
-          interp_crel i R q1 q2 ->
+      (forall st1 (buf1: Ntuple.n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2
+         (buf2: Ntuple.n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
+          let q1 := (S.(cr_st).(cs_st1).(st_state), st1, Ntuple.t2l buf1) in
+          let q2 := (S.(cr_st).(cs_st2).(st_state), st2, Ntuple.t2l buf2) in
+          interp_crel a i R q1 q2 ->
           forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
   Proof.
     intros.
@@ -97,17 +101,18 @@ Section BisimChecker.
       simpl.
       intros.
   Admitted.
+  *)
  
   Definition states_match {S H} {S_eq_dec: EquivDec.EqDec S eq} (c1 c2: conf_rel S H) : bool :=
-    if conf_state_eq_dec c1.(cr_st) c2.(cr_st)
+    if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
     else false.
 
   Lemma filter_entails:
     forall (a: P4A.t S H) i R C,
-      (forall q1 q2, interp_crel i R q1 q2 -> interp_conf_rel (a:=a) C q1 q2)
+      (forall q1 q2, interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
       <->
-      (forall q1 q2, interp_crel i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel C q1 q2).
+      (forall q1 q2, interp_crel a i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel a C q1 q2).
   Proof.
   Admitted.
 
@@ -335,6 +340,7 @@ Ltac break_store :=
     end
   end.
 
+(*
 Ltac disprove_sat a i :=
   rewrite (filter_entails (a:=a)) by (typeclasses eauto);
   simpl;
@@ -408,3 +414,4 @@ Ltac simp_exists_store :=
     set (store := []: P4A.store H);
     cut (ltac:(build_store ltac:(find hdrs) P store))
   end.
+*)

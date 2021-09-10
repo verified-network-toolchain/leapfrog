@@ -91,8 +91,7 @@ Section AutModel.
         n_tuple_slice hi lo xs;
       mod_fns (Lookup n) (store ::: key ::: hnil) :=
         match P4A.find H key store with
-        | Some (P4A.VBits _ v) => v
-        | None => n_zeroes n
+        | P4A.VBits _ v => v
         end;
       mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
         P4A.assign _ k (P4A.VBits _ v) store;
@@ -309,7 +308,9 @@ Section BitsBV.
     unfold ex0.
     autorewrite with interp_fm bv_mod_fns.
     simpl.
+    (*
     smt_uncheck; admit.
+    *)
   Admitted.
   
 
@@ -332,7 +333,9 @@ Section BitsBV.
     intros.
     autorewrite with interp_fm bv_mod_fns find.
     simpl in *. (* we need this to reduce the hypothesis' type to bool, otherwise smtcoq breaks*)
+    (*
     smt_uncheck; admit.
+    *)
     (* confusingly, vm_compute reduces to an if-then-else, which is not recognized by smtcoq *)
   Admitted.
 
