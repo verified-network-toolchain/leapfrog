@@ -229,7 +229,7 @@ Section ConfRel.
       | P4A.HRVar var =>
         match P4A.find H (projT2 var) (conf_store c)  with
         | Some (P4A.VBits _ v) => t2l v
-        | None => nil (* ??? *)
+        | None => Ntuple.t2l (Ntuple.n_tuple_repeat (projT1 var) false)
         end
       end
     | BEVar x => interp_bvar valu x

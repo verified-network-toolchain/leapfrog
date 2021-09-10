@@ -1010,7 +1010,6 @@ Module SynPreSynWP1bit.
         destruct (bit_expr_eq_dec _ _).
         + inversion e; clear e; subst.
           simpl.
-          Search ({_} + {_}).
           rewrite P4A.eq_dec_refl.
           simpl.
           rewrite P4A.eq_dec_refl.
@@ -1065,7 +1064,6 @@ Module SynPreSynWP1bit.
         destruct (bit_expr_eq_dec _ _).
         + inversion e; clear e; subst.
           simpl.
-          Search ({_} + {_}).
           rewrite P4A.eq_dec_refl.
           simpl.
           rewrite P4A.eq_dec_refl.
@@ -1238,7 +1236,7 @@ Module SynPreSynWP1bit.
       end.
 
     Lemma wp_op'_mono:
-      forall (c: bctx) si o n phi,
+      forall (c: bctx) si size (o: P4A.op _ size) n phi,
         fst (WP.wp_op' (c:=c) si o (n, phi)) <= n.
     Proof.
       induction o; simpl.
@@ -1254,67 +1252,32 @@ Module SynPreSynWP1bit.
       - Lia.lia.
     Qed.
 
-    Lemma expr_to_bit_expr_sound:
-      forall (c: bctx) si (valu: bval c) expr c1 c2,
-        P4A.eval_expr (snd (fst match si with Left => c1 | Right => c2 end)) expr =
-        P4A.VBits (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si expr) valu c1 c2).
-    Proof.
-      assert (Hv: forall v, P4A.VBits match v with P4A.VBits v' => v' end = v).
-      {
-        intros.
-        destruct v; reflexivity.
-      }
-      induction expr; intros; cbn; auto.
-      - destruct (P4A.eval_expr (snd (fst _))) eqn:?.
-        unfold P4A.slice.
-        specialize (IHexpr c1 c2).
-        simpl in IHexpr.
-        rewrite -> IHexpr in Heqv.
-        congruence.
-    Qed.
+    Definition projbits {n} (v: P4A.v n) :=
+      match v with
+      | P4A.VBits _ vec => vec
+      end.
 
-    Lemma eval_op_size:
-      forall op st n buf st' n',
-        P4A.eval_op st n buf op = (st', n') ->
-        n + P4A.op_size op = n'.
+    Lemma n_slice_slice_eq:
+      forall hi lo n (x: Ntuple.n_tuple bool n),
+        Ntuple.t2l (WP.P4A.n_slice _ _ a x hi lo) = P4A.slice (Ntuple.t2l x) hi lo.
     Proof.
-      induction op.
-      - simpl.
-        intros.
-        inversion H0.
-        Lia.lia.
-      - intros.
-        simpl in *.
-        destruct (P4A.eval_op _ _ _ op1) eqn:?.
-        destruct (P4A.eval_op _ _ _ op2) eqn:?.
-        rewrite Plus.plus_assoc.
-        inversion H0.
-        erewrite IHop1; eauto.
-        erewrite IHop2; eauto.
-      - intros.
-        simpl in *.
-        inversion H0.
-        exact eq_refl.
-      - simpl.
-        intros.
-        inversion H0.
-        Lia.lia.
-    Qed.
+    Admitted.
 
     Lemma wp_op'_spec_l:
-      forall c (valu: bval c) o n phi s1 st1 buf1 c2,
+      forall c (valu: bval c) o n phi c1 s1 st1 buf1 c2,
         P4A.nonempty o ->
+        conf_state c1 = s1 ->
+        conf_store c1 = st1 ->
+        conf_buf c1 = buf1 ->
         interp_store_rel (a:=a)
                          (snd (WP.wp_op' Left o (n + P4A.op_size o, phi)))
                          valu
-                         (s1, st1, buf1)
+                         c1
                          c2 <->
         interp_store_rel (a:=a)
                          phi
                          valu
-                         (s1,
-                          fst (P4A.eval_op st1 n buf1 o),
-                          buf1)
+                         (update_conf_store (fst (P4A.eval_op _ _ a _ _ st1 buf1 o)) c1)
                          c2.
     Proof.
       induction o.
