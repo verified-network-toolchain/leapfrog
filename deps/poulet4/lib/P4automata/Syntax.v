@@ -260,8 +260,11 @@ Section Interp.
   Definition assign {n} (h: H n) (v: v n) (st: store) : store :=
     Env.bind _ _ _ h v st.
 
-  Definition find {n} (h: H n) (st: store) : option (v n) :=
-    Env.find _ _ _ h st.
+  Definition find {n} (h: H n) (st: store) : v n :=
+    match Env.find _ _ _ h st with
+    | Some v => v
+    | None => VBits _ (n_tuple_repeat _ false)
+    end.
 
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
@@ -281,11 +284,7 @@ Section Interp.
   Admitted.
 
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
-    { eval_expr n st (EHdr n h) :=
-        match find h st with
-        | Some v => v
-        | None => VBits _ (n_tuple_repeat _ false)
-        end;
+    { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
         let '(VBits _ bs) := eval_expr _ st e in

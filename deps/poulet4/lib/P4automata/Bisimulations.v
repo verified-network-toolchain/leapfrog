@@ -967,12 +967,20 @@ Module SynPreSynWP1bit.
       reflexivity.
     Qed.
 
+    Lemma beslice_interp_length:
+      forall b1 b2 ctx e hi lo,
+        @be_size H ctx b1 b2 (BESlice e hi lo) =
+        @be_size H ctx b1 b2 (beslice e hi lo).
+    Proof.
+    Admitted.
+
     Lemma beslice_interp:
       forall ctx (e: bit_expr H ctx) hi lo valu (q1 q2: conf),
-        interp_bit_expr (beslice e hi lo) valu q1 q2 =
+        Syntax.rewrite_size (beslice_interp_length _ _ _ _ _ _)
+          (interp_bit_expr (beslice e hi lo) valu q1 q2) =
         interp_bit_expr (BESlice e hi lo) valu q1 q2.
     Proof.
-      induction e; intros; simpl; auto.
+      induction e; intros; simpl; autorewrite with interp_bit_expr; auto.
       rewrite slice_slice.
       reflexivity.
     Qed.
@@ -1235,8 +1243,8 @@ Module SynPreSynWP1bit.
         destruct x eqn:?
       end.
 
-    Lemma wp_op'_mono:
-      forall (c: bctx) si size (o: P4A.op _ size) n phi,
+    Lemma wp_op'_mono {k}:
+      forall (c: bctx) si (o: P4A.op H k) n phi,
         fst (WP.wp_op' (c:=c) si o (n, phi)) <= n.
     Proof.
       induction o; simpl.
@@ -1256,6 +1264,25 @@ Module SynPreSynWP1bit.
       match v with
       | P4A.VBits _ vec => vec
       end.
+
+    Lemma expr_to_bit_expr_sound:
+      forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n) (c1 c2: conf),
+        P4A.eval_expr (S1 + S2) H a n (conf_store (match si with Left => c1 | Right => c2 end)) expr =
+        P4A.VBits n (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si _) valu c1 c2).
+    Proof.
+      assert (Hv: forall v, P4A.VBits match v with P4A.VBits v' => v' end = v).
+      {
+        intros.
+        destruct v; reflexivity.
+      }
+      induction expr; intros; cbn; auto.
+      - destruct (P4A.eval_expr (snd (fst _))) eqn:?.
+        unfold P4A.slice.
+        specialize (IHexpr c1 c2).
+        simpl in IHexpr.
+        rewrite -> IHexpr in Heqv.
+        congruence.
+    Qed.
 
     Lemma n_slice_slice_eq:
       forall hi lo n (x: Ntuple.n_tuple bool n),

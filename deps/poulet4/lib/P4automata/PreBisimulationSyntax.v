@@ -73,9 +73,9 @@ Fixpoint check_bvar {c} (x: bvar c) : nat :=
   | BVarRest x' => check_bvar x'
   end.
 
-Equations interp_bvar {c} (valu: bval c) (x: bvar c) : list bool :=
-  { interp_bvar (_, bs)    (BVarTop _ _)  := t2l bs;
-    interp_bvar (valu', bs) (BVarRest x')  := interp_bvar valu' x' }.
+Equations interp_bvar {c} (valu: bval c) (x: bvar c) : n_tuple bool (check_bvar x) :=
+  { interp_bvar (_, bs)    (BVarTop _ _) := bs;
+    interp_bvar (valu', bs) (BVarRest x') := interp_bvar valu' x' }.
 
 Section ConfRel.
   Set Implicit Arguments.
@@ -214,12 +214,20 @@ Section ConfRel.
       be_size b1 b2 e1 + be_size b1 b2 e2
     end.
 
-  Fixpoint interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf) : list bool :=
-    match e with
-    | BELit l => l
-    | BEBuf Left => t2l (conf_buf c1)
-    | BEBuf Right => t2l (conf_buf c2)
-    | BEHdr a h =>
+  Equations l2t {A: Type} (l: list A) : n_tuple A (length l) := {
+    l2t nil := tt;
+    l2t (a :: l) := (l2t l, a)
+  }.
+
+  Equations interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf)
+    : n_tuple bool (be_size (conf_buf_len c1) (conf_buf_len c2) e) := {
+    interp_bit_expr (BELit l) valu c1 c2 :=
+      l2t l;
+    interp_bit_expr (BEBuf Left) valu c1 c2 :=
+      conf_buf c1;
+    interp_bit_expr (BEBuf Right) valu c1 c2 :=
+      conf_buf c2;
+    interp_bit_expr (BEHdr a h) valu c1 c2 :=
       let c := match a with
                | Left => c1
                | Right => c2
@@ -228,16 +236,18 @@ Section ConfRel.
       match h with
       | P4A.HRVar var =>
         match P4A.find H (projT2 var) (conf_store c)  with
-        | Some (P4A.VBits _ v) => t2l v
-        | None => Ntuple.t2l (Ntuple.n_tuple_repeat (projT1 var) false)
+        | P4A.VBits _ v => v
         end
-      end
-    | BEVar x => interp_bvar valu x
-    | BESlice e hi lo =>
-      P4A.slice (interp_bit_expr e valu c1 c2) hi lo
-    | BEConcat e1 e2 =>
-      interp_bit_expr e1 valu c1 c2 ++ interp_bit_expr e2 valu c1 c2
-    end.
+      end;
+    interp_bit_expr (BEVar x) valu c1 c2 :=
+      interp_bvar valu x;
+    interp_bit_expr (BESlice e hi lo) valu c1 c2 :=
+      n_tuple_slice hi lo (interp_bit_expr e valu c1 c2);
+    interp_bit_expr (BEConcat e1 e2) valu c1 c2 :=
+      n_tuple_concat
+        (interp_bit_expr e1 valu c1 c2)
+        (interp_bit_expr e2 valu c1 c2)
+  }.
 
   Inductive store_rel c :=
   | BRTrue
@@ -337,45 +347,51 @@ Section ConfRel.
     | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
     end.
 
-  Fixpoint interp_store_rel {c} (r: store_rel c) (valu: bval c) (c1 c2: conf) : Prop :=
-    match r with
-    | BRTrue _ => True
-    | BRFalse _ => False
-    | BREq e1 e2 =>
-      interp_bit_expr e1 valu c1 c2 = interp_bit_expr e2 valu c1 c2
-    | BRAnd r1 r2 =>
-      interp_store_rel r1 valu c1 c2 /\ interp_store_rel r2 valu c1 c2
-    | BROr r1 r2 =>
-      interp_store_rel r1 valu c1 c2 \/ interp_store_rel r2 valu c1 c2
-    | BRImpl r1 r2 =>
-      interp_store_rel r1 valu c1 c2 -> interp_store_rel r2 valu c1 c2
-    end.
+  Equations interp_store_rel {c} (r: store_rel c) (valu: bval c) (c1 c2: conf) : Prop := {
+    interp_store_rel (BRTrue _) valu c1 c2 :=
+      True;
+    interp_store_rel (BRFalse _) valu c1 c2 :=
+      False;
+    interp_store_rel (BREq e1 e2) valu c1 c2 :=
+      match eq_dec (be_size (conf_buf_len c1) (conf_buf_len c2) e1)
+                   (be_size (conf_buf_len c1) (conf_buf_len c2) e2) with
+      | left Heq =>
+        eq_rect _ _ (interp_bit_expr e1 valu c1 c2) _ Heq =
+        interp_bit_expr e2 valu c1 c2
+      | right _ => False
+      end;
+    interp_store_rel (BRAnd r1 r2) valu c1 c2 :=
+      interp_store_rel r1 valu c1 c2 /\ interp_store_rel r2 valu c1 c2;
+    interp_store_rel (BROr r1 r2) valu c1 c2 :=
+      interp_store_rel r1 valu c1 c2 \/ interp_store_rel r2 valu c1 c2;
+    interp_store_rel (BRImpl r1 r2) valu c1 c2 :=
+      interp_store_rel r1 valu c1 c2 -> interp_store_rel r2 valu c1 c2;
+  }.
 
   (* correctness of smart constructors *)
   Lemma bror_corr :
     forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BROr l r) v c1 c2 <-> interp_store_rel (bror l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *;
-    auto || destruct H0; auto || contradiction.
+    split; intros; destruct l, r; unfold bror in *;
+    autorewrite with interp_store_rel in *; auto; intuition.
   Qed.
 
   Lemma brand_corr :
     forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BRAnd l r) v c1 c2 <-> interp_store_rel (brand l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *;
-    auto || destruct H0; auto || contradiction.
+    split; intros; destruct l, r; unfold brand in *;
+    autorewrite with interp_store_rel in *; auto; intuition.
   Qed.
 
   Lemma brimpl_corr :
     forall c (l r: store_rel c) v c1 c2,
         interp_store_rel (BRImpl l r) v c1 c2 <-> interp_store_rel (brimpl l r) v c1 c2.
   Proof.
-    split; intros; induction l; induction r; unfold bror in *; simpl in *;
-    auto || destruct H0; auto || contradiction.
+    split; intros; destruct l, r; unfold brimpl in *;
+    autorewrite with interp_store_rel in *; auto; intuition.
   Qed.
-
 
   Record conf_states :=
     { cs_st1: state_template;
