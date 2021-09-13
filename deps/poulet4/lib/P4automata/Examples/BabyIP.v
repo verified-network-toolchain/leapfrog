@@ -61,22 +61,22 @@ Module BabyIP1.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract 20 (HRVar HdrIP);
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrIP)) 19 16))
-                              [{| sc_pat := PExact (VBits [false; false; false; true]);
+      {| st_op := OpExtract (existT (fun _ => header) 20 HdrIP);
+         st_trans := P4A.TSel (CExpr (ESlice (n := 20) (EHdr HdrIP) 19 16))
+                              [{| sc_pat := PExact (VBits 4 (tt, false, false, false, true));
                                   sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits [false; false; false; false]);
+                              {| sc_pat := PExact (VBits 4 (tt, false, false, false, false));
                                  sc_st := inl ParseTCP |}]
                               (inr false) |}
     | ParseUDP =>
-      {| st_op := OpExtract 20 (HRVar HdrUDPTCP);
+      {| st_op := OpExtract (existT _ 20 HdrUDPTCP);
          st_trans := P4A.TGoto _ (inr true) |}
     | ParseTCP =>
-      {| st_op := OpExtract 28 (HRVar HdrUDPTCP);
+      {| st_op := OpExtract (existT _ 28 HdrUDPTCP);
          st_trans := P4A.TGoto _ (inr true) |}
     end.
 
-  Program Definition aut: Syntax.t state header :=
+  Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
   Solve Obligations with (destruct s; cbv; Lia.lia).
 
@@ -129,19 +129,19 @@ Module BabyIP2.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract 40 (HRVar HdrCombi);
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrCombi)) 19 16))
-                              [{| sc_pat := PExact (VBits [false; false; false; true]);
+      {| st_op := OpExtract (existT (fun _ => header) 40 HdrCombi);
+         st_trans := P4A.TSel (CExpr (ESlice (n := 40) (EHdr HdrCombi) 19 16))
+                              [{| sc_pat := PExact (VBits 4 (tt, false, false, false, true));
                                   sc_st := inr true |};
-                              {| sc_pat := PExact (VBits [false; false; false; false]);
+                              {| sc_pat := PExact (VBits 4 (tt, false, false, false, false));
                                  sc_st := inl ParseSeq |}]
                               (inr false) |}
     | ParseSeq =>
-      {| st_op := OpExtract 8 (HRVar HdrSeq);
+      {| st_op := OpExtract (existT _ 8 HdrSeq);
          st_trans := P4A.TGoto _ (inr true) |}
     end.
 
-  Program Definition aut: Syntax.t state header :=
+  Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
   Solve Obligations with (destruct s; cbv; Lia.lia).
 
