@@ -47,6 +47,26 @@ Ltac skip_bisim' :=
        clear H
   end.
 
+Check P4automaton.conf_state.
+
+Check pre_bisimulation.
+
+Program Definition init_conf : conf := {| 
+  P4automaton.conf_state := _;
+  P4automaton.conf_buf_len := 0;
+  P4automaton.conf_buf := tt;
+  P4automaton.conf_buf_sane := _;
+  P4automaton.conf_store := _
+|}.
+Obligations.
+Next Obligation.
+refine (inl _).
+refine (inl BabyIP1.Start).
+Defined.
+Admit Obligations.
+
+
+
 Lemma prebisim_babyip:
   pre_bisimulation BabyIP.aut
                    (WPSymLeap.wp r_states)
