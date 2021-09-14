@@ -1,7 +1,7 @@
 From Equations Require Import Equations.
 Require Import Coq.Classes.EquivDec.
 Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.FirstOrderConfRel.
 Import FirstOrder.

@@ -1,4 +1,4 @@
-Require Export Poulet4.P4automata.PreBisimulationSyntax.
+Require Export Poulet4.P4automata.ConfRel.
 Require Poulet4.P4automata.Bisimulations.
 Export Bisimulations.SynPreSynWP.
 Export List.ListNotations.

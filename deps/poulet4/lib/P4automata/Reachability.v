@@ -3,7 +3,7 @@ Require Import Coq.Relations.Relations.
 Require Import Coq.Program.Program.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.ConfRel.
 Require Import Lia.
 
 Import List.ListNotations.

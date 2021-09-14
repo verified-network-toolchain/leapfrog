@@ -5,7 +5,7 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.ConfRel.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;

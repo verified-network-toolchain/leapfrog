@@ -1,7 +1,7 @@
 Require Import Coq.Relations.Relations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.ConfRel.
 Require Poulet4.P4automata.WP.
 Require Poulet4.P4automata.WPSymBit.
 Require Poulet4.P4automata.WPSymLeap.
@@ -15,7 +15,6 @@ From Hammer Require Import Tactics.
 From Hammer Require Import Hammer.
 
 
-Locate "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b".
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
         {| cs_st1 := {| st_state := s1; st_buf_len := n1 |};

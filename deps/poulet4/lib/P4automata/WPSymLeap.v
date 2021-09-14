@@ -4,7 +4,7 @@ Require Import Poulet4.FinType.
 Require Poulet4.P4automata.Syntax.
 Require Poulet4.P4automata.Reachability.
 Module P4A := Poulet4.P4automata.Syntax.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.ConfRel.
 Require Poulet4.P4automata.WP.
 Import ListNotations.
 
