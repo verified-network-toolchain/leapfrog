@@ -2,8 +2,6 @@ Require Import Coq.Relations.Relations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
-Require Poulet4.P4automata.WP.
-Require Poulet4.P4automata.WPSymBit.
 Require Poulet4.P4automata.WPSymLeap.
 Require Poulet4.P4automata.Reachability.
 Require Poulet4.P4automata.Bisimulations.
@@ -125,16 +123,6 @@ Ltac pbskip :=
    simpl in *;
    tauto|].
 
-Ltac solve_bisim'' :=
-  match goal with
-  | |- pre_bisimulation _ WP.wp _ [] _ _ => apply PreBisimulationClose
-  | |- pre_bisimulation _ WP.wp _ (_::_) _ _ => pbskip
-  | |- pre_bisimulation _ WP.wp _ (_::_) _ _ =>
-    apply PreBisimulationExtend;
-    unfold WP.wp, WP.wp_pred_pair, WP.st_pred, WP.wp_pred, WP.wp_op;
-    simpl
-  end.
-
 From Hammer Require Import Tactics.
 From Hammer Require Import Reflect.
 From Hammer Require Import Hammer.
@@ -192,21 +180,8 @@ Ltac solve_bisim_plain :=
       progress (
           unfold WPSymLeap.wp at -1;
           autounfold with wp;
-          unfold WP.wp_op;
+          unfold WPSymLeap.wp_op;
           simpl)
-    | |- context[WPSymBit.wp _ _] =>
-      progress (
-          unfold WPSymBit.wp at -1;
-          unfold
-                  WP.preds, WP.wp_pred_pair, WP.st_pred, WP.wp_pred, WP.wp_op,
-                  WPSymBit.wp_pred_pair 
-                ; simpl)
-    | |- context[WP.wp _ _] =>
-      progress (
-          unfold WP.wp at -1;
-          unfold
-                  WP.preds, WP.wp_pred_pair, WP.st_pred, WP.wp_pred, WP.wp_op
-                ; simpl)
     | |- pre_bisimulation _ _ _ _ [] _ _ =>
       apply PreBisimulationClose
     | |- pre_bisimulation _ _ _ _ (_::_) _ _ =>
