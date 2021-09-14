@@ -115,7 +115,6 @@ Section CompileConfRel.
         weaken_var _ (VHere _ _ _)
     in
     let sr := quantify _ (compile_store_rel (TVar q) r.(cr_rel)) in
-    let f: fm (sig a) (CEmp _) := FForall qsort (FImpl s1eq (FImpl s2eq sr)) in
-    f.
+    FForall qsort (FImpl s1eq (FImpl s2eq sr)).
 
 End CompileConfRel.
