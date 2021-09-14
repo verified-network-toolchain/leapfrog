@@ -23,6 +23,30 @@ Fixpoint t2l {A: Type} {n: nat} (x: n_tuple A n) : list A :=
   | S n => fun p => t2l (fst p) ++ [snd p]
   end x.
 
+Lemma t2l_len {A} n: forall (x: n_tuple A n), length (t2l x) = n. 
+Proof.
+  induction n.
+  - simpl; intros; trivial.
+  - simpl; intros.
+    erewrite app_length.
+    simpl.
+    erewrite <- plus_n_Sm.
+    erewrite <- plus_n_O.
+    erewrite IHn.
+    trivial.
+Qed.
+
+
+Definition l2t {A: Type} (xs: list A) : n_tuple A (length xs).
+induction xs.
+- exact tt.
+- unfold length. fold (length xs). 
+  pose (ret := n_tuple_app IHxs a).
+  erewrite <- plus_n_Sm in ret.
+  erewrite <- plus_n_O in ret.
+  exact ret.
+Defined.
+
 Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
   match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
   | 0 =>
@@ -49,9 +73,34 @@ Program Instance n_tuple_eq_dec
 Next Obligation.
 Admitted.
 
-Definition n_tuple_take_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (Nat.min n m).
-Admitted.
+Require Import Coq.Init.Peano.
+Lemma min_0_r : forall n, Nat.min n 0 = 0.
+Proof.
+  intros.
+  eapply min_r; eapply le_0_n.
+Qed.
+Lemma min_0_l : forall n, Nat.min 0 n = 0.
+Proof.
+  intros.
+  eapply min_l; eapply le_0_n.
+Qed.
+
+Require Import Coq.Lists.List.
+
+Definition n_tuple_take_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (Nat.min n m). 
+pose (ret := l2t (firstn n (t2l xs))).
+erewrite firstn_length in ret.
+erewrite t2l_len in ret.
+exact ret.
+Defined.
+
 Definition n_tuple_skip_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (m - n).
-Admitted.
-Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple A (Nat.min (1 + hi) n - lo).
-Admitted.
+pose (ret := l2t (skipn n (t2l xs))).
+erewrite skipn_length in ret.
+erewrite t2l_len in ret.
+exact ret.
+Defined.
+
+Program Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple A (Nat.min (1 + hi) n - lo) :=
+  n_tuple_take_n (hi - lo) (n_tuple_skip_n (hi - n) xs).
+Admit Obligations.

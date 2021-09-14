@@ -1,6 +1,7 @@
 Require Import Poulet4.P4automata.Examples.ProofHeader.
 Require Import Poulet4.P4automata.Examples.BabyIP.
 
+From Hammer Require Import Tactics.
 
 Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
@@ -8,30 +9,26 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states BabyIP.aut 200 BabyIP1.Start BabyIP2.Start).
 
-(* this script is currently broken *)
+
 Ltac extend_bisim' :=
   match goal with
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-       let H := fresh "H" in
-       assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                  interp_crel i R q1 q2 -> interp_conf_rel C q1 q2))
-         by (
-           rewrite filter_entails by (typeclasses eauto);
-           simpl;
-           cbn;
-           unfold interp_conf_rel, interp_conf_state, interp_state_template;
-           simpl;
-           match goal with |- ?G => idtac "admitting" G end; admit
-         );
-         pose (t := wp a C);
-         idtac C;
-         eapply PreBisimulationExtend with (H0 := right H) (W := t);
-         [ tauto | reflexivity |];
-         compute in t;
-         simpl (_ ++ _);
-         unfold t;
-         clear t;
-         clear H
+    let H := fresh "H" in
+    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
+                  interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2))
+    by (
+      cbn;
+      unfold interp_conf_rel, interp_conf_state, interp_state_template;
+      simpl;
+      match goal with |- ?G => idtac "admitting" G end; admit
+    );
+    pose (t := WPSymLeap.wp r_states a C);
+    eapply PreBisimulationExtend with (H0 := right H) (W := t);
+    [ tauto | trivial |];
+    vm_compute in t;
+    simpl (_ ++ _);
+    clear t;
+    clear H
   end.
 
 Ltac skip_bisim' :=
@@ -39,7 +36,7 @@ Ltac skip_bisim' :=
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
        let H := fresh "H" in
        assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                  interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
+                  interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
          by (match goal with |- ?G => idtac "admitting" G end; admit);
        eapply PreBisimulationSkip with (H0:=left H);
        [ exact I | ];
@@ -79,8 +76,10 @@ Proof.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
+  unfold eq_ind_r.
+  simpl.
 
-  (* extend_bisim'.
+  extend_bisim'.
   extend_bisim'.
   extend_bisim'.
   extend_bisim'.
@@ -101,6 +100,22 @@ Proof.
   skip_bisim'.
   apply PreBisimulationClose.
   unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template.
-  cbn.
+  simpl List.map.
+  autorewrite with interp_store_rel.
+  unfold Relations.interp_rels.
+
+  simpl List.fold_right.
+  simpl RelationClasses.relation_conjunction.
+  unfold RelationClasses.relation_conjunction.
+  unfold RelationClasses.predicate_intersection.
+
+  (* vm_compute.
+
+  repeat split.
+
+  all: try sauto.
+
+  unfold Ntuple.n_tuple_slice.
+
   sauto. *)
 Admitted.
