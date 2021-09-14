@@ -10,8 +10,3 @@
   (coq :build)
   (coq-equations :build))
   (synopsis "Poulet4: Petr4 in Coq"))
-
-(package
- (name p4abench)
- (depends poulet4)
-  (synopsis "Proof benchmarks for P4automata"))

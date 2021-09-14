@@ -4,15 +4,31 @@
  (package poulet4)
  (synopsis "Coq definitions for Petr4")
  (modules (:standard \ 
-             P4automata.Benchmarking
-             ; P4automata.Examples.BabyIP
-             P4automata.Examples.EthSmall
-             P4automata.Examples.Ethernet
-             P4automata.Examples.IPFilter
-             P4automata.Examples.LoopFooter
-             P4automata.Examples.MPLSVectorized
-             P4automata.Examples.MPLSVectorizedSmall
-             ; P4automata.Examples.ProofHeader
-             P4automata.Examples.SimpleLoop
-             P4automata.Examples.SimpleSplit
-             P4automata.Examples.SmallFilter)))
+             P4automata.Benchmarks.Benchmarking
+             ; P4automata.Benchmarks.BabyIP
+             P4automata.Benchmarks.BabyIPProof
+             P4automata.Benchmarks.EthRefComb
+             P4automata.Benchmarks.EthRefCombSmall
+             P4automata.Benchmarks.EthSmall
+             P4automata.Benchmarks.Ethernet
+             P4automata.Benchmarks.IPFilter
+             P4automata.Benchmarks.IPFilterProof
+             P4automata.Benchmarks.IncPostfilter
+             P4automata.Benchmarks.LoopFooter
+             P4automata.Benchmarks.MPLSVectorized
+             P4automata.Benchmarks.MPLSVectorizedProof
+             P4automata.Benchmarks.MPLSVectorizedSmall
+             P4automata.Benchmarks.MPLSVectorizedSmallProof
+             P4automata.Benchmarks.MPLSVectorizedSmallUnrollProof
+             P4automata.Benchmarks.MPLSVectorizedUnrollProof
+             P4automata.Benchmarks.PlainInline
+             P4automata.Benchmarks.PlainUnroll
+             ; P4automata.Benchmarks.ProofHeader
+             P4automata.Benchmarks.SeparateMerged
+             P4automata.Benchmarks.SimpleLoop
+             P4automata.Benchmarks.SimpleLoopProof
+             P4automata.Benchmarks.SimpleSplit
+             P4automata.Benchmarks.SimpleSplitProof
+             P4automata.Benchmarks.SmallFilter
+             P4automata.Benchmarks.SmallFilterProof
+             P4automata.Benchmarks.UnrollInline)))

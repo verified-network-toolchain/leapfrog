@@ -70,10 +70,10 @@ Defined.
 
 End Size. 
 
-Require Import Poulet4.P4automata.Examples.BabyIP.
-Require Import Poulet4.P4automata.Examples.IPFilter.
-Require Import Poulet4.P4automata.Examples.MPLSVectorized.
-Require Import Poulet4.P4automata.Examples.ProofHeader.
+Require Import Poulet4.P4automata.Benchmarks.BabyIP.
+Require Import Poulet4.P4automata.Benchmarks.IPFilter.
+Require Import Poulet4.P4automata.Benchmarks.MPLSVectorized.
+Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
 
 Section Benchmarks.
   (* Eval vm_compute in (size_auto BabyIP1.aut). (* Separate *)
