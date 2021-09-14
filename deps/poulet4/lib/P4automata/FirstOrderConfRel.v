@@ -35,6 +35,7 @@ Section AutModel.
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | KeyLit: forall n, H n -> funs [] (Key n)
+  | StateLit: forall (s: states (P4A.interp a) + bool), funs [] State
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
   | Lookup: forall n, funs [Store; Key n] (Bits n)
@@ -81,6 +82,7 @@ Section AutModel.
     : mod_sorts ret :=
     { mod_fns (BitsLit n xs) hnil := xs;
       mod_fns (KeyLit k) hnil := k;
+      mod_fns (StateLit s) hnil := s;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
@@ -100,47 +102,6 @@ Section AutModel.
       mod_fns (Buf2 n m) ((q2, q2) ::: hnil) :=
         eq_rect _ _ (proj1_sig q2).(conf_buf) _ (proj2_sig q2)
     }.
-
-  Fixpoint tr_bctx (b: bctx): ctx sig :=
-    match b with
-    | BCEmp => CEmp _
-    | BCSnoc b size => CSnoc _ (tr_bctx b) (Bits size)
-    end.
-
-  Definition be_sort {c} b1 b2 (e: bit_expr H c) : sorts :=
-    Bits (be_size b1 b2 e).
-
-  Equations tr_var {c: bctx} (x: bvar c) : var sig (tr_bctx c) (Bits (check_bvar x)) :=
-    { tr_var (BVarTop c size) :=
-        VHere sig (tr_bctx c) (Bits (check_bvar (BVarTop c size)));
-      tr_var (BVarRest y) :=
-        VThere sig (tr_bctx _) _ (Bits (check_bvar y)) (tr_var y) }.
-
-  Equations tr_bit_expr {c}
-    (b1 b2: nat)
-    (q: tm (tr_bctx c) (ConfigPair b1 b2))
-    (e: bit_expr H c)
-    : tm (tr_bctx c) (be_sort b1 b2 e) :=
-    { tr_bit_expr q (BELit _ _ l) :=
-        TFun sig (BitsLit (List.length l) (l2t l)) TSNil;
-      tr_bit_expr q (BEBuf _ _ Left) :=
-        TFun sig (Buf1 b1 b2) (TSCons q TSNil);
-      tr_bit_expr q (BEBuf _ _ Right) :=
-        TFun sig (Buf2 b1 b2) (TSCons q TSNil);
-      tr_bit_expr q (BEHdr _ Left (P4A.HRVar h)) :=
-        let key := TFun sig (KeyLit (projT2 h)) TSNil in
-        let store := TFun sig (Store1 b1 b2) (TSCons q TSNil) in
-        TFun sig (Lookup (projT1 h)) (TSCons store (TSCons key TSNil));
-      tr_bit_expr q (BEHdr _ Right (P4A.HRVar h)) :=
-        let key := TFun sig (KeyLit (projT2 h)) TSNil in
-        let store := TFun sig (Store2 b1 b2) (TSCons q TSNil) in
-        TFun sig (Lookup (projT1 h)) (TSCons store (TSCons key TSNil));
-      tr_bit_expr q (BEVar _ b) :=
-        TVar (tr_var b);
-      tr_bit_expr q (BESlice e hi lo) :=
-        TFun sig (Slice _ hi lo) (TSCons (tr_bit_expr q e) TSNil);
-      tr_bit_expr q (BEConcat e1 e2) :=
-        TFun sig (Concat _ _) (TSCons (tr_bit_expr q e1) (TSCons (tr_bit_expr q e2) TSNil)) }.
 
 End AutModel.
 

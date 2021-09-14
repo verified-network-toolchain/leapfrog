@@ -129,6 +129,8 @@ Section FOL.
       tms c (s :: typs)
   (* First-order formulas. *)
   with fm: ctx -> Type :=
+  | FTrue: forall c, fm c
+  | FFalse: forall c, fm c
   | FEq: forall c s,
       tm c s ->
       tm c s ->
@@ -239,6 +241,8 @@ Section FOL.
         constructor; intros.
         eapply IHclos_trans2; eauto.
         econstructor 2; eauto.
+    - admit.
+    - admit.
     - subst Ptm Pfm.
       intros.
       cbn in *.
@@ -294,7 +298,7 @@ Section FOL.
       + destruct x.
         inversion H0; subst; solve_existT; auto.
       + apply IHclos_trans2; eauto.
-  Qed.
+  Admitted.
   Next Obligation.
     apply subterm_wf.
   Qed.
@@ -379,7 +383,9 @@ Section FOL.
 
     Equations interp_fm (c: ctx) (v: valu c) (f: fm c) : Prop
       by struct f :=
-      { interp_fm _ v (FRel c typs rel args) :=
+      { interp_fm _ v (FTrue _) := True;
+        interp_fm _ v (FFalse _) := False;
+        interp_fm _ v (FRel c typs rel args) :=
           m.(mod_rels) typs rel (interp_tms c _ v args);
         interp_fm _ v (FEq c s t1 t2) :=
           interp_tm c s v t1 = interp_tm c s v t2;
@@ -410,6 +416,8 @@ Arguments TVar {_ _ _}.
 Arguments TFun _ {_ _ _} _ _.
 Arguments TSNil {_ _}.
 Arguments TSCons {_ _ _ _} _ _.
+Arguments FTrue {sig c}.
+Arguments FFalse {sig c}.
 Arguments FEq {_ _ _} _ _.
 Arguments FRel {_ _} _ _.
 Arguments FNeg {_} _.
