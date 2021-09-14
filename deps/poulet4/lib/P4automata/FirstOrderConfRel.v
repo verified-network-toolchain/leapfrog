@@ -69,13 +69,9 @@ Section AutModel.
     | ConfigPair n m => conf' n * conf' m
     end.
 
-  Definition l2t {A} (l: list A) : n_tuple A (List.length l).
-  Admitted.
-
-  Definition n_zeroes (n: nat) : n_tuple bool n.
-  Admitted.
-
   Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
+
+  Check eq_rect.
 
   Obligation Tactic := idtac.
   Equations mod_fns
@@ -99,27 +95,11 @@ Section AutModel.
       mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store);
       mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state);
       mod_fns (Store2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_store);
-      mod_fns (Buf1 n m) ((q1, q2) ::: hnil) := _;
-      mod_fns (Buf2 n m) ((q2, q2) ::: hnil) := _
+      mod_fns (Buf1 n m) ((q1, q2) ::: hnil) :=
+        eq_rect _ _ (proj1_sig q1).(conf_buf) _ (proj2_sig q1);
+      mod_fns (Buf2 n m) ((q2, q2) ::: hnil) :=
+        eq_rect _ _ (proj1_sig q2).(conf_buf) _ (proj2_sig q2)
     }.
-  Next Obligation.
-    unfold conf'.
-    intros.
-    pose ((proj1_sig q1).(conf_buf)).
-    destruct q1.
-    simpl in *.
-    rewrite e in n0.
-    exact n0.
-  Defined.
-  Next Obligation.
-    unfold conf'.
-    intros.
-    pose ((proj1_sig q2).(conf_buf)).
-    destruct q2.
-    simpl in *.
-    rewrite e in n0.
-    exact n0.
-  Defined.
 
   Fixpoint tr_bctx (b: bctx): ctx sig :=
     match b with
@@ -186,13 +166,13 @@ Section BitsBV.
   Defined.
 
   (* Definition gt (l: {n: nat | n > 0}) (r: {n: nat | n > 0})  := . *)
-  
+
   Program Definition sub_add_one (i : nat) (j: nat) : (i >= j) -> {n: nat | n > 0} := fun pf => i - j + 1.
   Next Obligation.
   lia.
   Defined.
 
-  Inductive bool_bop: Type := 
+  Inductive bool_bop: Type :=
   | BImpl | BXor.
 
   Inductive bv_funs: arity bv_sorts -> bv_sorts -> Type :=
@@ -201,17 +181,17 @@ Section BitsBV.
   | BoolBop: forall (bop: bool_bop), bv_funs [BVBool; BVBool] BVBool
   | BVConcat : forall i j, bv_funs [BVBits i; BVBits j] (BVBits (plus i j))
   | BVExtract : forall (i j: nat) (m n : {x: nat | x > 0}) (pf: i >= j),
-    proj1_sig m > i -> 
+    proj1_sig m > i ->
     n = sub_add_one pf  ->
     bv_funs [BVBits m] (BVBits n).
 
   Inductive bv_rels: arity bv_sorts -> Type := .
 
-  Definition bv_sig : signature := 
+  Definition bv_sig : signature :=
     {| sig_sorts := bv_sorts; sig_funs := bv_funs; sig_rels := bv_rels |}.
 
-  Definition bv_mod_sorts (sig: bv_sig.(sig_sorts)) : Type := 
-    match sig with 
+  Definition bv_mod_sorts (sig: bv_sig.(sig_sorts)) : Type :=
+    match sig with
     | BVBool => bool
     | BVBits n => bitvector (N_of_nat (proj1_sig n))
     end.
@@ -224,8 +204,8 @@ Section BitsBV.
 
   Lemma slice_len:
     forall A hi lo (xs : list A),
-      List.length xs > hi -> 
-      hi >= lo -> 
+      List.length xs > hi ->
+      hi >= lo ->
       List.length (slice hi lo xs) = hi - lo + 1.
   Proof.
     intros.
@@ -259,13 +239,13 @@ Section BitsBV.
   Defined.
 
 
-  Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig} 
-    (sf: bv_sig.(sig_funs) args ret) 
+  Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig}
+    (sf: bv_sig.(sig_funs) args ret)
     (env: HList.t bv_mod_sorts args) : bv_mod_sorts ret := {
       bv_mod_fns (BoolLit b) _ := b;
       bv_mod_fns (BVLit bv _) _ := of_bits bv;
-      bv_mod_fns (BoolBop op) (l ::: r ::: _) := 
-        match op with 
+      bv_mod_fns (BoolBop op) (l ::: r ::: _) :=
+        match op with
         | BImpl => implb l r
         | BXor => xorb l r
         end;
@@ -277,14 +257,14 @@ Section BitsBV.
   Defined.
 
   Definition bv_mod_rels {args}
-    (sig_args: bv_sig.(sig_rels) args) 
+    (sig_args: bv_sig.(sig_rels) args)
     (env: HList.t bv_mod_sorts args) : Prop := False.
 
   Definition bv_model : model bv_sig.
-  refine {| FirstOrder.mod_sorts := bv_mod_sorts; 
+  refine {| FirstOrder.mod_sorts := bv_mod_sorts;
        FirstOrder.mod_fns := _; FirstOrder.mod_rels := _ |}.
 
-  - intros. 
+  - intros.
     exact (bv_mod_fns H X).
   - intros.
     exact (bv_mod_rels X X0).
@@ -312,7 +292,7 @@ Section BitsBV.
     smt_uncheck; admit.
     *)
   Admitted.
-  
+
 
   (* forall x, x -> x *)
 
