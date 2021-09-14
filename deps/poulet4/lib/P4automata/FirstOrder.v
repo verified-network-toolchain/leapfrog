@@ -306,6 +306,9 @@ Section FOL.
     apply subterm_wf.
   Qed.
 
+  Definition FImpl {c: ctx} (f1 f2: fm c) :=
+    FOr _ (FNeg _ f1) f2.
+
   Record model :=
     { mod_sorts: sig.(sig_sorts) -> Type;
       mod_fns: forall args ret,
@@ -410,6 +413,33 @@ Section FOL.
         interp_tms _ _ _ (TSCons _ _ _ tm args') :=
           @HList.HCons _ _ _ _ (interp_tm _ _ v tm) (interp_tms _ _ v args') }.
   End Interp.
+
+  Fixpoint app_ctx (c1 c2: ctx): ctx :=
+    match c2 with
+    | CEmp => c1
+    | CSnoc c2' sort => CSnoc (app_ctx c1 c2') sort
+    end.
+
+  Fixpoint quantify {c0: ctx} (c: ctx): fm (app_ctx c0 c) -> fm c0 :=
+    match c as c' return fm (app_ctx c0 c') -> fm c0 with
+    | CEmp => fun f => f
+    | CSnoc c' sort => fun f => quantify c' (FForall _ _ f)
+    end.
+
+  Fixpoint reindex_var {c c': ctx} {sort: sig.(sig_sorts)} (v: var c' sort) : var (app_ctx c c') sort :=
+    match v in (var c' sort) return (var (app_ctx c c') sort) with
+    | VHere ctx _ =>
+      VHere (app_ctx c ctx) _
+    | VThere ctx _ _ v' =>
+      VThere (app_ctx c ctx) _ _ (reindex_var v')
+    end.
+
+  Equations weaken_var {sort: sig.(sig_sorts)}
+             {c1: ctx} (c2: ctx) (v: var c1 sort)
+    : var (app_ctx c1 c2) sort :=
+    { weaken_var CEmp v := v;
+      weaken_var (CSnoc c2' sort') v := VThere _ _ _ (weaken_var c2' v) }.
+
 End FOL.
 
 Arguments TVar {_ _ _}.
@@ -424,7 +454,13 @@ Arguments FNeg {_} _.
 Arguments FOr {_} _ _.
 Arguments FAnd {_} _ _.
 Arguments FForall {_ _} _.
+Arguments FImpl {_ _} _ _.
 
 Arguments interp_fm {_ _ _} _ _.
 Arguments interp_tm {_ _ _ _} _ _.
 Arguments interp_tms {_ _ _ _} _ _.
+
+Arguments app_ctx {sig} c1 c2.
+Arguments quantify {sig c0} c f.
+Arguments reindex_var {sig c c' sort} v.
+Arguments weaken_var {sig sort c1} c2 v.

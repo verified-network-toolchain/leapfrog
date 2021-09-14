@@ -30,32 +30,8 @@ Section StageOne.
     | BCSnoc b size => CSnoc _ (tr_bctx b) (Bits size)
     end.
 
-  Fixpoint app_ctx {s} (c1 c2: ctx s): ctx s :=
-    match c2 with
-    | CEmp _ => c1
-    | CSnoc _ c2' sort =>
-      CSnoc _ (app_ctx c1 c2') sort
-    end.
-
-  Definition weaken_var_one {s: signature} {sort: s.(sig_sorts)}
-             {c: ctx s} (sort': s.(sig_sorts)) (v: var s c sort)
-    : var s (CSnoc _ c sort') sort :=
-    VThere s _ _ _ v.
-
-  Equations weaken_var {s: signature} {sort: s.(sig_sorts)}
-             {c1: ctx s} (c2: ctx s) (v: var s c1 sort)
-    : var s (app_ctx c1 c2) sort :=
-    { weaken_var (CEmp _) v := v;
-      weaken_var (CSnoc _ c2' sort') v := VThere s _ _ _ (weaken_var c2' v) }.
-
   Definition be_sort {c} b1 b2 (e: bit_expr H c) : sorts :=
     Bits (be_size b1 b2 e).
-
-  Fixpoint reindex_var {s: signature} {c c': ctx s} {sort} (v: var _ c' sort) : var _ (app_ctx c c') sort :=
-  match v in (var _ c0 s0) return (var s (app_ctx c c0) s0) with
-  | VHere _ ctx s0 => VHere s (app_ctx c ctx) s0
-  | VThere _ ctx s0 s' v0 => VThere s (app_ctx c ctx) s0 s' (reindex_var v0)
-  end.
 
   Equations tr_var {c: bctx} (x: bvar c) : var (sig a) (tr_bctx c) (Bits (check_bvar x)) :=
     { tr_var (BVarTop c size) :=
@@ -119,15 +95,6 @@ Section StageOne.
               (tr_store_rel q r2)
     }.
 
-  Fixpoint quantify {s} {c0: ctx s} (c: ctx s): fm s (app_ctx c0 c) -> fm s c0 :=
-    match c as c' return fm s (app_ctx c0 c') -> fm s c0 with
-    | CEmp _ => fun f => f
-    | CSnoc _ c' sort => fun f => quantify c' (FForall _ f)
-    end.
-
-  Definition FImpl {s c} (f1 f2: fm s c) :=
-    FOr _ (FNeg _ f1) f2.
-
   Definition tr_conf_rel (r: conf_rel S H) : fm (sig a) (CEmp _) :=
     let s1 := r.(cr_st).(cs_st1).(st_state) in
     let b1 := r.(cr_st).(cs_st1).(st_buf_len) in
@@ -151,3 +118,5 @@ Section StageOne.
     let sr := quantify _ (tr_store_rel (TVar q) r.(cr_rel)) in
     let f: fm (sig a) (CEmp _) := FForall qsort (FImpl s1eq (FImpl s2eq sr)) in
     f.
+
+End StageOne.
