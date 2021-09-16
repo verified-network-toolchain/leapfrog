@@ -2,6 +2,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Program.Program.
 Import ListNotations.
 Require Import Coq.Classes.EquivDec.
+Require Import Coq.Arith.PeanoNat.
 
 (* based roughly on stdpp.finite *)
 Class Finite (A: Type) `{EqDec A Logic.eq} := {
@@ -187,3 +188,65 @@ Next Obligation.
       inversion H4.
       congruence.
 Qed.
+
+Global Program Instance FinDepProdFinite
+  A
+  (f: A -> Type)
+  `{Finite { a: A | inhabited (f a) }}
+  `{EqDec { a: A | inhabited (f a) }}
+  `{forall a, EqDec (f a) eq}
+  `{forall a, Finite (f a)}
+  : forall a, Finite (f a)
+.
+Next Obligation.
+  apply in_flat_map.
+  exists x; split.
+  - specialize (H3 x).
+    apply H0.
+  - apply in_map_iff.
+    exists X.
+    split.
+    + f_equal.
+    + apply H3.
+Qed.
+Next Obligation.
+  apply H3.
+Qed.
+
+Ltac solve_finiteness :=
+  econstructor; [
+    idtac |
+    intros;
+    dependent destruction x;
+    repeat (apply List.in_eq || apply List.in_cons)
+  ];
+  repeat constructor;
+  repeat match goal with
+         | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
+         | |- ~ List.In _ [] => apply List.in_nil
+         | |- ~ List.In _ (_ :: _) => unfold not; intros
+         | H: List.In _ (_::_) |- _ => inversion H; clear H
+         | _ => discriminate
+         end.
+
+Ltac solve_indexed_finiteness n indices :=
+  match indices with
+  | ?index :: ?indices =>
+    destruct (Nat.eq_dec n index); [
+      subst; solve_finiteness |
+      solve_indexed_finiteness n indices
+    ]
+  | nil =>
+    econstructor; [
+      apply List.NoDup_nil |
+      intros; dependent destruction x; contradiction
+    ];
+    match goal with |- ?G => idtac G end;
+    dependent destruction x;
+    contradiction
+  end.
+
+Ltac solve_eqdec :=
+    unfold EquivDec.EqDec; intros;
+    dependent destruction x; dependent destruction y;
+    (left; congruence) || (right; congruence).
