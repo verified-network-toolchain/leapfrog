@@ -32,10 +32,14 @@ Section AutModel.
   | Key (n: nat)
   | ConfigPair (n m: nat).
 
+  Definition conf' (n: nat) :=
+    {c: conf | c.(conf_buf_len) = n}.
+
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | KeyLit: forall n, H n -> funs [] (Key n)
   | StateLit: forall (s: states (P4A.interp a) + bool), funs [] State
+  | ConfPairLit: forall n m (c: conf' n * conf' m), funs [] (ConfigPair n m)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
   | Lookup: forall n, funs [Store; Key n] (Bits n)
@@ -58,9 +62,6 @@ Section AutModel.
   Definition tm ctx := FirstOrder.tm sig ctx.
   Definition tms ctx := FirstOrder.tms sig ctx.
 
-  Definition conf' (n: nat) :=
-    {c: conf | c.(conf_buf_len) = n}.
-
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
     | Bits n => n_tuple bool n
@@ -72,17 +73,16 @@ Section AutModel.
 
   Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
 
-  Check eq_rect.
-
   Obligation Tactic := idtac.
   Equations mod_fns
-             {params ret}
+             params ret
              (f: sig_funs sig params ret)
              (args: HList.t mod_sorts params)
     : mod_sorts ret :=
     { mod_fns (BitsLit n xs) hnil := xs;
       mod_fns (KeyLit k) hnil := k;
       mod_fns (StateLit s) hnil := s;
+      mod_fns (ConfPairLit c) hnil := c;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
@@ -103,6 +103,17 @@ Section AutModel.
         eq_rect _ _ (proj1_sig q2).(conf_buf) _ (proj2_sig q2)
     }.
 
+  Definition mod_rels params
+    (args: sig_rels sig params)
+    (env: HList.t mod_sorts params) : Prop :=
+    match args with
+    end.
+
+  Program Definition fm_model : model sig := {|
+    FirstOrder.mod_sorts := mod_sorts;
+    FirstOrder.mod_fns := mod_fns;
+    FirstOrder.mod_rels := mod_rels;
+  |}.
 End AutModel.
 
 Section BitsBV.

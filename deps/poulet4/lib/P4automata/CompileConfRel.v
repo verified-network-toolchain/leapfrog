@@ -94,27 +94,37 @@ Section CompileConfRel.
               (compile_store_rel q r2)
     }.
 
-  Definition compile_conf_rel (r: conf_rel S H) : fm (sig a) (CEmp _) :=
+  Definition compile_conf_rel
+    {c': ctx (sig a)}
+    (r: conf_rel S H)
+    (q1 q2: conf)
+    : fm (sig a) c'
+  :=
     let s1 := r.(cr_st).(cs_st1).(st_state) in
-    let b1 := r.(cr_st).(cs_st1).(st_buf_len) in
     let s2 := r.(cr_st).(cs_st2).(st_state) in
-    let b2 := r.(cr_st).(cs_st2).(st_buf_len) in
-    let qsort: sig_sorts (sig a) := ConfigPair b1 b2 in
-    let c' := (CSnoc _ (CEmp _) qsort) in
-    let s1eq: fm (sig a) c' :=
-        FEq (TFun (sig a) (State1 a b1 b2)
-                  (TSCons (TVar (VHere _ _ _)) TSNil))
+    let q1' : conf' a q1.(conf_buf_len) :=
+        exist (fun c => c.(conf_buf_len) = q1.(conf_buf_len)) q1 eq_refl in
+    let q2' : conf' a q2.(conf_buf_len) :=
+        exist (fun c => c.(conf_buf_len) = q2.(conf_buf_len)) q2 eq_refl in
+    (* Same expression twice for type inference to work out. *)
+    let lit := TFun (sig a) (ConfPairLit (q1', q2')) TSNil in
+    let lit' := TFun (sig a) (ConfPairLit (q1', q2')) TSNil in
+    let s1eq :=
+        FEq (TFun (sig a) (State1 a q1.(conf_buf_len) q2.(conf_buf_len))
+                  (TSCons lit TSNil))
             (TFun (sig a) (StateLit _ s1) TSNil)
     in
-    let s2eq: fm (sig a) c' :=
-        FEq (TFun (sig a) (State2 a b1 b2)
-                  (TSCons (TVar (VHere _ _ _)) TSNil))
-            (TFun (sig a) (StateLit _ s2) TSNil)
+    let s2eq :=
+        FEq (TFun (sig a) (State2 a q1.(conf_buf_len) q2.(conf_buf_len))
+                  (TSCons lit TSNil))
+            (TFun (sig a) (StateLit _ s1) TSNil)
     in
-    let q: var (sig a) (app_ctx c' (compile_bctx r.(cr_ctx))) qsort :=
-        weaken_var _ (VHere _ _ _)
-    in
-    let sr := quantify _ (compile_store_rel (TVar q) r.(cr_rel)) in
-    FForall qsort (FImpl s1eq (FImpl s2eq sr)).
+    let sr := quantify _ (compile_store_rel lit' r.(cr_rel)) in
+    (FImpl s1eq (FImpl s2eq sr)).
 
+  Lemma compile_conf_rel_correct (r: conf_rel S H):
+    forall q1 q2,
+      interp_conf_rel a r q1 q2 <->
+      interp_fm (m := fm_model a) (VEmp _ _) (compile_conf_rel r q1 q2).
+  Admitted.
 End CompileConfRel.
