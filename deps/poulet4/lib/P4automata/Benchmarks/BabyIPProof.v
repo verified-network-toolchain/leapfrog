@@ -1,5 +1,7 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.BabyIP.
+Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
+Require Import Poulet4.P4automata.Benchmarks.BabyIP.
+Require Import Poulet4.P4automata.CompileConfRel.
+Require Import Poulet4.P4automata.FirstOrder.
 
 From Hammer Require Import Tactics.
 
@@ -15,20 +17,15 @@ Ltac extend_bisim' :=
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                  interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2))
-    by (
-      cbn;
-      unfold interp_conf_rel, interp_conf_state, interp_state_template;
-      simpl;
-      match goal with |- ?G => idtac "admitting" G end; admit
-    );
+                  interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2));
+    [ idtac |
     pose (t := WPSymLeap.wp r_states a C);
     eapply PreBisimulationExtend with (H0 := right H) (W := t);
     [ tauto | trivial |];
     vm_compute in t;
     simpl (_ ++ _);
     clear t;
-    clear H
+    clear H ]
   end.
 
 Ltac skip_bisim' :=
@@ -49,73 +46,96 @@ Ltac size_script :=
   vm_compute;
   repeat constructor.
 
-Obligation Tactic := size_script.
-Program Lemma prebisim_babyip:
-  pre_bisimulation 
-    BabyIP.aut 
-    (WPSymLeap.wp r_states) 
+Lemma forall_exists_demorgan: forall X P,
+  (exists (x: X), ~P x) -> ~forall (x: X), P x.
+Proof.
+  intros.
+  intro.
+  destruct H.
+  specialize (H0 x).
+  contradiction.
+Qed.
+
+
+Lemma prebisim_babyip:
+  pre_bisimulation
+    BabyIP.aut
+    (WPSymLeap.wp r_states)
     (Reachability.reachable_pair r_states)
+    []
     (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
-    (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
-    (P4automaton.MkConfiguration 
+    (P4automaton.MkConfiguration
       (Syntax.interp BabyIP.aut)
       (inl (inl BabyIP1.Start))
       0
       tt
-      _
+      ltac:(eapply cap')
       nil)
-    (P4automaton.MkConfiguration 
+    (P4automaton.MkConfiguration
       (Syntax.interp BabyIP.aut)
       (inl (inr BabyIP2.Start))
       0
       tt
-      _
+      ltac:(eapply cap')
       nil).
 Proof.
   idtac "running babyip bisimulation".
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
-  unfold eq_ind_r.
-  simpl.
 
   extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
-  extend_bisim'.
+  setoid_rewrite compile_conf_rel_correct.
+  apply forall_exists_demorgan; eexists.
+  apply forall_exists_demorgan; eexists.
+  cbn.
+  2: { typeclasses eauto. }
+  unfold compile_conf_rel.
+  unfold FImpl; simpl.
+  autorewrite with interp_fm; simpl.
+  autorewrite with mod_fns; simpl.
+  intro.
+  destruct H; intuition.
+  apply List.Exists_cons_hd; simpl.
+  unfold interp_state_template; intuition.
+  (* At this point it's clear that configurations like this exist... you just
+     need to construct a dummy store to prove it.
+
+     There's also some more junk about finiteness of header types that we need
+     to resolve, though, and I'm not sure how. *)
+  1-5: admit.
+
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
+  extend_bisim'; [admit|].
   skip_bisim'.
   skip_bisim'.
   skip_bisim'.
   apply PreBisimulationClose.
-  unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template.
-  simpl List.map.
-  autorewrite with interp_store_rel.
-  unfold Relations.interp_rels.
-
-  simpl List.fold_right.
-  simpl RelationClasses.relation_conjunction.
-  unfold RelationClasses.relation_conjunction.
-  unfold RelationClasses.predicate_intersection.
-
-  (* vm_compute.
-
-  repeat split.
-
-  all: try sauto.
-
-  unfold Ntuple.n_tuple_slice.
-
-  sauto. *)
+  cbn.
+  rewrite compile_conf_rel_correct.
+  unfold compile_conf_rel.
+  unfold FImpl; simpl.
+  autorewrite with interp_fm; simpl.
+  autorewrite with mod_fns; simpl;
+  split.
+  - left.
+    easy.
+  - rewrite compile_conf_rel_correct.
+    unfold compile_conf_rel, FImpl; simpl.
+    autorewrite with interp_fm; simpl.
+    autorewrite with mod_fns; simpl.
 Admitted.
