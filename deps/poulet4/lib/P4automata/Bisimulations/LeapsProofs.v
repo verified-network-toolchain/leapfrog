@@ -11,12 +11,13 @@ Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
 Require Poulet4.P4automata.WPSymLeap.
 Require Poulet4.P4automata.Reachability.
-Require Poulet4.P4cub.Utiliser.
 Require Poulet4.P4automata.Bisimulations.Upto.
 Require Poulet4.P4automata.Bisimulations.UptoProofs.
 Require Import Poulet4.P4automata.Bisimulations.Leaps.
 Require Poulet4.P4automata.Bisimulations.Semantic.
 Module BS := Poulet4.P4automata.Bisimulations.Semantic.
+Require Poulet4.P4automata.Bisimulations.SemanticCoinductive.
+Module BC := Poulet4.P4automata.Bisimulations.SemanticCoinductive.
 
 Section LeapsProofs.
   Variable (a: p4automaton).
@@ -36,11 +37,11 @@ Section LeapsProofs.
   Qed.
   Next Obligation.
     revert b; induction H0; intros; eauto.
-    destruct (le_lt_dec (Nat.min (configuration_room_left c1)
-                                 (configuration_room_left c2)) 2).
+    destruct (le_lt_dec (Nat.min (configuration_room_left q1)
+                                 (configuration_room_left q2)) 2).
     - apply InterpolateBase.
-      replace (step (step c1 b) b0) with (follow c1 [b; b0]) by auto.
-      replace (step (step c2 b) b0) with (follow c2 [b; b0]) by auto.
+      replace (step (step q1 b) b0) with (follow q1 [b; b0]) by auto.
+      replace (step (step q2 b) b0) with (follow q2 [b; b0]) by auto.
       apply H5; simpl.
       unfold configuration_room_left in *.
       unfold configuration_has_room in H1, H2.
@@ -78,10 +79,10 @@ Section LeapsProofs.
   .
   Proof.
     intros.
-    destruct H as [R [? ?]].
-    exists R.
+    exists (bisimilar_with_leaps a).
     split; auto.
-    intros c1' c2' ?; split; [now apply H0|]; intros.
+    intros c1' c2' ?; split; [now inversion H0|].
+    intros.
     destruct (conf_state c1') eqn:?;
     destruct (conf_state c2') eqn:?.
     - destruct (le_lt_dec 2 (min (configuration_room_left c1')
@@ -91,62 +92,70 @@ Section LeapsProofs.
         * unfold configuration_has_room in *; lia.
         * unfold configuration_has_room in *; lia.
         * now apply InterpolateBase.
-        * now apply H0.
+        * now inversion H0.
       + rewrite <- follow_equation_1.
         rewrite <- follow_equation_1 at 1.
         repeat rewrite <- follow_equation_2.
-        apply InterpolateBase, H0; auto; simpl.
+        inversion H0.
+        apply InterpolateBase, H2; auto; simpl.
         unfold configuration_room_left in *.
         destruct c1', c2'; simpl in *.
         lia.
     - rewrite <- follow_equation_1.
       rewrite <- follow_equation_1 at 1.
       repeat rewrite <- follow_equation_2.
-      apply InterpolateBase, H0; auto; simpl.
+      inversion H0.
+      clear H0.
+      subst.
+      apply InterpolateBase, H2; auto; simpl.
       unfold configuration_room_left.
-      clear H1.
+      destruct c1', c2'; simpl in *; subst.
+      cbn in *.
+      clear H2 H1.
+      autorewrite with size' in *.
+      lia.
+    - rewrite <- follow_equation_1.
+      rewrite <- follow_equation_1 at 1.
+      repeat rewrite <- follow_equation_2.
+      inversion H0; clear H0; subst.
+      apply InterpolateBase, H2; auto; simpl.
+      unfold configuration_room_left.
+      clear H1 H2.
       destruct c1', c2'; simpl in *; subst.
       autorewrite with size' in *.
       lia.
     - rewrite <- follow_equation_1.
       rewrite <- follow_equation_1 at 1.
       repeat rewrite <- follow_equation_2.
-      apply InterpolateBase, H0; auto; simpl.
+      inversion H0; clear H0; subst.
+      apply InterpolateBase, H2; auto; simpl.
       unfold configuration_room_left.
-      clear H1.
-      destruct c1', c2'; simpl in *; subst.
-      autorewrite with size' in *.
-      lia.
-    - rewrite <- follow_equation_1.
-      rewrite <- follow_equation_1 at 1.
-      repeat rewrite <- follow_equation_2.
-      apply InterpolateBase, H0; auto; simpl.
-      unfold configuration_room_left.
-      clear H1.
+      clear H1 H2.
       destruct c1', c2'; simpl in *; subst.
       autorewrite with size' in *.
       lia.
   Qed.
 
-  Lemma bisimilar_implies_bisimilar_with_leaps
-        (c1 c2: conf)
-    :
-      BS.bisimilar a c1 c2 ->
+  Lemma bisimilar_implies_bisimilar_with_leaps:
+    forall c1 c2,
+      BC.bisimilar a c1 c2 ->
       bisimilar_with_leaps a c1 c2
   .
   Proof.
+    cofix C.
     intros.
-    destruct H as [R [? ?]].
-    exists R.
-    split; auto.
-    intros c1' c2' ?; split.
-    - now apply H.
+    constructor.
+    - inversion H.
+      congruence.
     - intros.
-      clear H2.
+      apply C.
+      clear H0.
       induction buf using rev_ind.
-      + now autorewrite with follow.
-      + repeat rewrite follow_append.
-        now apply H.
+      + autorewrite with follow.
+        exact H.
+      + rewrite !follow_append.
+        inversion IHbuf.
+        eauto.
   Qed.
 
   Theorem bisimilar_iff_bisimilar_with_leaps
@@ -157,7 +166,8 @@ Section LeapsProofs.
   .
   Proof.
     split; intro.
-    - now apply bisimilar_implies_bisimilar_with_leaps.
+    - apply bisimilar_implies_bisimilar_with_leaps.
+      now apply BC.sem_bisim_implies_bisimilar_coalg.
     - eapply UptoProofs.bisimilar_upto_implies_bisimilar.
       + apply close_interpolate_sound.
       + now apply bisimilar_with_leaps_implies_bisimilar_upto.

@@ -22,40 +22,33 @@ Section Leaps.
 
   Inductive close_interpolate (R: rel conf) : rel conf :=
     | InterpolateBase:
-        forall c1 c2,
-          R c1 c2 -> close_interpolate _ c1 c2
+        forall q1 q2,
+          R q1 q2 -> close_interpolate _ q1 q2
     | InterpolateStep
-        (c1 c2: conf)
+        (q1 q2: conf)
         (s1 s2: states a)
         (b: bool)
-        (H1: configuration_has_room c1)
-        (H2: configuration_has_room c2):
-        conf_state c1 = inl s1 ->
-        conf_state c2 = inl s2 ->
-        close_interpolate R c1 c2 ->
+        (H1: configuration_has_room q1)
+        (H2: configuration_has_room q2):
+        conf_state q1 = inl s1 ->
+        conf_state q2 = inl s2 ->
+        close_interpolate R q1 q2 ->
         (forall buf,
             length buf = min
-              (configuration_room_left c1)
-              (configuration_room_left c2) ->
-            R (follow c1 buf) (follow c2 buf)) ->
-        close_interpolate R (step c1 b) (step c2 b)
-  .
+              (configuration_room_left q1)
+              (configuration_room_left q2) ->
+            R (follow q1 buf) (follow q2 buf)) ->
+        close_interpolate R (step q1 b) (step q2 b).
 
-  Definition bisimulation_with_leaps
-             (R: rel conf)
-    :=
-      forall c1 c2,
-        R c1 c2 ->
-        (accepting c1 <-> accepting c2) /\
-        forall buf,
+  CoInductive bisimilar_with_leaps: rel conf :=
+  | Bisimilar:
+      forall q1 q2,
+        (accepting q1 <-> accepting q2) ->
+        (forall buf,
           length buf = min
-            (configuration_room_left c1)
-            (configuration_room_left c2) ->
-          R (follow c1 buf) (follow c2 buf)
-  .
+            (configuration_room_left q1)
+            (configuration_room_left q2) ->
+          bisimilar_with_leaps (follow q1 buf) (follow q2 buf)) ->
+        bisimilar_with_leaps q1 q2.
 
-  Definition bisimilar_with_leaps (c1 c2: conf) :=
-    exists R,
-      R c1 c2 /\ bisimulation_with_leaps R
-  .
 End Leaps.
