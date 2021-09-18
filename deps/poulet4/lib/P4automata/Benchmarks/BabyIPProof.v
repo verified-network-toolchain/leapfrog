@@ -9,8 +9,11 @@ Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states BabyIP.aut 200 BabyIP1.Start BabyIP2.Start).
-
+  Eval vm_compute in (Reachability.reachable_states
+                        BabyIP.aut
+                        200
+                        BabyIP1.Start
+                        BabyIP2.Start).
 
 Ltac extend_bisim' :=
   match goal with

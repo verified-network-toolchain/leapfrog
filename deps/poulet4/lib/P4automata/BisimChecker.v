@@ -4,9 +4,8 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
 Require Poulet4.P4automata.WPSymLeap.
 Require Poulet4.P4automata.Reachability.
-Require Poulet4.P4automata.Bisimulations.
 Require Poulet4.P4automata.Sum.
-Import Bisimulations.SynPreSynWP.
+Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
 
 Import List.ListNotations.
 From Hammer Require Import Tactics.
