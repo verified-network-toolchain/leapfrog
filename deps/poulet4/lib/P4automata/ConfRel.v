@@ -460,8 +460,8 @@ Section ConfRel.
     { e_prem: crel;
       e_concl: conf_rel }.
 
-  Definition interp_entailment (i: relation conf) (e: entailment) :=
-    forall q1 q2,
+  Definition interp_entailment (i: relation conf) (e: entailment) : relation conf :=
+    fun q1 q2 =>
       interp_crel i e.(e_prem) q1 q2 ->
       interp_conf_rel e.(e_concl) q1 q2.
 End ConfRel.

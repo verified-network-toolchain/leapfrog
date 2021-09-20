@@ -43,7 +43,7 @@ Section WPLeaps.
   Notation "⟦ x ⟧" := (interp_crel a top x).
   Notation "⦇ x ⦈" := (interp_conf_rel a x).
   Notation "R ⊨ q1 q2" := (⟦R⟧ q1 q2) (at level 40).
-  Notation "R ⊨ S" := (interp_entailment a top {| e_prem := R; e_concl := S |}) (at level 40).
+  Notation "R ⊨ S" := (forall q1 q2, interp_entailment a top {| e_prem := R; e_concl := S |} q1 q2) (at level 40).
   Notation δ := step.
 
   Reserved Notation "R ⇝ S" (at level 10).

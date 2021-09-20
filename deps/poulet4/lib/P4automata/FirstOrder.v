@@ -143,6 +143,7 @@ Section FOL.
   | FNeg: forall c, fm c -> fm c
   | FOr: forall c, fm c -> fm c -> fm c
   | FAnd: forall c, fm c -> fm c -> fm c
+  | FImpl: forall c, fm c -> fm c -> fm c
   | FForall:
       forall c s,
         fm (CSnoc c s) -> 
@@ -290,6 +291,7 @@ Section FOL.
       induction H1; intros; subst; cbn in *.
       + inversion H1; subst; solve_existT; auto.
       + apply IHclos_trans2; eauto.
+    - admit.
     - subst Pfm; intros; cbn in *.
       constructor; intros.
       remember ({| pr1 := c; pr2 := FForall c s f |}) as x.
@@ -305,9 +307,6 @@ Section FOL.
   Next Obligation.
     apply subterm_wf.
   Qed.
-
-  Definition FImpl {c: ctx} (f1 f2: fm c) :=
-    FOr _ (FNeg _ f1) f2.
 
   Record model :=
     { mod_sorts: sig.(sig_sorts) -> Type;
@@ -398,6 +397,8 @@ Section FOL.
           interp_fm _ v f1 \/ interp_fm _ v f2;
         interp_fm _ v (FAnd _ f1 f2) :=
           interp_fm _ v f1 /\ interp_fm _ v f2;
+        interp_fm _ v (FImpl _ f1 f2) :=
+          interp_fm _ v f1 -> interp_fm _ v f2;
         interp_fm _ v (FForall c s f) :=
           forall val: m.(mod_sorts) s,
             interp_fm (CSnoc c s) (VSnoc _ _ val v) f }
@@ -440,6 +441,11 @@ Section FOL.
     { weaken_var CEmp v := v;
       weaken_var (CSnoc c2' sort') v := VThere _ _ _ (weaken_var c2' v) }.
 
+  Definition weaken_tm {sort: sig.(sig_sorts)}
+             {c1: ctx} (c2: ctx) (t: tm c1 sort)
+    : tm (app_ctx c1 c2) sort.
+  Admitted.
+
 End FOL.
 
 Arguments TVar {_ _ _}.
@@ -464,3 +470,4 @@ Arguments app_ctx {sig} c1 c2.
 Arguments quantify {sig c0} c f.
 Arguments reindex_var {sig c c' sort} v.
 Arguments weaken_var {sig sort c1} c2 v.
+Arguments weaken_tm {sig sort c1} c2 t.

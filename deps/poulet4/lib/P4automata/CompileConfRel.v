@@ -96,35 +96,96 @@ Section CompileConfRel.
 
   Definition compile_conf_rel
     {c': ctx (sig a)}
+    {n m: nat}
     (r: conf_rel S H)
-    (q1 q2: conf)
+    (q: tm (sig a) c' (ConfigPair n m))
     : fm (sig a) c'
   :=
     let s1 := r.(cr_st).(cs_st1).(st_state) in
     let s2 := r.(cr_st).(cs_st2).(st_state) in
+    let s1eq :=
+        FEq (TFun (sig a) (State1 a n m)
+                  (TSCons q TSNil))
+            (TFun (sig a) (StateLit _ s1) TSNil)
+    in
+    let s2eq :=
+        FEq (TFun (sig a) (State2 a n m)
+                  (TSCons q TSNil))
+            (TFun (sig a) (StateLit _ s1) TSNil)
+    in
+    let sr := quantify _ (compile_store_rel (weaken_tm _ q) r.(cr_rel)) in
+    FImpl s1eq (FImpl s2eq sr).
+
+  Definition compile_crel
+    {c': ctx (sig a)}
+    {n m: nat}
+    (R: crel S H)
+    (i: fm (sig a) c')
+    (q: tm (sig a) c' (ConfigPair n m))
+    : fm (sig a) c' :=
+    List.fold_right (fun r f => FAnd _ (compile_conf_rel r q) f) i R.
+
+  Definition compile_entailment
+    {c': ctx (sig a)}
+    {n m: nat}
+    (e: entailment S H)
+    (i: fm (sig a) c')
+    (q: tm (sig a) c' (ConfigPair n m))
+    : fm (sig a) c' :=
+    (FImpl (compile_crel e.(e_prem) i q)
+           (compile_conf_rel e.(e_concl) q)).
+
+  Definition compile_config
+    {c': ctx (sig a)}
+    (q1 q2: conf)
+    : tm (sig a) c' (ConfigPair q1.(conf_buf_len)
+                                q2.(conf_buf_len)) :=
     let q1' : conf' a q1.(conf_buf_len) :=
         exist (fun c => c.(conf_buf_len) = q1.(conf_buf_len)) q1 eq_refl in
     let q2' : conf' a q2.(conf_buf_len) :=
         exist (fun c => c.(conf_buf_len) = q2.(conf_buf_len)) q2 eq_refl in
-    (* Same expression twice for type inference to work out. *)
-    let lit := TFun (sig a) (ConfPairLit (q1', q2')) TSNil in
-    let lit' := TFun (sig a) (ConfPairLit (q1', q2')) TSNil in
-    let s1eq :=
-        FEq (TFun (sig a) (State1 a q1.(conf_buf_len) q2.(conf_buf_len))
-                  (TSCons lit TSNil))
-            (TFun (sig a) (StateLit _ s1) TSNil)
-    in
-    let s2eq :=
-        FEq (TFun (sig a) (State2 a q1.(conf_buf_len) q2.(conf_buf_len))
-                  (TSCons lit TSNil))
-            (TFun (sig a) (StateLit _ s1) TSNil)
-    in
-    let sr := quantify _ (compile_store_rel lit' r.(cr_rel)) in
-    (FImpl s1eq (FImpl s2eq sr)).
+    TFun (sig a) (ConfPairLit (q1', q2')) TSNil.
 
-  Lemma compile_conf_rel_correct (r: conf_rel S H):
-    forall q1 q2,
+  Lemma compile_conf_rel_correct:
+    forall r q1 q2,
       interp_conf_rel a r q1 q2 <->
-      interp_fm (m := fm_model a) (VEmp _ _) (compile_conf_rel r q1 q2).
+      interp_fm (m := fm_model a) (VEmp _ _) (compile_conf_rel r (compile_config q1 q2)).
+  Proof.
   Admitted.
+
+  Lemma compile_crel_correct:
+    forall R i ifm q1 q2,
+      (forall q1 q2, i q1 q2 <-> interp_fm (VEmp _ (fm_model a)) ifm) ->
+      interp_crel a i R q1 q2 <->
+      interp_fm (m := fm_model a) (VEmp _ _) (compile_crel R ifm (compile_config q1 q2)).
+  Proof.
+    unfold interp_crel, compile_crel.
+    induction R.
+    - simpl; intros.
+      apply H0.
+    - intros.
+      cbn in *; autorewrite with interp_fm in *.
+      rewrite compile_conf_rel_correct.
+      unfold Relations.interp_rels in IHR.
+      rewrite IHR by auto.
+      reflexivity.
+  Qed.
+
+  Lemma compile_entailment_correct:
+    forall e i ifm q1 q2,
+      (forall q1 q2, i q1 q2 <-> interp_fm (VEmp _ (fm_model a)) ifm) ->
+      interp_entailment a i e q1 q2 <->
+      interp_fm (m := fm_model a)
+                (VEmp _ _)
+                (compile_entailment e ifm (compile_config q1 q2)).
+  Proof.
+    intros.
+    unfold interp_entailment.
+    unfold compile_entailment.
+    rewrite compile_conf_rel_correct by auto.
+    rewrite compile_crel_correct by auto.
+    autorewrite with interp_fm.
+    reflexivity.
+  Qed.
+
 End CompileConfRel.
