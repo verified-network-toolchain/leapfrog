@@ -126,3 +126,22 @@ Proof.
     + eapply interp_rels_in; [|eauto]; eauto.
     + eapply interp_rels_in; [|eauto]; eauto.
 Qed.
+
+
+Lemma app_interp_rels:
+  forall A i (R S: rels A) x y,
+    interp_rels i (R ++ S) x y ->
+    interp_rels i R x y /\
+    interp_rels i S x y.
+Proof.
+  intros.
+  split.
+  - apply in_interp_rels.
+    + eapply interp_rels_bound; eauto.
+    + intros.
+      eapply interp_rels_in; eauto with datatypes.
+  - apply in_interp_rels.
+    + eapply interp_rels_bound; eauto.
+    + intros.
+      eapply interp_rels_in; eauto with datatypes.
+Qed.
