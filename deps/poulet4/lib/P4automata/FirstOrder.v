@@ -421,11 +421,140 @@ Section FOL.
     | CSnoc c2' sort => CSnoc (app_ctx c1 c2') sort
     end.
 
+  Fixpoint ccons s (c: ctx) :=
+    match c with
+    | CEmp => CSnoc CEmp s
+    | CSnoc c s0 => CSnoc (ccons s c) s0
+    end.
+  
+  Fixpoint app_ctx' (c1 c2: ctx): ctx :=
+    match c1 with
+    | CEmp => c2
+    | CSnoc c1' sort => app_ctx' c1' (ccons sort c2)
+    end.
+
+  Equations app_valu
+             {m: model}
+             {c c': ctx}
+             (v: valu m c)
+             (v': valu m c')
+    : valu m (app_ctx c c') :=
+    { app_valu v (VEmp _) := v;
+      app_valu v (VSnoc _ _ _ x v') := VSnoc _ _ _ x (app_valu v v') }.
+
+  Equations vcons {c s m} (x: mod_sorts m s) (v: valu m c) : valu m (ccons s c) :=
+    { vcons x (VEmp _) := VSnoc _ _ _ x (VEmp _);
+      vcons x (VSnoc _ _ _ y v) := VSnoc _ _ _ y (vcons x v) }.
+
+  Equations app_valu'
+             {m: model}
+             {c c': ctx}
+             (v: valu m c)
+             (v': valu m c')
+    : valu m (app_ctx' c c') :=
+    { app_valu' (VEmp _) v' := v';
+      app_valu' (VSnoc _ _ _ x v) v' := app_valu' v (vcons x v') }.
+
+  Lemma app_ctx_emp_l:
+    forall c,
+      c = app_ctx CEmp c.
+  Proof.
+    induction c.
+    - reflexivity.
+    - simpl.
+      congruence.
+  Qed.
+
+  Lemma app_ctx_app_ctx':
+    forall c1 c2,
+      app_ctx c1 c2 = app_ctx' c1 c2.
+  Proof.
+    induction c1; induction c2; intros; simpl.
+    - reflexivity.
+    - rewrite <- app_ctx_emp_l.
+      reflexivity.
+    - rewrite <- IHc1.
+      simpl.
+      reflexivity.
+    - rewrite IHc2.
+      simpl.
+      rewrite <- IHc1.
+      cbn.
+      rewrite <- IHc1.
+      simpl.
+      reflexivity.
+  Qed.
+
+  Lemma app_ctx'_app_ctx:
+    forall c1 c2,
+      app_ctx' c1 c2 = app_ctx c1 c2.
+  Proof.
+    intros.
+    apply eq_sym.
+    apply app_ctx_app_ctx'.
+  Qed.
+
   Fixpoint quantify {c0: ctx} (c: ctx): fm (app_ctx c0 c) -> fm c0 :=
     match c as c' return fm (app_ctx c0 c') -> fm c0 with
     | CEmp => fun f => f
     | CSnoc c' sort => fun f => quantify c' (FForall _ _ f)
     end.
+
+  Lemma quantify_correct:
+    forall m c c' (v': valu m c') phi,
+     interp_fm m c' v' (quantify c phi) <->
+     forall valu,
+       interp_fm m (app_ctx c' c) (app_valu v' valu) phi.
+  Proof.
+    induction c.
+    - cbn.
+      intuition.
+      + dependent destruction valu0.
+        assumption.
+      + specialize (H (VEmp _)).
+        autorewrite with app_valu in *.
+        assumption.
+    - cbn.
+      intuition.
+      + cbn in *.
+        dependent destruction valu0.
+        rewrite IHc in H.
+        specialize (H valu0).
+        autorewrite with app_valu interp_fm in *.
+        eauto.
+      + rewrite IHc.
+        intros v.
+        autorewrite with interp_fm.
+        intros.
+        pose (VSnoc _ _ _ val v) as v''.
+        specialize (H v'').
+        eauto.
+  Qed.
+
+  Equations quantify' {c0: ctx} (c: ctx) (f: fm (app_ctx' c0 c)) : fm c0 :=
+    { quantify' c f := quantify c (eq_rect _ (fun x => fm x) f (app_ctx c0 c)
+                                           (app_ctx'_app_ctx _ _)) }.
+
+  Lemma quantify'_correct:
+    forall m c c' (v': valu m c') phi,
+     interp_fm m c' v' (quantify' c phi) <->
+     forall valu,
+       interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
+  Proof.
+  Admitted.
+
+  Definition quantify_all {c: ctx} (f: fm c): fm CEmp :=
+    quantify' (c0 := CEmp) c f.
+
+  Lemma quantify_all_correct:
+    forall m c phi,
+     interp_fm m CEmp (VEmp _) (quantify_all phi) <->
+     forall valu,
+       interp_fm m (app_ctx' CEmp c) (app_valu' (VEmp _) valu) phi.
+  Proof.
+    intros.
+    apply quantify'_correct.
+  Qed.
 
   Fixpoint reindex_var {c c': ctx} {sort: sig.(sig_sorts)} (v: var c' sort) : var (app_ctx c c') sort :=
     match v in (var c' sort) return (var (app_ctx c c') sort) with
@@ -433,6 +562,17 @@ Section FOL.
       VHere (app_ctx c ctx) _
     | VThere ctx _ _ v' =>
       VThere (app_ctx c ctx) _ _ (reindex_var v')
+    end.
+
+  Fixpoint reindex_tm {c c': ctx} {sort: sig.(sig_sorts)} (t: tm c' sort) : tm (app_ctx c c') sort :=
+    match t in (tm c' sort) return (tm (app_ctx c c') sort) with
+    | TVar _ _ v => TVar _ _ (reindex_var v)
+    | TFun _ _ _ f args => TFun _ _ _ f (reindex_tms args)
+    end
+  with reindex_tms {c c':ctx} {sorts: list sig.(sig_sorts)} (ts: tms c' sorts) : tms (app_ctx c c') sorts :=
+    match ts in (tms c' sorts) return (tms (app_ctx c c') sorts) with
+    | TSNil _ => TSNil _
+    | TSCons _ _ _ t ts => TSCons _ _ _ (reindex_tm t) (reindex_tms ts)
     end.
 
   Equations weaken_var {sort: sig.(sig_sorts)}
@@ -480,6 +620,10 @@ Arguments interp_tms {_ _ _ _} _ _.
 
 Arguments app_ctx {sig} c1 c2.
 Arguments quantify {sig c0} c f.
+Arguments quantify' {sig c0} c f.
+Arguments quantify_all {sig} c f.
 Arguments reindex_var {sig c c' sort} v.
+Arguments reindex_tm {sig c c' sort} t.
+Arguments reindex_tms {sig c c' sorts} ts.
 Arguments weaken_var {sig sort c1} c2 v.
 Arguments weaken_tm {sig sort c1} c2 t.
