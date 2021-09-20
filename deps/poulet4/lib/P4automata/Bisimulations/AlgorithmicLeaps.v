@@ -33,9 +33,16 @@ Section AlgorithmicLeaps.
         R ⇝ T q1 q2 ->
         R ⇝ (C :: T) q1 q2
   | PreBisimulationExtend:
-      forall R T C W q1 q2,
+      forall (R T: rels conf) (C: rel conf) (W: rels conf) q1 q2,
+        ~(R ⊨ C) ->
         (C :: R) ⇝ (W ++ T) q1 q2 ->
-        (forall q1 q2, ⟦W⟧ q1 q2 -> (forall bit, C (step q1 bit) (step q2 bit))) ->
+        (forall q1 q2,
+            ⟦W⟧ q1 q2 ->
+            (forall bs,
+                length bs = Nat.min
+                              (configuration_room_left q1)
+                              (configuration_room_left q2) ->
+                C (follow q1 bs) (follow q2 bs))) ->
         R ⇝ (C :: T) q1 q2
   where "R ⇝ S" := (pre_bisimulation R S).
 

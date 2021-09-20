@@ -36,6 +36,19 @@ Definition rels_equiv {A} i (R S: rels A) : Prop :=
 Global Program Instance rels_Equivalence {A i}: Equivalence (@rels_equiv A i) :=
   ltac:(typeclasses eauto).
 
+Lemma interp_rels_bound:
+  forall A (R: rels A) i,
+    forall x y,
+      interp_rels i R x y ->
+      i x y.
+Proof.
+  induction R; intros; eauto.
+  simpl in H.
+  destruct H.
+  eapply IHR.
+  eauto.
+Qed.
+
 Lemma interp_rels_in:
   forall A (R: rels A) i,
     forall x y,
@@ -96,4 +109,20 @@ Lemma interp_rels_map:
 Proof.
   intros.
   eapply interp_rels_in; eauto using in_map.
+Qed.
+
+Lemma interp_rels_app:
+  forall A i (R S: rels A) x y,
+    interp_rels i R x y ->
+    interp_rels i S x y ->
+    interp_rels i (R ++ S) x y.
+Proof.
+  intros.
+  apply in_interp_rels.
+  - eapply interp_rels_bound; eauto.
+  - intros.
+    rewrite in_app_iff in H1.
+    destruct H1.
+    + eapply interp_rels_in; [|eauto]; eauto.
+    + eapply interp_rels_in; [|eauto]; eauto.
 Qed.
