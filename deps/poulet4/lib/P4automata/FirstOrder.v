@@ -441,10 +441,22 @@ Section FOL.
     { weaken_var CEmp v := v;
       weaken_var (CSnoc c2' sort') v := VThere _ _ _ (weaken_var c2' v) }.
 
-  Definition weaken_tm {sort: sig.(sig_sorts)}
-             {c1: ctx} (c2: ctx) (t: tm c1 sort)
-    : tm (app_ctx c1 c2) sort.
-  Admitted.
+  Equations weaken_tm (sort: sig.(sig_sorts))
+             (c1: ctx) (c2: ctx) (t: tm c1 sort)
+    : tm (app_ctx c1 c2) sort
+    by struct t :=
+    { weaken_tm _ _ c2 (TVar _ _ v) := TVar _ _ (weaken_var c2 v);
+      weaken_tm _ _ c2 (TFun _ _ _ f args) :=
+        TFun _ _ _ f (weaken_tms _ _ c2 args) }
+  where weaken_tms (sorts: list sig.(sig_sorts))
+       (c1: ctx) (c2: ctx) (ts: tms c1 sorts)
+        : tms (app_ctx c1 c2) sorts
+    by struct ts :=
+    { weaken_tms _ _ _ (TSNil _) := TSNil _;
+      weaken_tms _ _ _ (TSCons _ _ _ t ts) :=
+        TSCons _ _ _
+               (weaken_tm _ _ c2 t)
+               (weaken_tms _ _ c2 ts) }.
 
 End FOL.
 
