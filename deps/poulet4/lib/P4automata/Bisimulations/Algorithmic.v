@@ -9,7 +9,6 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
-Require Poulet4.P4automata.WPSymLeap.
 Require Poulet4.P4automata.Reachability.
 Require Poulet4.P4cub.Utiliser.
 Require Poulet4.P4automata.Bisimulations.SemanticCoinductive.

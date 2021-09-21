@@ -542,7 +542,7 @@ Section FOL.
        interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
   Proof.
   Admitted.
-
+ 
   Definition quantify_all {c: ctx} (f: fm c): fm CEmp :=
     quantify' (c0 := CEmp) c f.
 

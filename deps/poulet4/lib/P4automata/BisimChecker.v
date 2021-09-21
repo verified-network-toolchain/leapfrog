@@ -2,7 +2,7 @@ Require Import Coq.Relations.Relations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
-Require Poulet4.P4automata.WPSymLeap.
+Require Poulet4.P4automata.WP.
 Require Poulet4.P4automata.Reachability.
 Require Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
@@ -175,11 +175,11 @@ Ltac pbskip_plain :=
   
 Ltac solve_bisim_plain :=
     match goal with
-    | |- context[WPSymLeap.wp _ _] =>
+    | |- context[WP.wp _ _] =>
       progress (
-          unfold WPSymLeap.wp at -1;
+          unfold WP.wp at -1;
           autounfold with wp;
-          unfold WPSymLeap.wp_op;
+          unfold WP.wp_op;
           simpl)
     | |- pre_bisimulation _ _ _ _ [] _ _ =>
       apply PreBisimulationClose

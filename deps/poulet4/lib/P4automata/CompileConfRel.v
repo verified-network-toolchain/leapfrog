@@ -105,8 +105,6 @@ Section CompileConfRel.
               (compile_store_rel q r2)
     }.
 
-  Obligation Tactic := idtac.
-
   Definition compile_conf_rel
     {n m: nat}
     (r: conf_rel S H)

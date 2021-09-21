@@ -7,7 +7,7 @@ Module P4A := Poulet4.P4automata.Syntax.
 Require Import Poulet4.P4automata.ConfRel.
 Import ListNotations.
 
-Section WeakestPreSymbolicLeap.
+Section WP.
   Set Implicit Arguments.
   
   (* State identifiers. *)
@@ -192,15 +192,13 @@ Section WeakestPreSymbolicLeap.
     then [(n, prev)]
     else [].
 
-  Definition wp
-             (phi: conf_rel S H)
-    : list (conf_rel S H) :=
+  Definition wp (phi: conf_rel S H) : list (conf_rel S H) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in
     let pred_pairs := List.flat_map (reaches (cur_st_left, cur_st_right)) reachable_states in
     List.flat_map (wp_pred_pair phi) pred_pairs.
 
-End WeakestPreSymbolicLeap.
+End WP.
 
 Global Hint Unfold wp_lpred: wp.
 Global Hint Unfold wp_pred_pair: wp.

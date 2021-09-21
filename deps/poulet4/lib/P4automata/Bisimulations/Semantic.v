@@ -1,17 +1,8 @@
-Require Import Coq.micromega.Lia.
-Require Import Compare_dec.
 Require Import Coq.Lists.List.
-Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Equality.
-Import List.ListNotations.
 
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
-Require Poulet4.P4automata.WPSymLeap.
-Require Poulet4.P4automata.Reachability.
-Require Poulet4.P4cub.Utiliser.
 
 Section Semantic.
   Variable (a: p4automaton).
@@ -64,11 +55,9 @@ Section Semantic.
       apply H.
   Qed.
 
-  Lemma equiv_implies_bisimilar
-        (c1 c2: conf)
-    :
-      lang_equiv c1 c2 -> bisimilar c1 c2
-  .
+  Lemma equiv_implies_bisimilar:
+    forall c1 c2: conf,
+      lang_equiv c1 c2 -> bisimilar c1 c2.
   Proof.
     intros.
     exists lang_equiv.
@@ -76,11 +65,9 @@ Section Semantic.
     apply lang_equiv_is_bisimulation.
   Qed.
 
-  Theorem bisimilar_iff_lang_equiv
-          (c1 c2: conf)
-    :
-      lang_equiv c1 c2 <-> bisimilar c1 c2
-  .
+  Theorem bisimilar_iff_lang_equiv:
+    forall c1 c2: conf,
+      lang_equiv c1 c2 <-> bisimilar c1 c2.
   Proof.
     split.
     - apply equiv_implies_bisimilar.

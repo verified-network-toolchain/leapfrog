@@ -7,7 +7,6 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
-Require Poulet4.P4automata.WPSymLeap.
 
 Section AlgorithmicLeaps.
   Variable (a: p4automaton).
