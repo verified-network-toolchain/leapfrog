@@ -295,9 +295,6 @@ Section Interp.
   Definition extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess.
   Admitted.
 
-  Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m :=
-    eq_rect_r (fun m' => n_tuple A m') l pf.
-
   Equations eval_op (sz excess: nat) (st: store) (bits: n_tuple bool (sz + excess)) (o: op H sz) : store * n_tuple bool excess :=
     {
       eval_op _ _ st bits (OpNil _) := (st, bits);

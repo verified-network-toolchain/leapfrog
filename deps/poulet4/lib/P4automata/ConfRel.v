@@ -214,11 +214,6 @@ Section ConfRel.
       be_size b1 b2 e1 + be_size b1 b2 e2
     end.
 
-  Equations l2t {A: Type} (l: list A) : n_tuple A (length l) := {
-    l2t nil := tt;
-    l2t (a :: l) := (l2t l, a)
-  }.
-
   Equations interp_bit_expr {c} (e: bit_expr c) (valu: bval c) (c1 c2: conf)
     : n_tuple bool (be_size (conf_buf_len c1) (conf_buf_len c2) e) := {
     interp_bit_expr (BELit l) valu c1 c2 :=

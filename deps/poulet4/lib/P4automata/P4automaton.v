@@ -90,7 +90,7 @@ Definition initial_configuration
   conf_store := store
 |}.
 
-Lemma squeeze {n m}: n < m -> m <= n+1 -> n+1 = m.
+Lemma squeeze {n m}: n < m -> m <= 1+n -> 1+n = m.
 Proof.
   lia.
 Qed.
@@ -100,8 +100,8 @@ Definition step
   (c: configuration a)
   (b: bool)
   : configuration a :=
-  let buf_padded := n_tuple_app (conf_buf c) b in
-  match le_lt_dec (size' a (conf_state c)) (conf_buf_len c + 1) with
+  let buf_padded := n_tuple_cons (conf_buf c) b in
+  match le_lt_dec (size' a (conf_state c)) (1 + conf_buf_len c) with
   | left Hle =>
     let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) Hle) in
     let conf_store' := update' a (conf_state c) buf_full (conf_store c) in

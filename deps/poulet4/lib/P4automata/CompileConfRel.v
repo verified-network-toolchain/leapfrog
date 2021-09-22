@@ -58,7 +58,7 @@ Section CompileConfRel.
             (e: bit_expr H c)
     : tm (sig a) (compile_bctx c) (be_sort b1 b2 e) :=
     { compile_bit_expr q (BELit _ _ l) :=
-        TFun (sig a) (BitsLit a (List.length l) (l2t l)) TSNil;
+        TFun (sig a) (BitsLit a (List.length l) (Ntuple.l2t l)) TSNil;
       compile_bit_expr q (BEBuf _ _ Left) :=
         TFun (sig a) (Buf1 _ b1 b2) (TSCons q TSNil);
       compile_bit_expr q (BEBuf _ _ Right) :=
