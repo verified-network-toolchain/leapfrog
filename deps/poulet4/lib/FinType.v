@@ -12,6 +12,9 @@ Class Finite (A: Type) `{EqDec A Logic.eq} := {
 }.
 Global Arguments enum _ {_} {_} {_}.
 
+Definition card (A: Type) `{F: Finite A}: nat :=
+  length (enum A).
+
 Global Program Instance UnitFinite: Finite unit :=
   {| enum := [tt] |}.
 Next Obligation.

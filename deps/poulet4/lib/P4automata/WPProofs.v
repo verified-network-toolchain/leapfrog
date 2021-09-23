@@ -1,8 +1,10 @@
 Require Import Coq.Lists.List.
+Require Import Coq.Program.Equality.
 Require Import Coq.Logic.Eqdep_dec.
 Require Import Coq.Logic.JMeq.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Ntuple.
+Require Import Poulet4.P4automata.NtupleProofs.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.WP.
@@ -81,8 +83,8 @@ Section WPProofs.
 
   Lemma beslice_interp_length:
     forall b1 b2 ctx e hi lo,
-      @be_size H ctx b1 b2 (BESlice e hi lo) =
-      @be_size H ctx b1 b2 (beslice e hi lo).
+      @be_size H ctx b1 b2 (beslice e hi lo) =
+      @be_size H ctx b1 b2 (BESlice e hi lo).
   Proof.
     intros.
     unfold beslice.
@@ -138,6 +140,14 @@ Section WPProofs.
     - admit.
   Admitted.
 
+  Lemma beconcat_interp_length:
+    forall ctx (e1 e2: bit_expr H ctx) l1 l2,
+      be_size l1 l2 (beconcat e1 e2) = be_size l1 l2 (BEConcat e1 e2).
+  Proof.
+    induction e1; destruct e2; intros; simpl; auto.
+    apply app_length.
+  Qed.
+
   Lemma beconcat_interp:
     forall ctx (e1 e2: bit_expr H ctx) valu (q1 q2: conf),
       JMeq (interp_bit_expr (beconcat e1 e2) valu q1 q2)
@@ -148,19 +158,177 @@ Section WPProofs.
     eauto using l2t_app.
   Qed.
 
-  (*
+  Lemma be_subst_be_size:
+    forall c l1 l2 h phi (exp: bit_expr H c),
+      be_size l1 l2 h = be_size l1 l2 exp ->
+      be_size l1 l2 phi = be_size l1 l2 (be_subst phi exp h).
+  Proof.
+    induction phi; intros; simpl;
+      repeat match goal with
+             | H: context[ match ?e with _ => _ end ] |- _ =>
+               destruct e eqn:?
+             | |- context[ match ?e with _ => _ end ] =>
+               destruct e eqn:?
+             | |- context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] =>
+               progress (destruct (@EquivDec.equiv_dec A R e E x y))
+             | H: context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] |- _ =>
+               progress (destruct (@EquivDec.equiv_dec A R e E x y))
+             | H: left _ = left _ |- _ => injection H; clear H
+             | |- _ => progress subst
+             | |- _ => progress unfold eq_rect in *
+             | |- _ => progress rewrite !P4A.eq_dec_refl in *
+             | |- _ => progress cbn in *
+             | |- _ => rewrite !beslice_interp_length in *
+             | |- _ => rewrite !beconcat_interp_length in *
+             end;
+      solve [congruence
+            |erewrite <- IHphi in *; auto; congruence
+            |erewrite <- IHphi1, IHphi2 in *; auto; congruence].
+  Qed.
+
+  Lemma inv_jmeq_size:
+    forall n (xs: n_tuple bool n) m (ys: n_tuple bool m),
+      xs ~= ys ->
+      n = m.
+  Proof.
+    intros.
+    eapply n_tuple_inj.
+    now inversion H0.
+  Qed.
+
+  Lemma t2l_n_eq:
+  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
+    t2l xs = t2l ys ->
+    n = m.
+  Proof.
+    intros.
+    pose proof (t2l_len n xs).
+    pose proof (t2l_len m ys).
+    congruence.
+  Qed.
+
+  Lemma t2l_eq:
+  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
+    t2l xs = t2l ys ->
+    xs ~= ys.
+  Proof.
+    intros.
+    pose proof (t2l_n_eq _ _ _ _ H0).
+    subst m.
+    cut (xs = ys).
+    {
+      intros.
+      subst.
+      reflexivity.
+    }
+    induction n; cbn in *; destruct xs, ys; cbn in *.
+    - reflexivity.
+    - assert (b = b0).
+      {
+        apply f_equal with (f := (fun l => (@last bool) l false)) in H0.
+        erewrite !last_last in H0.
+        congruence.
+      }
+      subst b0.
+      apply app_inv_tail in H0.
+      apply IHn in H0.
+      congruence.
+  Qed.
+
+  Lemma eq_t2l:
+  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
+    xs ~= ys ->
+    t2l xs = t2l ys.
+  Proof.
+    intros.
+    inversion H0.
+    assert (n = m) by auto using n_tuple_inj.
+    subst m.
+    rewrite H0.
+    reflexivity.
+  Qed.
+
+  Lemma n_tuple_cons_inj_r:
+    forall n m (xs: n_tuple bool n) x (ys: n_tuple bool m) y,
+      n_tuple_cons xs x ~= n_tuple_cons ys y ->
+      xs ~= ys /\ x = y.
+  Proof.
+    induction n; intros.
+    - destruct m.
+      + simpl_JMeq.
+        destruct xs, ys.
+        cbn in *.
+        intuition congruence.
+      + exfalso.
+        apply inv_jmeq_size in H0.
+        Lia.lia.
+    - destruct m, xs; destruct ys.
+      + exfalso.
+        apply inv_jmeq_size in H0.
+        Lia.lia.
+      + pose proof (inv_jmeq_size _ _ _ _ H0).
+        assert (n = m) by Lia.lia.
+        subst m.
+        simpl_JMeq.
+        simpl in *.
+        inversion H0.
+        subst b0.
+        pose proof (IHn _ n0 x n1 y ltac:(rewrite H3; reflexivity)).
+        destruct H2.
+        split; [|auto].
+        rewrite H2.
+        reflexivity.
+  Qed.
+
+  Lemma slice_proper:
+    forall hi lo n m (xs: n_tuple bool n) (ys: n_tuple bool m),
+      xs ~= ys ->
+      n_tuple_slice hi lo xs ~= n_tuple_slice hi lo ys.
+  Proof.
+    intros hi lo n m xs ys Heq.
+    assert (n = m)
+      by (eapply inv_jmeq_size; eauto).
+    revert Heq.
+    revert xs ys.
+    subst m.
+    intros.
+    rewrite Heq.
+    reflexivity.
+  Qed.
+
+  Lemma concat_proper:
+    forall n1 m1 (xs1: n_tuple bool n1) (ys1: n_tuple bool m1)
+      n2 m2 (xs2: n_tuple bool n2) (ys2: n_tuple bool m2),
+      xs1 ~= xs2 ->
+      ys1 ~= ys2 ->
+      n_tuple_concat xs1 ys1 ~= n_tuple_concat xs2 ys2.
+  Proof.
+    intros.
+    assert (n1 = n2) by (eapply inv_jmeq_size; eauto).
+    assert (m1 = m2) by (eapply inv_jmeq_size; eauto).
+    revert H0 H1.
+    revert xs2 ys2.
+    revert xs1 ys1.
+    subst n2.
+    subst m2.
+    intros.
+    rewrite H0.
+    rewrite H1.
+    reflexivity.
+  Qed.
+
   Lemma be_subst_hdr_left:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size) v,
-        interp_bit_expr exp valu q c2 = v ->
+    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
+        interp_bit_expr exp valu q c2 ~= w ->
         conf_state q = s1 ->
         conf_store q = st1 ->
         conf_buf q = buf1 ->
-        v = Ntuple.t2l w ->
         interp_bit_expr (a:=a) phi valu
                         (update_conf_store (a:=P4A.interp a)
                                            (P4A.assign _ hdr (P4A.VBits size w) st1)
                                            q)
-                        c2 =
+                        c2
+        ~=
         interp_bit_expr (WP.be_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
                         valu
                         q
@@ -169,51 +337,83 @@ Section WPProofs.
     induction phi; intros.
     - tauto.
     - unfold WP.be_subst.
-      destruct (bit_expr_eq_dec _ _); simpl; congruence.
+      destruct (bit_expr_eq_dec _ _); simpl.
+      + inversion e.
+      + destruct a0; autorewrite with interp_bit_expr; eauto.
     - unfold WP.be_subst.
       destruct (bit_expr_eq_dec _ _).
       + inversion e; clear e; subst.
+        autorewrite with interp_bit_expr.
         simpl.
+        unfold P4A.find.
+        cbn.
         rewrite P4A.eq_dec_refl.
         simpl.
         rewrite P4A.eq_dec_refl.
-        congruence.
-      + simpl.
-        destruct h.
-        dependent destruction var.
-        simpl in *.
+        apply JMeq_sym.
+        auto.
+      + destruct h as [[hsize h]].
+        autorewrite with interp_bit_expr in *.
         unfold P4A.find, P4A.assign.
+        cbn in *.
         repeat match goal with
-               | H: context[ match ?e with _ => _ end ] |- _ => destruct e eqn:?
-               | |- context[ match ?e with _ => _ end ] => destruct e eqn:?
-               | |- _ => progress unfold "===" in *
-               | |- _ => progress simpl in *
+               | H: context[ match ?e with _ => _ end ] |- _ =>
+                 destruct e eqn:?
+               | |- context[ match ?e with _ => _ end ] =>
+                 destruct e eqn:?
+               | |- context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] =>
+                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
+               | H: context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] |- _ =>
+                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
+               | |- _ => progress unfold eq_rect in *
+               | |- _ => progress rewrite !P4A.eq_dec_refl in *
+               | |- _ => progress cbn in *
                | |- _ => progress subst
-               end;
-          congruence.
+               | |- ?x ~= ?y =>
+                 try (cut (x = y); [intros; subst; now constructor|]; congruence)
+               | |- _ => try congruence
+               end.
     - reflexivity.
-    - simpl.
-      subst.
-      erewrite IHphi; eauto.
+    - subst.
+      autorewrite with interp_bit_expr.
+      simpl.
       rewrite beslice_interp.
-      reflexivity.
-    - simpl.
+      autorewrite with interp_bit_expr.
+      pose proof (inv_jmeq_size _ _ _ _ H0).
+      match goal with
+      | |- n_tuple_slice hi lo ?x ~= n_tuple_slice hi lo ?y =>
+        set (iu := x);
+          set (ss := y);
+          cut (iu ~= ss);
+          solve [apply slice_proper|eauto]
+      end.
+    - subst.
+      autorewrite with interp_bit_expr.
+      simpl.
       rewrite beconcat_interp.
-      erewrite IHphi1, IHphi2; eauto.
+      autorewrite with interp_bit_expr.
+      pose proof (inv_jmeq_size _ _ _ _ H0).
+      match goal with
+      | |- n_tuple_concat ?xs1 ?ys1 ~= n_tuple_concat ?xs2 ?ys2 =>
+          cut (xs1 ~= xs2 /\ ys1 ~= ys2);
+          [|now eauto]
+      end.
+      intros [? ?].
+      eapply concat_proper; eauto.
   Qed.
+
   Lemma be_subst_hdr_right:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s2 st2 buf2 c1 (w: Ntuple.n_tuple bool size) v,
-        interp_bit_expr exp valu c1 q = v ->
-        conf_state q = s2 ->
-        conf_store q = st2 ->
-        conf_buf q = buf2 ->
-        v = Ntuple.t2l w ->
+    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c1 (w: Ntuple.n_tuple bool size),
+        interp_bit_expr exp valu c1 q ~= w ->
+        conf_state q = s1 ->
+        conf_store q = st1 ->
+        conf_buf q = buf1 ->
         interp_bit_expr (a:=a) phi valu
                         c1
                         (update_conf_store (a:=P4A.interp a)
-                                           (P4A.assign _ hdr (P4A.VBits size w) st2)
+                                           (P4A.assign _ hdr (P4A.VBits size w) st1)
                                            q)
-                        =
+        ~=
         interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
                         valu
                         c1
@@ -222,46 +422,81 @@ Section WPProofs.
     induction phi; intros.
     - tauto.
     - unfold WP.be_subst.
-      destruct (bit_expr_eq_dec _ _); simpl; congruence.
+      destruct (bit_expr_eq_dec _ _); simpl.
+      + inversion e.
+      + destruct a0; autorewrite with interp_bit_expr; eauto.
     - unfold WP.be_subst.
       destruct (bit_expr_eq_dec _ _).
       + inversion e; clear e; subst.
+        autorewrite with interp_bit_expr.
         simpl.
+        unfold P4A.find.
+        cbn.
         rewrite P4A.eq_dec_refl.
         simpl.
         rewrite P4A.eq_dec_refl.
-        congruence.
-      + simpl.
-        destruct h.
-        dependent destruction var.
-        simpl in *.
+        apply JMeq_sym.
+        auto.
+      + destruct h as [[hsize h]].
+        autorewrite with interp_bit_expr in *.
         unfold P4A.find, P4A.assign.
+        cbn in *.
         repeat match goal with
-               | H: context[ match ?e with _ => _ end ] |- _ => destruct e eqn:?
-               | |- context[ match ?e with _ => _ end ] => destruct e eqn:?
-               | |- _ => progress unfold "===" in *
-               | |- _ => progress simpl in *
+               | H: context[ match ?e with _ => _ end ] |- _ =>
+                 destruct e eqn:?
+               | |- context[ match ?e with _ => _ end ] =>
+                 destruct e eqn:?
+               | |- context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] =>
+                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
+               | H: context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] |- _ =>
+                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
+               | |- _ => progress unfold eq_rect in *
+               | |- _ => progress rewrite !P4A.eq_dec_refl in *
+               | |- _ => progress cbn in *
                | |- _ => progress subst
-               end;
-          congruence.
+               | |- ?x ~= ?y =>
+                 try (cut (x = y); [intros; subst; now constructor|]; congruence)
+               | |- _ => try congruence
+               end.
     - reflexivity.
-    - simpl.
-      subst.
-      erewrite IHphi; eauto.
+    - subst.
+      autorewrite with interp_bit_expr.
+      simpl.
       rewrite beslice_interp.
-      reflexivity.
-    - simpl.
+      autorewrite with interp_bit_expr.
+      pose proof (inv_jmeq_size _ _ _ _ H0).
+      match goal with
+      | |- n_tuple_slice hi lo ?x ~= n_tuple_slice hi lo ?y =>
+        set (iu := x);
+          set (ss := y);
+          cut (iu ~= ss);
+          solve [apply slice_proper|eauto]
+      end.
+    - subst.
+      autorewrite with interp_bit_expr.
+      simpl.
       rewrite beconcat_interp.
-      erewrite IHphi1, IHphi2; eauto.
+      autorewrite with interp_bit_expr.
+      pose proof (inv_jmeq_size _ _ _ _ H0).
+      match goal with
+      | |- n_tuple_concat ?xs1 ?ys1 ~= n_tuple_concat ?xs2 ?ys2 =>
+          cut (xs1 ~= xs2 /\ ys1 ~= ys2);
+          [|now eauto]
+      end.
+      intros [? ?].
+      eapply concat_proper; eauto.
   Qed.
+
+  (*
   Lemma brand_interp:
     forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
       interp_store_rel (a:=a) (brand r1 r2) valu q1 q2 <->
       interp_store_rel (a:=a) (BRAnd r1 r2) valu q1 q2.
   Proof.
     intros.
-    destruct r1, r2; simpl; tauto.
+    destruct r1, r2; simpl; auto.
   Qed.
+
   Lemma bror_interp:
     forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
       interp_store_rel (a:=a) (bror r1 r2) valu q1 q2 <->
@@ -270,6 +505,7 @@ Section WPProofs.
     intros.
     destruct r1, r2; simpl; tauto.
   Qed.
+
   Lemma brimpl_interp:
     forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
       interp_store_rel (a:=a) (brimpl r1 r2) valu q1 q2 <->
@@ -278,6 +514,7 @@ Section WPProofs.
     intros.
     destruct r1, r2; simpl; tauto.
   Qed.
+
   Lemma sr_subst_hdr_left:
     forall c (valu: bval c) size (hdr: H size) exp phi c1 s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
       conf_state c1 = s1 ->
@@ -314,6 +551,7 @@ Section WPProofs.
       simpl in *;
       try solve [erewrite !be_subst_hdr_left in *; eauto|intuition].
   Qed.
+
   Lemma sr_subst_hdr_right:
     forall c (valu: bval c) size (hdr: H size) exp phi c1 c2 s2 st2 buf2 (w: Ntuple.n_tuple bool size),
       conf_state c2 = s2 ->
@@ -350,6 +588,7 @@ Section WPProofs.
       simpl in *;
       try solve [erewrite !be_subst_hdr_right in *; eauto|intuition].
   Qed.
+  
   Lemma wp_op'_size:
     forall (c: bctx) si size (o: P4A.op H size) n phi m phi',
       WP.wp_op' (c:=c) si o (size + n, phi) = (m, phi') ->
@@ -370,6 +609,7 @@ Section WPProofs.
       congruence.
     - congruence.
   Qed.
+
   Lemma wp_op'_seq:
     forall (c: bctx) n1 n2 (o1: P4A.op H n1) (o2: P4A.op H n2) si phi,
       WP.wp_op' (c:=c) si (P4A.OpSeq o1 o2) phi = WP.wp_op' si o1 (WP.wp_op' si o2 phi).
@@ -382,6 +622,7 @@ Section WPProofs.
              end;
       reflexivity.
   Qed.
+
   Ltac break_match :=
     match goal with
     | |- context [match ?x with _ => _ end] =>
@@ -389,6 +630,7 @@ Section WPProofs.
     | H: context [match ?x with _ => _ end] |- _ =>
       destruct x eqn:?
     end.
+
   Lemma wp_op'_mono {k}:
     forall (c: bctx) si (o: P4A.op H k) n phi,
       fst (WP.wp_op' (c:=c) si o (n, phi)) <= n.
@@ -405,10 +647,12 @@ Section WPProofs.
     - Lia.lia.
     - Lia.lia.
   Qed.
+
   Definition projbits {n} (v: P4A.v n) :=
     match v with
     | P4A.VBits _ vec => vec
     end.
+
   Lemma expr_to_bit_expr_sound:
     forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n) (c1 c2: conf),
       P4A.eval_expr (S1 + S2) H a n (conf_store (match si with Left => c1 | Right => c2 end)) expr =
@@ -427,11 +671,13 @@ Section WPProofs.
       rewrite -> IHexpr in Heqv.
       congruence.
   Qed.
+
   Lemma n_slice_slice_eq:
     forall hi lo n (x: Ntuple.n_tuple bool n),
       Ntuple.t2l (WP.P4A.n_slice _ _ a x hi lo) = P4A.slice (Ntuple.t2l x) hi lo.
   Proof.
   Admitted.
+
   Lemma wp_op'_spec_l:
     forall c (valu: bval c) o n phi c1 s1 st1 buf1 c2,
       P4A.nonempty o ->
@@ -507,6 +753,7 @@ Section WPProofs.
       rewrite <- expr_to_bit_expr_sound.
       reflexivity.
   Qed.
+
   (* This is basically a copy-pasted version of wp_op'_spec_l with
       some things flipped around. *)
   Lemma wp_op'_spec_r:
@@ -584,6 +831,7 @@ Section WPProofs.
       rewrite <- expr_to_bit_expr_sound.
       reflexivity.
   Qed.
+
   Definition pred_top {c} (p1 p2: WP.pred S1 S2 H c) : Prop :=
     forall q1 q2,
       match p1 with
@@ -599,6 +847,7 @@ Section WPProofs.
         fst (fst q2) = s
       end ->
       top q1 q2.
+
   Lemma wp_pred_pair_step :
     forall C u v,
       SynPreSynWP.topbdd _ _ _ a top (interp_conf_rel C) ->
@@ -638,6 +887,7 @@ Section WPProofs.
     - admit.
     - admit.
   Admitted.
+
   Lemma be_subst_buf_left:
     forall c (valu: bval c) exp phi c2 s1 st1 buf1 v,
       interp_bit_expr exp valu (s1, st1, buf1) c2 = v ->
@@ -679,6 +929,7 @@ Section WPProofs.
     - simpl.
       erewrite IHphi1, IHphi2; auto.
   Admitted.
+
   Lemma be_subst_buf_right:
     forall c (valu: bval c) exp phi c1 s2 st2 buf2 v,
       interp_bit_expr exp valu c1 (s2, st2, buf2) = v ->
@@ -720,6 +971,7 @@ Section WPProofs.
       erewrite IHphi1, IHphi2; auto.
       admit.
   Admitted.
+  
   Lemma sr_subst_buf_left:
     forall c (valu: bval c) exp phi s1 st1 buf1 c2,
       interp_store_rel
@@ -743,6 +995,7 @@ Section WPProofs.
                  eauto
                 |simpl in *; intuition].
   Qed.
+
   Lemma sr_subst_buf_right:
     forall c (valu: bval c) exp phi c1 s2 st2 buf2,
       interp_store_rel
@@ -766,6 +1019,7 @@ Section WPProofs.
                  eauto
                 |simpl in *; intuition].
   Qed.
+
   Lemma interp_bit_expr_ignores_state:
     forall {c} (e: bit_expr H c) valu s1 st1 buf1 s2 st2 buf2 s1' s2',
       interp_bit_expr (a:=a) e valu (s1, st1, buf1) (s2, st2, buf2) =
@@ -782,6 +1036,7 @@ Section WPProofs.
     - simpl.
       erewrite IHe1, IHe2; eauto.
   Qed.
+
   Lemma interp_store_rel_ignores_state:
     forall {c} (r: store_rel H c) valu s1 st1 buf1 s2 st2 buf2 s1' s2',
       interp_store_rel (a:=a) r valu (s1, st1, buf1) (s2, st2, buf2) ->
@@ -792,6 +1047,7 @@ Section WPProofs.
     erewrite (interp_bit_expr_ignores_state e2).
     eauto.
   Qed.
+
   Lemma wp_concrete_safe :
     SynPreSynWP.safe_wp_1bit _ _ _ a (WP.wp (H:=H)) top.
   Proof.
@@ -849,6 +1105,7 @@ beuse you're not branching on the same thing.
     - (* easiest case probably *)
       admit.
   Admitted.
+
   Lemma syn_pre_1bit_concrete_implies_sem_pre:
   forall R S q1 q2,
     SynPreSynWP.ctopbdd _ _ _ a top R ->
@@ -865,4 +1122,3 @@ beuse you're not branching on the same thing.
 
 *)
 End WPProofs.
-
