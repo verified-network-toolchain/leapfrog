@@ -114,6 +114,17 @@ Section ConfRel.
     st.(st_state) = c.(conf_state) /\
     st.(st_buf_len) = c.(conf_buf_len).
 
+  Lemma interp_state_template_dichotomy (t1 t2: state_template) (c: conf):
+    interp_state_template t1 c ->
+    interp_state_template t2 c ->
+    t1 = t2.
+  Proof.
+    unfold interp_state_template; intros.
+    destruct H0, H1.
+    destruct t1, t2; simpl in *.
+    congruence.
+  Qed.
+
   Inductive side := Left | Right.
   Derive NoConfusion for side.
   Derive EqDec for side.
@@ -434,6 +445,18 @@ Section ConfRel.
       interp_state_template c.(cs_st1) c1 /\
       interp_state_template c.(cs_st2) c2.
 
+  Lemma interp_conf_state_dichotomy (s1 s2: conf_states) (c1 c2: conf):
+    interp_conf_state s1 c1 c2 ->
+    interp_conf_state s2 c1 c2 ->
+    s1 = s2.
+  Proof.
+    unfold interp_conf_state; intros.
+    destruct H0, H1.
+    destruct s1, s2; simpl in *; f_equal.
+    - now apply interp_state_template_dichotomy with (c := c1).
+    - now apply interp_state_template_dichotomy with (c := c2).
+  Qed.
+
   Definition interp_conf_rel (phi: conf_rel) : relation conf :=
     fun x y =>
       interp_conf_state phi.(cr_st) x y ->
@@ -449,6 +472,19 @@ Section ConfRel.
   Definition interp_crel i (rel: crel) : relation conf :=
     interp_rels i (List.map interp_conf_rel rel).
 
+  Lemma interp_crel_cons
+    (i: relation conf)
+    (c: conf_rel)
+    (cs: crel)
+    (c1 c2: conf)
+  :
+    interp_crel i (c :: cs) c1 c2 <->
+    interp_conf_rel c c1 c2 /\ interp_crel i cs c1 c2.
+  Proof.
+    unfold interp_crel, interp_rels.
+    now cbn.
+  Qed.
+
   Record entailment :=
     { e_prem: crel;
       e_concl: conf_rel }.
@@ -457,6 +493,115 @@ Section ConfRel.
     fun q1 q2 =>
       interp_crel i e.(e_prem) q1 q2 ->
       interp_conf_rel e.(e_concl) q1 q2.
+
+  Definition simplified_conf_rel := { ctx: bctx & store_rel ctx }.
+
+  Definition interp_simplified_conf_rel
+    (scr: simplified_conf_rel)
+    (c1 c2: conf)
+  :=
+    forall valu, interp_store_rel (projT2 scr) valu c1 c2.
+
+  Definition simplify_conf_rel (cr: conf_rel) :=
+    existT _ cr.(cr_ctx) cr.(cr_rel).
+
+  Lemma simplify_conf_rel_correct:
+    forall cr c1 c2,
+      interp_conf_rel cr c1 c2 <->
+      (interp_conf_state cr.(cr_st) c1 c2 ->
+       interp_simplified_conf_rel (simplify_conf_rel cr) c1 c2).
+  Proof.
+    unfold interp_simplified_conf_rel, interp_conf_rel.
+    intuition.
+  Qed.
+
+  Definition simplified_crel := list simplified_conf_rel.
+
+  Equations interp_simplified_crel
+    (i: relation conf)
+    (scrs: simplified_crel)
+    (c1 c2: conf)
+    : Prop
+  := {
+    interp_simplified_crel i nil c1 c2 => i c1 c2;
+    interp_simplified_crel i (scr :: scrs) c1 c2 =>
+    interp_simplified_conf_rel scr c1 c2 /\
+    interp_simplified_crel i scrs c1 c2;
+  }.
+
+  Definition simplify_crel (crs: crel) (st: conf_states) :=
+    let filtered := filter (equiv_decb st ∘ cr_st) crs in
+    map simplify_conf_rel filtered.
+
+  Lemma simplify_crel_correct (i: relation conf) (crs: crel) (st: conf_states):
+    forall q1 q2,
+      interp_conf_state st q1 q2 ->
+      (interp_crel i crs q1 q2 <->
+       interp_simplified_crel i (simplify_crel crs st) q1 q2).
+  Proof.
+    induction crs; intros.
+    - unfold interp_crel; simpl.
+      reflexivity.
+    - rewrite interp_crel_cons.
+      unfold simplify_crel.
+      unfold compose; simpl.
+      unfold equiv_decb at 1.
+      destruct equiv_dec.
+      + rewrite map_cons.
+        autorewrite with interp_simplified_crel.
+        rewrite filter_ext with (g := equiv_decb st ∘ cr_st) by auto.
+        fold (simplify_crel crs st).
+        rewrite IHcrs by auto.
+        rewrite simplify_conf_rel_correct.
+        rewrite <- e.
+        intuition.
+      + rewrite filter_ext with (g := equiv_decb st ∘ cr_st) by auto.
+        fold (simplify_crel crs st).
+        rewrite IHcrs by auto.
+        intuition.
+        unfold interp_conf_rel; intros.
+        unfold Equivalence.equiv, complement in c.
+        contradiction c.
+        now apply interp_conf_state_dichotomy with (c1 := q1) (c2:= q2).
+  Qed.
+
+  Record simplified_entailment :=
+    { se_st: conf_states;
+      se_prems: simplified_crel;
+      se_concl: simplified_conf_rel; }.
+
+  Definition interp_simplified_entailment
+    (i: relation conf)
+    (se: simplified_entailment)
+    : relation conf
+  :=
+    fun q1 q2 =>
+      interp_conf_state se.(se_st) q1 q2 ->
+      interp_simplified_crel i se.(se_prems) q1 q2 ->
+      interp_simplified_conf_rel se.(se_concl) q1 q2.
+
+  Definition simplify_entailment (e: entailment) :=
+    let templates := e.(e_concl).(cr_st) in
+    {|
+      se_st := templates;
+      se_prems := simplify_crel e.(e_prem) templates;
+      se_concl := simplify_conf_rel e.(e_concl); |}.
+
+  Lemma simplify_entailment_correct (e: entailment):
+    forall i q1 q2,
+      interp_entailment i e q1 q2 <->
+      interp_simplified_entailment i (simplify_entailment e) q1 q2.
+  Proof.
+    intros.
+    unfold interp_entailment, simplify_entailment, interp_simplified_entailment; simpl.
+    split; intros.
+    - apply simplify_conf_rel_correct; auto.
+      apply H0.
+      apply simplify_crel_correct with (st := e.(e_concl).(cr_st)); auto.
+    - apply simplify_conf_rel_correct; intros.
+      apply H0; auto.
+      now apply simplify_crel_correct.
+  Qed.
 End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} {_} _.
 Arguments interp_crel {_} {_} {_} {_} {_} _.
