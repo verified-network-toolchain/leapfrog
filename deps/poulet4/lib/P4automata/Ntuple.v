@@ -4,7 +4,7 @@ Require Import Coq.Init.Peano.
 Require Import Coq.Lists.List.
 Require Import Coq.micromega.Lia.
 Require Import Coq.Classes.EquivDec.
-Require Import Equations.Equations.
+From Equations Require Import Equations.
 
 Import ListNotations.
 
