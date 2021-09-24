@@ -114,14 +114,18 @@ Section CompileConfRel.
     let s1 := r.(cr_st).(cs_st1).(st_state) in
     let s2 := r.(cr_st).(cs_st2).(st_state) in
     let s1eq :=
-        FEq (TFun (sig a) (State1 a n m)
-                  (TSCons q TSNil))
-            (TFun (sig a) (StateLit _ s1) TSNil)
+        FAnd _ (FEq (TFun (sig a) (State1 a n m)
+                          (TSCons q TSNil))
+                    (TFun (sig a) (StateLit _ s1) TSNil))
+               (FEq (TFun (sig a) (NatLit _ n) TSNil)
+                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st1).(st_buf_len)) TSNil))
     in
     let s2eq :=
-        FEq (TFun (sig a) (State2 a n m)
-                  (TSCons q TSNil))
-            (TFun (sig a) (StateLit _ s2) TSNil)
+        FAnd _ (FEq (TFun (sig a) (State2 a n m)
+                          (TSCons q TSNil))
+                    (TFun (sig a) (StateLit _ s2) TSNil))
+               (FEq (TFun (sig a) (NatLit _ m) TSNil)
+                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st2).(st_buf_len)) TSNil))
     in
     let sr: fm (sig a) _ :=
         (compile_store_rel (reindex_tm q) r.(cr_rel))
@@ -180,13 +184,13 @@ Section CompileConfRel.
     setoid_rewrite compile_store_rel_correct.
     fold (compile_bctx cr_ctx).
     intuition.
-    - specialize (H3 (eq_sym H1) (eq_sym H2)).
-      specialize (H3 (decompile_val valu)).
-      rewrite bval_roundtrip in H3.
+    - specialize (H0 (eq_sym H3) (eq_sym H4) (conj (eq_sym H1) (eq_sym H5))).
+      specialize (H0 (decompile_val valu)).
+      rewrite bval_roundtrip in H0.
       auto.
-    - specialize (H0 (eq_sym H2) (eq_sym H3)).
-      specialize (H0 (compile_bval valu)).
-      apply H0.
+    - specialize (H3 (eq_sym H1) (eq_sym H4) (conj (eq_sym H2) (eq_sym H5))).
+      specialize (H3 (compile_bval valu)).
+      auto.
   Qed.
 
   Lemma compile_crel_correct:

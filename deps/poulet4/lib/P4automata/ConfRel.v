@@ -111,10 +111,8 @@ Section ConfRel.
                            congruence).
 
   Definition interp_state_template (st: state_template) (c: conf) :=
-    st.(st_state) = conf_state c.
-    (* /\
-    exists (tup : n_tuple _ st.(st_buf_len)),
-      snd c = t2l _ st.(st_buf_len) tup. *)
+    st.(st_state) = c.(conf_state) /\
+    st.(st_buf_len) = c.(conf_buf_len).
 
   Inductive side := Left | Right.
   Derive NoConfusion for side.
