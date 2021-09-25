@@ -129,23 +129,21 @@ Section CompileConfRelSimplified.
   Definition compile_simplified_crel
     {b1 b2: nat}
     (R: simplified_crel H)
-    (i: fm (sig a) (CEmp _))
     (buf1: tm (sig a) (CEmp _) (Bits b1))
     (buf2: tm (sig a) (CEmp _) (Bits b2))
     (store1 store2: tm (sig a) (CEmp _) Store)
     : fm (sig a) (CEmp _) :=
     List.fold_right (fun r f =>
       FAnd _ (compile_simplified_conf_rel r buf1 buf2 store1 store2) f
-    ) i R.
+    ) FTrue R.
 
   Definition compile_simplified_entailment
     (se: simplified_entailment a)
-    (i: fm (sig a) (CEmp _))
     (buf1: tm (sig a) (CEmp _) (Bits se.(se_st).(cs_st1).(st_buf_len)))
     (buf2: tm (sig a) (CEmp _) (Bits se.(se_st).(cs_st2).(st_buf_len)))
     (store1 store2: tm (sig a) (CEmp _) Store)
     : fm (sig a) (CEmp _) :=
-    (FImpl (compile_simplified_crel se.(se_prems) i buf1 buf2 store1 store2)
+    (FImpl (compile_simplified_crel se.(se_prems) buf1 buf2 store1 store2)
            (compile_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2)).
 
   Definition compile_buf
@@ -162,54 +160,51 @@ Section CompileConfRelSimplified.
     TFun (sig a) (StoreLit store) TSNil.
 
   Lemma compile_store_rel_correct:
-    forall c (r: store_rel H c) valu q1 q2,
-      interp_store_rel r valu q1 q2 <->
+    forall c (r: store_rel H c) valu b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2,
+      interp_simplified_store_rel r valu buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (compile_bval valu)
-                (compile_store_rel (compile_buf q1.(conf_buf))
-                                   (compile_buf q2.(conf_buf))
-                                   (compile_store q1.(conf_store))
-                                   (compile_store q2.(conf_store)) r).
+                (compile_store_rel (compile_buf buf1)
+                                   (compile_buf buf2)
+                                   (compile_store store1)
+                                   (compile_store store2) r).
   Proof.
   Admitted.
 
   Lemma compile_simplified_conf_rel_correct:
-    forall r q1 q2,
-      interp_simplified_conf_rel r q1 q2 <->
+    forall r b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2,
+      interp_simplified_conf_rel r buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (VEmp _ _)
                 (compile_simplified_conf_rel r
-                  (compile_buf q1.(conf_buf))
-                  (compile_buf q2.(conf_buf))
-                  (compile_store q1.(conf_store))
-                  (compile_store q2.(conf_store))).
+                  (compile_buf buf1)
+                  (compile_buf buf2)
+                  (compile_store store1)
+                  (compile_store store2)).
   Proof.
   Admitted.
 
   Lemma compile_crel_correct:
-    forall R i ifm q1 q2,
-      (forall q1 q2, i q1 q2 <-> interp_fm (VEmp _ (fm_model a)) ifm) ->
-      interp_simplified_crel i R q1 q2 <->
+    forall r b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2,
+      interp_simplified_crel r buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (VEmp _ _)
-                (compile_simplified_crel R ifm
-                  (compile_buf q1.(conf_buf))
-                  (compile_buf q2.(conf_buf))
-                  (compile_store q1.(conf_store))
-                  (compile_store q2.(conf_store))).
+                (compile_simplified_crel r
+                  (compile_buf buf1)
+                  (compile_buf buf2)
+                  (compile_store store1)
+                  (compile_store store2)).
   Proof.
   Admitted.
 
   Lemma compile_simplified_entailment_correct:
-    forall e i ifm q1 q2,
-      (forall q1 q2, i q1 q2 <-> interp_fm (VEmp _ (fm_model a)) ifm) ->
-      forall (Heq1: conf_buf_len q1 = st_buf_len (cs_st1 (se_st e)))
-             (Heq2: conf_buf_len q2 = st_buf_len (cs_st2 (se_st e))),
-        interp_simplified_entailment i e q1 q2 <->
-        interp_fm (m := fm_model a)
+      forall e,
+        interp_simplified_entailment e <->
+        forall buf1 buf2 store1 store2,
+          interp_fm (m := fm_model a)
                   (VEmp _ _)
-                  (compile_simplified_entailment e ifm
-                    (compile_buf (eq_rect _ _ q1.(conf_buf) _ Heq1))
-                    (compile_buf (eq_rect _ _ q2.(conf_buf) _ Heq2))
-                    (compile_store q1.(conf_store))
-                    (compile_store q2.(conf_store))).
+                  (compile_simplified_entailment e
+                    (compile_buf buf1)
+                    (compile_buf buf2)
+                    (compile_store store1)
+                    (compile_store store2)).
   Proof.
   Admitted.
 

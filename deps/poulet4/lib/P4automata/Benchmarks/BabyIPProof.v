@@ -19,10 +19,9 @@ Ltac extend_bisim' :=
   match goal with
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                  interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2));
+    assert (H: ~forall q1 q2, interp_entailment A i ({| e_prem := R; e_concl := C |}) q1 q2);
     [ idtac |
-    pose (t := WPSymLeap.wp r_states a C);
+    pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend with (H0 := right H) (W := t);
     [ tauto | trivial |];
     vm_compute in t;
@@ -59,12 +58,11 @@ Proof.
   contradiction.
 Qed.
 
-
 Lemma prebisim_babyip:
   pre_bisimulation
-    BabyIP.aut
-    (WPSymLeap.wp r_states)
-    (Reachability.reachable_pair r_states)
+    A
+    (WP.wp r_states)
+    (fun c1 c2 => List.In (conf_to_state_template c1, conf_to_state_template c2) r_states)
     []
     (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
     (P4automaton.MkConfiguration
@@ -88,26 +86,31 @@ Proof.
   subst rel0.
 
   extend_bisim'.
-  setoid_rewrite compile_conf_rel_correct.
-  apply forall_exists_demorgan; eexists.
-  apply forall_exists_demorgan; eexists.
-  cbn.
-  2: { typeclasses eauto. }
-  unfold compile_conf_rel.
-  unfold FImpl; simpl.
-  autorewrite with interp_fm; simpl.
-  autorewrite with mod_fns; simpl.
   intro.
-  destruct H; intuition.
-  apply List.Exists_cons_hd; simpl.
-  unfold interp_state_template; intuition.
-  (* At this point it's clear that configurations like this exist... you just
-     need to construct a dummy store to prove it.
-
-     There's also some more junk about finiteness of header types that we need
-     to resolve, though, and I'm not sure how. *)
-  1-5: admit.
-
+  rewrite -> simplify_entailment_correct with (i := (fun c1 c2 => List.In (c1, c2) r_states)) in H.
+  Opaque List.In.
+  simpl in H.
+  Search List.In.
+  unfold simplify_entailment in H; simpl in H.
+  unfold simplify_crel, simplify_conf_rel in H; simpl in H.
+  unfold interp_simplified_entailment in H; simpl in H.
+  Transparent interp_simplified_crel.
+  Transparent interp_simplified_conf_rel.
+  unfold interp_simplified_crel, interp_simplified_conf_rel in H; simpl in H.
+  Transparent interp_simplified_store_rel.
+  unfold interp_simplified_store_rel in H.
+  apply H.
+  right.
+  left.
+  reflexivity.
+  exact tt.
+  exact tt.
+  admit.
+  admit.
+  exact I.
+  exact tt.
+  apply cap'.
+  apply cap'.
   extend_bisim'; [admit|].
   extend_bisim'; [admit|].
   extend_bisim'; [admit|].
