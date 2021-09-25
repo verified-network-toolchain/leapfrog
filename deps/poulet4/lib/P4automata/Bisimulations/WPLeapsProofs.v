@@ -32,9 +32,8 @@ Section WPLeapsProofs.
 
   Variable (a: P4A.t S H).
 
-  Variable (wp: P4A.t S H ->
-                conf_rel S H ->
-                list (conf_rel S H)).
+  Variable (wp: conf_rel a ->
+                list (conf_rel a)).
 
   Notation conf := (configuration (P4A.interp a)).
 

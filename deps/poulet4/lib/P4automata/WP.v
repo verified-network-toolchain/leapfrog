@@ -9,7 +9,7 @@ Import ListNotations.
 
 Section WP.
   Set Implicit Arguments.
-  
+
   (* State identifiers. *)
   Variable (S1: Type).
   Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
@@ -27,8 +27,8 @@ Section WP.
   Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
   Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
-  Variable (reachable_states: list (state_template S * state_template S)).
   Variable (a: P4A.t S H).
+  Variable (reachable_states: list (state_template a * state_template a)).
 
   Fixpoint be_subst {c} (be: bit_expr H c) (e: bit_expr H c) (x: bit_expr H c) : bit_expr H c :=
     match be with
@@ -55,7 +55,7 @@ Section WP.
   | Jump
   | Read.
 
-  Definition leap_kind (pred cur: state_template S) : lkind :=
+  Definition leap_kind (pred cur: state_template a) : lkind :=
     match cur.(st_buf_len) with
     | 0 => Jump
     | _ => Read
@@ -130,10 +130,10 @@ Section WP.
   Definition jump_cond
              {c}
              (si: side)
-             (prev cur: state_template S)
+             (prev cur: state_template a)
     : store_rel H c :=
     match prev.(st_state) with
-    | inl cand => 
+    | inl cand =>
       let st := a.(P4A.t_states) cand in
       trans_cond si (P4A.st_trans st) cur.(st_state)
     | inr cand =>
@@ -146,7 +146,7 @@ Section WP.
   Definition wp_lpred {c: bctx}
              (si: side)
              (b: bit_expr H c)
-             (prev cur: state_template S)
+             (prev cur: state_template a)
              (k: lkind)
              (phi: store_rel H c)
     : store_rel H c :=
@@ -168,9 +168,9 @@ Section WP.
     end.
 
   Definition wp_pred_pair
-             (phi: conf_rel S H)
-             (preds: nat * (state_template S * state_template S))
-    : list (conf_rel S H) :=
+             (phi: conf_rel a)
+             (preds: nat * (state_template a * state_template a))
+    : list (conf_rel a) :=
     let '(size, (prev_l, prev_r)) := preds in
     let phi_rel := phi.(cr_rel) in
     let cur_l := phi.(cr_st).(cs_st1) in
@@ -184,15 +184,15 @@ Section WP.
         cr_rel := wp_lpred Left b prev_l cur_l leap_l
                            (wp_lpred Right b prev_r cur_r leap_r phi_rel) |}].
 
-  Definition reaches (cur prev: state_template S * state_template S) :=
-    let '(n, successors) := Reachability.reachable_pair_step' a prev in
-    if List.In_dec (@Reachability.state_pair_eq_dec S1 _ _ S2 _ _)
-                   cur 
+  Definition reaches (cur prev: state_template a * state_template a) :=
+    let '(n, successors) := Reachability.reachable_pair_step' prev in
+    if List.In_dec (Reachability.state_pair_eq_dec (a := a))
+                   cur
                    successors
     then [(n, prev)]
     else [].
 
-  Definition wp (phi: conf_rel S H) : list (conf_rel S H) :=
+  Definition wp (phi: conf_rel a) : list (conf_rel a) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in
     let pred_pairs := List.flat_map (reaches (cur_st_left, cur_st_right)) reachable_states in

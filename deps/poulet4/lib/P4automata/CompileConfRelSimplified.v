@@ -139,7 +139,7 @@ Section CompileConfRelSimplified.
     ) i R.
 
   Definition compile_simplified_entailment
-    (se: simplified_entailment S H)
+    (se: simplified_entailment a)
     (i: fm (sig a) (CEmp _))
     (buf1: tm (sig a) (CEmp _) (Bits se.(se_st).(cs_st1).(st_buf_len)))
     (buf2: tm (sig a) (CEmp _) (Bits se.(se_st).(cs_st2).(st_buf_len)))

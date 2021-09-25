@@ -39,27 +39,28 @@ Section BisimChecker.
   Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Notation S:=(S1 + S2)%type.
+  Variable (a: P4A.t S H).
 
-  Definition sum_not_accept1 (a: P4A.t (S1 + S2) H) (s: S1) : crel (S1 + S2) H := 
+  Definition sum_not_accept1 (a: P4A.t (S1 + S2) H) (s: S1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (S1 + S2) H) (s: S2) : crel (S1 + S2) H := 
+  Definition sum_not_accept2 (a: P4A.t (S1 + S2) H) (s: S2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (S1 + S2) H) : crel (S1 + S2) H := 
+  Definition sum_init_rel (a: P4A.t (S1 + S2) H) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum S1)
                           ++ List.map (sum_not_accept2 a) (enum S2)).
 
-  Definition reachable_pair_to_partition '((s1, s2): Reachability.state_pair _ _)
-    : crel (S1 + S2) H :=
+  Definition reachable_pair_to_partition '((s1, s2): Reachability.state_pair a)
+    : crel a :=
     match s1.(st_state) with
     | inl st =>
       [BCEmp, ⟨inl st, s1.(st_buf_len)⟩ ⟨inr true, 0⟩ ⊢ bfalse]
@@ -74,13 +75,13 @@ Section BisimChecker.
         []
       end.
 
-  Definition reachable_pairs_to_partition (r: Reachability.state_pairs _ _)
-    : crel (S1 + S2) H :=
+  Definition reachable_pairs_to_partition (r: Reachability.state_pairs a)
+    : crel a :=
     List.concat (List.map reachable_pair_to_partition r).
 
   (*
   Lemma no_state:
-    forall (a: P4A.t S H) i R (S: conf_rel S H),
+    forall (a: P4A.t S H) i R (S: conf_rel a),
       (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel a i R q1 q2),
           interp_conf_rel a S q1 q2)
       <->
@@ -98,8 +99,8 @@ Section BisimChecker.
       intros.
   Admitted.
   *)
- 
-  Definition states_match {S H} {S_eq_dec: EquivDec.EqDec S eq} (c1 c2: conf_rel S H) : bool :=
+
+  Definition states_match {S H} {a: P4A.t S H} {S_eq_dec: EquivDec.EqDec S eq} {H_eq_dec: forall n, EquivDec.EqDec (H n) eq} (c1 c2: conf_rel a) : bool :=
     if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
     else false.
@@ -165,14 +166,14 @@ Ltac pbskip_plain :=
       subst;
       intros;
       intuition;
-      repeat 
+      repeat
         match goal with
         | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
         | [ X : _ * _ |- _ ] => destruct X
         end;
         simpl in *; try solve [simpl in *; congruence]
         |].
-  
+
 Ltac solve_bisim_plain :=
     match goal with
     | |- context[WP.wp _ _] =>
@@ -202,7 +203,7 @@ Proof.
   firstorder.
 Qed.
 
-Lemma double_neg: 
+Lemma double_neg:
   forall {A B} (P: A -> B -> Prop),
   (exists x y, P x y) ->
   (exists x y, ~ (P x y -> False)).
@@ -225,7 +226,7 @@ Qed.
 
 Lemma exists_unused:
   forall A,
-    inhabited A ->  
+    inhabited A ->
     forall P: Prop,
     exists (_: A), P <-> P.
 Proof.
@@ -246,7 +247,7 @@ Ltac find v :=
   | v := ?value : _ |- _ => value
   end.
 
-Ltac break_store2 h0 h1 := 
+Ltac break_store2 h0 h1 :=
   repeat match goal with
   | |- exists (x: P4A.store ?H), @?P x =>
     cut (exists y0 y1,
@@ -265,12 +266,12 @@ Ltac break_store2 h0 h1 :=
       assert (forall y0 y1,
                   P ([(h0, P4A.VBits y0);
                       (h1, P4A.VBits y1)])); [
-      cbn; sauto | 
+      cbn; sauto |
       sauto
     ]
   end.
 
-Ltac break_store4 h0 h1 h2 h3 := 
+Ltac break_store4 h0 h1 h2 h3 :=
   repeat match goal with
   | |- exists (x: P4A.store ?H), @?P x =>
     cut (exists y0 y1 y2 y3,
@@ -295,7 +296,7 @@ Ltac break_store4 h0 h1 h2 h3 :=
                       (h1, P4A.VBits y1);
                       (h2, P4A.VBits y2);
                       (h3, P4A.VBits y3)])); [
-      cbn; sauto | 
+      cbn; sauto |
       sauto
     ]
   end.
@@ -335,7 +336,7 @@ Ltac extend_bisim a wp i R C :=
         compute in t;
         simpl (_ ++ _);
         unfold t;
-        clear t; 
+        clear t;
         clear H.
 
 Ltac prove_sat :=

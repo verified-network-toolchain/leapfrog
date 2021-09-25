@@ -107,7 +107,7 @@ Section CompileConfRel.
 
   Definition compile_conf_rel
     {n m: nat}
-    (r: conf_rel S H)
+    (r: conf_rel a)
     (q: tm (sig a) (CEmp _) (ConfigPair n m))
     : fm (sig a) (CEmp _)
   :=
@@ -134,7 +134,7 @@ Section CompileConfRel.
 
   Definition compile_crel
     {n m: nat}
-    (R: crel S H)
+    (R: crel a)
     (i: fm (sig a) (CEmp _))
     (q: tm (sig a) (CEmp _) (ConfigPair n m))
     : fm (sig a) (CEmp _) :=
@@ -142,7 +142,7 @@ Section CompileConfRel.
 
   Definition compile_entailment
     {n m: nat}
-    (e: entailment S H)
+    (e: entailment a)
     (i: fm (sig a) (CEmp _))
     (q: tm (sig a) (CEmp _) (ConfigPair n m))
     : fm (sig a) (CEmp _) :=

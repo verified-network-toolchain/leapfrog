@@ -33,7 +33,7 @@ Section ReachablePairs.
   Notation conf := (configuration (P4A.interp a)).
 
   Definition state_pair : Type :=
-    state_template S * state_template S.
+    state_template a * state_template a.
   Global Program Instance state_pair_eq_dec: EquivDec.EqDec state_pair eq :=
     { equiv_dec x y :=
         if Sumbool.sumbool_and _ _ _ _
@@ -76,7 +76,7 @@ Section ReachablePairs.
     | inr _, inr _ => 1
     end.
 
-  Definition advance (steps: nat) (t1: state_template S) (s: P4A.state_ref S) :=
+  Definition advance (steps: nat) (t1: state_template a) (s: P4A.state_ref S) :=
     match s with
     | inl s =>
       let st := P4A.t_states a s in
@@ -417,7 +417,7 @@ Section ReachablePairs.
     now apply reachability_complete' with (s := s) (lpre := lpre).
   Qed.
 
-  Definition valid_state_templates : list (state_template S) :=
+  Definition valid_state_templates : list (state_template a) :=
     [{| st_state := inr false; st_buf_len := 0 |};
      {| st_state := inr true; st_buf_len := 0 |}] ++
     List.flat_map (fun s =>
@@ -425,7 +425,7 @@ Section ReachablePairs.
                (List.seq 0 (size (P4A.interp a) s))
       ) (List.map inl (enum S1) ++ List.map inr (enum S2)).
 
-  Definition valid_state_template (t: state_template S) :=
+  Definition valid_state_template (t: state_template a) :=
     match st_state t with
     | inr _ => st_buf_len t = 0
     | inl s => st_buf_len t < size (P4A.interp a) s

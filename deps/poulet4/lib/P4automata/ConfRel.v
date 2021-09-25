@@ -95,7 +95,7 @@ Section ConfRel.
   Notation conf := (configuration (P4A.interp a)).
 
   Record state_template :=
-    { st_state: P4A.state_ref S;
+    { st_state: state_ref (P4A.interp a);
       st_buf_len: nat }.
 
   Global Program Instance state_template_eq_dec : EquivDec.EqDec state_template eq :=
