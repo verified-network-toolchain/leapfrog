@@ -161,7 +161,7 @@ Section CompileConfRelSimplified.
 
   Lemma compile_store_rel_correct:
     forall c (r: store_rel H c) valu b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2,
-      interp_simplified_store_rel r valu buf1 buf2 store1 store2 <->
+      interp_store_rel r valu buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (compile_bval valu)
                 (compile_store_rel (compile_buf buf1)
                                    (compile_buf buf2)
@@ -195,8 +195,8 @@ Section CompileConfRelSimplified.
   Admitted.
 
   Lemma compile_simplified_entailment_correct:
-      forall e,
-        interp_simplified_entailment e <->
+      forall i e,
+        interp_simplified_entailment i e <->
         forall buf1 buf2 store1 store2,
           interp_fm (m := fm_model a)
                   (VEmp _ _)

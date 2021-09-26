@@ -29,7 +29,7 @@ Section WPProofs.
 
   Variable (a: P4A.t S H).
   Notation conf := (configuration (P4A.interp a)).
-  
+
   Lemma skipn_skipn:
     forall A (x: list A) n m,
       skipn n (skipn m x) = skipn (n + m) x.
@@ -126,10 +126,12 @@ Section WPProofs.
   Admitted.
 
   Lemma beslice_interp:
-    forall ctx (e: bit_expr H ctx) hi lo valu (q1 q2: conf),
+    forall ctx (e: bit_expr H ctx) hi lo valu
+           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+           (store1 store2: store (P4A.interp a)),
       JMeq
-        (interp_bit_expr (beslice e hi lo) valu q1 q2)
-        (interp_bit_expr (BESlice e hi lo) valu q1 q2).
+        (interp_bit_expr (beslice e hi lo) valu buf1 buf2 store1 store2)
+        (interp_bit_expr (BESlice e hi lo) valu buf1 buf2 store1 store2).
   Proof.
     induction e; intros;
       repeat (progress cbn
@@ -149,9 +151,11 @@ Section WPProofs.
   Qed.
 
   Lemma beconcat_interp:
-    forall ctx (e1 e2: bit_expr H ctx) valu (q1 q2: conf),
-      JMeq (interp_bit_expr (beconcat e1 e2) valu q1 q2)
-           (interp_bit_expr (BEConcat e1 e2) valu q1 q2).
+    forall ctx (e1 e2: bit_expr H ctx) valu
+           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+           (store1 store2: store (P4A.interp a)),
+      JMeq (interp_bit_expr (beconcat e1 e2) valu buf1 buf2 store1 store2)
+           (interp_bit_expr (BEConcat e1 e2) valu buf1 buf2 store1 store2).
   Proof.
     induction e1; destruct e2; intros; simpl; auto.
     autorewrite with interp_bit_expr.
@@ -318,21 +322,22 @@ Section WPProofs.
   Qed.
 
   Lemma be_subst_hdr_left:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
-        interp_bit_expr exp valu q c2 ~= w ->
-        conf_state q = s1 ->
-        conf_store q = st1 ->
-        conf_buf q = buf1 ->
+    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) c2 (w: Ntuple.n_tuple bool size),
+        interp_bit_expr exp valu q.(conf_buf) c2.(conf_buf) q.(conf_store) c2.(conf_store) ~= w ->
         interp_bit_expr (a:=a) phi valu
+                        q.(conf_buf)
+                        c2.(conf_buf)
                         (update_conf_store (a:=P4A.interp a)
-                                           (P4A.assign _ hdr (P4A.VBits size w) st1)
-                                           q)
-                        c2
+                                           (P4A.assign _ hdr (P4A.VBits size w) q.(conf_store))
+                                           q).(conf_store)
+                        c2.(conf_store)
         ~=
         interp_bit_expr (WP.be_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
                         valu
-                        q
-                        c2.
+                        q.(conf_buf)
+                        c2.(conf_buf)
+                        q.(conf_store)
+                        c2.(conf_store).
   Proof.
     induction phi; intros.
     - tauto.
@@ -385,7 +390,7 @@ Section WPProofs.
         set (iu := x);
           set (ss := y);
           cut (iu ~= ss);
-          solve [apply slice_proper|eauto]
+          solve [apply slice_proper|now apply IHphi]
       end.
     - subst.
       autorewrite with interp_bit_expr.
@@ -396,28 +401,32 @@ Section WPProofs.
       match goal with
       | |- n_tuple_concat ?xs1 ?ys1 ~= n_tuple_concat ?xs2 ?ys2 =>
           cut (xs1 ~= xs2 /\ ys1 ~= ys2);
-          [|now eauto]
+          [|split]
       end.
-      intros [? ?].
-      eapply concat_proper; eauto.
+      + intros [? ?].
+        eapply concat_proper; eauto.
+      + now apply IHphi1.
+      + now apply IHphi2.
   Qed.
 
   Lemma be_subst_hdr_right:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) s1 st1 buf1 c1 (w: Ntuple.n_tuple bool size),
-        interp_bit_expr exp valu c1 q ~= w ->
-        conf_state q = s1 ->
-        conf_store q = st1 ->
-        conf_buf q = buf1 ->
+    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) c1 (w: Ntuple.n_tuple bool size),
+        interp_bit_expr exp valu c1.(conf_buf) q.(conf_buf) c1.(conf_store) q.(conf_store) ~= w ->
         interp_bit_expr (a:=a) phi valu
-                        c1
+                        c1.(conf_buf)
+                        q.(conf_buf)
+                        c1.(conf_store)
                         (update_conf_store (a:=P4A.interp a)
-                                           (P4A.assign _ hdr (P4A.VBits size w) st1)
-                                           q)
+                                           (P4A.assign _ hdr (P4A.VBits size w) q.(conf_store))
+                                           q).(conf_store)
+
         ~=
         interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
                         valu
-                        c1
-                        q.
+                        c1.(conf_buf)
+                        q.(conf_buf)
+                        c1.(conf_store)
+                        q.(conf_store).
   Proof.
     induction phi; intros.
     - tauto.
@@ -470,7 +479,7 @@ Section WPProofs.
         set (iu := x);
           set (ss := y);
           cut (iu ~= ss);
-          solve [apply slice_proper|eauto]
+          [apply slice_proper|now apply IHphi]
       end.
     - subst.
       autorewrite with interp_bit_expr.
@@ -481,10 +490,12 @@ Section WPProofs.
       match goal with
       | |- n_tuple_concat ?xs1 ?ys1 ~= n_tuple_concat ?xs2 ?ys2 =>
           cut (xs1 ~= xs2 /\ ys1 ~= ys2);
-          [|now eauto]
+          [|split]
       end.
-      intros [? ?].
-      eapply concat_proper; eauto.
+      + intros [? ?].
+        eapply concat_proper; eauto.
+      + now apply IHphi1.
+      + now apply IHphi2.
   Qed.
 
   (*
@@ -588,7 +599,7 @@ Section WPProofs.
       simpl in *;
       try solve [erewrite !be_subst_hdr_right in *; eauto|intuition].
   Qed.
-  
+
   Lemma wp_op'_size:
     forall (c: bctx) si size (o: P4A.op H size) n phi m phi',
       WP.wp_op' (c:=c) si o (size + n, phi) = (m, phi') ->
@@ -971,7 +982,7 @@ Section WPProofs.
       erewrite IHphi1, IHphi2; auto.
       admit.
   Admitted.
-  
+
   Lemma sr_subst_buf_left:
     forall c (valu: bval c) exp phi s1 st1 buf1 c2,
       interp_store_rel

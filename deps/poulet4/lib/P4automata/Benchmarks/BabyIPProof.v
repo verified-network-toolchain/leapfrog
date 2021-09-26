@@ -19,7 +19,7 @@ Ltac extend_bisim' :=
   match goal with
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
-    assert (H: ~forall q1 q2, interp_entailment A i ({| e_prem := R; e_concl := C |}) q1 q2);
+    assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
     [ idtac |
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend with (H0 := right H) (W := t);
@@ -90,16 +90,17 @@ Proof.
   rewrite -> simplify_entailment_correct with (i := (fun c1 c2 => List.In (c1, c2) r_states)) in H.
   Opaque List.In.
   simpl in H.
-  Search List.In.
   unfold simplify_entailment in H; simpl in H.
   unfold simplify_crel, simplify_conf_rel in H; simpl in H.
   unfold interp_simplified_entailment in H; simpl in H.
   Transparent interp_simplified_crel.
   Transparent interp_simplified_conf_rel.
   unfold interp_simplified_crel, interp_simplified_conf_rel in H; simpl in H.
-  Transparent interp_simplified_store_rel.
-  unfold interp_simplified_store_rel in H.
+  Transparent interp_store_rel.
+  unfold interp_store_rel in H.
   apply H.
+  apply cap'.
+  apply cap'.
   right.
   left.
   reflexivity.
@@ -109,8 +110,6 @@ Proof.
   admit.
   exact I.
   exact tt.
-  apply cap'.
-  apply cap'.
   extend_bisim'; [admit|].
   extend_bisim'; [admit|].
   extend_bisim'; [admit|].

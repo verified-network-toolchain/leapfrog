@@ -162,7 +162,8 @@ Section CompileConfRel.
 
   Lemma compile_store_rel_correct:
     forall c (r: store_rel H c) valu q1 q2,
-      interp_store_rel r valu q1 q2 <->
+      interp_store_rel r valu q1.(conf_buf) q2.(conf_buf)
+                       q1.(conf_store) q2.(conf_store) <->
       interp_fm (m := fm_model a) (compile_bval valu)
                 (compile_store_rel (compile_config q1 q2) r).
   Proof.
@@ -212,20 +213,28 @@ Section CompileConfRel.
   Qed.
 
   Lemma compile_entailment_correct:
-    forall e i ifm q1 q2,
+    forall e i ifm,
       (forall q1 q2, i q1 q2 <-> interp_fm (VEmp _ (fm_model a)) ifm) ->
-      interp_entailment a i e q1 q2 <->
-      interp_fm (m := fm_model a)
+      interp_entailment a i e <->
+      forall q1 q2, interp_fm (m := fm_model a)
                 (VEmp _ _)
                 (compile_entailment e ifm (compile_config q1 q2)).
   Proof.
     intros.
     unfold interp_entailment.
     unfold compile_entailment.
-    rewrite compile_conf_rel_correct by auto.
-    rewrite compile_crel_correct by auto.
-    autorewrite with interp_fm.
-    reflexivity.
+    setoid_rewrite compile_conf_rel_correct.
+    pose proof compile_crel_correct.
+    specialize (H1 (e_prem e) i ifm).
+    split; intros.
+    - autorewrite with interp_fm.
+      intros.
+      apply H2.
+      now rewrite H1 by auto.
+    - specialize (H2 q1 q2).
+      autorewrite with interp_fm in H2.
+      apply H2.
+      now apply compile_crel_correct with (i := i).
   Qed.
 
 End CompileConfRel.
