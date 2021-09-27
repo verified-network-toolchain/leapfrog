@@ -58,25 +58,25 @@ Section CompileConfRel.
             (e: bit_expr H c)
     : tm (sig a) (compile_bctx c) (be_sort b1 b2 e) :=
     { compile_bit_expr q (BELit _ _ l) :=
-        TFun (sig a) (BitsLit a (List.length l) (Ntuple.l2t l)) TSNil;
+        TFun (sig a) (BitsLit a (List.length l) (Ntuple.l2t l)) (HList.HNil _);
       compile_bit_expr q (BEBuf _ _ Left) :=
-        TFun (sig a) (Buf1 _ b1 b2) (TSCons q TSNil);
+        TFun (sig a) (Buf1 _ b1 b2) (HList.HCons _ q (HList.HNil _));
       compile_bit_expr q (BEBuf _ _ Right) :=
-        TFun (sig a) (Buf2 _ b1 b2) (TSCons q TSNil);
+        TFun (sig a) (Buf2 _ b1 b2) (HList.HCons _ q (HList.HNil _));
       compile_bit_expr q (@BEHdr H _ Left (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit a _ (projT2 h)) TSNil in
-        let store := TFun (sig a) (Store1 a b1 b2) (TSCons q TSNil) in
-        TFun (sig a) (Lookup a (projT1 h)) (TSCons store (TSCons key TSNil));
+        let key := TFun (sig a) (KeyLit a _ (projT2 h)) (HList.HNil _) in
+        let store := TFun (sig a) (Store1 a b1 b2) (HList.HCons _ q (HList.HNil _)) in
+        TFun (sig a) (Lookup a (projT1 h)) (HList.HCons _ store (HList.HCons _ key (HList.HNil _)));
       compile_bit_expr q (BEHdr _ Right (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit a _ (projT2 h)) TSNil in
-        let store := TFun (sig a) (Store2 a b1 b2) (TSCons q TSNil) in
-        TFun (sig a) (Lookup a (projT1 h)) (TSCons store (TSCons key TSNil));
+        let key := TFun (sig a) (KeyLit a _ (projT2 h)) (HList.HNil _) in
+        let store := TFun (sig a) (Store2 a b1 b2) (HList.HCons _ q (HList.HNil _)) in
+        TFun (sig a) (Lookup a (projT1 h)) (HList.HCons _ store (HList.HCons _ key (HList.HNil _)));
       compile_bit_expr q (BEVar _ b) :=
         TVar (compile_var b);
       compile_bit_expr q (BESlice e hi lo) :=
-        TFun (sig a) (Slice a _ hi lo) (TSCons (compile_bit_expr q e) TSNil);
+        TFun (sig a) (Slice a _ hi lo) (HList.HCons _ (compile_bit_expr q e) (HList.HNil _));
       compile_bit_expr q (BEConcat e1 e2) :=
-        TFun (sig a) (Concat _ _ _) (TSCons (compile_bit_expr q e1) (TSCons (compile_bit_expr q e2) TSNil)) }.
+        TFun (sig a) (Concat _ _ _) (HList.HCons _ (compile_bit_expr q e1) (HList.HCons _ (compile_bit_expr q e2) (HList.HNil _))) }.
 
   Equations compile_store_rel
             {c: bctx}
@@ -115,17 +115,17 @@ Section CompileConfRel.
     let s2 := r.(cr_st).(cs_st2).(st_state) in
     let s1eq :=
         FAnd _ (FEq (TFun (sig a) (State1 a n m)
-                          (TSCons q TSNil))
-                    (TFun (sig a) (StateLit _ s1) TSNil))
-               (FEq (TFun (sig a) (NatLit _ n) TSNil)
-                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st1).(st_buf_len)) TSNil))
+                          (HList.HCons _ q (HList.HNil _)))
+                    (TFun (sig a) (StateLit _ s1) (HList.HNil _)))
+               (FEq (TFun (sig a) (NatLit _ n) (HList.HNil _))
+                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st1).(st_buf_len)) (HList.HNil _)))
     in
     let s2eq :=
         FAnd _ (FEq (TFun (sig a) (State2 a n m)
-                          (TSCons q TSNil))
-                    (TFun (sig a) (StateLit _ s2) TSNil))
-               (FEq (TFun (sig a) (NatLit _ m) TSNil)
-                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st2).(st_buf_len)) TSNil))
+                          (HList.HCons _ q (HList.HNil _)))
+                    (TFun (sig a) (StateLit _ s2) (HList.HNil _)))
+               (FEq (TFun (sig a) (NatLit _ m) (HList.HNil _))
+                    (TFun (sig a) (NatLit _ r.(cr_st).(cs_st2).(st_buf_len)) (HList.HNil _)))
     in
     let sr: fm (sig a) _ :=
         (compile_store_rel (reindex_tm q) r.(cr_rel))
@@ -158,7 +158,7 @@ Section CompileConfRel.
         exist (fun c => c.(conf_buf_len) = q1.(conf_buf_len)) q1 eq_refl in
     let q2' : conf' a q2.(conf_buf_len) :=
         exist (fun c => c.(conf_buf_len) = q2.(conf_buf_len)) q2 eq_refl in
-    TFun (sig a) (ConfPairLit (q1', q2')) TSNil.
+    TFun (sig a) (ConfPairLit (q1', q2')) (HList.HNil _).
 
   Lemma compile_store_rel_correct:
     forall c (r: store_rel H c) valu q1 q2,

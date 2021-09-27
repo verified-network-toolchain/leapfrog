@@ -85,26 +85,26 @@ Section CompileConfRelSimplified.
             (e: bit_expr H c)
     : tm (sig H) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) (be_sort b1 b2 e) :=
     { compile_bit_expr b1 b2 (BELit _ _ l) :=
-        TFun (sig H) (BitsLit _ (List.length l) (Ntuple.l2t l)) TSNil;
+        TFun (sig H) (BitsLit _ (List.length l) (Ntuple.l2t l)) (HList.HNil _);
       compile_bit_expr b1 b2 (BEBuf _ _ Left) :=
         TVar (weaken_var _ (var_buf1 b1 b2));
       compile_bit_expr b1 b2 (BEBuf _ _ Right) :=
         TVar (weaken_var _ (var_buf2 b1 b2));
       compile_bit_expr b1 b2 (@BEHdr H _ Left (P4A.HRVar h)) :=
         TFun (sig H) (Lookup _ _ (projT2 h))
-             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) TSNil);
+             (HList.HCons _ (TVar (weaken_var _ (var_store1 b1 b2))) (HList.HNil _));
       compile_bit_expr b1 b2 (BEHdr _ Right (P4A.HRVar h)) :=
         TFun (sig H) (Lookup _ _ (projT2 h))
-             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) TSNil);
+             (HList.HCons _ (TVar (weaken_var _ (var_store1 b1 b2))) (HList.HNil _));
       compile_bit_expr b1 b2 (BEVar _ b) :=
         TVar (reindex_var (compile_var b));
       compile_bit_expr b1 b2 (BESlice e hi lo) :=
         TFun (sig H) (Slice _ _ hi lo)
-             (TSCons (compile_bit_expr b1 b2 e) TSNil);
+             (HList.HCons _ (compile_bit_expr b1 b2 e) (HList.HNil _));
       compile_bit_expr b1 b2 (BEConcat e1 e2) :=
         TFun (sig H) (Concat _ _ _)
-             (TSCons (compile_bit_expr b1 b2 e1)
-             (TSCons (compile_bit_expr b1 b2 e2) TSNil)) }.
+             (HList.HCons _ (compile_bit_expr b1 b2 e1)
+             (HList.HCons _ (compile_bit_expr b1 b2 e2) (HList.HNil _))) }.
 
   Equations compile_store_rel
             {c: bctx}

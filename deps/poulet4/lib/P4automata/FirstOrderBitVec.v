@@ -38,7 +38,6 @@ Section FirstOrderBitVec.
 
   Definition fm ctx := FirstOrder.fm sig ctx.
   Definition tm ctx := FirstOrder.tm sig ctx.
-  Definition tms ctx := FirstOrder.tms sig ctx.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with

@@ -24,6 +24,7 @@ Section AutModel.
   Inductive sorts: Type :=
   | Bits (n: nat)
   | Store.
+  Derive NoConfusion for sorts.
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
@@ -41,7 +42,6 @@ Section AutModel.
 
   Definition fm ctx := FirstOrder.fm sig ctx.
   Definition tm ctx := FirstOrder.tm sig ctx.
-  Definition tms ctx := FirstOrder.tms sig ctx.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
