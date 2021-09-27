@@ -1,12 +1,14 @@
 Require Import Coq.NArith.Nnat.
 Require Import Coq.Lists.List.
-Import ListNotations.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Coq.Init.Specif.
 Require Import Coq.micromega.Lia.
 Require Import SMTCoq.SMTCoq.
 Import BVList.BITVECTOR_LIST.
 Require Import Coq.NArith.BinNat.
+
+Import ListNotations.
+Import HListNotations.
 
 Section BitsBV.
 
@@ -98,15 +100,12 @@ Section BitsBV.
     - admit.
   Admitted.
 
-  Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
-
   Definition bv_concat' {x y} (l: bv_mod_sorts (BVBits x)) (r: bv_mod_sorts (BVBits y)) : bv_mod_sorts (BVBits (plus x y)).
   unfold plus.
   simpl in *.
   erewrite Nat2N.inj_add.
   exact (bv_concat l r).
   Defined.
-
 
   Equations bv_mod_fns {args: arity (sig_sorts bv_sig)} {ret: sig_sorts bv_sig}
     (sf: bv_sig.(sig_funs) args ret)

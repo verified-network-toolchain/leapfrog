@@ -1,10 +1,12 @@
 Require Import Coq.Lists.List.
-Import ListNotations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Poulet4.P4automata.Ntuple.
+
+Import ListNotations.
+Import HListNotations.
 
 Section FirstOrderBitVec.
   Set Implicit Arguments.
@@ -44,8 +46,6 @@ Section FirstOrderBitVec.
     | Bits n => n_tuple bool n
     end.
 
-  Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
-
   Obligation Tactic := idtac.
   Equations mod_fns
              params ret
@@ -71,4 +71,3 @@ Section FirstOrderBitVec.
     FirstOrder.mod_rels := mod_rels;
   |}.
 End FirstOrderBitVec.
-

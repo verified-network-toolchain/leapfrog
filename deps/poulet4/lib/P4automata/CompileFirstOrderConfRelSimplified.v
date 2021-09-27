@@ -7,7 +7,9 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Poulet4.P4automata.FirstOrderConfRelSimplified.
 Require Poulet4.P4automata.FirstOrderBitVec.
 Require Import Poulet4.P4automata.Ntuple.
+
 Import FirstOrder.
+Import HListNotations.
 
 Module FOS := FirstOrderConfRelSimplified.
 Module FOBV := FirstOrderBitVec.
@@ -87,9 +89,8 @@ Section CompileFirstOrderConfRelSimplified.
   } where tms_cons {c s' s}
     (ts: HList.t (tm FOBV.sig c) s)
     : HList.t (tm FOBV.sig (CSnoc _ c s')) s := {
-    tms_cons (HList.HNil _) := (HList.HNil _);
-    tms_cons (HList.HCons _ t ts) :=
-      HList.HCons _ (tm_cons t) (tms_cons ts);
+    tms_cons hnil := hnil;
+    tms_cons (t ::: ts) := tm_cons t ::: tms_cons ts;
   }.
 
   Definition compile_sizes (enum: list (Syntax.H' H)): nat :=
@@ -107,12 +108,11 @@ Section CompileFirstOrderConfRelSimplified.
     (enum: list (Syntax.H' H))
     : tm FOBV.sig (compile_store_ctx_partial enum)
                   (FOBV.Bits (compile_sizes enum)) := {
-    compile_store' nil := TFun FOBV.sig (FOBV.BitsLit 0 tt) (HList.HNil _);
+    compile_store' nil := TFun FOBV.sig (FOBV.BitsLit 0 tt) hnil;
     compile_store' (elem :: enum) :=
       TFun FOBV.sig (FOBV.Concat (projT1 elem) (compile_sizes enum))
-                    (HList.HCons _ (TVar (VHere _ _ _))
-                    (HList.HCons _ (tm_cons (compile_store' enum))
-                    (HList.HNil _)));
+                    (TVar (VHere _ _ _) :::
+                     tm_cons (compile_store' enum) ::: hnil);
   }.
 
   Definition compile_store
@@ -152,13 +152,14 @@ Section CompileFirstOrderConfRelSimplified.
     (t: tm (FOS.sig H) c s):
     tm FOBV.sig (compile_ctx c) (compile_sort s) := {
     compile_tm (TVar v) := compile_var v;
-    compile_tm (TFun _ (FOS.BitsLit _ n v) (HList.HNil _)) :=
-      TFun FOBV.sig (FOBV.BitsLit n v) (HList.HNil _);
-    compile_tm (TFun _ (FOS.Concat _ n m) (HList.HCons _ t1 (HList.HCons _ t2 (HList.HNil _)))) :=
-      TFun FOBV.sig (FOBV.Concat n m) (HList.HCons _ (compile_tm t1) (HList.HCons _ (compile_tm t2) (HList.HNil _)));
-    compile_tm (TFun _ (FOS.Slice _ n hi lo) (HList.HCons _ t (HList.HNil _ ))) :=
-      TFun FOBV.sig (FOBV.Slice n hi lo) (HList.HCons _ (compile_tm t) (HList.HNil _));
-    compile_tm (TFun _ (FOS.Lookup n h) (HList.HCons _ (TVar v) (HList.HNil _))) :=
+    compile_tm (TFun _ (FOS.BitsLit _ n v) hnil) :=
+      TFun FOBV.sig (FOBV.BitsLit n v) hnil;
+    compile_tm (TFun _ (FOS.Concat _ n m) (t1 ::: t2 ::: hnil)) :=
+      TFun FOBV.sig (FOBV.Concat n m)
+                    (compile_tm t1 ::: compile_tm t2 ::: hnil);
+    compile_tm (TFun _ (FOS.Slice _ n hi lo) (t ::: hnil)) :=
+      TFun FOBV.sig (FOBV.Slice n hi lo) (compile_tm t ::: hnil);
+    compile_tm (TFun _ (FOS.Lookup n h) (TVar v ::: hnil)) :=
       TVar (subscript v (compile_lookup (existT H n h)));
   }.
 

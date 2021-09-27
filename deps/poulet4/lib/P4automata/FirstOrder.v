@@ -31,6 +31,11 @@ Module HList.
     end.
 End HList.
 
+Module HListNotations.
+  Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
+  Notation "'hnil'" := (HList.HNil _).
+End HListNotations.
+
 Definition arity sorts := list sorts.
 
 Record signature: Type :=
@@ -46,6 +51,8 @@ Section FOL.
   | CEmp: ctx
   | CSnoc: ctx -> sig.(sig_sorts) -> ctx.
   Derive NoConfusion for ctx.
+
+  Import HListNotations.
 
   Ltac solve_existT :=
     repeat match goal with
@@ -130,9 +137,9 @@ Section FOL.
           m.(mod_fns) typs rets fn (interp_tms _ _ v args) }
     where interp_tms (c: ctx) typs (v: valu c) (args: HList.t (tm c) typs) : HList.t m.(mod_sorts) typs
       by struct args :=
-      { interp_tms _ _ _ (HList.HNil _) := HList.HNil _;
-        interp_tms _ _ _ (@HList.HCons _ _ _ _ tm args') :=
-          @HList.HCons _ _ _ _ (interp_tm _ _ v tm) (interp_tms _ _ v args') }.
+      { interp_tms _ _ _ hnil := hnil;
+        interp_tms _ _ _ (tm ::: args') :=
+          interp_tm _ _ v tm ::: interp_tms _ _ v args' }.
 
     Equations interp_fm (c: ctx) (v: valu c) (f: fm c) : Prop
       by struct f :=
@@ -308,8 +315,8 @@ Section FOL.
     reindex_tm (TVar _ _ v) := TVar _ _ (reindex_var v);
     reindex_tm (TFun _ _ _ f args) := TFun _ _ _ f (reindex_tms args);
   } where reindex_tms {c c':ctx} {sorts: list sig.(sig_sorts)} (ts: HList.t (tm c') sorts) : HList.t (tm (app_ctx c c')) sorts := {
-    reindex_tms (HList.HNil _) := HList.HNil _;
-    reindex_tms (HList.HCons _ t ts) := HList.HCons _ (reindex_tm t) (reindex_tms ts);
+    reindex_tms hnil := hnil;
+    reindex_tms (t ::: ts) := reindex_tm t ::: reindex_tms ts;
   }.
 
   Equations weaken_var {sort: sig.(sig_sorts)}
@@ -329,9 +336,9 @@ Section FOL.
        (c1: ctx) (c2: ctx) (ts: HList.t (tm c1) sorts)
         : HList.t (tm (app_ctx c1 c2)) sorts
     by struct ts :=
-    { weaken_tms _ _ _ (HList.HNil _) := HList.HNil _;
-      weaken_tms _ _ _ (HList.HCons _ t ts) :=
-        HList.HCons _ (weaken_tm _ _ c2 t) (weaken_tms _ _ c2 ts) }.
+    { weaken_tms _ _ _ hnil := hnil;
+      weaken_tms _ _ _ (t ::: ts) :=
+        weaken_tm _ _ c2 t ::: weaken_tms _ _ c2 ts }.
 
 End FOL.
 
