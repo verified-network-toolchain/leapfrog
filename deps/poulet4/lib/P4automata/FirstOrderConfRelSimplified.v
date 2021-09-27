@@ -27,13 +27,10 @@ Section AutModel.
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
-  | StoreLit: store (P4A.interp a) -> funs [] Store
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
-  | Lookup: forall n, H n -> funs [Store] (Bits n)
-  | Update: forall n (k: H n), funs [Store; Bits n] Store.
+  | Lookup: forall n, H n -> funs [Store] (Bits n).
   Arguments Lookup n k : clear implicits.
-  Arguments Update n k : clear implicits.
 
   Inductive rels: arity sorts -> Type :=.
 
@@ -61,7 +58,6 @@ Section AutModel.
              (args: HList.t mod_sorts params)
     : mod_sorts ret :=
     { mod_fns (BitsLit n xs) hnil := xs;
-      mod_fns (StoreLit s) hnil := s;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
@@ -70,8 +66,6 @@ Section AutModel.
         match P4A.find H k store with
         | P4A.VBits _ v => v
         end;
-      mod_fns (Update n k) (store ::: v ::: hnil) :=
-        P4A.assign _ k (P4A.VBits _ v) store;
     }.
 
   Definition mod_rels params
