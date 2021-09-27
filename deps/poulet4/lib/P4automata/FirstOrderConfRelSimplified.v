@@ -23,17 +23,17 @@ Section AutModel.
 
   Inductive sorts: Type :=
   | Bits (n: nat)
-  | Store
-  | Key (n: nat).
+  | Store.
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | StoreLit: store (P4A.interp a) -> funs [] Store
-  | KeyLit: forall n, H n -> funs [] (Key n)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
-  | Lookup: forall n, funs [Store; Key n] (Bits n)
-  | Update: forall n, funs [Store; Key n; Bits n] Store.
+  | Lookup: forall n, H n -> funs [Store] (Bits n)
+  | Update: forall n (k: H n), funs [Store; Bits n] Store.
+  Arguments Lookup n k : clear implicits.
+  Arguments Update n k : clear implicits.
 
   Inductive rels: arity sorts -> Type :=.
 
@@ -50,7 +50,6 @@ Section AutModel.
     match s with
     | Bits n => n_tuple bool n
     | Store => store (P4A.interp a)
-    | Key n => H n
     end.
 
   Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
@@ -63,16 +62,15 @@ Section AutModel.
     : mod_sorts ret :=
     { mod_fns (BitsLit n xs) hnil := xs;
       mod_fns (StoreLit s) hnil := s;
-      mod_fns (KeyLit k) hnil := k;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
-      mod_fns (Lookup n) (store ::: key ::: hnil) :=
-        match P4A.find H key store with
+      mod_fns (Lookup n k) (store ::: hnil) :=
+        match P4A.find H k store with
         | P4A.VBits _ v => v
         end;
-      mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
+      mod_fns (Update n k) (store ::: v ::: hnil) :=
         P4A.assign _ k (P4A.VBits _ v) store;
     }.
 
@@ -88,4 +86,3 @@ Section AutModel.
     FirstOrder.mod_rels := mod_rels;
   |}.
 End AutModel.
-

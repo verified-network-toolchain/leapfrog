@@ -91,13 +91,11 @@ Section CompileConfRelSimplified.
       compile_bit_expr b1 b2 (BEBuf _ _ Right) :=
         TVar (weaken_var _ (var_buf2 b1 b2));
       compile_bit_expr b1 b2 (@BEHdr H _ Left (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit _ _ (projT2 h)) TSNil in
-        TFun (sig a) (Lookup _ (projT1 h))
-             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) (TSCons key TSNil));
+        TFun (sig a) (Lookup _ _ (projT2 h))
+             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) TSNil);
       compile_bit_expr b1 b2 (BEHdr _ Right (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit _ _ (projT2 h)) TSNil in
-        TFun (sig a) (Lookup _ (projT1 h))
-             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) (TSCons key TSNil));
+        TFun (sig a) (Lookup _ _ (projT2 h))
+             (TSCons (TVar (weaken_var _ (var_store1 b1 b2))) TSNil);
       compile_bit_expr b1 b2 (BEVar _ b) :=
         TVar (reindex_var (compile_var b));
       compile_bit_expr b1 b2 (BESlice e hi lo) :=
