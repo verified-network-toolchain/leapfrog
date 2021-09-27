@@ -206,6 +206,70 @@ Proof.
   Transparent compile_fm.
   Transparent compile_store_ctx_partial.
 
+  (* If you crunch it down without compiling, you get something that looks unsat: *)
+  match goal with 
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    let H := fresh "H" in
+    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
+    [
+      eapply simplify_entailment_correct with (i := fun _ _ => True)
+    |]
+  end.
+
+  unfold simplify_entailment.
+  unfold e_concl, e_prem.
+
+  unfold simplify_crel.
+  simpl.
+  unfold simplify_conf_rel.
+  simpl.
+
+  unfold interp_simplified_entailment.
+  intros.
+  simpl.
+  unfold interp_simplified_conf_rel.
+  simpl.
+  Transparent interp_simplified_crel.
+  unfold interp_simplified_crel in H2.
+  simpl in H2.
+  intros.
+  autorewrite with interp_store_rel.
+  unfold state_template_sane in *.
+  simpl in *.
+
+  (* This looks pretty unsat to me. *)
+
+  admit.
+  clear H.
+
+  match goal with 
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    let H := fresh "H" in
+    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
+    [
+      eapply simplify_entailment_correct with (i := fun _ _ => True);
+      eapply compile_simplified_entailment_correct; [
+        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
+        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] | 
+        eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
+      ];
+      
+      crunch_foterm
+    |]
+  end.
+
+  repeat (
+    intros || 
+    autorewrite with interp_fm
+  ).
+
+  (* Whereas this is a contradiction... *)
+  exact H.
+
+  clear H.
+
+
+
   run_bisim.
   run_bisim.
   run_bisim.
