@@ -92,6 +92,7 @@ Section CompileFirstOrderConfRelSimplified.
 
   Definition compile_sizes (enum: list (Syntax.H' H)): nat :=
     let sizes := List.map (@projT1 nat H) enum in
+    (* let sizes' := List.filter (fun n => (0 <? n)%nat) sizes in  *)
     List.fold_right Nat.add 0 sizes.
 
   Definition compile_sort (s: FOS.sorts) : FOBV.sorts :=
@@ -202,4 +203,12 @@ Section CompileFirstOrderConfRelSimplified.
     compile_fm (@FForall _ c FOS.Store f) :=
       quantify compile_store_ctx (compile_fm f)
   }.
+
+  Lemma compile_simplified_fm_bv_correct:
+      forall fm,
+        interp_fm (m := FOS.fm_model a) (VEmp _ _) fm <->
+        interp_fm (m := FOBV.fm_model) (VEmp _ _) (compile_fm fm)
+        .
+  Proof.
+  Admitted.
 End CompileFirstOrderConfRelSimplified.

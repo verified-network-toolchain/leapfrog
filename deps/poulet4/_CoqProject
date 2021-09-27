@@ -7,3 +7,5 @@
 -Q _build/default/lib/Ccompiler Poulet4.Ccompiler
 
 -Q _build/default/examples Poulet4.Examples
+
+-I /Users/john/.opam/default/lib/mirrorsolve

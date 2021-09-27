@@ -31,6 +31,12 @@ Section BitsBV.
   Inductive bool_bop: Type :=
   | BImpl | BXor.
 
+  Register BImpl as p4a.fo_bv.bop.impl.
+  Register BXor as p4a.fo_bv.bop.xor.
+
+  Register true as coq.init.bool.tt.
+  Register false as coq.init.bool.ff.
+
   Inductive bv_funs: arity bv_sorts -> bv_sorts -> Type :=
   | BoolLit: forall (b: bool), bv_funs [] BVBool
   | BVLit: forall (bv: list bool) (pf: List.length bv > 0), bv_funs [] (BVBits (exist _ (List.length bv) pf))
@@ -41,10 +47,19 @@ Section BitsBV.
     n = sub_add_one _ _ pf  ->
     bv_funs [BVBits m] (BVBits n).
 
+  Register BoolLit as p4a.fo_bv.funs.bool_lit.
+  Register BVLit as p4a.fo_bv.funs.bv_lit.
+  Register BoolBop as p4a.fo_bv.funs.bool_bop.
+  Register BVConcat as p4a.fo_bv.funs.bv_concat.
+  Register BVConcat as p4a.fo_bv.funs.bv_extract.
+  
+
   Inductive bv_rels: arity bv_sorts -> Type := .
 
   Definition bv_sig : signature :=
     {| sig_sorts := bv_sorts; sig_funs := bv_funs; sig_rels := bv_rels |}.
+
+  (* Check (forall ctx, tm bv_sig ctx _). *)
 
   Definition bv_mod_sorts (sig: bv_sig.(sig_sorts)) : Type :=
     match sig with
@@ -136,6 +151,7 @@ Section BitsBV.
     * constructor.
   Defined.
 
+  
 
   Lemma ex0_interp : interp_fm (m := bv_model) (VEmp _ _) ex0.
   Proof.

@@ -37,6 +37,25 @@ Module BabyIP1.
     intros n; solve_indexed_finiteness n [20; 28].
   Qed.
 
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
+
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+    {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP; existT _ _ HdrTCP ] |}.
+  Next Obligation.
+    repeat constructor; 
+    unfold "~"; 
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
+  Qed.
+  Next Obligation.
+  dependent destruction X; subst.
+  - left; trivial.
+  - right. left. trivial.
+  - right. right. left. trivial.
+  Qed.
+
   Definition states (s: state) :=
     match s with
     | Start =>
@@ -85,6 +104,24 @@ Module BabyIP2.
   Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
   Proof.
     intros n; solve_indexed_finiteness n [40; 8].
+  Qed.
+
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
+
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+    {| enum := [ existT _ _ HdrCombi ; existT _ _ HdrSeq ] |}.
+  Next Obligation.
+    repeat constructor; 
+    unfold "~"; 
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
+  Qed.
+  Next Obligation.
+  dependent destruction X; subst.
+  - left; trivial.
+  - right. left. trivial.
   Qed.
 
   Definition states (s: state) :=

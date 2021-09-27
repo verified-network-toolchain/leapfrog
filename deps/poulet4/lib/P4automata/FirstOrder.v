@@ -148,6 +148,7 @@ Section FOL.
       forall c s,
         fm (CSnoc c s) -> 
         fm c.
+        
   Scheme tm_rect' := Induction for tm Sort Type
     with tms_rect' := Induction for tms Sort Type
     with fm_rect' := Induction for fm Sort Type.
