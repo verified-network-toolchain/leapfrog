@@ -49,32 +49,39 @@ Section CompileFirstOrderConfRelSimplified.
       CSnoc _ (compile_ctx c) (FOBV.Bits n);
   }.
 
-  Lemma list_in_excl {X: Type} (x x': X) (l: list X):
-    List.In x (x' :: l) ->
-    x' <> x ->
-    List.In x l.
+  Lemma here_or_there
+    {X: Type}
+    `{EquivDec.EqDec X eq}
+    (x x': X)
+    (l: list X)
+    (Hin: List.In x (x' :: l))
+  :
+    {x' = x} + {List.In x l}.
   Proof.
-    intros.
-    destruct H0; auto.
-    contradiction.
+    destruct (equiv_dec x' x).
+    - left.
+      exact e.
+    - right.
+      destruct Hin.
+      + contradiction.
+      + exact H1.
   Qed.
 
-  Definition compile_lookup'
+  Equations compile_lookup'
     (k: Syntax.H' H)
     (enum: list (Syntax.H' H))
     (elem_of_enum: List.In k enum)
-    : var (FOBV.sig) (compile_store_ctx_partial enum) (FOBV.Bits (projT1 k)).
-  Proof.
-    induction enum.
-    - contradiction.
-    - autorewrite with compile_store_ctx_partial.
-      destruct (equiv_dec k a0).
-      + rewrite e.
-        apply VHere.
-      + apply VThere.
-        apply IHenum.
-        apply list_in_excl with (x' := a0); auto.
-  Defined.
+    : var (FOBV.sig) (compile_store_ctx_partial enum)
+          (FOBV.Bits (projT1 k)) := {
+    compile_lookup' k (elem :: enum) elem_of_enum :=
+      match here_or_there elem_of_enum with
+      | left Heq => eq_rec_r _ (fun _ =>
+          VHere _ (compile_store_ctx_partial enum) (FOBV.Bits (projT1 k))
+        ) Heq elem_of_enum
+      | right Helse => VThere FOBV.sig _ (FOBV.Bits (projT1 elem))
+                              _ (compile_lookup' k enum Helse)
+      end;
+  }.
 
   Definition compile_lookup (k: Syntax.H' H)
     : var FOBV.sig compile_store_ctx (FOBV.Bits (projT1 k))
