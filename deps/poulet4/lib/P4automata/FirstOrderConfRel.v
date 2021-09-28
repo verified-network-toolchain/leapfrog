@@ -1,10 +1,12 @@
 Require Import Coq.Lists.List.
-Import ListNotations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Poulet4.P4automata.Ntuple.
+
+Import ListNotations.
+Import HListNotations.
 
 Section AutModel.
   Set Implicit Arguments.
@@ -60,7 +62,6 @@ Section AutModel.
 
   Definition fm ctx := FirstOrder.fm sig ctx.
   Definition tm ctx := FirstOrder.tm sig ctx.
-  Definition tms ctx := FirstOrder.tms sig ctx.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
@@ -71,8 +72,6 @@ Section AutModel.
     | ConfigPair n m => conf' n * conf' m
     | Natural => nat
     end.
-
-  Notation "x ::: xs" := (HList.HCons _ x xs) (at level 60, right associativity).
 
   Obligation Tactic := idtac.
   Equations mod_fns

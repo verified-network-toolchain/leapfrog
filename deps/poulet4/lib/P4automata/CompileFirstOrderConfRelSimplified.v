@@ -7,7 +7,9 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Poulet4.P4automata.FirstOrderConfRelSimplified.
 Require Poulet4.P4automata.FirstOrderBitVec.
 Require Import Poulet4.P4automata.Ntuple.
+
 Import FirstOrder.
+Import HListNotations.
 
 Module FOS := FirstOrderConfRelSimplified.
 Module FOBV := FirstOrderBitVec.
@@ -47,48 +49,56 @@ Section CompileFirstOrderConfRelSimplified.
       CSnoc _ (compile_ctx c) (FOBV.Bits n);
   }.
 
-  Lemma list_in_excl {X: Type} (x x': X) (l: list X):
-    List.In x (x' :: l) ->
-    x' <> x ->
-    List.In x l.
+  Lemma here_or_there
+    {X: Type}
+    `{EquivDec.EqDec X eq}
+    (x x': X)
+    (l: list X)
+    (Hin: List.In x (x' :: l))
+  :
+    {x' = x} + {List.In x l}.
   Proof.
-    intros.
-    destruct H0; auto.
-    contradiction.
+    destruct (equiv_dec x' x).
+    - left.
+      exact e.
+    - right.
+      destruct Hin.
+      + contradiction.
+      + exact H1.
   Qed.
 
-  Definition compile_lookup'
+  Equations compile_lookup'
     (k: Syntax.H' H)
     (enum: list (Syntax.H' H))
     (elem_of_enum: List.In k enum)
-    : var (FOBV.sig) (compile_store_ctx_partial enum) (FOBV.Bits (projT1 k)).
-  Proof.
-    induction enum.
-    - contradiction.
-    - autorewrite with compile_store_ctx_partial.
-      destruct (equiv_dec k a0).
-      + rewrite e.
-        apply VHere.
-      + apply VThere.
-        apply IHenum.
-        apply list_in_excl with (x' := a0); auto.
-  Defined.
+    : var (FOBV.sig) (compile_store_ctx_partial enum)
+          (FOBV.Bits (projT1 k)) := {
+    compile_lookup' k (elem :: enum) elem_of_enum :=
+      match here_or_there elem_of_enum with
+      | left Heq => eq_rec_r _ (fun _ =>
+          VHere _ (compile_store_ctx_partial enum) (FOBV.Bits (projT1 k))
+        ) Heq elem_of_enum
+      | right Helse => VThere FOBV.sig _ (FOBV.Bits (projT1 elem))
+                              _ (compile_lookup' k enum Helse)
+      end;
+  }.
 
   Definition compile_lookup (k: Syntax.H' H)
     : var FOBV.sig compile_store_ctx (FOBV.Bits (projT1 k))
   :=
     compile_lookup' k (enum (Syntax.H' H)) (elem_of_enum k).
 
-  Fixpoint tm_cons {c s' s} (t: tm FOBV.sig c s): tm FOBV.sig (CSnoc _ c s') s :=
-    match t with
-    | TVar v => TVar (VThere _ _ _ _ v)
-    | TFun _ fn args => TFun _ fn (tms_cons args)
-    end
-  with tms_cons {c s' s} (ts: tms FOBV.sig c s): tms FOBV.sig (CSnoc _ c s') s :=
-    match ts with
-    | TSNil => TSNil
-    | TSCons t ts => TSCons (tm_cons t) (tms_cons ts)
-    end.
+  Equations tm_cons {c s' s}
+    (t: tm FOBV.sig c s)
+    : tm FOBV.sig (CSnoc _ c s') s := {
+    tm_cons (TVar v) := TVar (VThere _ _ _ _ v);
+    tm_cons (TFun _ fn args) := TFun _ fn (tms_cons args);
+  } where tms_cons {c s' s}
+    (ts: HList.t (tm FOBV.sig c) s)
+    : HList.t (tm FOBV.sig (CSnoc _ c s')) s := {
+    tms_cons hnil := hnil;
+    tms_cons (t ::: ts) := tm_cons t ::: tms_cons ts;
+  }.
 
   Definition compile_sizes (enum: list (Syntax.H' H)): nat :=
     let sizes := List.map (@projT1 nat H) enum in
@@ -101,25 +111,21 @@ Section CompileFirstOrderConfRelSimplified.
     | FOS.Store => FOBV.Bits (compile_sizes (enum (Syntax.H' H)))
     end.
 
-  Definition compile_store'
+  Equations compile_store'
     (enum: list (Syntax.H' H))
-    : tm (FOBV.sig) (compile_store_ctx_partial enum)
-                    (FOBV.Bits (compile_sizes enum)).
-  Proof.
-    induction enum.
-    - autorewrite with compile_store_ctx_partial.
-      apply (TFun FOBV.sig (FOBV.BitsLit 0 tt)).
-      constructor.
-    - apply (TFun FOBV.sig (FOBV.Concat (projT1 a0) (compile_sizes enum))).
-      constructor; [|constructor].
-      + apply TVar.
-        apply compile_lookup'.
-        apply List.in_eq.
-      + autorewrite with compile_store_ctx_partial.
-        apply tm_cons.
-        apply IHenum.
-      + constructor.
-  Qed.
+    : tm FOBV.sig (compile_store_ctx_partial enum)
+                  (FOBV.Bits (compile_sizes enum)) := {
+    compile_store' nil := TFun FOBV.sig (FOBV.BitsLit 0 tt) hnil;
+    compile_store' (elem :: enum) :=
+      TFun FOBV.sig (FOBV.Concat (projT1 elem) (compile_sizes enum))
+                    (TVar (VHere _ _ _) :::
+                     tm_cons (compile_store' enum) ::: hnil);
+  }.
+
+  Definition compile_store
+    : tm (FOBV.sig) compile_store_ctx (compile_sort FOS.Store)
+  :=
+    compile_store' (enum (Syntax.H' H)).
 
   Equations subscript {c n}
     (v: var (FOS.sig H) c FOS.Store)
@@ -134,35 +140,18 @@ Section CompileFirstOrderConfRelSimplified.
       weaken_var _ (subscript v v');
   }.
 
-  Definition compile_store : tm (FOBV.sig) compile_store_ctx (compile_sort FOS.Store) :=
-    compile_store' (enum (Syntax.H' H)).
-
   Equations compile_var
     {c: ctx (FOS.sig H)}
     {s: FOS.sorts}
     (v: var (FOS.sig H) c s)
     : tm FOBV.sig (compile_ctx c) (compile_sort s)
   := {
-    compile_var (VHere _ c (FOS.Bits n)) := TVar (VHere _ (compile_ctx c) (FOBV.Bits n));
+    compile_var (VHere _ c (FOS.Bits n)) :=
+      TVar (VHere _ (compile_ctx c) (FOBV.Bits n));
     compile_var (VHere _ c FOS.Store) := reindex_tm compile_store;
     compile_var (VThere _ c (FOS.Bits _) s' v) := tm_cons (compile_var v);
     compile_var (VThere _ c FOS.Store s' v) := weaken_tm _ (compile_var v);
   }.
-
-  (* I'm not sure how to do this without proof mode. The term generated by
-     this simple proof is already quite horrible... Using Equations just gives
-     me an "unable to build covering" error. *)
-  Definition extract_var
-    {c: ctx (FOS.sig H)}
-    (t: tms (FOS.sig H) c (FOS.Store :: nil))
-    : var (FOS.sig H) c FOS.Store
-  .
-  Proof.
-    dependent destruction t.
-    dependent destruction t; auto.
-    unfold sig_funs in s.
-    dependent destruction s.
-  Defined.
 
   Equations compile_tm
     {c: ctx (FOS.sig H)}
@@ -170,21 +159,15 @@ Section CompileFirstOrderConfRelSimplified.
     (t: tm (FOS.sig H) c s):
     tm FOBV.sig (compile_ctx c) (compile_sort s) := {
     compile_tm (TVar v) := compile_var v;
-    compile_tm (TFun _ (FOS.BitsLit _ n v) args) :=
-      TFun FOBV.sig (FOBV.BitsLit n v) (compile_tms args);
-    compile_tm (TFun _ (FOS.Concat _ n m) args) :=
-      TFun FOBV.sig (FOBV.Concat n m) (compile_tms args);
-    compile_tm (TFun _ (FOS.Slice _ n hi lo) args) :=
-      TFun FOBV.sig (FOBV.Slice n hi lo) (compile_tms args);
-    compile_tm (TFun _ (FOS.Lookup n h) args) :=
-      TVar (subscript (extract_var args) (compile_lookup (existT H n h)));
-  } with compile_tms
-    {c: ctx (FOS.sig H)}
-    {s: list FOS.sorts}
-    (ts: tms (FOS.sig H) c s)
-    : tms FOBV.sig (compile_ctx c) (List.map compile_sort s) := {
-    compile_tms (TSNil) := TSNil;
-    compile_tms (TSCons t ts) := TSCons (compile_tm t) (compile_tms ts);
+    compile_tm (TFun _ (FOS.BitsLit _ n v) hnil) :=
+      TFun FOBV.sig (FOBV.BitsLit n v) hnil;
+    compile_tm (TFun _ (FOS.Concat _ n m) (t1 ::: t2 ::: hnil)) :=
+      TFun FOBV.sig (FOBV.Concat n m)
+                    (compile_tm t1 ::: compile_tm t2 ::: hnil);
+    compile_tm (TFun _ (FOS.Slice _ n hi lo) (t ::: hnil)) :=
+      TFun FOBV.sig (FOBV.Slice n hi lo) (compile_tm t ::: hnil);
+    compile_tm (TFun _ (FOS.Lookup n h) (TVar v ::: hnil)) :=
+      TVar (subscript v (compile_lookup (existT H n h)));
   }.
 
   Equations compile_fm
