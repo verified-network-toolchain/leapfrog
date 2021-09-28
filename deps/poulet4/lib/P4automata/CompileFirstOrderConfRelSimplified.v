@@ -65,7 +65,7 @@ Section CompileFirstOrderConfRelSimplified.
       destruct Hin.
       + contradiction.
       + exact H1.
-  Qed.
+  Defined.
 
   Equations compile_lookup'
     (k: Syntax.H' H)

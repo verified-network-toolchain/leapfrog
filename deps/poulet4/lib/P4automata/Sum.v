@@ -107,7 +107,7 @@ Section Sum.
       destruct H3 as [[m y'] [Hyeq Hyin]].
       subst.
       inversion Hyeq.
-  Qed.
+  Defined.
   Next Obligation.
     destruct H1_finite, H2_finite.
     destruct x as [n [x | x]]; pose (existT _ n x) as x'.
@@ -121,6 +121,6 @@ Section Sum.
       rewrite List.in_map_iff.
       exists x'.
       auto.
-  Qed.
+  Defined.
 
 End Sum.

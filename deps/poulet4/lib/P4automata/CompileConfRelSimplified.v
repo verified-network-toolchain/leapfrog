@@ -130,7 +130,7 @@ Section CompileConfRelSimplified.
         FOr _ (compile_store_rel b1 b2 r1)
               (compile_store_rel b1 b2 r2);
       compile_store_rel b1 b2 (BRImpl r1 r2) :=
-        FOr _ (FNeg _ (compile_store_rel b1 b2 r1))
+        FImpl (compile_store_rel b1 b2 r1)
               (compile_store_rel b1 b2 r2)
     }.
 

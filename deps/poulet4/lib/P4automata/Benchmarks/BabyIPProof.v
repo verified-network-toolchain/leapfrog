@@ -107,8 +107,13 @@ RegisterPrim (@inr BabyIP1.state bool) "p4a.core.inr".
 
 RegisterPrim FOBV.Bits "p4a.sorts.bits".
 
-RegisterPrim (@TSCons (sig A) (CEmp _) (Bits 0) []) "p4a.core.tscons".
-RegisterPrim (@TSNil (sig A) (CEmp _)) "p4a.core.tsnil".
+RegisterPrim FOBV.BitsLit "p4a.funs.bitslit".
+RegisterPrim FOBV.Concat "p4a.funs.concat".
+RegisterPrim FOBV.Slice "p4a.funs.slice".
+
+RegisterPrim (@HList.HNil nat (fun _ => bool)) "p4a.core.hnil".
+RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
+
 
 Ltac crunch_foterm := 
   repeat (
@@ -138,9 +143,12 @@ Ltac verify_interp :=
       crunch_foterm;
 
       match goal with 
-      | |- ?X => check_interp_pos X; admit
+      | |- ?X => check_interp_neg X; admit
       end
-    |]
+    |]; 
+    clear H; 
+    let H := fresh "HN" in
+    assert (H: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
@@ -152,18 +160,13 @@ Ltac verify_interp :=
         eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
       ];
       
-      
-
-
       crunch_foterm;
 
       match goal with 
-      | |- ?X => check_interp_neg X; admit
+      | |- ?X => check_interp_pos X; admit
       end
-    |]; 
-    clear H; 
-    let H := fresh "HN" in
-    assert (H: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
+    |]
+  
   end.
 
 Ltac run_bisim :=
@@ -174,7 +177,6 @@ Ltac run_bisim :=
   | H: interp_entailment _ _ _  |- _ => 
     idtac "skipping"; skip_bisim' H; clear H
   end.
-
 
 Lemma prebisim_babyip:
   pre_bisimulation
@@ -206,43 +208,10 @@ Proof.
   Transparent compile_fm.
   Transparent compile_store_ctx_partial.
 
-  (* If you crunch it down without compiling, you get something that looks unsat: *)
-  match goal with 
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := fun _ _ => True)
-    |]
-  end.
+  time run_bisim.
+  time run_bisim.
 
-  unfold simplify_entailment.
-  unfold e_concl, e_prem.
-
-  unfold simplify_crel.
-  simpl.
-  unfold simplify_conf_rel.
-  simpl.
-
-  unfold interp_simplified_entailment.
-  intros.
-  simpl.
-  unfold interp_simplified_conf_rel.
-  simpl.
-  Transparent interp_simplified_crel.
-  unfold interp_simplified_crel in H2.
-  simpl in H2.
-  intros.
-  autorewrite with interp_store_rel.
-  unfold state_template_sane in *.
-  simpl in *.
-
-  (* This looks pretty unsat to me. *)
-
-  admit.
-  clear H.
-
-  match goal with 
+  match goal with
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
@@ -257,73 +226,52 @@ Proof.
       crunch_foterm
     |]
   end.
+
+  match goal with 
+  | |- context[ FImpl ?X ?Y] =>
+    set (t1 := X); set (t2 := Y)
+  end.
+
+  Transparent compile_ctx.
+  Transparent compile_tm.
+  
+
+
+  simpl in t1.
+  subst t1.
+  simpl in t2.
+  unfold be_sort, be_size in t2.
+  simpl in t2.
 
   repeat (
-    intros || 
-    autorewrite with interp_fm
+    unfold Classes.apply_noConfusion in t2 || 
+    destruct (Classes.noConfusion_retr _) || 
+    unfold DepElim.eq_simplification_sigma1 in t2 || 
+    unfold Classes.noConfusion_inv in t2 || 
+    simpl in t2 ||
+    unfold DepElim.solution_left in t2 || 
+    unfold Logic.transport in t2 
   ).
 
-  (* Whereas this is a contradiction... *)
-  exact H.
+  unfold compile_lookup in t2.
+  simpl FinType.enum in t2.
+  autorewrite with compile_lookup' in t2.
+  (* compile_lookup' and FinType.elem_of_enum make some really gross proof terms... see below *)
+  (* simpl FinType.elem_of_enum in t2. *)
 
-  clear H.
+  Transparent compile_lookup'.
+  Transparent here_or_there.
+  simpl in t2.
+  unfold here_or_there in t2.
 
 
+  destruct (EquivDec.equiv_dec _ _).
+  destruct (List.in_app_iff _ _ _).
+  simpl in t2.
+  destruct (Morphisms.iff_flip_impl_subrelation _).
+  simpl in t2.
+  unfold False_ind in t2.
 
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  eapply PreBisimulationClose; admit.
-  (* Run this to see the FOBV syntax: *)
-  (* match goal with 
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] | 
-        eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
-      ];
-      
-      crunch_foterm
-    |]
-  end. *)
-
-  (* Here is the old BabyIP proof: *)
-
-  (* extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  extend_bisim'; [admit|].
-  skip_bisim'; [admit|].
-  skip_bisim'; [admit|].
-  skip_bisim'; [admit|].
-  apply PreBisimulationClose.
-  cbn.
-  rewrite compile_conf_rel_correct.
-  unfold compile_conf_rel.
-  autorewrite with interp_fm; simpl.
-  autorewrite with mod_fns; simpl;
-  split.
-  - left.
-    easy.
-  - rewrite compile_conf_rel_correct.
-    unfold compile_conf_rel, FImpl; simpl.
-    autorewrite with interp_fm; simpl.
-    autorewrite with mod_fns; simpl. *)
+  (* Not sure what to do here... *)
+  all: admit.
 Admitted.
