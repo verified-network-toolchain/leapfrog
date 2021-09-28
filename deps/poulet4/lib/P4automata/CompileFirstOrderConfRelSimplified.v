@@ -195,9 +195,9 @@ Section CompileFirstOrderConfRelSimplified.
     compile_fm FFalse := FFalse;
     compile_fm (FEq t1 t2) := FEq (compile_tm t1) (compile_tm t2);
     compile_fm (FNeg f) := FNeg _ (compile_fm f);
-    compile_fm (FOr f1 f2) := FOr _ (compile_fm f2) (compile_fm f2);
-    compile_fm (FAnd f1 f2) := FAnd _ (compile_fm f2) (compile_fm f2);
-    compile_fm (FImpl f1 f2) := FImpl (compile_fm f2) (compile_fm f2);
+    compile_fm (FOr f1 f2) := FOr _ (compile_fm f1) (compile_fm f2);
+    compile_fm (FAnd f1 f2) := FAnd _ (compile_fm f1) (compile_fm f2);
+    compile_fm (FImpl f1 f2) := FImpl (compile_fm f1) (compile_fm f2);
     compile_fm (@FForall _ c (FOS.Bits n) f) :=
       FForall (sig := FOBV.sig) (FOBV.Bits n) (compile_fm f);
     compile_fm (@FForall _ c FOS.Store f) :=
