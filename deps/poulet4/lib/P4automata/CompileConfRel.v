@@ -184,13 +184,10 @@ Section CompileConfRel.
     setoid_rewrite compile_store_rel_correct.
     fold (compile_bctx cr_ctx).
     intuition.
-    - specialize (H0 (eq_sym H3) (eq_sym H4) (conj (eq_sym H1) (eq_sym H5))).
-      specialize (H0 (decompile_val valu)).
-      rewrite bval_roundtrip in H0.
-      auto.
-    - specialize (H3 (eq_sym H1) (eq_sym H4) (conj (eq_sym H2) (eq_sym H5))).
-      specialize (H3 (compile_bval valu)).
-      auto.
+    specialize (H0 (eq_sym H3) (eq_sym H4) (conj (eq_sym H1) (eq_sym H5))).
+    specialize (H0 (decompile_val valu)).
+    rewrite bval_roundtrip in H0.
+    auto.
   Qed.
 
   Lemma compile_crel_correct:

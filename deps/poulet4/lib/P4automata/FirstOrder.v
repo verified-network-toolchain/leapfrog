@@ -290,17 +290,30 @@ Section FOL.
   Proof.
   Admitted.
 
-  Definition quantify_all {c: ctx} (f: fm c): fm CEmp :=
-    quantify' (c0 := CEmp) c f.
+  Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {
+    @quantify_all (CSnoc c _) f := quantify_all (FForall _ _ f);
+    @quantify_all CEmp f := f;
+  }.
 
   Lemma quantify_all_correct:
     forall m c phi,
      interp_fm m CEmp (VEmp _) (quantify_all phi) <->
      forall valu,
-       interp_fm m (app_ctx' CEmp c) (app_valu' (VEmp _) valu) phi.
+       interp_fm m c valu phi.
   Proof.
-    intros.
-    apply quantify'_correct.
+    dependent induction c; intros.
+    - autorewrite with quantify_all.
+      firstorder.
+      now dependent destruction valu0.
+    - autorewrite with quantify_all.
+      rewrite IHc.
+      split; intros.
+      + dependent destruction valu0.
+        specialize (H valu0).
+        autorewrite with interp_fm in H.
+        apply H.
+      + autorewrite with interp_fm; intros.
+        apply H.
   Qed.
 
   Fixpoint reindex_var {c c': ctx} {sort: sig.(sig_sorts)} (v: var c' sort) : var (app_ctx c c') sort :=
