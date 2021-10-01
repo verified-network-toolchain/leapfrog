@@ -121,7 +121,6 @@ RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
 RegisterEnvCtors (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20) (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28) (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40) (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
 
-
 Ltac crunch_foterm := 
   repeat (
     simpl ||
@@ -136,63 +135,6 @@ Ltac crunch_foterm :=
   ).
 
   
-Ltac crunch_foterm' t := 
-  repeat (
-    simpl in t ||
-    simpl_eqs ||
-    unfold compile_fm, compile_config, compile_conf_rel, quantify_all, quantify, compile_simplified_entailment, compile_simplified_entailment, compile_simplified_conf_rel, outer_ctx, se_st, se_prems in t ||
-    unfold e_concl, e_prem, simplify_crel, simplify_conf_rel, cr_ctx, compile_bctx, cr_st, cs_st1, cs_st2, st_state, st_buf_len, reindex_tm, compile_store_ctx, FinType.enum, compile_store_ctx_partial in t || 
-    unfold be_sort, be_size, var_store1, var_store2, app_ctx ||
-    autorewrite with compile_store_rel in t ||
-    autorewrite with quantify' in t || 
-    autorewrite with compile_bit_expr in t || 
-    autorewrite with weaken_var in t
-  ).
-
-Inductive choice_l := L.
-Inductive choice_r := R.
-
-
-Ltac run_smt :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] 
-        
-      |];
-      
-      time "reduce goal" crunch_foterm;
-
-      match goal with 
-      | |- ?X => time "smt check neg" check_interp_neg X
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    |]; (
-        match goal with 
-        (* | H: interp_entailment _ _ _  |- _ => clear H *)
-        | |- interp_fm _ _ => admit
-        end
-    )
-  end.
-
-Ltac smt_neg_succ := 
-  match goal with
-  | H: interp_entailment _ _ _  |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    clear H;
-    let H := fresh "HN" in
-    assert (H: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
-  end.
-
-Ltac smt_pos_succ H := idtac.
-
-Ltac verify_interp' := 
-  run_smt smt_pos_succ smt_neg_succ.
-
 Ltac verify_interp :=
   match goal with
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
