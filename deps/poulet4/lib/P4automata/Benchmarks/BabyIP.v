@@ -50,10 +50,12 @@ Module BabyIP1.
     now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-  dependent destruction X; subst.
-  - left; trivial.
-  - right. left. trivial.
-  - right. right. left. trivial.
+  dependent destruction X; subst;
+  repeat (
+    match goal with 
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end 
+  ).
   Qed.
 
   Definition states (s: state) :=

@@ -274,5 +274,4 @@ Proof.
   unfold interp_crel.
 
   unfold List.map.
-  simpl List.map.
 Admitted.
