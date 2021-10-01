@@ -22,7 +22,7 @@ Definition r_states :=
                         BabyIP2.Start).
 
 Definition top : Relations.rel conf := fun _ _ => True.
-            
+
 
 Ltac extend_bisim :=
   match goal with
@@ -48,7 +48,7 @@ Ltac skip_bisim :=
     clear H
   end.
 
-Ltac extend_bisim' HN := 
+Ltac extend_bisim' HN :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
@@ -121,20 +121,27 @@ RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
 RegisterEnvCtors (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20) (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28) (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40) (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
 
-Ltac crunch_foterm := 
+Ltac crunch_foterm :=
+  match goal with
+  | |- interp_fm _ ?g =>
+    let temp := fresh "temp" in set (temp := g);
+    vm_compute in temp;
+    subst temp
+  end.
+
+Ltac crunch_foterm' :=
   repeat (
     simpl ||
     simpl_eqs ||
     unfold compile_fm, compile_config, compile_conf_rel, quantify_all, quantify, compile_simplified_entailment, compile_simplified_entailment, compile_simplified_conf_rel, outer_ctx, se_st, se_prems ||
-    unfold e_concl, e_prem, simplify_crel, simplify_conf_rel, cr_ctx, compile_bctx, cr_st, cs_st1, cs_st2, st_state, st_buf_len, reindex_tm, compile_store_ctx, FinType.enum, compile_store_ctx_partial || 
+    unfold e_concl, e_prem, simplify_crel, simplify_conf_rel, cr_ctx, compile_bctx, cr_st, cs_st1, cs_st2, st_state, st_buf_len, reindex_tm, compile_store_ctx, FinType.enum, compile_store_ctx_partial ||
     unfold be_sort, be_size, var_store1, var_store2, app_ctx ||
     autorewrite with compile_store_rel ||
-    autorewrite with quantify' || 
-    autorewrite with compile_bit_expr || 
+    autorewrite with quantify' ||
+    autorewrite with compile_bit_expr ||
     autorewrite with weaken_var
   ).
 
-  
 Ltac verify_interp :=
   match goal with
   | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
@@ -142,37 +149,34 @@ Ltac verify_interp :=
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
       eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] 
-        
-      |];
-      
+      eapply compile_simplified_entailment_correct;
+      [ typeclasses eauto | typeclasses eauto | ];
+
       time "reduce goal" crunch_foterm;
 
-      match goal with 
+      match goal with
       | |- ?X => time "smt check neg" check_interp_neg X
       | |- ?X => time "smt check pos" check_interp_pos X; admit
       end
     |]
-  end; 
+  end;
   let n:= numgoals in
-  tryif ( guard n = 2) then 
-    match goal with 
+  tryif ( guard n = 2) then
+    match goal with
     | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ _ => 
-      clear H; 
+    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ _ =>
+      clear H;
       let HN := fresh "HN" in
       assert (HN: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
     end
   else idtac.
 
 Ltac run_bisim :=
-  verify_interp; 
+  verify_interp;
   match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ => 
+  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     idtac "extending"; extend_bisim' HN; clear HN
-  | H: interp_entailment _ _ _  |- _ => 
+  | H: interp_entailment _ _ _  |- _ =>
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
@@ -202,13 +206,7 @@ Proof.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
-
-  Transparent compile_fm.
-  Transparent compile_store_ctx_partial.
-
   time "overall loop" (repeat time "bisim step" run_bisim).
-
-
 
   apply PreBisimulationClose.
 
