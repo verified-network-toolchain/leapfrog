@@ -295,7 +295,7 @@ Section FOL.
 
   Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {
     @quantify_all (CSnoc c _) f := quantify_all (FForall _ _ f);
-    @quantify_all CEmp f := f;
+    @quantify_all CEmp f := f
   }.
 
   Lemma quantify_all_correct:
