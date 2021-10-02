@@ -1,26 +1,25 @@
 Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.SmallFilter.
-
+Require Import Poulet4.P4automata.Benchmarks.BabyIP.
 Require Import Poulet4.P4automata.CompileConfRel.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Poulet4.P4automata.FirstOrderConfRel.
+Require Import Coq.Program.Equality.
 Require Import Poulet4.P4automata.CompileConfRelSimplified.
 Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
 
-Require Import Poulet4.P4automata.WP.
-Require Import Coq.Program.Equality.
+Require Import Poulet4.P4automata.Sum.
 
+From Hammer Require Import Tactics.
 
-Notation H := (IncrementalBits.header + BigBits.header).
-Notation A := IncrementalSeparate.aut.
+Notation H := (BabyIP1.header + BabyIP2.header).
+Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
-                        IncrementalSeparate.aut
+                        BabyIP.aut
                         200
-                        IncrementalBits.Start
-                        BigBits.Parse).
+                        BabyIP1.Start
+                        BabyIP2.Start).
 
 Definition top : Relations.rel conf := fun _ _ => True.
 
@@ -72,6 +71,15 @@ Ltac size_script :=
   vm_compute;
   repeat constructor.
 
+Lemma forall_exists_demorgan: forall X P,
+  (exists (x: X), ~P x) -> ~forall (x: X), P x.
+Proof.
+  intros.
+  intro.
+  destruct H.
+  specialize (H0 x).
+  contradiction.
+Qed.
 
 Declare ML Module "mirrorsolve".
 
@@ -96,8 +104,8 @@ RegisterPrim (@FImpl (sig A) (CEmp _)) "p4a.core.impl".
 RegisterPrim (@CEmp (sig A)) "p4a.core.cnil".
 RegisterPrim (@CSnoc (sig A)) "p4a.core.csnoc".
 
-RegisterPrim (@inl nat bool) "coq.core.inl".
-RegisterPrim (@inr nat bool) "coq.core.inr".
+RegisterPrim (@inl BabyIP1.state bool) "coq.core.inl".
+RegisterPrim (@inr BabyIP1.state bool) "coq.core.inr".
 
 
 RegisterPrim FirstOrderConfRelSimplified.Bits "p4a.sorts.bits".
@@ -111,7 +119,7 @@ RegisterPrim FirstOrderConfRelSimplified.Lookup "p4a.funs.lookup".
 RegisterPrim (@HList.HNil nat (fun _ => bool)) "p4a.core.hnil".
 RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
-RegisterEnvCtors (IncrementalBits.Pref, FirstOrderConfRelSimplified.Bits 1)  (IncrementalBits.Suf, FirstOrderConfRelSimplified.Bits 1) (BigBits.Pref, FirstOrderConfRelSimplified.Bits 1) (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
+RegisterEnvCtors (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20) (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28) (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40) (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
 
 Ltac crunch_foterm :=
   match goal with
@@ -120,6 +128,19 @@ Ltac crunch_foterm :=
     vm_compute in temp;
     subst temp
   end.
+
+Ltac crunch_foterm' :=
+  repeat (
+    simpl ||
+    simpl_eqs ||
+    unfold compile_fm, compile_config, compile_conf_rel, quantify_all, quantify, compile_simplified_entailment, compile_simplified_entailment, compile_simplified_conf_rel, outer_ctx, se_st, se_prems ||
+    unfold e_concl, e_prem, simplify_crel, simplify_conf_rel, cr_ctx, compile_bctx, cr_st, cs_st1, cs_st2, st_state, st_buf_len, reindex_tm, compile_store_ctx, FinType.enum, compile_store_ctx_partial ||
+    unfold be_sort, be_size, var_store1, var_store2, app_ctx ||
+    autorewrite with compile_store_rel ||
+    autorewrite with quantify' ||
+    autorewrite with compile_bit_expr ||
+    autorewrite with weaken_var
+  ).
 
 Ltac verify_interp :=
   match goal with
@@ -159,81 +180,38 @@ Ltac run_bisim :=
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
-Require Import Poulet4.Relations.
-
-Lemma simplify_crel_correct':
-  forall i crs q1 q2,
-    ((i (conf_to_state_template q1) (conf_to_state_template q2) /\
-      interp_simplified_crel (List.map (simplify_conf_rel (a := A)) crs)
-                             q1.(conf_buf)
-                             q2.(conf_buf)
-                             q1.(conf_store)
-                             q2.(conf_store)) ->
-                             
-      interp_crel A (fun c1 c2 => i (conf_to_state_template c1) (conf_to_state_template c2)) crs q1 q2
-     ).
-  Proof.
-  Admitted.
-
-
-Lemma prebisim_incremental_sep:
-  pre_bisimulation A
-                   (wp r_states)
-                   top
-                   []
-                   (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)
-                   (P4automaton.MkConfiguration
-                    (Syntax.interp A)
-                    (inl (inl IncrementalBits.Start))
-                    0
-                    tt
-                    ltac:(eapply cap')
-                    nil)
-                    (P4automaton.MkConfiguration
-                      (Syntax.interp A)
-                      (inl (inr BigBits.Parse))
-                      0
-                      tt
-                      ltac:(eapply cap')
-                      nil).
+Lemma prebisim_babyip:
+  pre_bisimulation
+    A
+    (WP.wp r_states)
+    top
+    []
+    (mk_init _ _ _ A 10 BabyIP1.Start BabyIP2.Start)
+    (P4automaton.MkConfiguration
+      (Syntax.interp A)
+      (inl (inl BabyIP1.Start))
+      0
+      tt
+      ltac:(eapply cap')
+      nil)
+    (P4automaton.MkConfiguration
+      (Syntax.interp BabyIP.aut)
+      (inl (inr BabyIP2.Start))
+      0
+      tt
+      ltac:(eapply cap')
+      nil).
 Proof.
-  set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
+  idtac "running babyip bisimulation".
+  set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
   time "overall loop" (repeat time "bisim step" run_bisim).
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
-    set (temp := R)
-  end.
-
-  set (tempA := A).
-
-  apply PreBisimulationClose with (a := tempA).
-
-  Opaque interp_crel.
-
-  match goal with 
-  | |- interp_crel _ _ _ ?Q1 ?Q2 => 
-    set (q1 := Q1); set (q2 := Q2)
-  end.
-
-  pose proof simplify_crel_correct'.
+  apply PreBisimulationClose.
 
 
-  specialize (H (fun _ _ => True) temp q1 q2).
-  eapply H. split; trivial.
+  unfold interp_crel.
 
-
-  eapply compile_crel_correct; [typeclasses eauto | typeclasses eauto|].
-
-  eapply quantify_all_correct.
-
-  crunch_foterm.
-
-  (* huh... *)
-  try match goal with
-  | |- ?X => time "smt check pos" check_interp_pos X
-  end.
-
+  unfold List.map.
 Admitted.
