@@ -648,6 +648,3 @@ Section CComp.
 End CComp.
 
 Definition test := CComp.Compile string helloworld_program.
-
-Check test.
-Compute test.

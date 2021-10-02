@@ -93,6 +93,7 @@ Section Syntax.
   | PExact {n} (val: v n) : pat (TBits n)
   | PAny: forall n, pat (TBits n)
   | PPair {t1 t2} (p1: pat t1) (p2: pat t2) : pat (TPair t1 t2).
+  Derive Signature for pat.
 
   Inductive cond: typ -> Type :=
   | CExpr {n} (e: expr n) : cond (TBits n)

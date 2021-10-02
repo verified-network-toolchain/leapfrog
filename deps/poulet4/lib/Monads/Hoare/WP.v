@@ -20,10 +20,6 @@ Definition Post (State: Type) (Value: Type) := Value -> Pred State.
 Definition top {State: Type} : Pred State := fun _ => True.
 Definition bot {State: Type} : Pred State := fun _ => False.
 
-Hint Unfold top : core.
-Hint Unfold bot: core.
-
-
 Definition hoare_total_wp
   {State Exception Result: Type}
   {P: Pred State}

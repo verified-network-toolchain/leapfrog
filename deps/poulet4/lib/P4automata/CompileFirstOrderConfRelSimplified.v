@@ -46,7 +46,7 @@ Section CompileFirstOrderConfRelSimplified.
     compile_ctx (CSnoc _ c FOS.Store) :=
       app_ctx (compile_ctx c) compile_store_ctx;
     compile_ctx (CSnoc _ c (FOS.Bits n)) :=
-      CSnoc _ (compile_ctx c) (FOBV.Bits n);
+      CSnoc _ (compile_ctx c) (FOBV.Bits n)
   }.
 
   Lemma here_or_there
@@ -80,7 +80,7 @@ Section CompileFirstOrderConfRelSimplified.
         ) Heq elem_of_enum
       | right Helse => VThere FOBV.sig _ (FOBV.Bits (projT1 elem))
                               _ (compile_lookup' k enum Helse)
-      end;
+      end
   }.
 
   Definition compile_lookup (k: Syntax.H' H)
@@ -92,12 +92,12 @@ Section CompileFirstOrderConfRelSimplified.
     (t: tm FOBV.sig c s)
     : tm FOBV.sig (CSnoc _ c s') s := {
     tm_cons (TVar v) := TVar (VThere _ _ _ _ v);
-    tm_cons (TFun _ fn args) := TFun _ fn (tms_cons args);
+    tm_cons (TFun _ fn args) := TFun _ fn (tms_cons args)
   } where tms_cons {c s' s}
     (ts: HList.t (tm FOBV.sig c) s)
     : HList.t (tm FOBV.sig (CSnoc _ c s')) s := {
     tms_cons hnil := hnil;
-    tms_cons (t ::: ts) := tm_cons t ::: tms_cons ts;
+    tms_cons (t ::: ts) := tm_cons t ::: tms_cons ts
   }.
 
   Definition compile_sizes (enum: list (Syntax.H' H)): nat :=
@@ -119,7 +119,7 @@ Section CompileFirstOrderConfRelSimplified.
     compile_store' (elem :: enum) :=
       TFun FOBV.sig (FOBV.Concat (projT1 elem) (compile_sizes enum))
                     (TVar (VHere _ _ _) :::
-                     tm_cons (compile_store' enum) ::: hnil);
+                     tm_cons (compile_store' enum) ::: hnil)
   }.
 
   Definition compile_store
@@ -137,7 +137,7 @@ Section CompileFirstOrderConfRelSimplified.
     subscript (VThere _ c (FOS.Bits n) _ v) v' :=
       VThere _ _ _ _ (subscript v v');
     subscript (VThere _ c FOS.Store _ v) v' :=
-      weaken_var _ (subscript v v');
+      weaken_var _ (subscript v v')
   }.
 
   Equations compile_var
@@ -150,7 +150,7 @@ Section CompileFirstOrderConfRelSimplified.
       TVar (VHere _ (compile_ctx c) (FOBV.Bits n));
     compile_var (VHere _ c FOS.Store) := reindex_tm compile_store;
     compile_var (VThere _ c (FOS.Bits _) s' v) := tm_cons (compile_var v);
-    compile_var (VThere _ c FOS.Store s' v) := weaken_tm _ (compile_var v);
+    compile_var (VThere _ c FOS.Store s' v) := weaken_tm _ (compile_var v)
   }.
 
   Equations compile_tm
@@ -167,7 +167,7 @@ Section CompileFirstOrderConfRelSimplified.
     compile_tm (TFun _ (FOS.Slice _ n hi lo) (t ::: hnil)) :=
       TFun FOBV.sig (FOBV.Slice n hi lo) (compile_tm t ::: hnil);
     compile_tm (TFun _ (FOS.Lookup n h) (TVar v ::: hnil)) :=
-      TVar (subscript v (compile_lookup (existT H n h)));
+      TVar (subscript v (compile_lookup (existT H n h)))
   }.
 
   Equations compile_fm

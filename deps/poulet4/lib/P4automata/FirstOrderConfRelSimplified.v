@@ -65,7 +65,7 @@ Section AutModel.
       mod_fns (Lookup n k) (store ::: hnil) :=
         match P4A.find H k store with
         | P4A.VBits _ v => v
-        end;
+        end
     }.
 
   Definition mod_rels params

@@ -301,12 +301,16 @@ Proof.
         -- rewrite Ascii.eqb_neq. intro. subst a1. apply H1. now eapply ascii_leb_eq.
 Qed.
 
+(*
 Eval vm_compute in string_leb "abcd" "abcde".
+*)
 
 Local Open Scope string_scope.
 
+(*
 Eval vm_compute in
     mergeSort string_leb ["Bob"; "Alice"; "Tom"; "Jinn"; "Jin"; "Carol"].
+*)
 
 Definition findi {A: Type} (f: A -> bool) (l: list A): option (nat * A) :=
   let fix iter (al: list A) (index: nat): option (nat * A) :=

@@ -42,13 +42,15 @@ Section WeakestPre.
       end
   .
 
-  Fixpoint weakest_precondition_expression
+  Definition weakest_precondition_expression
       (expr: @Expression tags_t)
       (post: @pred (environment * (@Value tags_t)))
       : @pred environment
   :=
       pred_false
-  with weakest_precondition_expression_lvalue
+  .
+
+  Definition weakest_precondition_expression_lvalue
       (expr: @Expression tags_t)
       (post: @pred (environment * (@ValueLvalue tags_t)))
       : @pred environment
@@ -207,19 +209,6 @@ Section WeakestPre.
           (PBlockMaybe := weakest_precondition_block_maybe_correct)
           (PStatementSwitchCase := fun _ => True)
           (PStatementSwitchCaseList := fun _ => True); try easy.
-      - unfold weakest_precondition_statement_pre_correct; intros.
-        unfold weakest_precondition_statement_pre in H.
-        apply weakest_precondition_expression_lvalue_correct in H.
-        rewrite eval_statement_pre_equation_2.
-        simpl; unfold state_bind; simpl.
-        destruct (eval_lvalue tags_t lhs env_pre).
-        destruct s; try contradiction.
-        apply weakest_precondition_expression_correct in H.
-        destruct (eval_expression tags_t tags_dummy rhs e).
-        destruct s; try contradiction.
-        destruct (env_update tags_t v v0 e0).
-        destruct s; try contradiction.
-        exact H.
       - unfold weakest_precondition_statement_pre_correct; intros.
         rewrite weakest_precondition_statement_pre_equation_5 in H.
         simpl in H; unfold pred_env_pushed in H.

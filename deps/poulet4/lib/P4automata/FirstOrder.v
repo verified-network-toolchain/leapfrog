@@ -81,6 +81,7 @@ Section FOL.
         sig.(sig_funs) args ret ->
         HList.t (tm c) args ->
         tm c ret.
+  Derive Signature for tm.
 
   (* First-order formulas. *)
   Inductive fm: ctx -> Type :=
@@ -103,6 +104,7 @@ Section FOL.
       forall c s,
         fm (CSnoc c s) ->
         fm c.
+  Derive Signature for fm.
 
   Record model :=
     { mod_sorts: sig.(sig_sorts) -> Type;
@@ -124,6 +126,7 @@ Section FOL.
         m.(mod_sorts) s ->
         valu c ->
         valu (CSnoc c s).
+    Derive Signature for valu.
 
     Equations find {c s} (x: var c s) (v: valu c) : m.(mod_sorts) s :=
       { find (VHere _ _) (VSnoc _ _ val _) := val;
@@ -313,10 +316,10 @@ Section FOL.
 
   Equations reindex_tm {c c': ctx} {sort: sig.(sig_sorts)} (t: tm c' sort) : tm (app_ctx c c') sort := {
     reindex_tm (TVar _ _ v) := TVar _ _ (reindex_var v);
-    reindex_tm (TFun _ _ _ f args) := TFun _ _ _ f (reindex_tms args);
+    reindex_tm (TFun _ _ _ f args) := TFun _ _ _ f (reindex_tms args)
   } where reindex_tms {c c':ctx} {sorts: list sig.(sig_sorts)} (ts: HList.t (tm c') sorts) : HList.t (tm (app_ctx c c')) sorts := {
     reindex_tms hnil := hnil;
-    reindex_tms (t ::: ts) := reindex_tm t ::: reindex_tms ts;
+    reindex_tms (t ::: ts) := reindex_tm t ::: reindex_tms ts
   }.
 
   Equations weaken_var {sort: sig.(sig_sorts)}

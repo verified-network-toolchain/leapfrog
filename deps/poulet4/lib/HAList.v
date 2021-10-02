@@ -18,6 +18,7 @@ Section HAList.
   Inductive key : signature -> Type -> Type :=
   | KHd: forall k t s, key ((k, t)::s) t
   | KTl: forall h t s, key s t -> key (h::s) t.
+  Derive Signature for key.
 
   Inductive t: signature -> Type :=
   | REmp: t []

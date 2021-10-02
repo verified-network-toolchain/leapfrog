@@ -3,7 +3,6 @@ Require Import Poulet4.Monads.Monad.
 Open Scope monad.
 Open Scope list_scope.
 
-
 Definition option_monad {Result: Type} :=
   option Result.
 
@@ -28,5 +27,3 @@ Fixpoint reduce_option {A : Type} (acts: list (option A)) (f : A -> A -> A) (bas
   | None :: _ => None
   | Some x :: xs => reduce_option xs f (f x base)
   end.
-
-Hint Unfold option_ret option_bind : core.

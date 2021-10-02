@@ -48,7 +48,7 @@ Inductive bvar : bctx -> Type :=
       bvar c ->
       bvar (BCSnoc c size).
 Arguments BVarRest {_ _} _.
-Derive NoConfusion for bvar.
+Derive NoConfusion Signature for bvar.
 
 Definition weaken_bvar {c} (size: nat) : bvar c -> bvar (BCSnoc c size) :=
   @BVarRest c size.
@@ -131,8 +131,6 @@ Section ConfRel.
   Inductive side := Left | Right.
   Derive NoConfusion for side.
   Derive EqDec for side.
-
-  Check (P4A.hdr_ref H).
 
   Inductive bit_expr (c: bctx) :=
   | BELit (l: list bool)
@@ -560,7 +558,7 @@ Section ConfRel.
     interp_simplified_crel nil buf1 buf2 store1 store2 => True;
     interp_simplified_crel (scr :: scrs) buf1 buf2 store1 store2 =>
     interp_simplified_conf_rel scr buf1 buf2 store1 store2 /\
-    interp_simplified_crel scrs buf1 buf2 store1 store2;
+    interp_simplified_crel scrs buf1 buf2 store1 store2
   }.
 
   Definition simplify_crel (crs: crel) (st: conf_states) :=

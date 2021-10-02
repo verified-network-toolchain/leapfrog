@@ -3,7 +3,6 @@ Require Import Poulet4.Monads.Monad.
 Open Scope monad.
 Open Scope list_scope.
 
-
 Definition error_monad {Error Result: Type} :=
   (Result + Error)%type.
 
@@ -40,5 +39,3 @@ Definition strip_error {Error Result: Type} (x: @error_monad Error Result) : opt
   | inl x' => Some x'
   | inr _ => None
   end.
-
-Hint Unfold error_ret error_bind : core.

@@ -56,7 +56,7 @@ Section FirstOrderBitVec.
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
-        n_tuple_slice hi lo xs;
+        n_tuple_slice hi lo xs
     }.
 
   Definition mod_rels params

@@ -101,7 +101,7 @@ Section AutModel.
       mod_fns (Buf1 n m) ((q1, q2) ::: hnil) :=
         eq_rect _ _ (proj1_sig q1).(conf_buf) _ (proj2_sig q1);
       mod_fns (Buf2 n m) ((q2, q2) ::: hnil) :=
-        eq_rect _ _ (proj1_sig q2).(conf_buf) _ (proj2_sig q2);
+        eq_rect _ _ (proj1_sig q2).(conf_buf) _ (proj2_sig q2)
     }.
 
   Definition mod_rels params
