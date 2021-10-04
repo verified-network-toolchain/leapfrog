@@ -26,7 +26,7 @@ Definition top : Relations.rel conf := fun _ _ => True.
 
 Ltac extend_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
     [ idtac |
@@ -40,7 +40,7 @@ Ltac extend_bisim :=
 
 Ltac skip_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A i ({| e_prem := R; e_concl := C |}));
     eapply PreBisimulationSkip with (H0:=left H);
@@ -50,7 +50,7 @@ Ltac skip_bisim :=
 
 Ltac extend_bisim' HN :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ tauto | trivial |];
@@ -144,7 +144,7 @@ Ltac crunch_foterm' :=
 
 Ltac verify_interp :=
   match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
@@ -164,7 +164,7 @@ Ltac verify_interp :=
   tryif ( guard n = 2) then
     match goal with
     | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ _ =>
+    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ =>
       clear H;
       let HN := fresh "HN" in
       assert (HN: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
@@ -187,31 +187,37 @@ Lemma prebisim_babyip:
     top
     []
     (mk_init _ _ _ A 10 BabyIP1.Start BabyIP2.Start)
-    (P4automaton.MkConfiguration
-      (Syntax.interp A)
-      (inl (inl BabyIP1.Start))
-      0
-      tt
-      ltac:(eapply cap')
-      nil)
-    (P4automaton.MkConfiguration
-      (Syntax.interp BabyIP.aut)
-      (inl (inr BabyIP2.Start))
-      0
-      tt
-      ltac:(eapply cap')
-      nil).
+    {| cr_st := {|
+         cs_st1 := {|
+           st_state := inl (inl (BabyIP1.Start));
+           st_buf_len := 0;
+         |};
+         cs_st2 := {|
+           st_state := inl (inr (BabyIP2.Start));
+           st_buf_len := 0;
+         |};
+       |};
+       cr_ctx := BCEmp;
+       cr_rel := btrue;
+    |}.
 Proof.
   idtac "running babyip bisimulation".
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
+  run_bisim.
   time "overall loop" (repeat time "bisim step" run_bisim).
 
   apply PreBisimulationClose.
+  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  apply simplify_entailment_correct_converse with (i := top');
+  [typeclasses eauto | typeclasses eauto|].
+  apply compile_simplified_entailment_converse_correct;
+  [typeclasses eauto | typeclasses eauto|].
+  crunch_foterm.
+  match goal with
+  | |- ?X => time "smt check pos" check_interp_pos X
+  end.
 
 
-  unfold interp_crel.
-
-  unfold List.map.
 Admitted.

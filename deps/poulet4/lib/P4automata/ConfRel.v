@@ -487,6 +487,12 @@ Section ConfRel.
       forall valu,
         interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
 
+  Definition interp_conf_rel' (phi: conf_rel) : relation conf :=
+    fun x y =>
+      interp_conf_state phi.(cr_st) x y /\
+      forall valu,
+        interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
+
   Definition crel :=
     list (conf_rel).
 
@@ -518,6 +524,12 @@ Section ConfRel.
       interp_crel i e.(e_prem) q1 q2 ->
       interp_conf_rel e.(e_concl) q1 q2.
 
+  Definition interp_entailment' (i: relation conf) (e: entailment) :=
+    forall q1 q2,
+      i q1 q2 ->
+      interp_conf_rel' e.(e_concl) q1 q2 ->
+      interp_crel i e.(e_prem) q1 q2.
+
   Definition simplified_conf_rel := { ctx: bctx & store_rel ctx }.
 
   Definition interp_simplified_conf_rel
@@ -543,6 +555,19 @@ Section ConfRel.
                                   c2.(conf_store)).
   Proof.
     now unfold interp_simplified_conf_rel, interp_conf_rel.
+  Qed.
+
+  Lemma simplify_conf_rel_correct':
+    forall cr c1 c2,
+      interp_conf_rel' cr c1 c2 <->
+      (interp_conf_state cr.(cr_st) c1 c2 /\
+       interp_simplified_conf_rel (simplify_conf_rel cr)
+                                  c1.(conf_buf)
+                                  c2.(conf_buf)
+                                  c1.(conf_store)
+                                  c2.(conf_store)).
+  Proof.
+    now unfold interp_simplified_conf_rel, interp_conf_rel'.
   Qed.
 
   Definition simplified_crel := list simplified_conf_rel.
@@ -626,6 +651,19 @@ Section ConfRel.
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2 ->
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2.
 
+  Definition interp_simplified_entailment'
+    (i: relation state_template)
+    (se: simplified_entailment)
+  :=
+    state_template_sane se.(se_st).(cs_st1) ->
+    state_template_sane se.(se_st).(cs_st2) ->
+    i se.(se_st).(cs_st1) se.(se_st).(cs_st2) ->
+    forall (buf1: n_tuple bool se.(se_st).(cs_st1).(st_buf_len))
+           (buf2: n_tuple bool se.(se_st).(cs_st2).(st_buf_len))
+           (store1 store2: store (P4A.interp a)),
+      interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2 ->
+      interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2.
+
   Definition simplify_entailment (e: entailment) :=
     {| se_st := e.(e_concl).(cr_st);
        se_prems := simplify_crel e.(e_prem) e.(e_concl).(cr_st);
@@ -690,6 +728,59 @@ Section ConfRel.
       * eapply simplify_crel_correct; auto.
         + now unfold interp_conf_state, interp_state_template.
         + exact H1.
+  Qed.
+
+  Lemma simplify_entailment_correct' (e: entailment):
+    forall i: Relations.rel state_template,
+      interp_entailment'
+        (fun c1 c2 => i (conf_to_state_template c1)
+                        (conf_to_state_template c2)) e <->
+      interp_simplified_entailment' i (simplify_entailment e)
+  .
+  Proof.
+    intros; split.
+    - unfold interp_entailment',
+           simplify_entailment,
+           interp_simplified_entailment'; simpl; intros.
+      pose (q1 := {|
+        conf_state := e.(e_concl).(cr_st).(cs_st1).(st_state);
+        conf_store := store1;
+        conf_buf_sane := H1;
+        conf_buf := buf1;
+      |}).
+      pose (q2 := {|
+        conf_state := e.(e_concl).(cr_st).(cs_st2).(st_state);
+        conf_store := store2;
+        conf_buf_sane := H2;
+        conf_buf := buf2;
+      |}).
+      replace buf1 with (conf_buf q1) in * by reflexivity.
+      replace buf2 with (conf_buf q2) in * by reflexivity.
+      replace store1 with (conf_store q1) in * by reflexivity.
+      replace store2 with (conf_store q2) in * by reflexivity.
+      pose proof (simplify_crel_correct i e.(e_prem)).
+      specialize (H5 e.(e_concl).(cr_st) q1 q2).
+      apply H5; try easy.
+      apply H0; try easy.
+      subst q1 q2.
+      now destruct e, e_concl0, cr_st0, cs_st3, cs_st4; simpl in *.
+    - intros.
+      unfold interp_simplified_entailment' in H0.
+      unfold interp_entailment'; intros.
+      rewrite simplify_conf_rel_correct' in H2.
+      rewrite simplify_crel_correct; intuition.
+      replace (simplify_crel (e_prem e) (cr_st (e_concl e))) with (se_prems (simplify_entailment e)) by reflexivity.
+      unfold interp_conf_state, interp_state_template in H3.
+      destruct H3 as [[? ?] [? ?]].
+      destruct q1, q2; simpl in *.
+      unfold conf_to_state_template in *; simpl in *.
+      rewrite H3, H6 in H0.
+      apply H0.
+      + unfold state_template_sane; congruence.
+      + unfold state_template_sane; congruence.
+      + destruct e, e_concl, cr_st, cs_st1, cs_st2; simpl in *.
+        congruence.
+      + apply H4.
   Qed.
 End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} {_} _.

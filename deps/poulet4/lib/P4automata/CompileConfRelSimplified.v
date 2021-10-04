@@ -165,6 +165,19 @@ Section CompileConfRelSimplified.
                se.(se_st).(cs_st2).(st_buf_len)
                se.(se_concl))).
 
+  Definition compile_simplified_entailment'
+    (se: simplified_entailment a)
+    : fm (sig H) (CEmp _) :=
+    quantify_all _
+      (FImpl (compile_simplified_conf_rel
+               se.(se_st).(cs_st1).(st_buf_len)
+               se.(se_st).(cs_st2).(st_buf_len)
+               se.(se_concl))
+             (compile_simplified_crel
+               se.(se_st).(cs_st1).(st_buf_len)
+               se.(se_st).(cs_st2).(st_buf_len)
+               se.(se_prems))).
+
   Lemma compile_store_rel_correct:
     forall c (r: store_rel H c) bval b1 b2 buf1 buf2 store1 store2,
       interp_store_rel r bval buf1 buf2 store1 store2 <->
@@ -194,6 +207,13 @@ Section CompileConfRelSimplified.
       forall i e,
         interp_simplified_entailment i e <->
         interp_fm (m := fm_model a) (VEmp _ _) (compile_simplified_entailment e).
+  Proof.
+  Admitted.
+
+  Lemma compile_simplified_entailment_correct':
+      forall i e,
+        interp_simplified_entailment' i e <->
+        interp_fm (m := fm_model a) (VEmp _ _) (compile_simplified_entailment' e).
   Proof.
   Admitted.
 

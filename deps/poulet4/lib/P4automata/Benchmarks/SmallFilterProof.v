@@ -23,11 +23,12 @@ Definition r_states :=
                         BigBits.Parse).
 
 Definition top : Relations.rel conf := fun _ _ => True.
+Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 
 Ltac extend_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
     [ idtac |
@@ -41,7 +42,7 @@ Ltac extend_bisim :=
 
 Ltac skip_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A i ({| e_prem := R; e_concl := C |}));
     eapply PreBisimulationSkip with (H0:=left H);
@@ -51,7 +52,7 @@ Ltac skip_bisim :=
 
 Ltac extend_bisim' HN :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ tauto | trivial |];
@@ -123,11 +124,11 @@ Ltac crunch_foterm :=
 
 Ltac verify_interp :=
   match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
+      eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct;
       [ typeclasses eauto | typeclasses eauto | ];
 
@@ -143,7 +144,7 @@ Ltac verify_interp :=
   tryif ( guard n = 2) then
     match goal with
     | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ _ =>
+    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ =>
       clear H;
       let HN := fresh "HN" in
       assert (HN: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
@@ -161,78 +162,39 @@ Ltac run_bisim :=
 
 Require Import Poulet4.Relations.
 
-Lemma simplify_crel_correct':
-  forall i crs q1 q2,
-    ((i (conf_to_state_template q1) (conf_to_state_template q2) /\
-      interp_simplified_crel (List.map (simplify_conf_rel (a := A)) crs)
-                             q1.(conf_buf)
-                             q2.(conf_buf)
-                             q1.(conf_store)
-                             q2.(conf_store)) ->
-                             
-      interp_crel A (fun c1 c2 => i (conf_to_state_template c1) (conf_to_state_template c2)) crs q1 q2
-     ).
-  Proof.
-  Admitted.
-
-
 Lemma prebisim_incremental_sep:
   pre_bisimulation A
                    (wp r_states)
                    top
                    []
                    (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)
-                   (P4automaton.MkConfiguration
-                    (Syntax.interp A)
-                    (inl (inl IncrementalBits.Start))
-                    0
-                    tt
-                    ltac:(eapply cap')
-                    nil)
-                    (P4automaton.MkConfiguration
-                      (Syntax.interp A)
-                      (inl (inr BigBits.Parse))
-                      0
-                      tt
-                      ltac:(eapply cap')
-                      nil).
+                   {| cr_st := {|
+                        cs_st1 := {|
+                          st_state := inl (inl (IncrementalBits.Start));
+                          st_buf_len := 0;
+                        |};
+                        cs_st2 := {|
+                          st_state := inl (inr (BigBits.Parse));
+                          st_buf_len := 0;
+                        |};
+                      |};
+                      cr_ctx := BCEmp;
+                      cr_rel := btrue;
+                   |}.
 Proof.
   set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
   cbv in rel0.
   subst rel0.
   time "overall loop" (repeat time "bisim step" run_bisim).
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
-    set (temp := R)
-  end.
-
-  set (tempA := A).
-
-  apply PreBisimulationClose with (a := tempA).
-
-  Opaque interp_crel.
-
-  match goal with 
-  | |- interp_crel _ _ _ ?Q1 ?Q2 => 
-    set (q1 := Q1); set (q2 := Q2)
-  end.
-
-  pose proof simplify_crel_correct'.
-
-
-  specialize (H (fun _ _ => True) temp q1 q2).
-  eapply H. split; trivial.
-
-
-  eapply compile_crel_correct; [typeclasses eauto | typeclasses eauto|].
-
-  eapply quantify_all_correct.
-
+  apply PreBisimulationClose.
+  apply simplify_entailment_correct' with (i := top').
+  apply compile_simplified_entailment_correct';
+  [typeclasses eauto | typeclasses eauto|].
   crunch_foterm.
 
-  (* huh... *)
-  try match goal with
+  (* The goal is unsat? *)
+  match goal with
   | |- ?X => time "smt check pos" check_interp_pos X
   end.
 

@@ -47,8 +47,9 @@ Section WPLeapsProofs.
   Notation δ := step.
 
   Lemma wp_leaps_implies_bisim_leaps:
-    forall R T q1 q2,
-      pre_bisimulation a wp top R T q1 q2 ->
+    forall R T S q1 q2,
+      pre_bisimulation a wp top R T S ->
+      interp_conf_rel a S q1 q2 ->
       Leaps.bisimilar_with_leaps (P4A.interp a) q1 q2.
   Proof.
     intros.
