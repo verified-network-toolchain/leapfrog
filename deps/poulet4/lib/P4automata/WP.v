@@ -155,16 +155,14 @@ Section WP.
     | Read =>
       phi'
     | Jump =>
-      sr_subst
-        match prev.(st_state) with
-        | inl s =>
-          let cond := jump_cond si prev cur in
-          brimpl cond (wp_op si (a.(P4A.t_states) s).(P4A.st_op) phi')
-        | inr s =>
-          phi'
-        end
-        (BELit _ _ [])
-        (BEBuf _ _ si)
+      match prev.(st_state) with
+      | inl s =>
+        let cond := jump_cond si prev cur in
+        let phi'' := (sr_subst phi' (BELit _ _ []) (BEBuf _ _ si)) in
+        wp_op si (a.(P4A.t_states) s).(P4A.st_op) (brimpl cond phi'')
+      | inr s =>
+        sr_subst phi' (BELit _ _ []) (BEBuf _ _ si)
+      end
     end.
 
   Definition wp_pred_pair
