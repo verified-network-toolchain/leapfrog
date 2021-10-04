@@ -37,7 +37,7 @@ Module IncrementalBits.
 
   Inductive header : nat -> Type :=
   | Pref : header 1
-  | Suf : header 1. 
+  | Suf : header 1.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
   Proof.
@@ -51,11 +51,11 @@ Module IncrementalBits.
 
   Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
 
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ; existT _ _ Suf] |}.
   Next Obligation.
-    repeat constructor; 
-    unfold "~"; 
+    repeat constructor;
+    unfold "~";
     intros;
     destruct H;
     now inversion H || now inversion H0.
@@ -63,12 +63,44 @@ Module IncrementalBits.
   Next Obligation.
   dependent destruction X; subst;
   repeat (
-    match goal with 
+    match goal with
     | |- ?L \/ ?R => (now left; trivial) || right
-    end 
+    end
   ).
   Qed.
 
+  (*
+    These versions of decidable equality do not contain JMeq in their terms.
+    For some reason I can't get them to play nice with the other stuff, though...
+
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
+  Proof.
+    unfold EquivDec.EqDec; intros.
+    destruct x, y.
+    destruct (Nat.eq_dec x x0).
+    - subst.
+      destruct h, h0.
+      + left; congruence.
+      + right; intuition; intro.
+        apply inj_pair2 in H.
+        discriminate.
+      + right; intuition; intro.
+        apply inj_pair2 in H.
+        discriminate.
+      + left; congruence.
+    - right; congruence.
+  Defined.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
+  Proof.
+    unfold EquivDec.EqDec; intros.
+    destruct (header_eqdec' (existT _ n x) (existT _ n y)).
+    - apply inj_pair2 in e; now left.
+    - right; intro; apply c.
+      now rewrite H.
+  Defined.
+
+  *)
 
   Definition states (s: state) :=
     match s with
@@ -130,11 +162,11 @@ Module BigBits.
 
   Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
 
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ; existT _ _ Suf] |}.
   Next Obligation.
-    repeat constructor; 
-    unfold "~"; 
+    repeat constructor;
+    unfold "~";
     intros;
     destruct H;
     now inversion H || now inversion H0.
@@ -142,9 +174,9 @@ Module BigBits.
   Next Obligation.
   dependent destruction X; subst;
   repeat (
-    match goal with 
+    match goal with
     | |- ?L \/ ?R => (now left; trivial) || right
-    end 
+    end
   ).
   Qed.
 
@@ -206,11 +238,11 @@ Module OneBit.
 
   Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
 
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ] |}.
   Next Obligation.
-    repeat constructor; 
-    unfold "~"; 
+    repeat constructor;
+    unfold "~";
     intros;
     destruct H;
     now inversion H || now inversion H0.
@@ -218,9 +250,9 @@ Module OneBit.
   Next Obligation.
   dependent destruction X; subst;
   repeat (
-    match goal with 
+    match goal with
     | |- ?L \/ ?R => (now left; trivial) || right
-    end 
+    end
   ).
   Qed.
 
@@ -254,11 +286,11 @@ Module IncrementalSeparate.
     ltac:(typeclasses eauto).
   Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
     ltac:(typeclasses eauto).
-    
+
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
   - eapply Sum.H_finite.
-  - intros. 
+  - intros.
     simpl.
     destruct x.
     inversion h;
@@ -266,9 +298,9 @@ Module IncrementalSeparate.
     dependent destruction h;
     dependent destruction h;
     repeat (
-      match goal with 
+      match goal with
       | |- ?L \/ ?R => (now left; trivial) || right
-      end 
+      end
     ).
   Defined.
 
@@ -288,11 +320,11 @@ Module SeparateCombined.
     ltac:(typeclasses eauto).
   Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
     ltac:(typeclasses eauto).
-    
+
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
   - eapply Sum.H_finite.
-  - intros. 
+  - intros.
     simpl.
     destruct x.
     inversion h;
@@ -300,9 +332,9 @@ Module SeparateCombined.
     dependent destruction h;
     dependent destruction h;
     repeat (
-      match goal with 
+      match goal with
       | |- ?L \/ ?R => (now left; trivial) || right
-      end 
+      end
     ).
   Defined.
 
@@ -322,11 +354,11 @@ Module IncrementalCombined.
     ltac:(typeclasses eauto).
   Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
     ltac:(typeclasses eauto).
-    
+
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
   - eapply Sum.H_finite.
-  - intros. 
+  - intros.
     simpl.
     destruct x.
     inversion h;
@@ -334,9 +366,9 @@ Module IncrementalCombined.
     dependent destruction h;
     dependent destruction h;
     repeat (
-      match goal with 
+      match goal with
       | |- ?L \/ ?R => (now left; trivial) || right
-      end 
+      end
     ).
   Defined.
 End IncrementalCombined.
