@@ -8,5 +8,4 @@
 
 -Q _build/default/examples Poulet4.Examples
 
--I /Users/john/.opam/default/lib/mirrorsolve
--I /home/tobias/.opam/4.11.0/lib/mirrorsolve
+-I ~/.opam/default/lib/mirrorsolve

@@ -25,8 +25,7 @@ Section WPLeaps.
 
   (* Header identifiers. *)
   Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
   Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).
@@ -142,7 +141,7 @@ Section WPLeaps.
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ a)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ a)
                (mk_partition
                   (Reachability.reachable_states a n s1 s2)).
 
@@ -180,9 +179,9 @@ Section WPLeaps.
       topbdd ⦇C⦈ ->
       ctopbdd (wp C).
 End WPLeaps.
-Arguments pre_bisimulation {S1 equiv0 S1_eq_dec S2 equiv1 S2_eq_dec H H_eq_dec} a wp.
+Arguments pre_bisimulation {S1 equiv0 S1_eq_dec S2 equiv1 S2_eq_dec H equiv2 H'_eq_dec} a wp.
 
-Arguments ctopbdd {_ _ _ _ _ _ _ _} a top C.
-Arguments topbdd {_ _ _ _ _ _ _ _} a top C.
-Arguments safe_wp_1bit {_ _ _ _ _ _ _ _} a wp top.
-Arguments wp_bdd {_ _ _ _ _ _ _ _} a wp top.
+Arguments ctopbdd {_ _ _ _ _ _ _ _ _} a top C.
+Arguments topbdd {_ _ _ _ _ _ _ _ _} a top C.
+Arguments safe_wp_1bit {_ _ _ _ _ _ _ _ _} a wp top.
+Arguments wp_bdd {_ _ _ _ _ _ _ _ _} a wp top.

@@ -39,17 +39,15 @@ Module IncrementalBits.
   | Pref : header 1
   | Suf : header 1.
 
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
   Proof.
-    solve_eqdec.
-  Qed.
+    solve_eqdec'.
+  Defined.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
     intros n; solve_indexed_finiteness n [1; 1].
   Qed.
-
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ; existT _ _ Suf] |}.
@@ -68,39 +66,6 @@ Module IncrementalBits.
     end
   ).
   Qed.
-
-  (*
-    These versions of decidable equality do not contain JMeq in their terms.
-    For some reason I can't get them to play nice with the other stuff, though...
-
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
-  Proof.
-    unfold EquivDec.EqDec; intros.
-    destruct x, y.
-    destruct (Nat.eq_dec x x0).
-    - subst.
-      destruct h, h0.
-      + left; congruence.
-      + right; intuition; intro.
-        apply inj_pair2 in H.
-        discriminate.
-      + right; intuition; intro.
-        apply inj_pair2 in H.
-        discriminate.
-      + left; congruence.
-    - right; congruence.
-  Defined.
-
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
-  Proof.
-    unfold EquivDec.EqDec; intros.
-    destruct (header_eqdec' (existT _ n x) (existT _ n y)).
-    - apply inj_pair2 in e; now left.
-    - right; intro; apply c.
-      now rewrite H.
-  Defined.
-
-  *)
 
   Definition states (s: state) :=
     match s with
@@ -160,7 +125,10 @@ Module BigBits.
     intros n; solve_indexed_finiteness n [1; 1].
   Qed.
 
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ; existT _ _ Suf] |}.
@@ -236,7 +204,10 @@ Module OneBit.
     intros n; solve_indexed_finiteness n [2].
   Qed.
 
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ Pref ] |}.
@@ -279,13 +250,20 @@ Module IncrementalSeparate.
     ltac:(typeclasses eauto).
 
   Definition header := Sum.H IncrementalBits.header BigBits.header.
-  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec': EquivDec.EqDec (H' header) eq.
+  Proof.
+    eapply Sum.H'_eq_dec; typeclasses eauto.
+  Defined.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n) :=
-    ltac:(typeclasses eauto).
-  Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq.
+  Proof.
+    typeclasses eauto.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n).
+  Proof.
+    typeclasses eauto.
+  Defined.
 
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
@@ -313,13 +291,20 @@ Module SeparateCombined.
     ltac:(typeclasses eauto).
 
   Definition header := Sum.H BigBits.header OneBit.header.
-  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec': EquivDec.EqDec (H' header) eq.
+  Proof.
+    eapply Sum.H'_eq_dec; typeclasses eauto.
+  Defined.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n) :=
-    ltac:(typeclasses eauto).
-  Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq.
+  Proof.
+    typeclasses eauto.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n).
+  Proof.
+    typeclasses eauto.
+  Defined.
 
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
@@ -347,13 +332,20 @@ Module IncrementalCombined.
     ltac:(typeclasses eauto).
 
   Definition header := Sum.H IncrementalBits.header OneBit.header.
-  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec': EquivDec.EqDec (H' header) eq.
+  Proof.
+    eapply Sum.H'_eq_dec; typeclasses eauto.
+  Defined.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n) :=
-    ltac:(typeclasses eauto).
-  Global Instance header_eq_dec': EquivDec.EqDec {n & header n} eq :=
-    ltac:(typeclasses eauto).
+  Global Instance header_eq_dec: forall n, EquivDec.EqDec (header n) eq.
+  Proof.
+    typeclasses eauto.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ (header_eq_dec n).
+  Proof.
+    typeclasses eauto.
+  Defined.
 
   Global Instance header_finite': @Finite {n & header n} _ header_eq_dec'.
   econstructor.
@@ -371,6 +363,7 @@ Module IncrementalCombined.
       end
     ).
   Defined.
+
 End IncrementalCombined.
 
 

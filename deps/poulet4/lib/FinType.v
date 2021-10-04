@@ -66,7 +66,10 @@ Proof.
     eauto.
 Qed.
 
-Global Program Instance SumFinite A B `{Finite A} `{Finite B} : Finite (A + B) :=
+Global Program Instance SumFinite A B
+       `{Finite A}
+       `{Finite B}
+       `{eq_dec: EqDec (A+B) eq}: Finite (A + B) :=
   {| enum := List.map inl (enum A) ++ List.map inr (enum B) |}.
 Next Obligation.
   eapply NoDup_app; eauto.
@@ -89,7 +92,7 @@ Next Obligation.
     left; eapply in_map; eapply elem_of_enum.
   - eapply in_or_app.
     right; eapply in_map; eapply elem_of_enum.
-Qed.
+Qed. 
 
 Lemma NoDup_prod:
   forall A B (l1: list A) (l2: list B),
@@ -253,3 +256,31 @@ Ltac solve_eqdec :=
     unfold EquivDec.EqDec; intros;
     dependent destruction x; dependent destruction y;
     (left; congruence) || (right; congruence).
+
+Ltac solve_eqdec' :=
+  let x := fresh "x" in
+  let y := fresh "y0" in
+  unfold EquivDec.EqDec, Equivalence.equiv, RelationClasses.complement;
+    intros x y;
+  let n := fresh "n" in
+  let x' := fresh "x'" in
+  let m := fresh "m" in
+  let y' := fresh "y'" in
+  destruct x as [n x'], y as [m y'];
+  destruct (PeanoNat.Nat.eq_dec n m);
+    [|right; congruence];
+    subst m;
+    destruct x', y';
+    try solve
+      [left;
+       congruence
+      |let H := fresh "H" in
+       right;
+       intros H;
+       apply EqdepFacts.eq_sigT_fst in H;
+       discriminate
+      |let H := fresh "H" in
+       right;
+       intros H;
+       apply Eqdep_dec.inj_pair2_eq_dec in H;
+       discriminate].

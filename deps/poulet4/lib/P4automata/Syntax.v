@@ -27,27 +27,18 @@ Section Syntax.
   (* Typed header identifiers. *)
   Variable (H: nat -> Type).
   Definition H' := {n: nat & H n}.
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Instance H'_eq_dec: EquivDec.EqDec H' eq.
-  Proof.
-    intros [n x] [m y].
-    destruct (n == m).
-    - unfold "===" in e.
-      subst m.
-      destruct (x == y).
-      + left.
-        now apply f_equal.
-      + right.
-        intro.
-        apply c.
-        now apply Eqdep.EqdepTheory.inj_pair2.
-    - right.
-      intro.
-      apply c.
-      eapply EqdepFacts.eq_sigT_fst; eauto.
-  Defined.
-
+  Context `{H'_eq_dec: EquivDec.EqDec H' eq}.
   Context `{H'_finite: @Finite H' _ H'_eq_dec}.
+
+  Global Instance H_eq_dec: forall n, EquivDec.EqDec (H n) eq.
+  Proof.
+    unfold EquivDec.EqDec; intros.
+    destruct (H'_eq_dec (existT _ n x) (existT _ n y)).
+    - apply Eqdep_dec.inj_pair2_eq_dec in e;
+        auto using PeanoNat.Nat.eq_dec.
+    - right; intro; apply c.
+      now rewrite H0.
+  Defined.
 
   Inductive hdr_ref: Type :=
   | HRVar (var: H').
@@ -249,8 +240,7 @@ Section Interp.
 
   (* Header identifiers. *)
   Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Instance H'_eqdec: EquivDec.EqDec (H' H) eq := H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H'_eq_dec: EquivDec.EqDec (H' H) eq}.
 
   Variable (a: t S H).
 
@@ -378,7 +368,7 @@ End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
-Arguments interp {_ _ _ _ _}.
+Arguments interp {_ _ _ _ _ _} a.
 
 Section Inline.
   (* State identifiers. *)
@@ -421,3 +411,4 @@ Section Inline.
       True. *)
 
 End Inline.
+

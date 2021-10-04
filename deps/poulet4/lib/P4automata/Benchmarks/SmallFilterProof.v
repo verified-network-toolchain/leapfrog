@@ -185,6 +185,11 @@ Proof.
   set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
   cbv in rel0.
   subst rel0.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  
   time "overall loop" (repeat time "bisim step" run_bisim).
 
   apply PreBisimulationClose.

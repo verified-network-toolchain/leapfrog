@@ -5,6 +5,7 @@
 (package
  (name poulet4)
  (depends
+  mirrorsolve
   bignum
   coq-compcert
   (coq :build)

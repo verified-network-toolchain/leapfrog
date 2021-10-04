@@ -87,8 +87,8 @@ Section ConfRel.
 
   (* Header identifiers. *)
   Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H_finite: @Finite (P4A.H' H) _ (P4A.H'_eq_dec (H_eq_dec:=H_eq_dec))}.
+  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
+  Context `{H_finite: @Finite (P4A.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).
 
@@ -783,6 +783,6 @@ Section ConfRel.
       + apply H4.
   Qed.
 End ConfRel.
-Arguments interp_conf_rel {_} {_} {_} {_} {_} _.
-Arguments interp_crel {_} {_} {_} {_} {_} _.
-Arguments interp_entailment {_} {_} {_} {_} {_} _.
+Arguments interp_conf_rel {_} {_} {_} {_} {_} {_} a phi.
+Arguments interp_crel {_} {_} {_} {_} {_} {_} a i rel.
+Arguments interp_entailment {_ _ _ _ _ _} a i e.

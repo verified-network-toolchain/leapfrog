@@ -20,7 +20,7 @@ Section CompileConfRelSimplified.
   (* Header identifiers. *)
   Variable (H: nat -> Type).
   Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Instance H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq := P4A.H'_eq_dec (H_eq_dec:=H_eq_dec).
+  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
   Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).

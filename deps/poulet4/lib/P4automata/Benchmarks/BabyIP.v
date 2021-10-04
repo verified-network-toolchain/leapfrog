@@ -27,18 +27,15 @@ Module BabyIP1.
   | HdrUDP: header 20
   | HdrTCP: header 28.
 
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
+  Global Instance header_eqdec': EquivDec.EqDec (H' header) eq.
   Proof.
-    solve_eqdec.
+    solve_eqdec'.
   Qed.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
     intros n; solve_indexed_finiteness n [20; 28].
   Qed.
-
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
-
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
     {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP; existT _ _ HdrTCP ] |}.
@@ -98,18 +95,15 @@ Module BabyIP2.
   | HdrCombi: header 40
   | HdrSeq: header 8.
 
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
+  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
   Proof.
-    solve_eqdec.
+    solve_eqdec'.
   Qed.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
     intros n; solve_indexed_finiteness n [40; 8].
   Qed.
-
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq := Syntax.H'_eq_dec (H_eq_dec:=header_eqdec).
-
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
     {| enum := [ existT _ _ HdrCombi ; existT _ _ HdrSeq ] |}.
