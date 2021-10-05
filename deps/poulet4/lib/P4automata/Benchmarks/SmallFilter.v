@@ -115,10 +115,14 @@ Module BigBits.
   | Pref : header 1
   | Suf : header 1.
 
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
-  Proof.
-    solve_eqdec.
-  Qed.
+  Equations header_eqdec_ (n: nat) (x: BigBits.header n) (y: BigBits.header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ BigBits.Pref BigBits.Pref := left eq_refl ;
+    header_eqdec_ _ BigBits.Suf BigBits.Suf := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
   Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
   Proof.
@@ -197,7 +201,7 @@ Module OneBit.
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq.
   Proof.
     solve_eqdec.
-  Qed.
+  Defined.
 
   Global Instance header_finite: forall n, @Finite (header n) _ (header_eqdec n).
   Proof.

@@ -160,6 +160,18 @@ Ltac run_bisim :=
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
+Definition foo :=
+  Sum.H'_eq_dec
+          (existT
+             (fun n : nat => Sum.H IncrementalBits.header BigBits.header n) 1
+             (inr BigBits.Pref))
+          (existT
+             (fun n : nat => Sum.H IncrementalBits.header BigBits.header n) 1
+             (inr BigBits.Pref)).
+
+(* Should be eq_refl *)
+Eval vm_compute in foo.
+
 Require Import Poulet4.Relations.
 
 Lemma prebisim_incremental_sep:
@@ -203,10 +215,8 @@ Proof.
     clear HN *)
   end.
 
-  (* This hangs: *)
-  Eval cbn in t.
+  vm_compute in t.
 
-  
   time "overall loop" (repeat time "bisim step" run_bisim).
 
   apply PreBisimulationClose.

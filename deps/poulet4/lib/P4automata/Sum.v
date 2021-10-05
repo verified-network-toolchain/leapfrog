@@ -25,11 +25,13 @@ Section Sum.
   (* Header identifiers. *)
   Variable (H1: nat -> Type).
   Definition H1' := Syntax.H' H1.
+  Context `{H1_eq_dec: forall n, EquivDec.EqDec (H1 n) eq}.
   Context `{H1'_eq_dec: EquivDec.EqDec H1' eq}.
   Context `{H1_finite: @Finite H1' _ H1'_eq_dec}.
   Variable (H2: nat -> Type).
   Definition H2' := Syntax.H' H2.
   Context `{H2'_eq_dec: EquivDec.EqDec H2' eq}.
+  Context `{H2_eq_dec: forall n, EquivDec.EqDec (H2 n) eq}.
   Context `{H2_finite: @Finite H2' _ H2'_eq_dec}.
 
   Variable (a1: Syntax.t S1 H1).
@@ -48,29 +50,43 @@ Section Sum.
   Definition inl_ (n: nat) : H1 n -> H n := inl.
   Definition inr_ (n: nat) : H2 n -> H n := inr.
 
+  Definition make_transparent {X: Type} (eq_dec: forall (x0 x1: X), {x0 = x1} + {x0 <> x1}) {l r} (opaque_eq: l = r) : l = r :=
+    match eq_dec l r with
+    | left transparent_eq => transparent_eq
+    | _ => opaque_eq
+    end.
+
   Global Instance H'_eq_dec: EquivDec.EqDec (Syntax.H' H) eq.
   Proof.
     solve_eqdec'.
     - destruct (h == h0).
       + unfold equiv in *.
-        subst h0.
-        left.
-        reflexivity.
-      + right.
-        intros.
-        apply Eqdep_dec.inj_pair2_eq_dec in H0;
-          auto using PeanoNat.Nat.eq_dec;
-          congruence.
+        apply make_transparent in e.
+        * subst h0.
+          left.
+          reflexivity.
+        * apply H1_eq_dec.
+      + right; unfold equiv, complement in *.
+        contradict c.
+        apply make_transparent.
+        * apply H1_eq_dec.
+        * apply Eqdep_dec.inj_pair2_eq_dec.
+          auto using PeanoNat.Nat.eq_dec.
+          now inversion c.
     - destruct (h == h0).
       + unfold equiv in *.
-        subst h0.
-        left.
-        reflexivity.
-      + right.
-        intros.
-        apply Eqdep_dec.inj_pair2_eq_dec in H0;
-          auto using PeanoNat.Nat.eq_dec;
-          congruence.
+        apply make_transparent in e.
+        * subst h0.
+          left.
+          reflexivity.
+        * apply H2_eq_dec.
+      + right; unfold equiv, complement in *.
+        contradict c.
+        apply make_transparent.
+        * apply H2_eq_dec.
+        * apply Eqdep_dec.inj_pair2_eq_dec.
+          auto using PeanoNat.Nat.eq_dec.
+          now inversion c.
   Defined.
 
   Program Definition sum : Syntax.t S H :=
@@ -93,12 +109,12 @@ Section Sum.
     match h with
     | existT _ n h' => existT _ n (inl h')
     end.
-  
+
   Definition inr_sig (h: Syntax.H' H2) : Syntax.H' H :=
     match h with
     | existT _ n h' => existT _ n (inr h')
     end.
-  
+
   Global Program Instance H_finite: @Finite (Syntax.H' H) _ H'_eq_dec :=
     {| enum := List.map inl_sig (enum (Syntax.H' H1)) ++ List.map inr_sig (enum (Syntax.H' H2)) |}.
   Next Obligation.
