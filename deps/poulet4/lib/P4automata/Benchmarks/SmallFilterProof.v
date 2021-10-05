@@ -33,8 +33,8 @@ Ltac extend_bisim :=
     assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
     [ idtac |
     pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ tauto | trivial |];
+    apply PreBisimulationExtend with (H0 := right H) (W := t);
+    [ trivial | tauto |];
     vm_compute in t;
     simpl (_ ++ _);
     clear t]
@@ -45,7 +45,7 @@ Ltac skip_bisim :=
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A i ({| e_prem := R; e_concl := C |}));
-    eapply PreBisimulationSkip with (H0:=left H);
+    apply PreBisimulationSkip with (H0:=left H);
     [ exact I | ];
     clear H
   end.
@@ -54,7 +54,7 @@ Ltac extend_bisim' HN :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
     pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend with (H0 := right HN) (W := t);
+    apply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ tauto | trivial |];
     vm_compute in t;
     simpl (_ ++ _);
@@ -63,7 +63,7 @@ Ltac extend_bisim' HN :=
   end.
 
 Ltac skip_bisim' H :=
-  eapply PreBisimulationSkip with (H0:=left H);
+  apply PreBisimulationSkip with (H0:=left H);
   [ exact I | ];
   clear H.
 
@@ -128,9 +128,9 @@ Ltac verify_interp :=
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
-      eapply simplify_entailment_correct with (i := top');
-      eapply compile_simplified_entailment_correct;
-      [ typeclasses eauto | typeclasses eauto | ];
+      apply simplify_entailment_correct with (i := top');
+      apply compile_simplified_entailment_correct;
+      [ typeclasses eauto | typeclasses eauto | typeclasses eauto |];
 
       time "reduce goal" crunch_foterm;
 
@@ -185,10 +185,27 @@ Proof.
   set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
   cbv in rel0.
   subst rel0.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  run_bisim.
+  match goal with
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+    let H := fresh "H" in
+    assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |})) by admit
+  end.
+  match goal with
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
+    pose (a' := a);
+    pose (t := WP.wp r_states C);
+    apply PreBisimulationExtend with (H0 := right H) (W := t);
+    [ trivial | tauto |]
+    (* ;
+    vm_compute in t;
+    simpl (_ ++ _);
+    clear t;
+    clear HN *)
+  end.
+
+  (* This hangs: *)
+  Eval cbn in t.
+
   
   time "overall loop" (repeat time "bisim step" run_bisim).
 
