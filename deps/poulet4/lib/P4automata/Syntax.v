@@ -273,7 +273,12 @@ Section Interp.
   Qed.
 
   Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
-  Admitted.
+  Proof.
+    pose proof (l2t (slice (t2l l) hi lo)).
+    rewrite slice_len in X.
+    rewrite t2l_len in X.
+    exact X.
+  Defined.
 
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
@@ -283,8 +288,11 @@ Section Interp.
         VBits _ (n_slice bs hi lo)
     }.
 
-  Definition extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess.
-  Admitted.
+  Equations extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess := {
+    extract 0 _ l := (tt, l);
+    extract (Datatypes.S n) _ (l, a) :=
+      let '(l1, l2) := extract n _ l in ((l1, a), l2)
+  }.
 
   Equations eval_op (sz excess: nat) (st: store) (bits: n_tuple bool (sz + excess)) (o: op H sz) : store * n_tuple bool excess :=
     {
@@ -368,7 +376,7 @@ End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
-Arguments interp {_ _ _ _ _ _} a.
+Arguments interp {_ _ _ _} a.
 
 Section Inline.
   (* State identifiers. *)

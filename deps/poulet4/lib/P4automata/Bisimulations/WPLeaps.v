@@ -179,9 +179,11 @@ Section WPLeaps.
       topbdd ⦇C⦈ ->
       ctopbdd (wp C).
 End WPLeaps.
-Arguments pre_bisimulation {S1 equiv0 S1_eq_dec S2 equiv1 S2_eq_dec H equiv2 H'_eq_dec} a wp.
 
-Arguments ctopbdd {_ _ _ _ _ _ _ _ _} a top C.
-Arguments topbdd {_ _ _ _ _ _ _ _ _} a top C.
-Arguments safe_wp_1bit {_ _ _ _ _ _ _ _ _} a wp top.
-Arguments wp_bdd {_ _ _ _ _ _ _ _ _} a wp top.
+Check pre_bisimulation.
+
+Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec} a wp.
+Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
+Arguments topbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
+Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec} a wp top.
+Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec} a wp top.

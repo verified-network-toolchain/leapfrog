@@ -31,7 +31,7 @@ Fixpoint t2l {A: Type} {n: nat} (x: n_tuple A n) : list A :=
   | S n => fun p => t2l (fst p) ++ [snd p]
   end x.
 
-Lemma t2l_len {A} n: forall (x: n_tuple A n), length (t2l x) = n. 
+Lemma t2l_len {A} n: forall (x: n_tuple A n), length (t2l x) = n.
 Proof.
   induction n.
   - simpl; intros; trivial.
@@ -50,7 +50,7 @@ Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m :=
 Fixpoint l2t {A: Type} (l: list A) : n_tuple A (length l) :=
   match l as l' return n_tuple A (length l') with
   | nil => tt
-  | a::l => n_tuple_cons (l2t l) a 
+  | a::l => n_tuple_cons (l2t l) a
   end.
 
 Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
@@ -72,12 +72,21 @@ Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple 
   exact (n_tuple_concat' xs ys).
 Defined.
 
-Program Instance n_tuple_eq_dec
+Instance n_tuple_eq_dec
          {A: Type}
          `{A_eq_dec: EquivDec.EqDec A eq}
          (n: nat) : EquivDec.EqDec (n_tuple A n) eq.
-Next Obligation.
-Admitted.
+Proof.
+  unfold EquivDec.EqDec; intros.
+  induction n.
+  - destruct x, y; now left.
+  - destruct x, y.
+    destruct (A_eq_dec a a0).
+    + destruct (IHn n0 n1).
+      * left; congruence.
+      * right; congruence.
+    + right; congruence.
+Defined.
 
 Lemma min_0_r : forall n, Nat.min n 0 = 0.
 Proof.
@@ -192,7 +201,7 @@ Proof.
   rewrite concat'_cons.
   reflexivity.
 Qed.
-  
+
 Lemma l2t_app:
   forall A (xs ys: list A),
     JMeq (l2t (xs ++ ys)) (n_tuple_concat (l2t xs) (l2t ys)).

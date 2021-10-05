@@ -60,8 +60,11 @@ Equations bvar_eqdec {c} (x y: bvar c) : {x = y} + {x <> y} :=
                                               else in_right;
     bvar_eqdec _ _ := in_right }.
 Next Obligation.
-  dependent destruction H.
-  eauto.
+  apply n.
+  apply Eqdep_dec.inj_pair2_eq_dec.
+  apply bctx_eq_dec.
+  inversion H.
+  assumption.
 Qed.
 #[global] Transparent bvar_eqdec.
 
@@ -783,6 +786,7 @@ Section ConfRel.
       + apply H4.
   Qed.
 End ConfRel.
-Arguments interp_conf_rel {_} {_} {_} {_} {_} {_} a phi.
-Arguments interp_crel {_} {_} {_} {_} {_} {_} a i rel.
-Arguments interp_entailment {_ _ _ _ _ _} a i e.
+Arguments interp_conf_rel {_} {_} {_} {_} a phi.
+Arguments interp_crel {_} {_} {_} {_} a i rel.
+Arguments interp_entailment {_ _ _ _} a i e.
+
