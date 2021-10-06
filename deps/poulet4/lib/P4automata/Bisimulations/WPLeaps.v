@@ -180,8 +180,6 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Check pre_bisimulation.
-
 Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec} a wp.
 Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
 Arguments topbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
