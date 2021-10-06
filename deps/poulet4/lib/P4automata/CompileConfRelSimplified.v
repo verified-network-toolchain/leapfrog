@@ -143,7 +143,7 @@ Section CompileConfRelSimplified.
     let sr: fm (sig H) _ :=
         compile_store_rel b1 b2 (projT2 r)
     in
-    quantify _ sr.
+    FNeg _ (quantify _ (FNeg _ sr)).
 
   Definition compile_simplified_crel
     (b1 b2: nat)
