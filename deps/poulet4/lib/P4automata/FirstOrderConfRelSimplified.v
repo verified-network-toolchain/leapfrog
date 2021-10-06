@@ -81,7 +81,7 @@ Section AutModel.
 
 
   Obligation Tactic := intros.
-  Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt := 
+  Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
     { simplify_concat_zero (TFun _ (Concat 0 m) (_ ::: x ::: _)) := simplify_concat_zero _;
       simplify_concat_zero (TFun _ (Concat (Datatypes.S n) m) args) := TFun _ _ _;
       simplify_concat_zero (TFun _ (BitsLit n xs) args) := TFun _ _ args;
@@ -118,9 +118,9 @@ Section AutModel.
   exact (Lookup n k).
   Defined.
 
-  Lemma simplify_concat_zero_corr : 
-    forall m ctx v srt (t : tm ctx srt), 
-      interp_tm (m := m) v t = interp_tm v(simplify_concat_zero (ctx := ctx) t).
+  Lemma simplify_concat_zero_corr :
+    forall ctx v srt (t : tm ctx srt),
+      interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
   Proof.
     intros.
     induction t. (* this doesn't actually give an IHOP? *)
@@ -130,6 +130,24 @@ Section AutModel.
     - induction s; cbn; autorewrite with simplify_concat_zero; trivial.
       (* need an IHOP for this goal... *)
       admit.
+  Admitted.
+
+  Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
+    simplify_concat_zero_fm FTrue := FTrue;
+    simplify_concat_zero_fm FFalse := FFalse;
+    simplify_concat_zero_fm (FEq e1 e2) := FEq (simplify_concat_zero e1) (simplify_concat_zero e2);
+    simplify_concat_zero_fm (FNeg f) := FNeg _ (simplify_concat_zero_fm f);
+    simplify_concat_zero_fm (FOr f1 f2) := FOr _ (simplify_concat_zero_fm f1) (simplify_concat_zero_fm f2);
+    simplify_concat_zero_fm (FAnd f1 f2) := FAnd _ (simplify_concat_zero_fm f1) (simplify_concat_zero_fm f2);
+    simplify_concat_zero_fm (FImpl f1 f2) := FImpl (simplify_concat_zero_fm f1) (simplify_concat_zero_fm f2);
+    simplify_concat_zero_fm (FForall f) := FForall _ (simplify_concat_zero_fm f);
+  }.
+
+  Lemma simplify_concat_zero_fm_corr:
+    forall ctx (f: fm ctx) valu,
+      interp_fm valu f <-> interp_fm (m := fm_model) valu (simplify_concat_zero_fm f)
+  .
+  Proof.
   Admitted.
 
 End AutModel.
