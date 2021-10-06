@@ -128,8 +128,8 @@ Ltac verify_interp :=
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
-      apply simplify_entailment_correct with (i := top');
-      apply compile_simplified_entailment_correct;
+      eapply simplify_entailment_correct with (i := top');
+      eapply compile_simplified_entailment_correct;
       [ typeclasses eauto | typeclasses eauto | typeclasses eauto |];
 
       time "reduce goal" crunch_foterm;
@@ -160,17 +160,6 @@ Ltac run_bisim :=
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
-Definition foo :=
-  Sum.H'_eq_dec
-          (existT
-             (fun n : nat => Sum.H IncrementalBits.header BigBits.header n) 1
-             (inr BigBits.Pref))
-          (existT
-             (fun n : nat => Sum.H IncrementalBits.header BigBits.header n) 1
-             (inr BigBits.Pref)).
-
-(* Should be eq_refl *)
-Eval vm_compute in foo.
 
 Require Import Poulet4.Relations.
 
@@ -197,37 +186,10 @@ Proof.
   set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
   cbv in rel0.
   subst rel0.
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
-    let H := fresh "H" in
-    assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |})) by admit
-  end.
-  match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
-    pose (a' := a);
-    pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ trivial | tauto |]
-    (* ;
-    vm_compute in t;
-    simpl (_ ++ _);
-    clear t;
-    clear HN *)
-  end.
 
-  vm_compute in t.
+  do 5 run_bisim.
+  
+  (* huh, the next run_bisim call fails and also the final part of the entailment is funky *)
 
-  time "overall loop" (repeat time "bisim step" run_bisim).
-
-  apply PreBisimulationClose.
-  apply simplify_entailment_correct' with (i := top').
-  apply compile_simplified_entailment_correct';
-  [typeclasses eauto | typeclasses eauto|].
-  crunch_foterm.
-
-  (* The goal is unsat? *)
-  match goal with
-  | |- ?X => time "smt check pos" check_interp_pos X
-  end.
 
 Admitted.

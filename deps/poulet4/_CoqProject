@@ -10,3 +10,4 @@
 
 -I ~/.opam/default/lib/mirrorsolve
 -I /home/tobias/.opam/4.11.0/lib/mirrorsolve
+-I /Users/john/.opam/default/lib/mirrorsolve

@@ -104,9 +104,10 @@ Section CompileConfRelSimplified.
         TFun (sig H) (Slice _ _ hi lo)
              (compile_bit_expr b1 b2 e ::: hnil);
       compile_bit_expr b1 b2 (BEConcat e1 e2) :=
+      simplify_concat_zero (
         TFun (sig H) (Concat _ _ _)
              (compile_bit_expr b1 b2 e1 :::
-              compile_bit_expr b1 b2 e2 ::: hnil) }.
+              compile_bit_expr b1 b2 e2 ::: hnil)) }.
 
   Equations compile_store_rel
             {c: bctx}
@@ -119,8 +120,8 @@ Section CompileConfRelSimplified.
         match eq_dec (be_size b1 b2 e1) (be_size b1 b2 e2) with
         | left Heq =>
           FEq (eq_rect _ (fun n => tm (sig H) _ (Bits n))
-                       (compile_bit_expr b1 b2 e1) _ Heq)
-              (compile_bit_expr b1 b2 e2)
+                       (simplify_concat_zero (compile_bit_expr b1 b2 e1)) _ Heq)
+              (simplify_concat_zero (compile_bit_expr b1 b2 e2))
         | right _ => FFalse
         end;
       compile_store_rel b1 b2 (BRAnd r1 r2) :=
@@ -168,6 +169,7 @@ Section CompileConfRelSimplified.
   Definition compile_simplified_entailment'
     (se: simplified_entailment a)
     : fm (sig H) (CEmp _) :=
+    
     quantify_all _
       (FImpl (compile_simplified_conf_rel
                se.(se_st).(cs_st1).(st_buf_len)

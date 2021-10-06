@@ -78,4 +78,58 @@ Section AutModel.
     FirstOrder.mod_fns := mod_fns;
     FirstOrder.mod_rels := mod_rels;
   |}.
+
+
+  Obligation Tactic := intros.
+  Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt := 
+    { simplify_concat_zero (TFun _ (Concat 0 m) (_ ::: x ::: _)) := simplify_concat_zero _;
+      simplify_concat_zero (TFun _ (Concat (Datatypes.S n) m) args) := TFun _ _ _;
+      simplify_concat_zero (TFun _ (BitsLit n xs) args) := TFun _ _ args;
+      simplify_concat_zero (TFun _ (Slice n hi lo) args) := TFun _ _ args;
+      simplify_concat_zero (TFun _ (Lookup n k) args) := TFun _ _ args;
+      simplify_concat_zero (TVar x) := TVar x;
+    }.
+  Next Obligation.
+  exact (BitsLit n xs).
+  Defined.
+  Next Obligation.
+  simpl.
+  exact x.
+  Defined.
+  Next Obligation.
+  exact [Bits (Datatypes.S n); Bits m].
+  Defined.
+  Next Obligation.
+  unfold simplify_concat_zero_obligations_obligation_3.
+  simpl.
+  exact (Concat (Datatypes.S n) m).
+  Defined.
+  Next Obligation.
+  unfold simplify_concat_zero_obligations_obligation_3.
+  simpl.
+  inversion args.
+  inversion X0.
+  exact (simplify_concat_zero _ _ X ::: simplify_concat_zero _ _ X1 ::: hnil).
+  Defined.
+  Next Obligation.
+  exact (Slice n hi lo).
+  Defined.
+  Next Obligation.
+  exact (Lookup n k).
+  Defined.
+
+  Lemma simplify_concat_zero_corr : 
+    forall m ctx v srt (t : tm ctx srt), 
+      interp_tm (m := m) v t = interp_tm v(simplify_concat_zero (ctx := ctx) t).
+  Proof.
+    intros.
+    induction t. (* this doesn't actually give an IHOP? *)
+    (* also promising: tm_ind *)
+    - autorewrite with simplify_concat_zero.
+      trivial.
+    - induction s; cbn; autorewrite with simplify_concat_zero; trivial.
+      (* need an IHOP for this goal... *)
+      admit.
+  Admitted.
+
 End AutModel.
