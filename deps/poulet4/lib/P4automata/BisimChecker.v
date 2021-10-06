@@ -10,7 +10,11 @@ Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
 Import List.ListNotations.
 From Hammer Require Import Tactics.
 From Hammer Require Import Hammer.
-
+Require Import Poulet4.P4automata.FirstOrder.
+Require Import Poulet4.P4automata.FirstOrderConfRel.
+Require Import Poulet4.P4automata.CompileConfRel.
+Require Import Poulet4.P4automata.CompileConfRelSimplified.
+Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -314,78 +318,114 @@ Ltac break_store :=
     end
   end.
 
-(*
-Ltac disprove_sat a i :=
-  rewrite (filter_entails (a:=a)) by (typeclasses eauto);
-  simpl;
-  rewrite (no_state i) by (typeclasses eauto);
-  repeat (unfold interp_conf_rel, interp_conf_state, interp_state_template, interp_store_rel || cbn);
-  eapply forall_exists;
-  repeat (setoid_rewrite <- split_univ; cbn);
-  repeat (setoid_rewrite <- split_ex; cbn);
-  (solve [sauto | unfold not; now break_store]).
 
-Ltac extend_bisim a wp i R C :=
-      let H := fresh "H" in
-      assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-                 interp_crel i R q1 q2 -> interp_conf_rel C q1 q2))
-        by (disprove_sat a i);
-        pose (t := wp a C);
-        eapply PreBisimulationExtend with (H0 := right H) (W := t);
-        [ tauto | reflexivity |];
-        compute in t;
-        simpl (_ ++ _);
-        unfold t;
-        clear t;
-        clear H.
 
-Ltac prove_sat :=
-  unfold interp_crel;
-  unfold interp_conf_rel;
-  unfold interp_conf_state, interp_state_template;
-  simpl;
-  sauto.
+Ltac extend_bisim r_states :=
+  match goal with
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+    let H := fresh "H" in
+    assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
+    [ idtac |
+    pose (t := WP.wp r_states C);
+    apply PreBisimulationExtend with (H0 := right H) (W := t);
+    [ trivial | tauto |];
+    vm_compute in t;
+    simpl (_ ++ _);
+    clear t]
+  end.
 
-Ltac skip_bisim a wp i R C :=
-  let H := fresh "H" in
-  assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-             interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-    by prove_sat;
-  eapply PreBisimulationSkip with (H0:=left H);
+Ltac skip_bisim :=
+  match goal with
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+    let H := fresh "H" in
+    assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
+    apply PreBisimulationSkip with (H0:=left H);
+    [ exact I | ];
+    clear H
+  end.
+
+Ltac extend_bisim' HN r_states :=
+  match goal with
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
+    pose (t := WP.wp r_states C);
+    apply PreBisimulationExtend with (H0 := right HN) (W := t);
+    [ tauto | trivial |];
+    vm_compute in t;
+    simpl (_ ++ _);
+    clear t;
+    clear HN
+  end.
+
+Ltac skip_bisim' H :=
+  apply PreBisimulationSkip with (H0:=left H);
   [ exact I | ];
   clear H.
 
-Ltac solve_bisim :=
+Ltac size_script :=
+  unfold Syntax.interp;
+  autorewrite with size';
+  vm_compute;
+  repeat constructor.
+
+
+Ltac crunch_foterm :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    extend_bisim a wp i R C
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    skip_bisim a wp i R C
-  | |- pre_bisimulation _ _ _ _ [] _ _ =>
-    apply PreBisimulationClose
+  | |- interp_fm _ ?g =>
+    let temp := fresh "temp" in set (temp := g);
+    vm_compute in temp;
+    subst temp
   end.
 
-Ltac build_store hdrs P store :=
-  idtac hdrs;
-  idtac P;
-  idtac store;
-  match hdrs with
-  | nil => constr:(P store)
-  | ?h :: ?hdrs' =>
-    let x := fresh "h" in
-    let old_store := find store in
-    clear store;
-    set (store := (h, x) :: old_store);
-    build_store hdrs' constr:(exists y, P store) store
+Declare ML Module "mirrorsolve".
+
+Ltac verify_interp top top' :=
+  match goal with
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
+    let H := fresh "H" in
+    assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
+    [
+      eapply simplify_entailment_correct with (i := top');
+      eapply compile_simplified_entailment_correct;
+      [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+      eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+      [ typeclasses eauto | typeclasses eauto | ];
+
+      time "reduce goal" crunch_foterm;
+
+      match goal with
+      | |- ?X => time "smt check neg" check_interp_neg X
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    |]
+  end;
+  let n:= numgoals in
+  tryif ( guard n = 2) then
+    match goal with
+    | |- interp_fm _ _ => admit
+    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ =>
+      clear H;
+      let HN := fresh "HN" in
+      assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
+    end
+  else idtac.
+
+Ltac run_bisim top top' r_states :=
+  verify_interp top top';
+  match goal with
+  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
+    idtac "extending"; extend_bisim' HN r_states; clear HN
+  | H: interp_entailment _ _ _  |- _ =>
+    idtac "skipping"; skip_bisim' H; clear H
   end.
 
-Ltac simp_exists_store :=
+Ltac close_bisim top' :=
+  apply PreBisimulationClose;
+  eapply simplify_entailment_correct' with (i := top');
+  eapply compile_simplified_entailment_correct';
+  [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+  eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+  [ typeclasses eauto | typeclasses eauto | ];
+  crunch_foterm;
   match goal with
-  | |- exists (x: P4A.store ?H), @?P x =>
-    pose (hdrs := FinType.enum H);
-    cbv in hdrs;
-    let store := fresh "store" in
-    set (store := []: P4A.store H);
-    cut (ltac:(build_store ltac:(find hdrs) P store))
+  | |- ?X => time "smt check pos" check_interp_pos X; admit
   end.
-*)

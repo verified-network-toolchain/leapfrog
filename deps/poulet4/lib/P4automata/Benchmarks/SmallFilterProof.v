@@ -1,14 +1,10 @@
 Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
+Require Import Poulet4.P4automata.BisimChecker.
 Require Import Poulet4.P4automata.Benchmarks.SmallFilter.
-
-Require Import Poulet4.P4automata.CompileConfRel.
-Require Import Poulet4.P4automata.FirstOrder.
-Require Import Poulet4.P4automata.FirstOrderConfRel.
-Require Import Poulet4.P4automata.CompileConfRelSimplified.
-Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
 
 Require Import Poulet4.P4automata.WP.
 Require Import Coq.Program.Equality.
+Require Import Poulet4.Relations.
 
 
 Notation H := (IncrementalBits.header + BigBits.header).
@@ -24,55 +20,6 @@ Definition r_states :=
 
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
-
-
-Ltac extend_bisim :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
-    let H := fresh "H" in
-    assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
-    [ idtac |
-    pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ trivial | tauto |];
-    vm_compute in t;
-    simpl (_ ++ _);
-    clear t]
-  end.
-
-Ltac skip_bisim :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A i ({| e_prem := R; e_concl := C |}));
-    apply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-
-Ltac extend_bisim' HN :=
-  match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
-    pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right HN) (W := t);
-    [ tauto | trivial |];
-    vm_compute in t;
-    simpl (_ ++ _);
-    clear t;
-    clear HN
-  end.
-
-Ltac skip_bisim' H :=
-  apply PreBisimulationSkip with (H0:=left H);
-  [ exact I | ];
-  clear H.
-
-Ltac size_script :=
-  unfold Syntax.interp;
-  autorewrite with size';
-  vm_compute;
-  repeat constructor.
-
 
 Declare ML Module "mirrorsolve".
 
@@ -113,67 +60,6 @@ RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
 RegisterEnvCtors (IncrementalBits.Pref, FirstOrderConfRelSimplified.Bits 1)  (IncrementalBits.Suf, FirstOrderConfRelSimplified.Bits 1) (BigBits.Pref, FirstOrderConfRelSimplified.Bits 1) (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
 
-Ltac crunch_foterm :=
-  match goal with
-  | |- interp_fm _ ?g =>
-    let temp := fresh "temp" in set (temp := g);
-    vm_compute in temp;
-    subst temp
-  end.
-
-Ltac verify_interp :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := top');
-      eapply compile_simplified_entailment_correct;
-      [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
-      eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-      [ typeclasses eauto | typeclasses eauto | ];
-
-      time "reduce goal" crunch_foterm;
-
-      match goal with
-      | |- ?X => time "smt check neg" check_interp_neg X
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    |]
-  end;
-  let n:= numgoals in
-  tryif ( guard n = 2) then
-    match goal with
-    | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ =>
-      clear H;
-      let HN := fresh "HN" in
-      assert (HN: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
-    end
-  else idtac.
-
-Ltac run_bisim :=
-  verify_interp;
-  match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    idtac "extending"; extend_bisim' HN; clear HN
-  | H: interp_entailment _ _ _  |- _ =>
-    idtac "skipping"; skip_bisim' H; clear H
-  end.
-
-Ltac close_bisim :=
-  apply PreBisimulationClose;
-  eapply simplify_entailment_correct' with (i := top');
-  eapply compile_simplified_entailment_correct';
-  [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
-  eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-  [ typeclasses eauto | typeclasses eauto | ];
-  crunch_foterm;
-  match goal with
-  | |- ?X => time "smt check pos" check_interp_pos X; admit
-  end.
-
-Require Import Poulet4.Relations.
 
 Lemma prebisim_incremental_sep:
   pre_bisimulation A
@@ -196,6 +82,6 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |}.
 Proof.
-  time "build phase" repeat (time "single step" run_bisim).
-  time "close phase" close_bisim.
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "close phase" close_bisim top'.
 Admitted.

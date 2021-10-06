@@ -5,7 +5,6 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.Syntax.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -81,7 +80,7 @@ Module IncrementalBits.
     | Start =>
       {| st_op := OpExtract (existT _ _ Pref);
          st_trans := TSel (CExpr (EHdr Pref))
-                              [{| sc_pat := PExact (VBits 1(tt, true));
+                              [{| sc_pat := PExact (VBits 1 (tt, true));
                                   sc_st := inl Finish |}]
                               (inr false) |}
     | Finish =>
