@@ -169,7 +169,7 @@ Section CompileConfRelSimplified.
   Definition compile_simplified_entailment'
     (se: simplified_entailment a)
     : fm (sig H) (CEmp _) :=
-    
+
     quantify_all _
       (FImpl (compile_simplified_conf_rel
                se.(se_st).(cs_st1).(st_buf_len)

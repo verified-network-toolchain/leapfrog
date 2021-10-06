@@ -302,15 +302,15 @@ Section ConfRel.
 
   Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
     (* BRImpl l r. *)
-      match l with
-      | BRTrue _ => r
-      | BRFalse _ => BRTrue c
-      | _ =>
-        match r with
-        | BRTrue _ => BRTrue c
-        | _ => BRImpl l r
-        end
-      end.
+    match l with
+    | BRTrue _ => r
+    | BRFalse _ => BRTrue c
+    | _ =>
+      match r with
+      | BRTrue _ => BRTrue c
+      | _ => BRImpl l r
+      end
+    end.
 
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;

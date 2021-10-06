@@ -100,7 +100,6 @@ RegisterPrim (@CSnoc (sig A)) "p4a.core.csnoc".
 RegisterPrim (@inl nat bool) "coq.core.inl".
 RegisterPrim (@inr nat bool) "coq.core.inr".
 
-
 RegisterPrim FirstOrderConfRelSimplified.Bits "p4a.sorts.bits".
 RegisterPrim FirstOrderConfRelSimplified.Store "p4a.sorts.store".
 

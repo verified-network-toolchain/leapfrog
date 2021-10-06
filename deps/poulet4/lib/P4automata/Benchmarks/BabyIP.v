@@ -37,11 +37,11 @@ Module BabyIP1.
     intros n; solve_indexed_finiteness n [20; 28].
   Qed.
 
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP; existT _ _ HdrTCP ] |}.
   Next Obligation.
-    repeat constructor; 
-    unfold "~"; 
+    repeat constructor;
+    unfold "~";
     intros;
     destruct H;
     now inversion H || now inversion H0.
@@ -49,9 +49,9 @@ Module BabyIP1.
   Next Obligation.
   dependent destruction X; subst;
   repeat (
-    match goal with 
+    match goal with
     | |- ?L \/ ?R => (now left; trivial) || right
-    end 
+    end
   ).
   Qed.
 
@@ -105,11 +105,11 @@ Module BabyIP2.
     intros n; solve_indexed_finiteness n [40; 8].
   Qed.
 
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' := 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrCombi ; existT _ _ HdrSeq ] |}.
   Next Obligation.
-    repeat constructor; 
-    unfold "~"; 
+    repeat constructor;
+    unfold "~";
     intros;
     destruct H;
     now inversion H || now inversion H0.

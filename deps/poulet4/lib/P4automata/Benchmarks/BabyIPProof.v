@@ -170,11 +170,11 @@ Ltac verify_interp :=
   end.
 
 Ltac run_bisim :=
-  verify_interp; 
+  verify_interp;
   match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ => 
+  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     idtac "extending"; extend_bisim' HN; clear HN
-  | H: interp_entailment _ _ _  |- _ => 
+  | H: interp_entailment _ _ _  |- _ =>
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
