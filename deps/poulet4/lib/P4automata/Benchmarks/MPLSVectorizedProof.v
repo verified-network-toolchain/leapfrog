@@ -192,14 +192,14 @@ Module UnrollInline.
     time "close phase" close_bisim top'.
   Time Admitted. 
 
-  (* Definition r_states' :=
+  Definition r_states' :=
     Eval vm_compute in (Reachability.reachable_states
                           A
                           200
                           MPLSUnroll.ParseMPLS1
                           MPLSInline.ParseMPLS).
   Goal pre_bisimulation A
-      (wp r_states)
+      (wp r_states')
       top
       []
       [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
@@ -218,5 +218,8 @@ Module UnrollInline.
           cr_rel := btrue;
       |}.
   Proof.
-    time "build phase" repeat (time "single step" run_bisim top top' r_states'). *)
+    set (a := A) in *.
+    time "build phase" repeat (time "single step" run_bisim top top' r_states').
+    close_bisim top'.
+  Time Admitted.
 End UnrollInline.
