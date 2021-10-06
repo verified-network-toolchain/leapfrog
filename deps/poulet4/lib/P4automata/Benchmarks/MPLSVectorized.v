@@ -5,7 +5,6 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -35,44 +34,64 @@ Module MPLSPlain.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrMPLS0
-  | HdrMPLS1
-  | HdrUDP.
+  Inductive header : nat -> Type :=
+  | HdrMPLS0 : header 32
+  | HdrMPLS1 : header 32 
+  | HdrUDP : header 32.
 
-  Scheme Equality for header.
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-  Global Program Instance header_finite: @Finite header _ header_eq_dec :=
-    {| enum := [HdrMPLS0; HdrMPLS1; HdrUDP] |}.
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
+    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [32; 32; 32].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
     repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
   Qed.
 
   Definition states (s: state) :=
     match s with
     | ParseMPLS =>
       {| st_op := OpSeq
-        (OpAsgn (HRVar HdrMPLS1) (EHdr (HRVar HdrMPLS0)))
-        (OpExtract 32 (HRVar HdrMPLS0));
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrMPLS0)) 24 23))
-                              [{| sc_pat := PExact (VBits [true]);
+        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
+        (OpExtract (existT _ _ HdrMPLS0));
+         st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
+                              [{| sc_pat := PExact (VBits 1 (tt, true));
                                   sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits [false]);
+                              {| sc_pat := PExact (VBits 1 (tt, false));
                                  sc_st := inl ParseMPLS |}]
                               (inr false) |}
     | ParseUDP =>
-      {| st_op := OpExtract 32 (HRVar HdrUDP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := OpExtract (existT _ _ HdrUDP);
+         st_trans := TGoto _ (inr true) |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -104,54 +123,74 @@ Module MPLSUnroll.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrMPLS0
-  | HdrMPLS1
-  | HdrUDP.
+  Inductive header : nat -> Type :=
+  | HdrMPLS0 : header 32
+  | HdrMPLS1 : header 32 
+  | HdrUDP : header 32.
 
-  Scheme Equality for header.
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-  Global Program Instance header_finite: @Finite header _ header_eq_dec :=
-    {| enum := [HdrMPLS0; HdrMPLS1; HdrUDP] |}.
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
+    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [32; 32; 32].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
     repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
   Qed.
 
   Definition states (s: state) :=
     match s with
     | ParseMPLS0 =>
       {| st_op := OpSeq
-        (OpAsgn (HRVar HdrMPLS1) (EHdr (HRVar HdrMPLS0)))
-        (OpExtract 32 (HRVar HdrMPLS0));
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrMPLS0)) 24 23))
-                              [{| sc_pat := PExact (VBits [true]);
+        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
+        (OpExtract (existT _ _ HdrMPLS0));
+         st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
+                              [{| sc_pat := PExact (VBits 1 (tt, true));
                                   sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits [false]);
+                              {| sc_pat := PExact (VBits 1 (tt, false));
                                  sc_st := inl ParseMPLS1 |}]
                               (inr false) |}
     | ParseMPLS1 =>
       {| st_op := OpSeq
-        (OpAsgn (HRVar HdrMPLS1) (EHdr (HRVar HdrMPLS0)))
-        (OpExtract 32 (HRVar HdrMPLS0));
-          st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrMPLS0)) 24 23))
-                              [{| sc_pat := PExact (VBits [true]);
+        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
+        (OpExtract (existT _ _ HdrMPLS0));
+          st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
+                              [{| sc_pat := PExact (VBits 1 (tt, true));
                                   sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits [false]);
+                              {| sc_pat := PExact (VBits 1 (tt, false));
                                   sc_st := inl ParseMPLS0 |}]
                               (inr false) |}
     | ParseUDP =>
-      {| st_op := OpExtract 32 (HRVar HdrUDP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := OpExtract (existT _ _ HdrUDP);
+         st_trans := TGoto _ (inr true) |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -182,51 +221,71 @@ Module MPLSInline.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrMPLS0
-  | HdrMPLS1
-  | HdrUDP.
+  Inductive header : nat -> Type :=
+  | HdrMPLS0 : header 32
+  | HdrMPLS1 : header 32 
+  | HdrUDP : header 32.
 
-  Scheme Equality for header.
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-  Global Program Instance header_finite: @Finite header _ header_eq_dec :=
-    {| enum := [HdrMPLS0; HdrMPLS1; HdrUDP] |}.
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
+    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [32; 32; 32].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
     repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
   Qed.
 
   Definition states (s: state) :=
     match s with
     | ParseMPLS =>
       {| st_op := OpSeq 
-          (OpExtract 32 (HRVar HdrMPLS1))
+          (OpExtract (existT _ _ HdrMPLS1))
           (OpSeq 
-            (OpExtract 32 (HRVar HdrMPLS0))
-            (OpAsgn (HRVar HdrUDP) (EHdr (HRVar HdrMPLS0)))
+            (OpExtract (existT _ _ HdrMPLS0))
+            (OpAsgn HdrUDP (EHdr HdrMPLS0))
           );
-         st_trans := P4A.TSel (CPair 
-            (CExpr (ESlice (EHdr (HRVar HdrMPLS1)) 24 23))
-            (CExpr (ESlice (EHdr (HRVar HdrMPLS0)) 24 23)))
-            [{| sc_pat := PPair (PExact (VBits [true])) PAny;
+         st_trans := TSel (CPair 
+            (CExpr (ESlice (n := 32) (EHdr HdrMPLS1) 24 24))
+            (CExpr (ESlice (n := 32) (EHdr HdrMPLS0) 24 24)))
+            [{| sc_pat := PPair (PExact (VBits 1 (tt, true))) (PAny 1);
                 sc_st := inr true |};
-             {| sc_pat := PPair (PExact (VBits [false])) (PExact (VBits [true]));
+             {| sc_pat := PPair (PExact (VBits 1 (tt, false))) (PExact (VBits 1 (tt, true)));
                 sc_st := inl ParseUDP |};
-              {| sc_pat := PPair (PExact (VBits [false])) (PExact (VBits [false]));
+              {| sc_pat := PPair (PExact (VBits 1 (tt, false))) (PExact (VBits 1 (tt, false)));
                 sc_st := inl ParseMPLS |}]
             (inr false) |}
     | ParseUDP =>
-      {| st_op := OpExtract 32 (HRVar HdrUDP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := OpExtract (existT _ _ HdrUDP);
+         st_trans := TGoto _ (inr true) |}
     end.
 
   Program Definition aut: Syntax.t state header :=
