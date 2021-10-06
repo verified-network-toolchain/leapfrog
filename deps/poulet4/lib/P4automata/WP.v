@@ -98,6 +98,14 @@ Section WP.
       pat_cond si (P4A.PPair p1 p2) (P4A.CPair e1 e2) :=
         BRAnd (pat_cond si p1 e1) (pat_cond si p2 e2) }.
 
+  (* There is a problem here. I think that when we generate the transition
+     conditions, we should include the condition of any case matching the
+     target state AS WELL AS the negation of all the conditions that come
+     before; after all, those are the ones we did NOT take, and so those
+     conditions must be false. I have implemented this for the default case
+     in trans_cond below (see comment there), but some more work still needs
+     to be done to achieve the same thing in cases_cond. *)
+
   Definition case_cond {ctx: bctx} {ty} (si: side) (cn: Syntax.cond H ty) (st': P4A.state_ref S) (s: P4A.sel_case S ty) : store_rel H ctx :=
     if st' == P4A.sc_st s
     then pat_cond si s.(P4A.sc_pat) cn
@@ -121,7 +129,13 @@ Section WP.
       let any_case := cases_cond s cond st' cases in
       bror any_case
            (if default == st'
-            then (brimpl any_case (BRFalse _ _))
+            then
+              (* Jerry-rigged implementation of negating all other transition
+                 conditions as condition on the default case; see comment
+                 above. *)
+              let f s' := pat_cond s s'.(P4A.sc_pat) cond in
+              let any_case := List.fold_right (@bror _ _) (BRFalse _ _) (List.map f cases) in
+              (brimpl any_case (BRFalse _ _))
             else BRFalse _ _)
     end.
 
