@@ -151,3 +151,36 @@ Section AutModel.
   Admitted.
 
 End AutModel.
+
+
+Register TVar as p4a.core.var.
+Register TFun as p4a.core.fun.
+
+Register VHere as p4a.core.vhere.
+Register VThere as p4a.core.vthere.
+
+
+Register FEq as p4a.core.eq.
+Register FTrue as p4a.core.tt.
+Register FFalse as p4a.core.ff.
+Register FRel as p4a.core.rel.
+Register FNeg as p4a.core.neg.
+Register FOr as p4a.core.or.
+Register FAnd as p4a.core.and.
+Register FForall as p4a.core.forall.
+
+Register FImpl as p4a.core.impl.
+
+Register CEmp as p4a.core.cnil.
+Register CSnoc as p4a.core.csnoc.
+
+Register FirstOrderConfRelSimplified.Bits as p4a.sorts.bits.
+Register FirstOrderConfRelSimplified.Store as p4a.sorts.store.
+
+Register FirstOrderConfRelSimplified.BitsLit as p4a.funs.bitslit.
+Register FirstOrderConfRelSimplified.Concat as p4a.funs.concat.
+Register FirstOrderConfRelSimplified.Slice as p4a.funs.slice.
+Register FirstOrderConfRelSimplified.Lookup as p4a.funs.lookup.
+
+Register HList.HNil as p4a.core.hnil.
+Register HList.HCons as p4a.core.hcons.
