@@ -339,9 +339,11 @@ Ltac skip_bisim :=
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
-    apply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
+    [idtac | 
+      apply PreBisimulationSkip with (H0:=left H);
+      [ exact I | ];
+      clear H
+    ]
   end.
 
 Ltac extend_bisim' HN r_states :=
@@ -386,9 +388,9 @@ Ltac verify_interp top top' :=
     [
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct;
-      [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+      [ typeclasses eauto 2 | typeclasses eauto 2 | typeclasses eauto 2 |];
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-      [ typeclasses eauto | typeclasses eauto | ];
+      [ typeclasses eauto 2 | typeclasses eauto 2 |];
 
       time "reduce goal" crunch_foterm;
 
@@ -422,9 +424,9 @@ Ltac close_bisim top' :=
   apply PreBisimulationClose;
   eapply simplify_entailment_correct' with (i := top');
   eapply compile_simplified_entailment_correct';
-  [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+  [ typeclasses eauto 2 | typeclasses eauto 2 | typeclasses eauto 2 |];
   eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-  [ typeclasses eauto | typeclasses eauto | ];
+  [ typeclasses eauto 2 | typeclasses eauto 2 |];
   crunch_foterm;
   match goal with
   | |- ?X => time "smt check pos" check_interp_pos X; admit

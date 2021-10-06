@@ -77,6 +77,7 @@ Lemma prebisim_negative:
                       cr_rel := btrue;
                    |}.
 Proof.
+
   run_bisim top top' r_states.
   (* First cheat: manually push concat with empty buffer on the left by fiat. *)
   replace (BEConcat
@@ -122,6 +123,5 @@ Proof.
      but the one we have is enough to make closure fail. *)
   run_bisim top top' r_states.
   run_bisim top top' r_states.
-  (* This gives me the EMFILE error, but the constraint produced is indeed UNSAT. *)
   Fail close_bisim top'.
 Time Admitted.
