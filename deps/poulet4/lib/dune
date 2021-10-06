@@ -20,7 +20,7 @@
    P4automata.Benchmarks.IPFilterProof
    P4automata.Benchmarks.IncPostfilter
    P4automata.Benchmarks.LoopFooter
-   P4automata.Benchmarks.MPLSVectorized
+   ; P4automata.Benchmarks.MPLSVectorized
    P4automata.Benchmarks.MPLSVectorizedProof
    P4automata.Benchmarks.MPLSVectorizedSmall
    P4automata.Benchmarks.MPLSVectorizedSmallProof

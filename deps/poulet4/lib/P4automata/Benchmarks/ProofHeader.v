@@ -10,4 +10,5 @@ Require Export Poulet4.P4automata.FirstOrderConfRel.
 Require Export Poulet4.P4automata.CompileConfRel.
 Require Export Poulet4.P4automata.CompileConfRelSimplified.
 Require Export Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
+Require Export Poulet4.P4automata.WP.
 
