@@ -27,8 +27,8 @@ clean:
 
 benchmarks: smallfilter babyip
 
-smallfilter:
+smallfilter: build
 	xargs coqc lib/P4automata/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
 
-babyip:
+babyip: build
 	xargs coqc lib/P4automata/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
