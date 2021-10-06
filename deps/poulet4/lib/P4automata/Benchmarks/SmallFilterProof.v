@@ -129,6 +129,7 @@ Ltac verify_interp :=
     [
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct;
+      [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
       [ typeclasses eauto | typeclasses eauto | ];
 
@@ -160,6 +161,17 @@ Ltac run_bisim :=
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
+Ltac close_bisim :=
+  apply PreBisimulationClose;
+  eapply simplify_entailment_correct' with (i := top');
+  eapply compile_simplified_entailment_correct';
+  [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+  eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+  [ typeclasses eauto | typeclasses eauto | ];
+  crunch_foterm;
+  match goal with
+  | |- ?X => time "smt check pos" check_interp_pos X; admit
+  end.
 
 Require Import Poulet4.Relations.
 
@@ -168,7 +180,8 @@ Lemma prebisim_incremental_sep:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)
+                   [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                    BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
                    {| cr_st := {|
                         cs_st1 := {|
                           st_state := inl (inl (IncrementalBits.Start));
@@ -183,13 +196,11 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |}.
 Proof.
-  set (rel0 := (mk_init _ _ _ A 10 IncrementalBits.Start BigBits.Parse)).
-  cbv in rel0.
-  subst rel0.
-
-  do 5 run_bisim.
-  
-  (* huh, the next run_bisim call fails and also the final part of the entailment is funky *)
-
-
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  close_bisim.
 Admitted.
