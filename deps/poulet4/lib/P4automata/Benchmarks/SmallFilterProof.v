@@ -196,11 +196,6 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |}.
 Proof.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  run_bisim.
-  close_bisim.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Admitted.
