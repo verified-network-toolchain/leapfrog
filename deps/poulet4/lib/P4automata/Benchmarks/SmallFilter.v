@@ -39,6 +39,15 @@ Module IncrementalBits.
   | Pref : header 1
   | Suf : header 1.
 
+  Equations header_eqdec_ (n: nat) (x: IncrementalBits.header n) (y: IncrementalBits.header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ IncrementalBits.Pref IncrementalBits.Pref := left eq_refl ;
+    header_eqdec_ _ IncrementalBits.Suf IncrementalBits.Suf := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
   Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
   Proof.
     solve_eqdec'.
