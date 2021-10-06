@@ -1,10 +1,5 @@
 Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.BisimChecker.
 Require Import Poulet4.P4automata.Benchmarks.SmallFilter.
-
-Require Import Poulet4.P4automata.WP.
-Require Import Coq.Program.Equality.
-Require Import Poulet4.Relations.
 
 
 Notation H := (IncrementalBits.header + BigBits.header).
