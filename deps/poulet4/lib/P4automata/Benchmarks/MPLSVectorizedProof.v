@@ -185,6 +185,6 @@ Module UnrollInline.
   Proof.
     set (a := A) in *.
     time "build phase" repeat (time "single step" run_bisim top top' r_states').
-    close_bisim top'.
+    time "close phase" close_bisim top'.
   Time Admitted.
 End UnrollInline.
