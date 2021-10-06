@@ -129,7 +129,8 @@ Ltac verify_interp :=
     [
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct;
-      [ typeclasses eauto | typeclasses eauto | typeclasses eauto |];
+      eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+      [ typeclasses eauto | typeclasses eauto | ];
 
       time "reduce goal" crunch_foterm;
 
