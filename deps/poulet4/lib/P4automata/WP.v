@@ -163,20 +163,21 @@ Section WP.
              (k: lkind)
              (phi: store_rel H c)
     : store_rel H c :=
-    let phi' := sr_subst phi (beconcat (BEBuf _ _ si) b) (BEBuf _ _ si) in
+    let phi' :=
     match k with
     | Read =>
-      phi'
+      phi
     | Jump =>
       match prev.(st_state) with
       | inl s =>
         let cond := jump_cond si prev cur in
-        let phi'' := sr_subst phi' (BELit _ _ []) (BEBuf _ _ si) in
+        let phi'' := sr_subst phi (BELit _ _ []) (BEBuf _ _ si) in
         wp_op si (a.(P4A.t_states) s).(P4A.st_op) (brimpl cond phi'')
       | inr s =>
-        sr_subst phi' (BELit _ _ []) (BEBuf _ _ si)
+        sr_subst phi (BELit _ _ []) (BEBuf _ _ si)
       end
-    end.
+    end in
+    sr_subst phi' (beconcat (BEBuf _ _ si) b) (BEBuf _ _ si).
 
   Definition wp_pred_pair
              (phi: conf_rel a)
