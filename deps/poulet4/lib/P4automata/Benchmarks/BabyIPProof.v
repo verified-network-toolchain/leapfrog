@@ -22,17 +22,18 @@ Definition r_states :=
                         BabyIP2.Start).
 
 Definition top : Relations.rel conf := fun _ _ => True.
-            
+Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+
 
 Ltac extend_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: ~interp_entailment A i ({| e_prem := R; e_concl := C |}));
     [ idtac |
     pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ tauto | trivial |];
+    apply PreBisimulationExtend with (H0 := right H) (W := t);
+    [ trivial | tauto |];
     vm_compute in t;
     simpl (_ ++ _);
     clear t]
@@ -40,19 +41,19 @@ Ltac extend_bisim :=
 
 Ltac skip_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A i ({| e_prem := R; e_concl := C |}));
-    eapply PreBisimulationSkip with (H0:=left H);
+    apply PreBisimulationSkip with (H0:=left H);
     [ exact I | ];
     clear H
   end.
 
-Ltac extend_bisim' HN := 
+Ltac extend_bisim' HN :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
     pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend with (H0 := right HN) (W := t);
+    apply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ tauto | trivial |];
     vm_compute in t;
     simpl (_ ++ _);
@@ -61,7 +62,7 @@ Ltac extend_bisim' HN :=
   end.
 
 Ltac skip_bisim' H :=
-  eapply PreBisimulationSkip with (H0:=left H);
+  apply PreBisimulationSkip with (H0:=left H);
   [ exact I | ];
   clear H.
 
@@ -71,20 +72,13 @@ Ltac size_script :=
   vm_compute;
   repeat constructor.
 
-Lemma forall_exists_demorgan: forall X P,
-  (exists (x: X), ~P x) -> ~forall (x: X), P x.
-Proof.
-  intros.
-  intro.
-  destruct H.
-  specialize (H0 x).
-  contradiction.
-Qed.
-
 Declare ML Module "mirrorsolve".
 
 RegisterPrim (@TVar (sig A) (CEmp _) (Bits 0)) "p4a.core.var".
 RegisterPrim (@TFun (sig A) (CEmp _) [] (Bits 0)) "p4a.core.fun".
+
+RegisterPrim (@VHere (sig A) (CEmp _) (Bits 0)) "p4a.core.vhere".
+RegisterPrim (@VThere (sig A) (CEmp _) (Bits 0) (Bits 0)) "p4a.core.vthere".
 
 
 RegisterPrim (@FEq (sig A) (CEmp _) (Bits 0)) "p4a.core.eq".
@@ -101,73 +95,66 @@ RegisterPrim (@FImpl (sig A) (CEmp _)) "p4a.core.impl".
 RegisterPrim (@CEmp (sig A)) "p4a.core.cnil".
 RegisterPrim (@CSnoc (sig A)) "p4a.core.csnoc".
 
-RegisterPrim (@inl BabyIP1.state bool) "p4a.core.inl".
-RegisterPrim (@inr BabyIP1.state bool) "p4a.core.inr".
+RegisterPrim (@inl nat bool) "coq.core.inl".
+RegisterPrim (@inr nat bool) "coq.core.inr".
 
+RegisterPrim FirstOrderConfRelSimplified.Bits "p4a.sorts.bits".
+RegisterPrim FirstOrderConfRelSimplified.Store "p4a.sorts.store".
 
-RegisterPrim FOBV.Bits "p4a.sorts.bits".
-
-RegisterPrim FOBV.BitsLit "p4a.funs.bitslit".
-RegisterPrim FOBV.Concat "p4a.funs.concat".
-RegisterPrim FOBV.Slice "p4a.funs.slice".
+RegisterPrim FirstOrderConfRelSimplified.BitsLit "p4a.funs.bitslit".
+RegisterPrim FirstOrderConfRelSimplified.Concat "p4a.funs.concat".
+RegisterPrim FirstOrderConfRelSimplified.Slice "p4a.funs.slice".
+RegisterPrim FirstOrderConfRelSimplified.Lookup "p4a.funs.lookup".
 
 RegisterPrim (@HList.HNil nat (fun _ => bool)) "p4a.core.hnil".
 RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
+RegisterEnvCtors
+  (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)
+  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20)
+  (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28)
+  (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40)
+  (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
 
-Ltac crunch_foterm := 
-  repeat (
-    simpl || 
-    simpl_eqs ||
-    unfold compile_fm, compile_config, compile_conf_rel, quantify_all, quantify, compile_simplified_entailment, compile_simplified_entailment, compile_simplified_conf_rel, outer_ctx, se_st, se_prems ||
-    unfold e_concl, e_prem, simplify_crel, simplify_conf_rel, cr_ctx, compile_bctx, cr_st, cs_st1, cs_st2, st_state, st_buf_len, reindex_tm, compile_store_ctx, FinType.enum, compile_store_ctx_partial || 
-    autorewrite with compile_store_rel ||
-    autorewrite with quantify' || 
-    autorewrite with compile_bit_expr 
-  ).
-  
+
+Ltac crunch_foterm :=
+  match goal with
+  | |- interp_fm _ ?g =>
+    let temp := fresh "temp" in set (temp := g);
+    vm_compute in temp;
+    subst temp
+  end.
 
 Ltac verify_interp :=
   match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
     let H := fresh "H" in
     assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
     [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] | 
-        eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
-      ];
-      
-      crunch_foterm;
+      eapply simplify_entailment_correct with (i := top');
+      eapply compile_simplified_entailment_correct;
+      [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+      eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+      [ typeclasses eauto | typeclasses eauto | ];
 
-      match goal with 
-      | |- ?X => check_interp_neg X; admit
-      end
-    |]; 
-    clear H; 
-    let H := fresh "HN" in
-    assert (H: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] | 
-        eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
-      ];
-      
-      crunch_foterm;
+      time "reduce goal" crunch_foterm;
 
-      match goal with 
-      | |- ?X => check_interp_pos X; admit
+      match goal with
+      | |- ?X => time "smt check neg" check_interp_neg X
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
       end
     |]
-  
-  end.
+  end;
+  let n:= numgoals in
+  tryif ( guard n = 2) then
+    match goal with
+    | |- interp_fm _ _ => admit
+    | H : interp_entailment _ _ _ |- pre_bisimulation _ _ _ ?R (?C :: _) _ =>
+      clear H;
+      let HN := fresh "HN" in
+      assert (HN: ~ (interp_entailment A top ({| e_prem := R; e_concl := C |}))) by admit
+    end
+  else idtac.
 
 Ltac run_bisim :=
   verify_interp;
@@ -178,6 +165,18 @@ Ltac run_bisim :=
     idtac "skipping"; skip_bisim' H; clear H
   end.
 
+Ltac close_bisim :=
+  apply PreBisimulationClose;
+  eapply simplify_entailment_correct' with (i := top');
+  eapply compile_simplified_entailment_correct';
+  [ typeclasses eauto | typeclasses eauto | typeclasses eauto| ];
+  eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+  [ typeclasses eauto | typeclasses eauto | ];
+  crunch_foterm;
+  match goal with
+  | |- ?X => time "smt check pos" check_interp_pos X; admit
+  end.
+
 Lemma prebisim_babyip:
   pre_bisimulation
     A
@@ -185,93 +184,43 @@ Lemma prebisim_babyip:
     top
     []
     (mk_init _ _ _ A 10 BabyIP1.Start BabyIP2.Start)
-    (P4automaton.MkConfiguration
-      (Syntax.interp A)
-      (inl (inl BabyIP1.Start))
-      0
-      tt
-      ltac:(eapply cap')
-      nil)
-    (P4automaton.MkConfiguration
-      (Syntax.interp BabyIP.aut)
-      (inl (inr BabyIP2.Start))
-      0
-      tt
-      ltac:(eapply cap')
-      nil).
+    {| cr_st := {|
+        cs_st1 := {|
+          st_state := inl (inl (BabyIP1.Start));
+          st_buf_len := 0;
+        |};
+        cs_st2 := {|
+          st_state := inl (inr (BabyIP2.Start));
+          st_buf_len := 0;
+        |};
+      |};
+      cr_ctx := BCEmp;
+      cr_rel := btrue;
+   |}.
 Proof.
   idtac "running babyip bisimulation".
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.
 
-  Transparent compile_fm.
-  Transparent compile_store_ctx_partial.
-
-  time run_bisim.
-  time run_bisim.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment A top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct with (i := fun _ _ => True);
-      eapply compile_simplified_entailment_correct; [
-        eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |
-        eapply Sum.H_finite; [eapply BabyIP1.header_finite' | eapply BabyIP2.header_finite'] | 
-        eapply compile_simplified_fm_bv_correct; [eapply Sum.S_finite; [eapply BabyIP1.state_finite | eapply BabyIP2.state_finite] |]
-      ];
-      
-      crunch_foterm
-    |]
-  end.
-
-  match goal with 
-  | |- context[ FImpl ?X ?Y] =>
-    set (t1 := X); set (t2 := Y)
-  end.
-
-  Transparent compile_ctx.
-  Transparent compile_tm.
-  
-
-
-  simpl in t1.
-  subst t1.
-  simpl in t2.
-  unfold be_sort, be_size in t2.
-  simpl in t2.
-
-  repeat (
-    unfold Classes.apply_noConfusion in t2 || 
-    destruct (Classes.noConfusion_retr _) || 
-    unfold DepElim.eq_simplification_sigma1 in t2 || 
-    unfold Classes.noConfusion_inv in t2 || 
-    simpl in t2 ||
-    unfold DepElim.solution_left in t2 || 
-    unfold Logic.transport in t2 
-  ).
-
-  unfold compile_lookup in t2.
-  simpl FinType.enum in t2.
-  autorewrite with compile_lookup' in t2.
-  (* compile_lookup' and FinType.elem_of_enum make some really gross proof terms... see below *)
-  (* simpl FinType.elem_of_enum in t2. *)
-
-  Transparent compile_lookup'.
-  Transparent here_or_there.
-  simpl in t2.
-  unfold here_or_there in t2.
-
-
-  destruct (EquivDec.equiv_dec _ _).
-  destruct (List.in_app_iff _ _ _).
-  simpl in t2.
-  destruct (Morphisms.iff_flip_impl_subrelation _).
-  simpl in t2.
-  unfold False_ind in t2.
-
-  (* Not sure what to do here... *)
-  all: admit.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  run_bisim.
+  close_bisim.
 Admitted.

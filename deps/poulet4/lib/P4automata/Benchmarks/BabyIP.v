@@ -27,6 +27,15 @@ Module BabyIP1.
   | HdrUDP: header 20
   | HdrTCP: header 28.
 
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrIP HdrIP := left eq_refl ;
+    header_eqdec_ _ HdrTCP HdrTCP := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
   Global Instance header_eqdec': EquivDec.EqDec (H' header) eq.
   Proof.
     solve_eqdec'.
@@ -94,6 +103,13 @@ Module BabyIP2.
   Inductive header: nat -> Type :=
   | HdrCombi: header 40
   | HdrSeq: header 8.
+
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrCombi HdrCombi := left eq_refl ;
+    header_eqdec_ _ HdrSeq HdrSeq := left eq_refl ;
+  }.
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
   Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
   Proof.
