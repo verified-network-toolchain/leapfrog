@@ -51,8 +51,8 @@ RegisterPrim FirstOrderConfRelSimplified.Lookup "p4a.funs.lookup".
 RegisterPrim (@HList.HNil nat (fun _ => bool)) "p4a.core.hnil".
 RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
 
-RegisterEnvCtors 
-  (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)  
+RegisterEnvCtors
+  (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)
   (ParseZero.Bit, FirstOrderConfRelSimplified.Bits 1).
 
 (* These parsers are different, this proof should fail *)
@@ -77,43 +77,51 @@ Lemma prebisim_negative:
                       cr_rel := btrue;
                    |}.
 Proof.
-
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-
-  apply PreBisimulationClose.
-  
-  cbn.
-  unfold interp_entailment'.
-  simpl.
-  unfold top, interp_crel, interp_conf_rel'.
-  simpl.
-  unfold interp_conf_state.
-  simpl.
-  unfold interp_state_template.
-  simpl.
-  intros.
-  repeat match goal with 
-  | H: _ /\ _ |- _ => destruct H
-  end.
-  specialize (H1 tt).
-  autorewrite with interp_store_rel in H1.
-  cbn.
-  unfold interp_conf_rel.
-  simpl.
-  unfold interp_conf_state.
-  simpl.
-  unfold interp_state_template.
-  simpl.
-  split; [|split]. 
-
-  all: 
-    intros;
-    repeat match goal with 
-    | H: _ /\ _ |- _ => destruct H
-    end.
-  (* yikes, both of the goals here are contradictory... *)
-  - exfalso; congruence.
-  - exfalso; congruence.
-  - trivial.
-
+  run_bisim top top' r_states.
+  (* First cheat: manually push concat with empty buffer on the left by fiat. *)
+  replace (BEConcat
+                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                      (BCSnoc BCEmp 1) Left)
+                   (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1))) with (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1)) by admit.
+  replace (BEConcat
+                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                      (BCSnoc BCEmp 1) Right)
+                   (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1))) with (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1)) by admit.
+  (* Second cheat: massage constraint to what I think we should get when we phrase conf_rels positively. *)
+  replace ((BREq
+           (BESlice
+              (BEVar (Sum.H ParseOne.header ParseZero.header)
+                 (BVarTop BCEmp 1)) 0 0)
+           (BELit (Sum.H ParseOne.header ParseZero.header)
+              (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
+        ⇒ (BREq
+             (BESlice
+                (BEVar (Sum.H ParseOne.header ParseZero.header)
+                   (BVarTop BCEmp 1)) 0 0)
+             (BELit (Sum.H ParseOne.header ParseZero.header)
+                (BCSnoc BCEmp 1) [false]) ⇒ bfalse)) with
+          (((BREq
+           (BESlice
+              (BEVar (Sum.H ParseOne.header ParseZero.header)
+                 (BVarTop BCEmp 1)) 0 0)
+           (BELit (Sum.H ParseOne.header ParseZero.header)
+              (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
+        ⇒ BREq
+             (BESlice
+                (BEVar (Sum.H ParseOne.header ParseZero.header)
+                   (BVarTop BCEmp 1)) 0 0)
+             (BELit (Sum.H ParseOne.header ParseZero.header)
+                (BCSnoc BCEmp 1) [false])) ⇒ bfalse) by admit.
+  (* Now the constraint is cleared to the other side. *)
+  run_bisim top top' r_states.
+  (* These two steps also skip a constraint that should move to the other side,
+     but the one we have is enough to make closure fail. *)
+  run_bisim top top' r_states.
+  run_bisim top top' r_states.
+  (* This gives me the EMFILE error, but the constraint produced is indeed UNSAT. *)
+  Fail close_bisim top'.
 Time Admitted.
