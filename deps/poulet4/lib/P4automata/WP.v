@@ -98,21 +98,26 @@ Section WP.
       pat_cond si (P4A.PPair p1 p2) (P4A.CPair e1 e2) :=
         BRAnd (pat_cond si p1 e1) (pat_cond si p2 e2) }.
 
-  (* There is a problem here. I think that when we generate the transition
-     conditions, we should include the condition of any case matching the
-     target state AS WELL AS the negation of all the conditions that come
-     before; after all, those are the ones we did NOT take, and so those
-     conditions must be false. I have implemented this for the default case
-     in trans_cond below (see comment there), but some more work still needs
-     to be done to achieve the same thing in cases_cond. *)
-
-  Definition case_cond {ctx: bctx} {ty} (si: side) (cn: Syntax.cond H ty) (st': P4A.state_ref S) (s: P4A.sel_case S ty) : store_rel H ctx :=
-    if st' == P4A.sc_st s
-    then pat_cond si s.(P4A.sc_pat) cn
-    else BRFalse _ _.
-
-  Definition cases_cond {ctx: bctx} {ty} (si: side) (cond: Syntax.cond H ty) (st': P4A.state_ref S) (s: list (P4A.sel_case S ty)) : store_rel H ctx :=
-    List.fold_right (@bror _ _) (BRFalse _ _) (List.map (case_cond si cond st') s).
+  Fixpoint cases_cond
+    {ctx: bctx}
+    {ty: Syntax.typ}
+    (si: side)
+    (cond: Syntax.cond H ty)
+    (target: P4A.state_ref S)
+    (cases: list (P4A.sel_case S ty))
+    (default: P4A.state_ref S)
+    : store_rel H ctx
+  :=
+    match cases with
+    | nil =>
+      if target == default then (BRTrue _ _) else (BRFalse _ _)
+    | case :: cases =>
+      if target == P4A.sc_st case
+      then bror (pat_cond si case.(P4A.sc_pat) cond)
+                (cases_cond si cond target cases default)
+      else brand (brimpl (pat_cond si case.(P4A.sc_pat) cond) (BRFalse _ _))
+                 (cases_cond si cond target cases default)
+    end.
 
   Definition trans_cond
              {c: bctx}
@@ -126,19 +131,8 @@ Section WP.
       then BRTrue _ _
       else BRFalse _ _
     | P4A.TSel cond cases default =>
-      let any_case := cases_cond s cond st' cases in
-      bror any_case
-           (if default == st'
-            then
-              (* Jerry-rigged implementation of negating all other transition
-                 conditions as condition on the default case; see comment
-                 above. *)
-              let f s' := pat_cond s s'.(P4A.sc_pat) cond in
-              let any_case := List.fold_right (@bror _ _) (BRFalse _ _) (List.map f cases) in
-              (brimpl any_case (BRFalse _ _))
-            else BRFalse _ _)
+      cases_cond s cond st' cases default
     end.
-
 
   Definition jump_cond
              {c}
