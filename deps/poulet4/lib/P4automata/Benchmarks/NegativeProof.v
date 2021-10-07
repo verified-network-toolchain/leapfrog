@@ -20,6 +20,7 @@ RegisterEnvCtors
   (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)
   (ParseZero.Bit, FirstOrderConfRelSimplified.Bits 1).
 
+
 (* These parsers are different, this proof should fail *)
 Lemma prebisim_negative:
   pre_bisimulation A
@@ -43,42 +44,41 @@ Lemma prebisim_negative:
                    |}.
 Proof.
   run_bisim top top' r_states.
-  (* First cheat: manually push concat with empty buffer on the left by fiat. *)
-  replace (BEConcat
-                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                      (BCSnoc BCEmp 1) Left)
-                   (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1))) with (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1)) by admit.
-  replace (BEConcat
-                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                      (BCSnoc BCEmp 1) Right)
-                   (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1))) with (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1)) by admit.
-  (* Second cheat: massage constraint to what I think we should get when we phrase conf_rels positively. *)
+  (* Cheat: massage constraint to what I think we should get when we phrase conf_rels positively. *)
   replace ((BREq
            (BESlice
-              (BEVar (Sum.H ParseOne.header ParseZero.header)
-                 (BVarTop BCEmp 1)) 0 0)
+              (BEConcat
+                 (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                    (BCSnoc BCEmp 1) Left)
+                 (BEVar (Sum.H ParseOne.header ParseZero.header)
+                    (BVarTop BCEmp 1))) 0 0)
            (BELit (Sum.H ParseOne.header ParseZero.header)
               (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
         ⇒ (BREq
              (BESlice
-                (BEVar (Sum.H ParseOne.header ParseZero.header)
-                   (BVarTop BCEmp 1)) 0 0)
+                (BEConcat
+                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                      (BCSnoc BCEmp 1) Right)
+                   (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1))) 0 0)
              (BELit (Sum.H ParseOne.header ParseZero.header)
                 (BCSnoc BCEmp 1) [false]) ⇒ bfalse)) with
           (((BREq
            (BESlice
-              (BEVar (Sum.H ParseOne.header ParseZero.header)
-                 (BVarTop BCEmp 1)) 0 0)
+              (BEConcat
+                 (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                    (BCSnoc BCEmp 1) Left)
+                 (BEVar (Sum.H ParseOne.header ParseZero.header)
+                    (BVarTop BCEmp 1))) 0 0)
            (BELit (Sum.H ParseOne.header ParseZero.header)
               (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
         ⇒ BREq
              (BESlice
-                (BEVar (Sum.H ParseOne.header ParseZero.header)
-                   (BVarTop BCEmp 1)) 0 0)
+                (BEConcat
+                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
+                      (BCSnoc BCEmp 1) Right)
+                   (BEVar (Sum.H ParseOne.header ParseZero.header)
+                      (BVarTop BCEmp 1))) 0 0)
              (BELit (Sum.H ParseOne.header ParseZero.header)
                 (BCSnoc BCEmp 1) [false])) ⇒ bfalse) by admit.
   (* Now the constraint is cleared to the other side. *)
