@@ -43,49 +43,6 @@ Lemma prebisim_negative:
                       cr_rel := btrue;
                    |}.
 Proof.
-  run_bisim top top' r_states.
-  (* Cheat: massage constraint to what I think we should get when we phrase conf_rels positively. *)
-  replace ((BREq
-           (BESlice
-              (BEConcat
-                 (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                    (BCSnoc BCEmp 1) Left)
-                 (BEVar (Sum.H ParseOne.header ParseZero.header)
-                    (BVarTop BCEmp 1))) 0 0)
-           (BELit (Sum.H ParseOne.header ParseZero.header)
-              (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
-        ⇒ (BREq
-             (BESlice
-                (BEConcat
-                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                      (BCSnoc BCEmp 1) Right)
-                   (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1))) 0 0)
-             (BELit (Sum.H ParseOne.header ParseZero.header)
-                (BCSnoc BCEmp 1) [false]) ⇒ bfalse)) with
-          (((BREq
-           (BESlice
-              (BEConcat
-                 (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                    (BCSnoc BCEmp 1) Left)
-                 (BEVar (Sum.H ParseOne.header ParseZero.header)
-                    (BVarTop BCEmp 1))) 0 0)
-           (BELit (Sum.H ParseOne.header ParseZero.header)
-              (BCSnoc BCEmp 1) [true]) ⇒ bfalse)
-        ⇒ BREq
-             (BESlice
-                (BEConcat
-                   (BEBuf (Sum.H ParseOne.header ParseZero.header)
-                      (BCSnoc BCEmp 1) Right)
-                   (BEVar (Sum.H ParseOne.header ParseZero.header)
-                      (BVarTop BCEmp 1))) 0 0)
-             (BELit (Sum.H ParseOne.header ParseZero.header)
-                (BCSnoc BCEmp 1) [false])) ⇒ bfalse) by admit.
-  (* Now the constraint is cleared to the other side. *)
-  run_bisim top top' r_states.
-  (* These two steps also skip a constraint that should move to the other side,
-     but the one we have is enough to make closure fail. *)
-  run_bisim top top' r_states.
-  run_bisim top top' r_states.
-  Fail close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  Fail time "close phase" close_bisim top'.
 Abort.
