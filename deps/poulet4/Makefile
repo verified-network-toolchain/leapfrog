@@ -25,10 +25,13 @@ install:
 clean:
 	dune clean -p poulet4
 
-benchmarks: smallfilter babyip
+benchmarks: smallfilter babyip mplsvectorized
 
 smallfilter: build
 	xargs coqc lib/P4automata/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
 
 babyip: build
 	xargs coqc lib/P4automata/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
+
+mplsvectorized: build
+	xargs coqc lib/P4automata/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
