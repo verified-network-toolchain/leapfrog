@@ -42,7 +42,6 @@ Lemma prebisim_negative:
                       cr_rel := btrue;
                    |}.
 Proof.
-
   run_bisim top top' r_states.
   (* First cheat: manually push concat with empty buffer on the left by fiat. *)
   replace (BEConcat
@@ -89,4 +88,4 @@ Proof.
   run_bisim top top' r_states.
   run_bisim top top' r_states.
   Fail close_bisim top'.
-Time Admitted.
+Abort.
