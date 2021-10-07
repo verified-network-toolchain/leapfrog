@@ -16,41 +16,6 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
-RegisterPrim (@TVar (sig A) (CEmp _) (Bits 0)) "p4a.core.var".
-RegisterPrim (@TFun (sig A) (CEmp _) [] (Bits 0)) "p4a.core.fun".
-
-RegisterPrim (@VHere (sig A) (CEmp _) (Bits 0)) "p4a.core.vhere".
-RegisterPrim (@VThere (sig A) (CEmp _) (Bits 0) (Bits 0)) "p4a.core.vthere".
-
-
-RegisterPrim (@FEq (sig A) (CEmp _) (Bits 0)) "p4a.core.eq".
-RegisterPrim (@FTrue (sig A) (CEmp _)) "p4a.core.tt".
-RegisterPrim (@FFalse (sig A) (CEmp _)) "p4a.core.ff".
-RegisterPrim (@FRel (sig A) (CEmp _)) "p4a.core.rel".
-RegisterPrim (@FNeg (sig A) (CEmp _)) "p4a.core.neg".
-RegisterPrim (@FOr (sig A) (CEmp _)) "p4a.core.or".
-RegisterPrim (@FAnd (sig A) (CEmp _)) "p4a.core.and".
-RegisterPrim (@FForall (sig A) (CEmp _)) "p4a.core.forall".
-
-RegisterPrim (@FImpl (sig A) (CEmp _)) "p4a.core.impl".
-
-RegisterPrim (@CEmp (sig A)) "p4a.core.cnil".
-RegisterPrim (@CSnoc (sig A)) "p4a.core.csnoc".
-
-RegisterPrim (@inl nat bool) "coq.core.inl".
-RegisterPrim (@inr nat bool) "coq.core.inr".
-
-RegisterPrim FirstOrderConfRelSimplified.Bits "p4a.sorts.bits".
-RegisterPrim FirstOrderConfRelSimplified.Store "p4a.sorts.store".
-
-RegisterPrim FirstOrderConfRelSimplified.BitsLit "p4a.funs.bitslit".
-RegisterPrim FirstOrderConfRelSimplified.Concat "p4a.funs.concat".
-RegisterPrim FirstOrderConfRelSimplified.Slice "p4a.funs.slice".
-RegisterPrim FirstOrderConfRelSimplified.Lookup "p4a.funs.lookup".
-
-RegisterPrim (@HList.HNil nat (fun _ => bool)) "p4a.core.hnil".
-RegisterPrim (@HList.HCons nat (fun _ => bool)) "p4a.core.hcons".
-
 RegisterEnvCtors
   (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)
   (ParseZero.Bit, FirstOrderConfRelSimplified.Bits 1).
