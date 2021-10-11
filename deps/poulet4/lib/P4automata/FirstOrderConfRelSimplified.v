@@ -220,13 +220,18 @@ Section AutModel.
   .
   Proof.
     intros.
-    destruct f; autorewrite with simplify_concat_zero_fm;
+    induction f; autorewrite with simplify_concat_zero_fm;
     (try now split; intros; auto);
     autorewrite with interp_fm;
     repeat erewrite <- simplify_concat_zero_corr;
     (try now split; intros; auto).
 
-  Admitted.
+    - split; unfold "~"; intros; apply H0; eapply IHf; auto.
+    - erewrite IHf1. erewrite IHf2. split; intros; auto.
+    - erewrite IHf1. erewrite IHf2. split; intros; auto.
+    - erewrite IHf1. erewrite IHf2. split; intros; auto.
+    - setoid_rewrite IHf. split; intros; auto.
+  Qed.
 
 End AutModel.
 
