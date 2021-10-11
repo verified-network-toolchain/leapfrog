@@ -85,7 +85,7 @@ Section AutModel.
     { simplify_concat_zero (TFun _ (Concat 0 m) (_ ::: x ::: _)) := simplify_concat_zero _;
       simplify_concat_zero (TFun _ (Concat (Datatypes.S n) m) args) := TFun _ _ _;
       simplify_concat_zero (TFun _ (BitsLit n xs) args) := TFun _ _ args;
-      simplify_concat_zero (TFun _ (Slice n hi lo) args) := TFun _ _ args;
+      simplify_concat_zero (TFun _ (Slice n hi lo) args) := TFun _ _ _;
       simplify_concat_zero (TFun _ (Lookup n k) args) := TFun _ _ args;
       simplify_concat_zero (TVar x) := TVar x;
     }.
@@ -112,25 +112,96 @@ Section AutModel.
   exact (simplify_concat_zero _ _ X ::: simplify_concat_zero _ _ X1 ::: hnil).
   Defined.
   Next Obligation.
+  exact [Bits n].
+  Defined.
+  Next Obligation.
+  simpl.
+  unfold simplify_concat_zero_obligations_obligation_6.
   exact (Slice n hi lo).
   Defined.
   Next Obligation.
-  exact (Lookup n k).
+  unfold simplify_concat_zero_obligations_obligation_6, simplify_concat_zero_obligations_obligation_7.
+  inversion args.
+  exact ((simplify_concat_zero _ _ X) ::: X0).
   Defined.
+  Next Obligation.
+  exact (Lookup n k). 
+  Defined.
+  
+
+
+
+  Import Coq.Program.Equality. 
+
+  Lemma interp_zero_tm : 
+    forall ctx (t: tm ctx (Bits 0)) v,
+      interp_tm (m := fm_model) v t = tt.
+  Proof.
+  Admitted.
+
+  Lemma concat_emp' : 
+    forall n (t: n_tuple bool n), n_tuple_concat (tt: n_tuple _ 0) t = t.
+  Proof.
+    (* eapply concat_emp. *)
+  Admitted.
 
   Lemma simplify_concat_zero_corr :
-    forall ctx v srt (t : tm ctx srt),
+    forall ctx srt (t : tm ctx srt) v,
       interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
   Proof.
-    intros.
-    induction t. (* this doesn't actually give an IHOP? *)
-    (* also promising: tm_ind *)
+
+    pose proof (tm_ind' sig). 
+    specialize (H0 (fun c srt (t : tm c srt) => forall v, interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := c) t))).
+    apply H0; clear H0; intros.
     - autorewrite with simplify_concat_zero.
       trivial.
-    - induction s; cbn; autorewrite with simplify_concat_zero; trivial.
-      (* need an IHOP for this goal... *)
-      admit.
-  Admitted.
+    - destruct srt;
+      autorewrite with simplify_concat_zero.
+      + unfold simplify_concat_zero_obligations_obligation_1.
+        trivial.
+      + dependent destruction hl.
+        dependent destruction hl.
+        dependent destruction hl.
+        simpl in H0.
+        destruct H0 as [? [? _]].
+
+        destruct n.
+        * autorewrite with simplify_concat_zero.
+          unfold simplify_concat_zero_obligations_obligation_2.
+          erewrite <- H1.
+          autorewrite with interp_tm.
+          simpl.
+          autorewrite with mod_fns.
+
+          pose proof concat_emp.
+          erewrite interp_zero_tm.
+          erewrite concat_emp'.
+          trivial.
+        * autorewrite with simplify_concat_zero.
+          unfold simplify_concat_zero_obligations_obligation_4.
+          unfold simplify_concat_zero_obligations_obligation_5.
+          unfold eq_rect_r.
+          simpl.
+          autorewrite with interp_tm.
+          unfold interp_tms.
+          unfold simplify_concat_zero_obligations_obligation_3.
+        
+          erewrite H0.
+          erewrite H1.
+          trivial.
+      + unfold simplify_concat_zero_obligations_obligation_7, simplify_concat_zero_obligations_obligation_8.
+        simpl.
+        dependent destruction hl.
+        dependent destruction hl.
+        unfold eq_rect_r.
+        simpl in *.
+        destruct H0 as [? _].
+        autorewrite with interp_tm.
+        simpl.
+        erewrite <- H0.
+        trivial.
+      + unfold simplify_concat_zero_obligations_obligation_9; trivial. 
+  Qed.
 
   Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
     simplify_concat_zero_fm FTrue := FTrue;
@@ -148,6 +219,13 @@ Section AutModel.
       interp_fm valu f <-> interp_fm (m := fm_model) valu (simplify_concat_zero_fm f)
   .
   Proof.
+    intros.
+    destruct f; autorewrite with simplify_concat_zero_fm;
+    (try now split; intros; auto);
+    autorewrite with interp_fm;
+    repeat erewrite <- simplify_concat_zero_corr;
+    (try now split; intros; auto).
+
   Admitted.
 
 End AutModel.

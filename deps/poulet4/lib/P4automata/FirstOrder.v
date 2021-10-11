@@ -91,6 +91,20 @@ Section FOL.
         tm c ret.
   Derive Signature for tm.
 
+  Section Tm_Ind.
+
+    Variable (P: forall (c: ctx) (srt: sig_sorts sig), tm c srt -> Prop).
+
+    Lemma tm_ind' : 
+      (forall c s v, P c s (TVar c s v)) -> 
+      (forall c args ret srt (hl : HList.t (tm c) args), 
+        HList.all (fun srt => P c srt) hl ->
+        P c ret (TFun c args ret srt hl)) ->
+      forall c srt tm, P c srt tm.
+    Proof.
+    Admitted.
+  End Tm_Ind.
+
   (* First-order formulas. *)
   Inductive fm: ctx -> Type :=
   | FTrue: forall c, fm c
