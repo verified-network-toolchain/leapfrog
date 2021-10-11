@@ -29,6 +29,14 @@ Module HList.
     | HNil _ => HNil _
     | HCons a x hl => HCons _ (f a x) (map f hl)
     end.
+
+  Definition all {A B} (P: forall a: A, B a -> Prop) : forall l, @t A B l -> Prop := 
+    fix all_rec l hl := 
+      match hl with 
+        | HNil _ => True
+        | HCons a x hlt => P a x /\ all_rec _ hlt
+      end.
+
 End HList.
 
 Module HListNotations.
@@ -165,6 +173,10 @@ Section FOL.
             interp_fm (CSnoc c s) (VSnoc _ _ val v) f }.
   End Interp.
 
+  Section Interp_Induction.
+    Variable (m: model).
+
+
   Fixpoint app_ctx (c1 c2: ctx): ctx :=
     match c2 with
     | CEmp => c1
@@ -291,6 +303,8 @@ Section FOL.
      forall valu,
        interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
   Proof.
+    intros.
+    induction phi.
   Admitted.
 
   Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {
