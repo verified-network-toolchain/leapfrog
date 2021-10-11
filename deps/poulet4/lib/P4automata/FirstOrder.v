@@ -173,9 +173,6 @@ Section FOL.
             interp_fm (CSnoc c s) (VSnoc _ _ val v) f }.
   End Interp.
 
-  Section Interp_Induction.
-    Variable (m: model).
-
 
   Fixpoint app_ctx (c1 c2: ctx): ctx :=
     match c2 with
@@ -303,8 +300,6 @@ Section FOL.
      forall valu,
        interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
   Proof.
-    intros.
-    induction phi.
   Admitted.
 
   Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {
