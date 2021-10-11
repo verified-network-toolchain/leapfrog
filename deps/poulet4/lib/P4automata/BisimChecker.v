@@ -8,8 +8,6 @@ Require Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
 
 Import List.ListNotations.
-From Hammer Require Import Tactics.
-From Hammer Require Import Hammer.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Poulet4.P4automata.FirstOrderConfRel.
 Require Import Poulet4.P4automata.CompileConfRel.
@@ -119,86 +117,6 @@ Section BisimChecker.
 
 End BisimChecker.
 
-Ltac pbskip :=
-  apply PreBisimulationSkip;
-  [intros;
-   cbn in *;
-   unfold interp_conf_rel, interp_store_rel, interp_conf_state in *;
-   simpl in *;
-   tauto|].
-
-From Hammer Require Import Tactics.
-From Hammer Require Import Reflect.
-From Hammer Require Import Hammer.
-
-Ltac pbskip_hammer :=
-  apply PreBisimulationSkip;
-    [intros [[s1 st1] buf1] [[s2 st2] buf2];
-     repeat (unfold interp_crel,
-             interp_conf_rel,
-             interp_conf_state,
-             interp_store_rel,
-             interp_bit_expr,
-             interp_store_rel,
-             interp_state_template,
-             RelationClasses.relation_conjunction,
-             Relations.interp_rels
-             || cbn);
-     solve [sauto]|].
-
-Ltac solve_bisim' :=
-  match goal with
-  | |- pre_bisimulation _ _ _ _ [] _ _ =>
-    apply PreBisimulationClose
-  | |- pre_bisimulation _ _ _ _ (_::_) _ _ =>
-    pbskip_hammer
-  | |- pre_bisimulation ?a ?wp _ _ (?C::_) _ _ =>
-    let t := fresh "tmp" in
-    pose (t := wp a C);
-    apply PreBisimulationExtend with (W:=t); [reflexivity|];
-    cbv in t;
-    unfold t;
-    clear t;
-    simpl (_ ++ _)
-  | |- _ => progress simpl
-  end.
-
-Ltac pbskip_plain :=
-    apply PreBisimulationSkip;
-     [ intros; cbn in *; unfold interp_conf_rel, interp_store_rel, interp_conf_state, interp_state_template in *;
-        simpl in *;
-      subst;
-      intros;
-      intuition;
-      repeat
-        match goal with
-        | [ X : P4automaton.configuration _ |- _ ] => destruct X as [[? ?] l]; destruct l
-        | [ X : _ * _ |- _ ] => destruct X
-        end;
-        simpl in *; try solve [simpl in *; congruence]
-        |].
-
-Ltac solve_bisim_plain :=
-    match goal with
-    | |- context[WP.wp _ _] =>
-      progress (
-          unfold WP.wp at -1;
-          autounfold with wp;
-          unfold WP.wp_op;
-          simpl)
-    | |- pre_bisimulation _ _ _ _ [] _ _ =>
-      apply PreBisimulationClose
-    | |- pre_bisimulation _ _ _ _ (_::_) _ _ =>
-      pbskip_plain; [idtac]
-    | |- pre_bisimulation ?a ?wp _ _ (?C::_) _ _ =>
-      let t := fresh "tmp" in
-      pose (t := wp a C);
-      apply PreBisimulationExtend with (W:=t); [reflexivity|];
-      cbv in t;
-      subst t
-    | |- _ => progress simpl
-    end.
-
 Lemma forall_exists:
   forall {A B} (P: A -> B -> Prop),
   (exists x y, ~ P x y) ->
@@ -245,79 +163,6 @@ Lemma flip_ex_impl:
 Proof.
   firstorder.
 Qed.
-
-Ltac find v :=
-  match goal with
-  | v := ?value : _ |- _ => value
-  end.
-
-Ltac break_store2 h0 h1 :=
-  repeat match goal with
-  | |- exists (x: P4A.store ?H), @?P x =>
-    cut (exists y0 y1,
-                P ([(h0, P4A.VBits y0);
-                    (h1, P4A.VBits y1)]));
-    [ intros [x0 [x1 ?]];
-      exists ([(h0, P4A.VBits x0);
-          (h1, P4A.VBits x1)]);
-      eauto
-      | trivial
-    ];
-    repeat eexists
-  | |- (forall (x: P4A.store ?H), _) -> False =>
-      intros
-  | H: forall (x: P4A.store ?H), @?P x |- _ =>
-      assert (forall y0 y1,
-                  P ([(h0, P4A.VBits y0);
-                      (h1, P4A.VBits y1)])); [
-      cbn; sauto |
-      sauto
-    ]
-  end.
-
-Ltac break_store4 h0 h1 h2 h3 :=
-  repeat match goal with
-  | |- exists (x: P4A.store ?H), @?P x =>
-    cut (exists y0 y1 y2 y3,
-                P ([(h0, P4A.VBits y0);
-                    (h1, P4A.VBits y1);
-                    (h2, P4A.VBits y2);
-                    (h3, P4A.VBits y3)]));
-    [ intros [x0 [x1 [x2 [x3 ?]]]];
-      exists ([(h0, P4A.VBits x0);
-          (h1, P4A.VBits x1);
-          (h2, P4A.VBits x2);
-          (h3, P4A.VBits x3)]);
-      eauto
-      | trivial
-    ];
-    repeat eexists
-  | |- (forall (x: P4A.store ?H), _) -> False =>
-      intros
-  | H: forall (x: P4A.store ?H), @?P x |- _ =>
-      assert (forall y0 y1 y2 y3,
-                  P ([(h0, P4A.VBits y0);
-                      (h1, P4A.VBits y1);
-                      (h2, P4A.VBits y2);
-                      (h3, P4A.VBits y3)])); [
-      cbn; sauto |
-      sauto
-    ]
-  end.
-
-Ltac break_store :=
-  match goal with
-  | |- context[ P4A.store ?H ] =>
-    let hs := fresh "hdrs" in
-    pose (hs := enum H);
-    cbv in hs;
-    match find hs with
-    | [?h0; ?h1] => break_store2 h0 h1
-    | [?h0; ?h1; ?h2; ?h3] => break_store4 h0 h1 h2 h3
-    | _ => idtac hs
-    end
-  end.
-
 
 
 Ltac extend_bisim r_states :=
