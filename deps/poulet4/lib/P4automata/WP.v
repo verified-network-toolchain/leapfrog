@@ -190,7 +190,7 @@ Section WP.
         cr_rel := wp_lpred Left b prev_l cur_l leap_l
                            (wp_lpred Right b prev_r cur_r leap_r phi_rel) |}].
 
-  Definition reaches (cur prev: state_template a * state_template a) :=
+  Definition reaches (cur prev: state_template a * state_template a) : list (nat * (state_template a * state_template a)) :=
     let '(n, successors) := Reachability.reachable_pair_step' prev in
     if List.In_dec (Reachability.state_pair_eq_dec (a := a))
                    cur
@@ -203,6 +203,36 @@ Section WP.
     let cur_st_right := phi.(cr_st).(cs_st2) in
     let pred_pairs := List.flat_map (reaches (cur_st_left, cur_st_right)) reachable_states in
     List.flat_map (wp_pred_pair phi) pred_pairs.
+
+
+  (*
+S is a relation on pairs
+x, y in wp(S)
+<->
+there exists a string of bits bs
+such that x--[bs]-->x'
+      and y--[bs]-->y'
+with x', y' in S.
+*)
+(*
+s1 {
+  extract(h, 1)
+  if (h)
+    goto s2
+  else
+    goto s3
+}
+s2 {
+  goto accept
+}
+s3 {
+  goto accept
+}
+
+
+what is wp(<s2, s2> |- false) ?
+<s1, s1> |- h = 0
+*)
 
 End WP.
 

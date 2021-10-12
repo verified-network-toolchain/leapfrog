@@ -1058,65 +1058,89 @@ Section WPProofs.
     erewrite (interp_bit_expr_ignores_state e2).
     eauto.
   Qed.
-
-  Lemma wp_concrete_safe :
-    SynPreSynWP.safe_wp_1bit _ _ _ a (WP.wp (H:=H)) top.
-  Proof.
-    unfold SynPreSynWP.safe_wp_1bit.
-    intros.
-    destruct q1 as [[st1 s1] buf1].
-    destruct q2 as [[st2 s2] buf2].
-    unfold WP.wp in * |-.
-    destruct C.
-    destruct a; simpl in * |-.
-    destruct cr_st.
-    unfold WP.wp in * |-.
-    (*
-eier the step is a jump or a read on the left and on the right
-sohat's a total of 4 cases.
-Buin each case you need to massage the WP to line up with it,
-beuse you're not branching on the same thing.
 *)
-    unfold step.
-    unfold interp_conf_rel, interp_conf_state, interp_state_template; intros.
-    simpl in *.
-    intuition.
-    simpl in *.
-    repeat match goal with
-    | |- context [length (?x ++ [_])] =>
-      replace (length (x ++ [_])) with (S (length x)) in *
-        by (rewrite app_length; simpl; rewrite PeanoNat.Nat.add_comm; reflexivity)
-    end.
-    destruct (equiv_dec (S (length buf1)) _), (equiv_dec (S (length buf2)) _);
-      unfold "===" in *;
-      simpl in *.
-    - cbv in H0.
-      destruct cs_st1 as [cst1 bl1] eqn:?, cs_st2 as [cst2 bl2] eqn:?.
-      simpl in *.
-      (* this is a real transition*)
-      destruct st1 as [[st1 | ?] | st1], st2 as [[st2 | ?] | st2];
-        try solve [cbv in H0; tauto].
-      + simpl in *.
-        admit.
-        (* subst bl2.
-        subst bl1.
-        simpl in *. *)
-        (* admit. *)
-      + admit.
-      + admit.
-      + simpl in *.
-        admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - admit.
-    - admit.
-    - (* easiest case probably *)
-      admit.
+
+  Lemma wp_bounded:
+    forall top phi phi' q1 q2,
+      In phi' (wp (a:=a) top phi) ->
+      interp_conf_rel a phi' q1 q2 ->
+      interp_tpairs top q1 q2.
+  Proof.
   Admitted.
 
+  Lemma reaches_prev:
+    forall cur prev prev' size,
+      In (size, prev') (reaches (a:=a) cur prev) ->
+      prev' = prev.
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (Reachability.reachable_pair_step' _) in H0.
+    destruct (in_dec _ _) in H0.
+    - simpl in *; destruct H0.
+      + congruence.
+      + tauto.
+    - simpl in H0; tauto.
+  Qed.
+
+  Lemma wp_pred_pair_safe:
+    forall size t1 t2 phi phi',
+      In phi' (wp_pred_pair (a:=a) phi (size, (t1, t2))) ->
+      forall q1 q2,
+        interp_conf_rel a phi' q1 q2 ->
+        forall bs,
+          length bs = size ->
+          interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
+  Proof.
+    unfold wp_pred_pair.
+    intros.
+    simpl in *; destruct H0; try tauto.
+    subst phi'.
+    unfold interp_conf_rel, interp_conf_state, interp_state_template in H1.
+    simpl in *.
+  Admitted.
+
+  (* prove this first *)
+  Theorem wp_safe:
+    forall top phi phi',
+      In phi' (wp (a:=a) top phi) ->
+      forall q1 q2,
+        interp_tpairs top q1 q2 ->
+        interp_conf_rel a phi' q1 q2 ->
+        exists size,
+        forall bs,
+          List.length bs = size ->
+          interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
+  Proof.
+    intros.
+    unfold wp in *.
+    repeat match goal with
+           | H: In _ (flat_map _ _) |- _ =>
+             apply in_flat_map_Exists in H
+           | H: Exists _ _ |- _ =>
+             apply Exists_exists in H
+           | H: exists _, _ |- _ => destruct H
+           | H: _ /\ _ |- _ => destruct H
+           end.
+    destruct x as [size [t1 t2]].
+    exists size; intros.
+    eapply wp_pred_pair_safe in H3; eauto.
+  Qed.
+  
+  (* prove this later *)
+  Theorem wp_complete:
+    forall top phi,
+      forall bs q1 q2,
+        List.Exists (fun '(t1, t2) => interp_state_template t1 q1 /\
+                                    interp_state_template t2 q2) top ->
+        interp_conf_rel a phi (follow q1 bs) (follow q2 bs) ->
+        exists phi',
+          interp_conf_rel a phi' q1 q2 /\
+          In phi' (wp (a:=a) top phi).
+  Proof.
+  Admitted.
+
+  (*
   Lemma syn_pre_1bit_concrete_implies_sem_pre:
   forall R S q1 q2,
     SynPreSynWP.ctopbdd _ _ _ a top R ->
@@ -1130,6 +1154,6 @@ beuse you're not branching on the same thing.
   Proof.
     eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
   Qed.
-
 *)
+
 End WPProofs.

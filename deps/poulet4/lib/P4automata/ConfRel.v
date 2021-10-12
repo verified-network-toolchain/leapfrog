@@ -131,6 +131,16 @@ Section ConfRel.
     congruence.
   Qed.
 
+  Fixpoint interp_tpairs (sts: list (state_template * state_template)) (q1 q2: conf) : Prop :=
+    match sts with
+    | [] =>
+      False
+    | (st1, st2) :: sts =>
+      (interp_state_template st1 q1 /\
+       interp_state_template st2 q2)
+      \/ interp_tpairs sts q1 q2
+    end.
+
   Inductive side := Left | Right.
   Derive NoConfusion for side.
   Derive EqDec for side.
