@@ -133,17 +133,19 @@ Section AutModel.
 
   Import Coq.Program.Equality. 
 
+  Lemma concat_emp' : 
+    forall n (t: n_tuple bool n), n_tuple_concat (tt: n_tuple _ 0) t = t.
+  Proof.
+    (* eapply concat_emp. *)
+  Admitted.
+
   Lemma interp_zero_tm : 
     forall ctx (t: tm ctx (Bits 0)) v,
       interp_tm (m := fm_model) v t = tt.
   Proof.
   Admitted.
 
-  Lemma concat_emp' : 
-    forall n (t: n_tuple bool n), n_tuple_concat (tt: n_tuple _ 0) t = t.
-  Proof.
-    (* eapply concat_emp. *)
-  Admitted.
+  
 
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,

@@ -95,14 +95,24 @@ Section FOL.
 
     Variable (P: forall (c: ctx) (srt: sig_sorts sig), tm c srt -> Prop).
 
-    Lemma tm_ind' : 
-      (forall c s v, P c s (TVar c s v)) -> 
-      (forall c args ret srt (hl : HList.t (tm c) args), 
+    Definition tm_ind' 
+      (PV : forall c s v, P c s (TVar c s v))
+      (PF: forall c args ret srt (hl : HList.t (tm c) args), 
         HList.all (fun srt => P c srt) hl ->
-        P c ret (TFun c args ret srt hl)) ->
-      forall c srt tm, P c srt tm.
-    Proof.
-    Admitted.
+        P c ret (TFun c args ret srt hl)) : 
+      forall c srt tm, P c srt tm :=
+      fix tirec (c: ctx) (srt: sig_sorts sig) (t: tm c srt) {struct t} := 
+      match t with 
+      | TVar c' s' v => PV c' s' v
+      | TFun c' args ret srt' hl => PF _ _ _ _ _
+        ((fix hlrec l h {struct h} := 
+          match h as h' return 
+            HList.all (fun srt : sig_sorts sig => P c' srt) h' with 
+          | hnil => I
+          | x ::: hlt => conj (tirec _ _ x) (hlrec _ hlt)
+          end
+        ) args hl)
+      end.
   End Tm_Ind.
 
   (* First-order formulas. *)
