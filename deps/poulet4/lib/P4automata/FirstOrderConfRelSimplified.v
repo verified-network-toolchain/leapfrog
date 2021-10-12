@@ -139,12 +139,39 @@ Section AutModel.
     (* eapply concat_emp. *)
   Admitted.
 
+  Lemma interp_zero_tmfuns : 
+    forall ctx v args t (s : sig_funs sig args (Bits 0)), 
+      interp_tm (c := ctx) (m := fm_model) v (TFun sig s t) = tt.
+  Admitted.
+
   Lemma interp_zero_tm : 
     forall ctx (t: tm ctx (Bits 0)) v,
       interp_tm (m := fm_model) v t = tt.
   Proof.
-  Admitted.
-
+    intros.
+    dependent destruction t.
+  
+    - pose proof (valu_ind sig fm_model).
+      
+      specialize (H0 (fun c v' => 
+        forall (v: var sig c (Bits 0)), interp_tm v' (TVar v) = tt
+      )).
+      generalize v.
+      generalize v0.
+      eapply H0; clear v v0 H0; intros.
+      + dependent destruction v.
+      + dependent destruction v0.
+        * autorewrite with interp_tm.
+          autorewrite with find.
+          destruct m.
+          trivial.
+        *
+          specialize (H0 v0).
+          autorewrite with interp_tm in *.
+          autorewrite with find.
+          auto.
+    - eapply interp_zero_tmfuns.
+  Qed.
   
 
   Lemma simplify_concat_zero_corr :
