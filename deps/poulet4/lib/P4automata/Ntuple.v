@@ -67,8 +67,60 @@ Fixpoint n_tuple_repeat {A: Type} (n: nat) (a: A) : n_tuple A n :=
   | S n => ((n_tuple_repeat n a), a)
   end.
 
+Definition p_l_trans x y : S x + y = S (x + y) := eq_refl.
+
+Import EqNotations.
+
+Definition plus_zero_trans : forall n, n + 0 = n.
+  refine (fix pztrec n := 
+    match n with 
+    | 0 => eq_refl
+    | S n' => 
+      let HR := pztrec n' in 
+      let HR' := p_l_trans n' 0 in
+        _
+    end
+  ).
+  rewrite HR'.
+  rewrite HR.
+  exact eq_refl.
+  Defined.
+
+Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
+  refine (fix satrec n {struct n} := 
+    match n with 
+    | 0 => eq_refl
+    | S m' => 
+      let hr := satrec m' in 
+        _
+    end
+  ).
+  simpl.
+  rewrite hr.
+  simpl.
+  exact eq_refl.
+  Defined.
+
+
+
+Definition plus_comm_trans (n: nat) : forall m, n + m = m + n.
+  refine (fix pctrec m {struct m} := 
+    match m with 
+    | 0 => _
+    | S m' => _
+    end
+  ).
+  - rewrite (plus_zero_trans n).
+    simpl.
+    exact eq_refl.
+  - rewrite (succ_add_trans m' n).
+    simpl.
+    rewrite (pctrec m').
+    exact eq_refl.
+  Defined.
+
 Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m).
-  rewrite Plus.plus_comm.
+  rewrite plus_comm_trans.
   exact (n_tuple_concat' xs ys).
 Defined.
 
@@ -158,7 +210,7 @@ Proof.
   pose proof (concat'_emp _ _ t).
   rewrite <- H.
   generalize (n_tuple_concat' (tt: n_tuple A 0) t).
-  generalize (eq_sym (PeanoNat.Nat.add_comm 0 n)).
+  generalize (eq_sym (plus_comm_trans 0 n)).
   generalize (n+0) (0+n).
   intros n0 n1 e.
   subst n0.
@@ -188,8 +240,8 @@ Lemma concat_cons:
 Proof.
   intros.
   unfold n_tuple_concat.
-  generalize (PeanoNat.Nat.add_comm (1 + n) m).
-  generalize (PeanoNat.Nat.add_comm n m).
+  generalize (plus_comm_trans (1 + n) m).
+  generalize (plus_comm_trans n m).
   remember (n + m) as nm.
   intros e e0.
   rewrite e, e0.
@@ -247,7 +299,7 @@ Proof.
       unfold n_tuple_concat.
       unfold eq_rect_r.
       intro n1.
-      generalize (eq_sym (PeanoNat.Nat.add_comm n1 1)).
+      generalize (eq_sym (plus_comm_trans n1 1)).
       intros.
       cbn in *.
       destruct e.
