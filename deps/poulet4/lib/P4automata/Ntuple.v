@@ -157,7 +157,7 @@ Next Obligation.
   rewrite firstn_length.
   rewrite t2l_len.
   exact eq_refl.
-Qed.
+Defined.
 
 Program Definition n_tuple_skip_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (m - n) :=
   rewrite_size _ (l2t (skipn n (t2l xs))).
@@ -165,7 +165,7 @@ Next Obligation.
   rewrite skipn_length.
   rewrite t2l_len.
   exact eq_refl.
-Qed.
+Defined.
 
 Program Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple A (Nat.min (1 + hi) n - lo) :=
   n_tuple_skip_n lo (n_tuple_take_n (1 + hi) xs).

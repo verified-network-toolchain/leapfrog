@@ -139,26 +139,34 @@ Section AutModel.
     (* eapply concat_emp. *)
   Admitted.
 
-  Lemma interp_zero_tmfuns : 
-    forall ctx v args t (s : sig_funs sig args (Bits 0)), 
-      interp_tm (c := ctx) (m := fm_model) v (TFun sig s t) = tt.
-  Admitted.
 
   Lemma interp_zero_tm : 
-    forall ctx (t: tm ctx (Bits 0)) v,
-      interp_tm (m := fm_model) v t = tt.
+    forall c srt (t: tm c srt),
+      match srt as srt' return (tm c srt') -> Prop with 
+      | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
+      | _ => fun _ => True
+      end t.
   Proof.
-    intros.
-    dependent destruction t.
-  
-    - pose proof (valu_ind sig fm_model).
-      
-      specialize (H0 (fun c v' => 
-        forall (v: var sig c (Bits 0)), interp_tm v' (TVar v) = tt
+    pose proof (tm_ind' sig (
+      fun c srt (t : tm c srt) => 
+        match srt as srt' return (tm c srt') -> Prop with 
+        | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
+        | _ => fun _ => True
+        end t
+    )).
+
+    simpl in H0.
+    eapply H0; clear H0.
+    - destruct s; trivial.
+      destruct n; trivial.
+      intros.
+      generalize v; clear v.
+      generalize v0; clear v0.
+      generalize c; clear c.
+      pose proof (valu_ind sig fm_model ( fun c val => 
+        forall (v : var sig c (Bits 0)), interp_tm val (TVar v) = tt
       )).
-      generalize v.
-      generalize v0.
-      eapply H0; clear v v0 H0; intros.
+      eapply H0; clear H0; intros.
       + dependent destruction v.
       + dependent destruction v0.
         * autorewrite with interp_tm.
@@ -170,8 +178,71 @@ Section AutModel.
           autorewrite with interp_tm in *.
           autorewrite with find.
           auto.
-    - eapply interp_zero_tmfuns.
-  Qed.
+    - intros. 
+      destruct ret; trivial.
+      destruct n; trivial.
+      dependent destruction srt.
+      + dependent destruction hl.
+        simpl in *.
+        intros.
+        autorewrite with interp_tm.
+        simpl.
+        autorewrite with mod_fns.
+        destruct n0.
+        trivial.
+      +
+        destruct n; [|exfalso; Lia.lia].
+        destruct m; [|exfalso; Lia.lia].
+        erewrite <- (JMeq_eq x).
+
+        dependent destruction hl.
+        dependent destruction hl.
+        dependent destruction hl.
+        simpl in H0.
+        destruct H0 as [? [? _]].
+        intros.
+        autorewrite with interp_tm.
+        simpl.
+        autorewrite with mod_fns.
+        erewrite H0.
+        erewrite H1.
+        cbv.
+        trivial.
+      + dependent destruction hl.
+        dependent destruction hl.
+
+        destruct n.
+        
+        * erewrite <- (JMeq_eq x).
+          intros.
+          simpl in H0.
+          destruct H0 as [? _].
+          autorewrite with interp_tm.
+          simpl.
+
+          Transparent mod_fns.
+          Opaque n_tuple_slice.
+          cbv.
+          erewrite H0.
+
+          destruct (n_tuple_slice hi lo (tt : n_tuple bool 0)).
+          trivial.
+        * clear H0.
+          set (foo := Slice (Datatypes.S n) hi lo) in x.
+          (* if only we could rewrite with x0 in foo... *)
+         admit.
+      + dependent destruction hl.
+        dependent destruction hl.
+        simpl in *.
+        intros.
+        autorewrite with interp_tm.
+        Opaque mod_fns.
+        simpl.
+        autorewrite with mod_fns.
+        destruct (P4A.find H h (interp_tm v t)).
+        destruct n.
+        trivial.
+  Admitted.
   
 
   Lemma simplify_concat_zero_corr :

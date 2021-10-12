@@ -188,10 +188,25 @@ Section CompileFirstOrderConfRelSimplified.
   }.
 
   Lemma compile_simplified_fm_bv_correct:
-      forall fm,
-        interp_fm (m := FOS.fm_model a) (VEmp _ _) fm <->
-        interp_fm (m := FOBV.fm_model) (VEmp _ _) (compile_fm fm)
+      forall c' v v' fm,
+        
+        interp_fm (m := FOS.fm_model a) v fm <->
+        interp_fm (m := FOBV.fm_model) v' (compile_fm (c := c') fm)
         .
   Proof.
+    intros.
+    pose proof (fm_ind (FOS.sig H) (fun c (fm : FirstOrder.fm (FOS.sig H) c) => 
+      interp_fm (VEmp (FOS.sig H) (FOS.fm_model a)) fm <->
+      interp_fm (VEmp FOBV.sig FOBV.fm_model) (compile_fm fm)
+    )).
+    eapply fm_ind.
+    10: {
+      exact fm.
+    }
+
+    9 : {
+      intros.
+      exact H1.
+    }
   Admitted.
 End CompileFirstOrderConfRelSimplified.

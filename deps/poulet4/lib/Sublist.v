@@ -217,7 +217,7 @@ Proof.
   + destruct n; simpl.
     - reflexivity.
     - apply IHcontents.
-Qed.
+Defined.
 
 Lemma nth_firstn: forall {A} (contents: list A) n m d,
   (n < m)%nat ->
