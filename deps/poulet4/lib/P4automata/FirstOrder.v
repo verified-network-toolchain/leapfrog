@@ -246,7 +246,7 @@ Section FOL.
     - reflexivity.
     - simpl.
       congruence.
-  Qed.
+  Defined.
 
   Lemma app_ctx_app_ctx':
     forall c1 c2,
@@ -266,7 +266,7 @@ Section FOL.
       rewrite <- IHc1.
       simpl.
       reflexivity.
-  Qed.
+  Defined.
 
   Lemma app_ctx'_app_ctx:
     forall c1 c2,
@@ -275,7 +275,7 @@ Section FOL.
     intros.
     apply eq_sym.
     apply app_ctx_app_ctx'.
-  Qed.
+  Defined.
 
   Fixpoint quantify {c0: ctx} (c: ctx): fm (app_ctx c0 c) -> fm c0 :=
     match c as c' return fm (app_ctx c0 c') -> fm c0 with
@@ -318,12 +318,24 @@ Section FOL.
     { quantify' c f := quantify c (eq_rect _ (fun x => fm x) f (app_ctx c0 c)
                                            (app_ctx'_app_ctx _ _)) }.
 
-  Lemma quantify'_correct:
-    forall m c c' (v': valu m c') phi,
-     interp_fm m c' v' (quantify' c phi) <->
-     forall valu,
-       interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
+  Definition quantify'_correct
+    m c c' (v': valu m c'):
+    forall phi, 
+      interp_fm m c' v' (quantify' c phi) <->
+      forall valu,
+        interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
   Proof.
+    intros.
+    dependent induction phi.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {

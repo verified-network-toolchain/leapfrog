@@ -195,18 +195,5 @@ Section CompileFirstOrderConfRelSimplified.
         .
   Proof.
     intros.
-    pose proof (fm_ind (FOS.sig H) (fun c (fm : FirstOrder.fm (FOS.sig H) c) => 
-      interp_fm (VEmp (FOS.sig H) (FOS.fm_model a)) fm <->
-      interp_fm (VEmp FOBV.sig FOBV.fm_model) (compile_fm fm)
-    )).
-    eapply fm_ind.
-    10: {
-      exact fm.
-    }
-
-    9 : {
-      intros.
-      exact H1.
-    }
   Admitted.
 End CompileFirstOrderConfRelSimplified.

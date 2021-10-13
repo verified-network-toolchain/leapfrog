@@ -274,7 +274,9 @@ Section AutModel.
           autorewrite with mod_fns.
 
           pose proof concat_emp.
-          erewrite interp_zero_tm.
+          pose proof (@interp_zero_tm c (Bits 0)).
+          simpl in H3.
+          erewrite H3.
           erewrite concat_emp'.
           trivial.
         * autorewrite with simplify_concat_zero.
