@@ -47,15 +47,6 @@ Section CompileConfRelSimplified.
 
   Arguments compile_bval {_} _.
 
-  (* Definition compile_bval {c: bctx} (v: bval c) : valu _ (fm_model a) (compile_bctx c) := 
-    (fix cbr (c: bctx) : bval c -> valu _ (fm_model a) (compile_bctx c) := 
-      match c as c' return bval c' -> valu _ (fm_model a) (compile_bctx c') with 
-      | BCEmp => fun _ => (VEmp _ _)
-      | BCSnoc c' n => 
-        fun '(x, y) => VSnoc _ (fm_model a) (Bits n) _ y (cbr c' x)
-      end
-    ) c v. *)
-
   Equations decompile_val (c: bctx) (v: valu _ (fm_model a) (compile_bctx c)) : bval c by struct c := {
       decompile_val BCEmp _ := tt;
       decompile_val (BCSnoc c' n) (VSnoc _ _ _ _ x v') := (decompile_val c' v', x);
