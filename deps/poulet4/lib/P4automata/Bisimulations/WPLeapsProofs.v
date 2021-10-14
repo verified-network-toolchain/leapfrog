@@ -10,6 +10,7 @@ Require Import Poulet4.Relations.
 Require Import Poulet4.P4automata.Bisimulations.Leaps.
 Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
 Require Import Poulet4.P4automata.Bisimulations.AlgorithmicProofs.
+Require Import Poulet4.P4automata.Reachability.
 
 Section WPLeapsProofs.
 
@@ -46,17 +47,68 @@ Section WPLeapsProofs.
   Notation "R ⊨ S" := (interp_entailment a top {| e_prem := R; e_concl := S |}) (at level 40).
   Notation δ := step.
 
-  Lemma wp_leaps_implies_bisim_leaps:
+  Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
+    ({| cr_st :=
+          {| cs_st1 := {| st_state := s1; st_buf_len := n1 |};
+             cs_st2 := {| st_state := s2; st_buf_len := n2 |}; |};
+        cr_ctx := ctx;
+        cr_rel := b|}) (at level 10).
+  Notation btrue := (BRTrue _ _).
+  Notation bfalse := (BRFalse _ _).
+
+  Lemma interp_crel_app:
+    forall R1 R2 q1 q2,
+      interp_crel a top (R1 ++ R2) q1 q2 <->
+      interp_crel a top R1 q1 q2 /\
+      interp_crel a top R2 q1 q2.
+  Proof.
+  Admitted.
+
+  Lemma pre_bisimulation_implies_interp_crel:
     forall R T S q1 q2,
       pre_bisimulation a wp top R T S ->
-      interp_conf_rel a S q1 q2 ->
-      Leaps.bisimilar_with_leaps (P4A.interp a) q1 q2.
+      interp_conf_rel' S q1 q2 ->
+      top q1 q2 ->
+      interp_crel a top (T ++ R) q1 q2.
   Proof.
     intros.
-    cofix C.
-    constructor.
-    - admit.
-    - revert H0.
+    induction H0.
+    - rewrite app_nil_l.
+      apply H0; simpl; auto.
+    - destruct H0; [|contradiction].
+      specialize (IHpre_bisimulation H1).
+      repeat rewrite interp_crel_app in *.
+      rewrite interp_crel_cons in *.
+      intuition.
+    - destruct H0; [contradiction|].
+      specialize (IHpre_bisimulation H1).
+      repeat rewrite interp_crel_app in *.
+      rewrite interp_crel_cons in *.
+      intuition.
+  Qed.
+
+  Lemma pre_bisimulation_implies_equally_accepting:
+    forall S q1 q2 s1 s2,
+      pre_bisimulation a wp top []
+        (mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2) S ->
+      interp_conf_rel' S q1 q2 ->
+      top q1 q2 ->
+      (accepting q1 <-> accepting q2).
+  Proof.
+  Admitted.
+
+  Lemma wp_leaps_implies_bisim_leaps:
+    forall S q1 q2 s1 s2,
+      pre_bisimulation a wp top []
+        (mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2) S ->
+      interp_conf_rel' S q1 q2 ->
+      top q1 q2 ->
+      bisimilar_with_leaps (P4A.interp a) q1 q2.
+  Proof.
+    intros; cofix C; constructor.
+    - eapply pre_bisimulation_implies_equally_accepting;
+      [exact H0 | auto | auto].
+    - (* Guarded. *)
   Abort.
 
 End WPLeapsProofs.

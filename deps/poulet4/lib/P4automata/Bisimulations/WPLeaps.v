@@ -142,8 +142,7 @@ Section WPLeaps.
 
   Definition mk_init (n: nat) s1 s2 :=
     List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ a)
-               (mk_partition
-                  (Reachability.reachable_states a n s1 s2)).
+               (mk_partition (Reachability.reachable_states a n s1 s2)).
 
   Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
     match x with
