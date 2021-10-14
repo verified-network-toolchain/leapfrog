@@ -30,9 +30,9 @@ Module HList.
     | HCons a x hl => HCons _ (f a x) (map f hl)
     end.
 
-  Definition all {A B} (P: forall a: A, B a -> Prop) : forall l, @t A B l -> Prop := 
-    fix all_rec l hl := 
-      match hl with 
+  Definition all {A B} (P: forall a: A, B a -> Prop) : forall l, @t A B l -> Prop :=
+    fix all_rec l hl :=
+      match hl with
         | HNil _ => True
         | HCons a x hlt => P a x /\ all_rec _ hlt
       end.
@@ -95,19 +95,19 @@ Section FOL.
 
     Variable (P: forall (c: ctx) (srt: sig_sorts sig), tm c srt -> Prop).
 
-    Definition tm_ind' 
+    Definition tm_ind'
       (PV : forall c s v, P c s (TVar c s v))
-      (PF: forall c args ret srt (hl : HList.t (tm c) args), 
+      (PF: forall c args ret srt (hl : HList.t (tm c) args),
         HList.all (fun srt => P c srt) hl ->
-        P c ret (TFun c args ret srt hl)) : 
+        P c ret (TFun c args ret srt hl)) :
       forall c srt tm, P c srt tm :=
-      fix tirec (c: ctx) (srt: sig_sorts sig) (t: tm c srt) {struct t} := 
-      match t with 
+      fix tirec (c: ctx) (srt: sig_sorts sig) (t: tm c srt) {struct t} :=
+      match t with
       | TVar c' s' v => PV c' s' v
       | TFun c' args ret srt' hl => PF _ _ _ _ _
-        ((fix hlrec l h {struct h} := 
-          match h as h' return 
-            HList.all (fun srt : sig_sorts sig => P c' srt) h' with 
+        ((fix hlrec l h {struct h} :=
+          match h as h' return
+            HList.all (fun srt : sig_sorts sig => P c' srt) h' with
           | hnil => I
           | x ::: hlt => conj (tirec _ _ x) (hlrec _ hlt)
           end
@@ -320,7 +320,7 @@ Section FOL.
 
   Definition quantify'_correct
     m c c' (v': valu m c'):
-    forall phi, 
+    forall phi,
       interp_fm m c' v' (quantify' c phi) <->
       forall valu,
         interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
@@ -400,6 +400,34 @@ Section FOL.
     { weaken_tms _ _ _ hnil := hnil;
       weaken_tms _ _ _ (t ::: ts) :=
         weaken_tm _ _ c2 t ::: weaken_tms _ _ c2 ts }.
+
+  Lemma find_app_left:
+    forall m c1 c2 (val1: valu m c1) (val2: valu m c2) t (v: var c1 t),
+      find m (weaken_var c2 v) (app_valu val1 val2) =
+      find m v val1.
+  Proof.
+    intros; dependent induction c2;
+    autorewrite with weaken_var.
+    - dependent destruction val2.
+      now autorewrite with app_valu.
+    - dependent destruction val2.
+      autorewrite with app_valu; simpl.
+      rewrite find_equation_2.
+      apply IHc2.
+  Qed.
+
+  Lemma find_app_right:
+    forall m c1 c2 (val1: valu m c1) (val2: valu m c2) t (v: var c2 t),
+      find m (reindex_var v) (app_valu val1 val2) =
+      find m v val2.
+  Proof.
+    intros; dependent induction c2.
+    - dependent destruction v.
+    - dependent destruction val2.
+      autorewrite with app_valu.
+      dependent destruction v; simpl;
+      autorewrite with find; auto.
+  Qed.
 
 End FOL.
 

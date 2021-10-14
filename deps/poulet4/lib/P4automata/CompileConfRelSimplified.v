@@ -59,7 +59,7 @@ Section CompileConfRelSimplified.
   Proof.
     intros.
     induction c.
-    - simpl. 
+    - simpl.
       dependent destruction valu.
       trivial.
     - dependent destruction valu.
@@ -109,12 +109,12 @@ Section CompileConfRelSimplified.
         TVar (weaken_var _ (var_buf1 b1 b2));
       compile_bit_expr b1 b2 (BEBuf _ _ Right) :=
         TVar (weaken_var _ (var_buf2 b1 b2));
-      compile_bit_expr b1 b2 (@BEHdr H _ Left (P4A.HRVar h)) :=
+      compile_bit_expr b1 b2 (BEHdr _ Left (P4A.HRVar h)) :=
         TFun (sig H) (Lookup _ _ (projT2 h))
              (TVar (weaken_var _ (var_store1 b1 b2)) ::: hnil);
       compile_bit_expr b1 b2 (BEHdr _ Right (P4A.HRVar h)) :=
         TFun (sig H) (Lookup _ _ (projT2 h))
-             (TVar (weaken_var _ (var_store1 b1 b2)) ::: hnil);
+             (TVar (weaken_var _ (var_store2 b1 b2)) ::: hnil);
       compile_bit_expr b1 b2 (BEVar _ b) :=
         TVar (reindex_var (compile_var b));
       compile_bit_expr b1 b2 (BESlice e hi lo) :=
@@ -197,6 +197,44 @@ Section CompileConfRelSimplified.
                se.(se_st).(cs_st2).(st_buf_len)
                se.(se_prems))).
 
+  Lemma compile_bvar_correct:
+    forall c bval (b: bvar c),
+      interp_bvar bval b =
+      find (sig H) (fm_model a) (compile_var b) (compile_bval bval).
+  Proof.
+    induction c; intros.
+    - dependent destruction b.
+    - destruct bval.
+      dependent destruction b;
+      autorewrite with interp_bvar; auto.
+      now rewrite IHc.
+  Qed.
+
+  Lemma compile_bit_expr_correct:
+    forall c (e: bit_expr H c) bval b1 b2 buf1 buf2 store1 store2,
+      interp_bit_expr e bval buf1 buf2 store1 store2 =
+      let valu := outer_valu buf1 buf2 store1 store2 in
+      interp_tm (m := fm_model a) (app_valu _ valu (compile_bval bval))
+                (compile_bit_expr b1 b2 e).
+  Proof.
+    intros; simpl.
+    induction e; try destruct a0; try destruct h;
+    autorewrite with interp_bit_expr;
+    autorewrite with compile_bit_expr;
+    autorewrite with interp_tm; auto.
+    - now rewrite find_app_left.
+    - now rewrite find_app_left.
+    - simpl; autorewrite with mod_fns.
+      now rewrite find_app_left.
+    - simpl; autorewrite with mod_fns.
+      now rewrite find_app_left.
+    - rewrite find_app_right.
+      apply compile_bvar_correct.
+    - now rewrite IHe.
+    - rewrite IHe1, IHe2.
+      now erewrite <- simplify_concat_zero_corr by typeclasses eauto.
+  Qed.
+
   Lemma compile_store_rel_correct:
     forall c (r: store_rel H c) bval b1 b2 buf1 buf2 store1 store2,
       interp_store_rel r bval buf1 buf2 store1 store2 <->
@@ -204,14 +242,17 @@ Section CompileConfRelSimplified.
       interp_fm (m := fm_model a) (app_valu _ valu (compile_bval bval))
                 (compile_store_rel b1 b2 r).
   Proof.
-  Admitted.
-
-  Lemma interp_sr_false : 
-    forall (b1 b2: nat) buf1 buf2 store1 store2 x (valu : bval x),
-      interp_store_rel (a := a) (b1 := b1) (b2 := b2) (BRFalse H x) valu buf1 buf2 store1 store2 = False.
-  Proof.
-    intros.
-    induction x; autorewrite with interp_store_rel; trivial.
+    intros; simpl.
+    induction r;
+    autorewrite with interp_store_rel;
+    autorewrite with compile_store_rel;
+    try destruct (eq_dec _ _);
+    autorewrite with interp_fm;
+    try tauto.
+    rewrite <- interp_tm_rect.
+    repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
+    repeat rewrite compile_bit_expr_correct; simpl.
+    tauto.
   Qed.
 
   Lemma compile_simplified_conf_rel_correct:
@@ -220,92 +261,76 @@ Section CompileConfRelSimplified.
       interp_fm (m := fm_model a) (outer_valu buf1 buf2 store1 store2)
                 (compile_simplified_conf_rel b1 b2 r).
   Proof.
+    intros; destruct r.
+    unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
+    rewrite quantify_correct; simpl.
+    setoid_rewrite compile_store_rel_correct; simpl.
+    split; intros; auto.
+    now rewrite <- bval_roundtrip with (valu0 := valu).
+  Qed.
 
-
-    intros.
-    destruct r.
-    induction s.
-    - unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
-      simpl.
-      split; intros.
-      + autorewrite with compile_store_rel.
-        induction x; [autorewrite with interp_fm; trivial |].
-        unfold compile_bctx.
-        fold compile_bctx.
-        unfold outer_valu.
-        autorewrite with interp_fm.
-
-        eapply quantify_correct.
-        intros.
-        autorewrite with interp_fm.
-        trivial.
-      + autorewrite with interp_store_rel.
-        trivial.
-    - split; intros; exfalso.
-      + unfold interp_simplified_conf_rel in H0.
-        simpl in H0.
-        erewrite <- interp_sr_false.
-        evar (valu: bval x).
-        specialize (H0 valu).
-        exact H0.
-        Unshelve.
-        induction x; [exact tt|].
-        unfold bval.
-        fold bval.
-        exact (IHx, n_tuple_repeat n true).
-      + 
-        unfold compile_simplified_conf_rel in H0.
-        simpl in H0.
-        erewrite quantify_correct in H0.
-        evar (valu: valu (sig H) (fm_model a)
-        (compile_bctx x)).
-        specialize (H0 valu).
-        exact H0.
-        Unshelve.
-        induction x; constructor; fold compile_bctx; auto.
-        simpl.
-        exact (n_tuple_repeat n true).
-    - unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
-      simpl.
-      erewrite quantify_correct.
-      pose proof (compile_store_rel_correct (BREq e1 e2)).
-
-
-      split.
-      + intros.
-        specialize (H0 (decompile_val valu) b1 b2 buf1 buf2 store1 store2).
-        erewrite bval_roundtrip in H0.
-        eapply H0.
-        eapply H1.
-      + intros.
-        eapply H0.
-        eapply H1.
-    
-    - admit.
-    - admit.
-    - admit.
-  Admitted.
-
-  Lemma compile_crel_correct:
+  Lemma compile_simplified_crel_correct:
     forall r b1 b2 buf1 buf2 store1 store2,
       interp_simplified_crel r buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (outer_valu buf1 buf2 store1 store2)
                 (compile_simplified_crel b1 b2 r).
   Proof.
-  Admitted.
+    intros.
+    induction r;
+    autorewrite with interp_simplified_crel; simpl;
+    autorewrite with interp_fm.
+    - intuition.
+    - now rewrite compile_simplified_conf_rel_correct, IHr.
+  Qed.
+
+  Transparent interp_fm.
 
   Lemma compile_simplified_entailment_correct:
       forall i e,
         interp_simplified_entailment i e <->
-        interp_fm (m := fm_model a) (VEmp _ _) (compile_simplified_entailment e).
+        (state_template_sane e.(se_st).(cs_st1) ->
+         state_template_sane e.(se_st).(cs_st2) ->
+         i e.(se_st).(cs_st1) e.(se_st).(cs_st2) ->
+         interp_fm (m := fm_model a) (VEmp _ _)
+                   (compile_simplified_entailment e)
+        ).
   Proof.
-  Admitted.
+    intros.
+    destruct e.
+    unfold interp_simplified_entailment; simpl.
+    unfold compile_simplified_entailment; simpl.
+    rewrite quantify_all_correct; simpl.
+    setoid_rewrite compile_simplified_crel_correct.
+    setoid_rewrite compile_simplified_conf_rel_correct.
+    intuition.
+    unfold outer_ctx in valu.
+    repeat dependent destruction valu.
+    simpl in m0, m1, m2, m3.
+    now apply H4.
+  Qed.
 
   Lemma compile_simplified_entailment_correct':
       forall i e,
         interp_simplified_entailment' i e <->
-        interp_fm (m := fm_model a) (VEmp _ _) (compile_simplified_entailment' e).
+        (state_template_sane e.(se_st).(cs_st1) ->
+         state_template_sane e.(se_st).(cs_st2) ->
+         i e.(se_st).(cs_st1) e.(se_st).(cs_st2) ->
+         interp_fm (m := fm_model a) (VEmp _ _)
+                   (compile_simplified_entailment' e)).
   Proof.
-  Admitted.
+    intros; destruct e; simpl.
+    unfold interp_simplified_entailment'; simpl.
+    unfold compile_simplified_entailment'; simpl.
+    rewrite quantify_all_correct; simpl.
+    setoid_rewrite compile_simplified_conf_rel_correct.
+    setoid_rewrite compile_simplified_crel_correct.
+    intuition.
+    unfold outer_ctx in valu.
+    repeat dependent destruction valu.
+    simpl in m0, m1, m2, m3.
+    now apply H4.
+  Qed.
+
+  Opaque interp_fm.
 
 End CompileConfRelSimplified.

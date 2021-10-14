@@ -1,3 +1,4 @@
+Require Import Coq.Program.Basics.
 Require Import Coq.Lists.List.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
@@ -7,6 +8,7 @@ Require Import Poulet4.P4automata.Ntuple.
 
 Import ListNotations.
 Import HListNotations.
+Local Open Scope program_scope.
 
 Section AutModel.
   Set Implicit Arguments.
@@ -125,31 +127,31 @@ Section AutModel.
   exact ((simplify_concat_zero _ _ X) ::: X0).
   Defined.
   Next Obligation.
-  exact (Lookup n k). 
+  exact (Lookup n k).
   Defined.
-  
 
 
 
-  Import Coq.Program.Equality. 
 
-  Lemma concat_emp' : 
+  Import Coq.Program.Equality.
+
+  Lemma concat_emp' :
     forall n (t: n_tuple bool n), n_tuple_concat (tt: n_tuple _ 0) t = t.
   Proof.
     (* eapply concat_emp. *)
   Admitted.
 
 
-  Lemma interp_zero_tm : 
+  Lemma interp_zero_tm :
     forall c srt (t: tm c srt),
-      match srt as srt' return (tm c srt') -> Prop with 
+      match srt as srt' return (tm c srt') -> Prop with
       | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
       | _ => fun _ => True
       end t.
   Proof.
     pose proof (tm_ind' sig (
-      fun c srt (t : tm c srt) => 
-        match srt as srt' return (tm c srt') -> Prop with 
+      fun c srt (t : tm c srt) =>
+        match srt as srt' return (tm c srt') -> Prop with
         | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
         | _ => fun _ => True
         end t
@@ -163,7 +165,7 @@ Section AutModel.
       generalize v; clear v.
       generalize v0; clear v0.
       generalize c; clear c.
-      pose proof (valu_ind sig fm_model ( fun c val => 
+      pose proof (valu_ind sig fm_model ( fun c val =>
         forall (v : var sig c (Bits 0)), interp_tm val (TVar v) = tt
       )).
       eapply H0; clear H0; intros.
@@ -178,7 +180,7 @@ Section AutModel.
           autorewrite with interp_tm in *.
           autorewrite with find.
           auto.
-    - intros. 
+    - intros.
       destruct ret; trivial.
       destruct n; trivial.
       dependent destruction srt.
@@ -212,7 +214,7 @@ Section AutModel.
         dependent destruction hl.
 
         destruct n.
-        
+
         * erewrite <- (JMeq_eq x).
           intros.
           simpl in H0.
@@ -243,14 +245,14 @@ Section AutModel.
         destruct n.
         trivial.
   Admitted.
-  
+
 
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,
       interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
   Proof.
 
-    pose proof (tm_ind' sig). 
+    pose proof (tm_ind' sig).
     specialize (H0 (fun c srt (t : tm c srt) => forall v, interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := c) t))).
     apply H0; clear H0; intros.
     - autorewrite with simplify_concat_zero.
@@ -287,7 +289,7 @@ Section AutModel.
           autorewrite with interp_tm.
           unfold interp_tms.
           unfold simplify_concat_zero_obligations_obligation_3.
-        
+
           erewrite H0.
           erewrite H1.
           trivial.
@@ -302,7 +304,7 @@ Section AutModel.
         simpl.
         erewrite <- H0.
         trivial.
-      + unfold simplify_concat_zero_obligations_obligation_9; trivial. 
+      + unfold simplify_concat_zero_obligations_obligation_9; trivial.
   Qed.
 
   Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
@@ -333,6 +335,16 @@ Section AutModel.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - setoid_rewrite IHf. split; intros; auto.
+  Qed.
+
+  (* It feels like this should be an instance of map_subst, but I can't get
+     that to go through so here's a direct proof. *)
+  Lemma interp_tm_rect:
+    forall n1 n2 (c: ctx sig) valu (e: tm c (Bits n1)) (Heq: n1 = n2),
+      eq_rect n1 (n_tuple bool) (interp_tm (m := fm_model) valu e) n2 Heq =
+      interp_tm valu (eq_rect n1 (tm c ∘ Bits) e n2 Heq).
+  Proof.
+    intros; now rewrite <- Heq.
   Qed.
 
 End AutModel.
