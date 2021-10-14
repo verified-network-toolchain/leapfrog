@@ -40,17 +40,43 @@ Section CompileConfRelSimplified.
       compile_var (BVarRest y) :=
         VThere _ (compile_bctx _) _ (Bits (check_bvar y)) (compile_var y) }.
 
-  Definition compile_bval {c: bctx} (v: bval c) : valu _ (fm_model a) (compile_bctx c).
-  Admitted.
+  Equations compile_bval (c: bctx) (v: bval c) : valu _ (fm_model a) (compile_bctx c) by struct c := {
+    compile_bval BCEmp _ := VEmp _ _;
+    compile_bval (BCSnoc c' n) (v', x) := VSnoc _ (fm_model a) (Bits n) _ x (compile_bval c' v');
+  }.
 
-  Definition decompile_val {c: bctx} (v: valu _ (fm_model a) (compile_bctx c)) : bval c.
-  Admitted.
+  Arguments compile_bval {_} _.
+
+  (* Definition compile_bval {c: bctx} (v: bval c) : valu _ (fm_model a) (compile_bctx c) := 
+    (fix cbr (c: bctx) : bval c -> valu _ (fm_model a) (compile_bctx c) := 
+      match c as c' return bval c' -> valu _ (fm_model a) (compile_bctx c') with 
+      | BCEmp => fun _ => (VEmp _ _)
+      | BCSnoc c' n => 
+        fun '(x, y) => VSnoc _ (fm_model a) (Bits n) _ y (cbr c' x)
+      end
+    ) c v. *)
+
+  Equations decompile_val (c: bctx) (v: valu _ (fm_model a) (compile_bctx c)) : bval c by struct c := {
+      decompile_val BCEmp _ := tt;
+      decompile_val (BCSnoc c' n) (VSnoc _ _ _ _ x v') := (decompile_val c' v', x);
+  }.
+  Arguments decompile_val {_} _.
 
   Lemma bval_roundtrip:
     forall {c: bctx} (valu: _ (fm_model a) (compile_bctx c)),
       compile_bval (decompile_val valu) = valu.
   Proof.
-  Admitted.
+    intros.
+    induction c.
+    - simpl. 
+      dependent destruction valu.
+      trivial.
+    - dependent destruction valu.
+      autorewrite with decompile_val.
+      autorewrite with compile_bval.
+      erewrite IHc.
+      trivial.
+  Qed.
 
   Definition outer_ctx b1 b2 :=
     CSnoc (sig H) (
@@ -189,12 +215,84 @@ Section CompileConfRelSimplified.
   Proof.
   Admitted.
 
+  Lemma interp_sr_false : 
+    forall (b1 b2: nat) buf1 buf2 store1 store2 x (valu : bval x),
+      interp_store_rel (a := a) (b1 := b1) (b2 := b2) (BRFalse H x) valu buf1 buf2 store1 store2 = False.
+  Proof.
+    intros.
+    induction x; autorewrite with interp_store_rel; trivial.
+  Qed.
+
   Lemma compile_simplified_conf_rel_correct:
     forall r b1 b2 buf1 buf2 store1 store2,
       interp_simplified_conf_rel r buf1 buf2 store1 store2 <->
       interp_fm (m := fm_model a) (outer_valu buf1 buf2 store1 store2)
                 (compile_simplified_conf_rel b1 b2 r).
   Proof.
+
+
+    intros.
+    destruct r.
+    induction s.
+    - unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
+      simpl.
+      split; intros.
+      + autorewrite with compile_store_rel.
+        induction x; [autorewrite with interp_fm; trivial |].
+        unfold compile_bctx.
+        fold compile_bctx.
+        unfold outer_valu.
+        autorewrite with interp_fm.
+
+        eapply quantify_correct.
+        intros.
+        autorewrite with interp_fm.
+        trivial.
+      + autorewrite with interp_store_rel.
+        trivial.
+    - split; intros; exfalso.
+      + unfold interp_simplified_conf_rel in H0.
+        simpl in H0.
+        erewrite <- interp_sr_false.
+        evar (valu: bval x).
+        specialize (H0 valu).
+        exact H0.
+        Unshelve.
+        induction x; [exact tt|].
+        unfold bval.
+        fold bval.
+        exact (IHx, n_tuple_repeat n true).
+      + 
+        unfold compile_simplified_conf_rel in H0.
+        simpl in H0.
+        erewrite quantify_correct in H0.
+        evar (valu: valu (sig H) (fm_model a)
+        (compile_bctx x)).
+        specialize (H0 valu).
+        exact H0.
+        Unshelve.
+        induction x; constructor; fold compile_bctx; auto.
+        simpl.
+        exact (n_tuple_repeat n true).
+    - unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
+      simpl.
+      erewrite quantify_correct.
+      pose proof (compile_store_rel_correct (BREq e1 e2)).
+
+
+      split.
+      + intros.
+        specialize (H0 (decompile_val valu) b1 b2 buf1 buf2 store1 store2).
+        erewrite bval_roundtrip in H0.
+        eapply H0.
+        eapply H1.
+      + intros.
+        eapply H0.
+        eapply H1.
+    
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Lemma compile_crel_correct:
