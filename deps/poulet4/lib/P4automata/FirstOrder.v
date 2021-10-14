@@ -314,30 +314,6 @@ Section FOL.
         eauto.
   Qed.
 
-  Equations quantify' {c0: ctx} (c: ctx) (f: fm (app_ctx' c0 c)) : fm c0 :=
-    { quantify' c f := quantify c (eq_rect _ (fun x => fm x) f (app_ctx c0 c)
-                                           (app_ctx'_app_ctx _ _)) }.
-
-  Definition quantify'_correct
-    m c c' (v': valu m c'):
-    forall phi,
-      interp_fm m c' v' (quantify' c phi) <->
-      forall valu,
-        interp_fm m (app_ctx' c' c) (app_valu' v' valu) phi.
-  Proof.
-    intros.
-    dependent induction phi.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-  Admitted.
-
   Equations quantify_all {c: ctx} (f: fm c): fm CEmp := {
     @quantify_all (CSnoc c _) f := quantify_all (FForall _ _ f);
     @quantify_all CEmp f := f
@@ -449,7 +425,6 @@ Arguments interp_tms {_ _ _ _} _ _.
 
 Arguments app_ctx {sig} c1 c2.
 Arguments quantify {sig c0} c f.
-Arguments quantify' {sig c0} c f.
 Arguments quantify_all {sig} c f.
 Arguments reindex_var {sig c c' sort} v.
 Arguments reindex_tm {sig c c' sort} t.
