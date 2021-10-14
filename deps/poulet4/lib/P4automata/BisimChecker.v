@@ -232,10 +232,8 @@ Ltac verify_interp top top' :=
     assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
     [
       eapply simplify_entailment_correct with (i := top');
-      eapply compile_simplified_entailment_correct;
-      [ once typeclasses eauto | once typeclasses eauto | simpl; intros ];
+      eapply compile_simplified_entailment_correct; simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-      [ once typeclasses eauto | once typeclasses eauto |];
 
       time "reduce goal" crunch_foterm;
 
@@ -268,8 +266,7 @@ Ltac run_bisim top top' r_states :=
 Ltac close_bisim top' :=
   apply PreBisimulationClose;
   eapply simplify_entailment_correct' with (i := top');
-  eapply compile_simplified_entailment_correct';
-  [ once typeclasses eauto | once typeclasses eauto | simpl; intros ];
+  eapply compile_simplified_entailment_correct'; simpl; intros;
   crunch_foterm;
   match goal with
   | |- ?X => time "smt check pos" check_interp_pos X; admit

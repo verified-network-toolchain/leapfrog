@@ -72,11 +72,11 @@ Definition p_l_trans x y : S x + y = S (x + y) := eq_refl.
 Import EqNotations.
 
 Definition plus_zero_trans : forall n, n + 0 = n.
-  refine (fix pztrec n := 
-    match n with 
+  refine (fix pztrec n :=
+    match n with
     | 0 => eq_refl
-    | S n' => 
-      let HR := pztrec n' in 
+    | S n' =>
+      let HR := pztrec n' in
       let HR' := p_l_trans n' 0 in
         _
     end
@@ -87,11 +87,11 @@ Definition plus_zero_trans : forall n, n + 0 = n.
   Defined.
 
 Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
-  refine (fix satrec n {struct n} := 
-    match n with 
+  refine (fix satrec n {struct n} :=
+    match n with
     | 0 => eq_refl
-    | S m' => 
-      let hr := satrec m' in 
+    | S m' =>
+      let hr := satrec m' in
         _
     end
   ).
@@ -101,11 +101,9 @@ Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
   exact eq_refl.
   Defined.
 
-
-
 Definition plus_comm_trans (n: nat) : forall m, n + m = m + n.
-  refine (fix pctrec m {struct m} := 
-    match m with 
+  refine (fix pctrec m {struct m} :=
+    match m with
     | 0 => _
     | S m' => _
     end
@@ -215,7 +213,7 @@ Proof.
   intros n0 n1 e.
   subst n0.
   intros t'.
-  rewrite <- Eqdep.Eq_rect_eq.eq_rect_eq.
+  simpl.
   reflexivity.
 Qed.
 

@@ -81,230 +81,66 @@ Section AutModel.
     FirstOrder.mod_rels := mod_rels;
   |}.
 
-
   Obligation Tactic := intros.
   Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
-    { simplify_concat_zero (TFun _ (Concat 0 m) (_ ::: x ::: _)) := simplify_concat_zero _;
-      simplify_concat_zero (TFun _ (Concat (Datatypes.S n) m) args) := TFun _ _ _;
-      simplify_concat_zero (TFun _ (BitsLit n xs) args) := TFun _ _ args;
-      simplify_concat_zero (TFun _ (Slice n hi lo) args) := TFun _ _ _;
-      simplify_concat_zero (TFun _ (Lookup n k) args) := TFun _ _ args;
+    { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: x ::: hnil)) :=
+        simplify_concat_zero x;
+      simplify_concat_zero (TFun sig (Concat (Datatypes.S n) m) (x ::: y ::: hnil)) :=
+        TFun sig (Concat (Datatypes.S n) m)
+                 (simplify_concat_zero x :::
+                  simplify_concat_zero y ::: hnil);
+      simplify_concat_zero (TFun sig (Slice n hi lo) (x ::: hnil)) :=
+        TFun sig (Slice n hi lo) (simplify_concat_zero x ::: hnil);
+      simplify_concat_zero (TFun sig f args) :=
+        TFun sig f args;
       simplify_concat_zero (TVar x) := TVar x;
     }.
-  Next Obligation.
-  exact (BitsLit n xs).
-  Defined.
-  Next Obligation.
-  simpl.
-  exact x.
-  Defined.
-  Next Obligation.
-  exact [Bits (Datatypes.S n); Bits m].
-  Defined.
-  Next Obligation.
-  unfold simplify_concat_zero_obligations_obligation_3.
-  simpl.
-  exact (Concat (Datatypes.S n) m).
-  Defined.
-  Next Obligation.
-  unfold simplify_concat_zero_obligations_obligation_3.
-  simpl.
-  inversion args.
-  inversion X0.
-  exact (simplify_concat_zero _ _ X ::: simplify_concat_zero _ _ X1 ::: hnil).
-  Defined.
-  Next Obligation.
-  exact [Bits n].
-  Defined.
-  Next Obligation.
-  simpl.
-  unfold simplify_concat_zero_obligations_obligation_6.
-  exact (Slice n hi lo).
-  Defined.
-  Next Obligation.
-  unfold simplify_concat_zero_obligations_obligation_6, simplify_concat_zero_obligations_obligation_7.
-  inversion args.
-  exact ((simplify_concat_zero _ _ X) ::: X0).
-  Defined.
-  Next Obligation.
-  exact (Lookup n k).
-  Defined.
-
-
-
 
   Import Coq.Program.Equality.
 
   Lemma concat_emp' :
     forall n (t: n_tuple bool n), n_tuple_concat (tt: n_tuple _ 0) t = t.
   Proof.
-    (* eapply concat_emp. *)
-  Admitted.
+    intros.
+    apply JMeq_eq.
+    eapply concat_emp.
+  Qed.
 
-
-  Lemma interp_zero_tm :
-    forall c srt (t: tm c srt),
-      match srt as srt' return (tm c srt') -> Prop with
-      | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
-      | _ => fun _ => True
-      end t.
+  Lemma interp_zero_tm:
+     forall c (t: tm c (Bits 0)) v,
+       interp_tm (m := fm_model) v t = tt
+  .
   Proof.
-    pose proof (tm_ind' sig (
-      fun c srt (t : tm c srt) =>
-        match srt as srt' return (tm c srt') -> Prop with
-        | Bits 0 => fun t' => forall v, interp_tm (m := fm_model) (s := Bits 0) v t' = tt
-        | _ => fun _ => True
-        end t
-    )).
-
-    simpl in H0.
-    eapply H0; clear H0.
-    - destruct s; trivial.
-      destruct n; trivial.
-      intros.
-      generalize v; clear v.
-      generalize v0; clear v0.
-      generalize c; clear c.
-      pose proof (valu_ind sig fm_model ( fun c val =>
-        forall (v : var sig c (Bits 0)), interp_tm val (TVar v) = tt
-      )).
-      eapply H0; clear H0; intros.
-      + dependent destruction v.
-      + dependent destruction v0.
-        * autorewrite with interp_tm.
-          autorewrite with find.
-          destruct m.
-          trivial.
-        *
-          specialize (H0 v0).
-          autorewrite with interp_tm in *.
-          autorewrite with find.
-          auto.
-    - intros.
-      destruct ret; trivial.
-      destruct n; trivial.
-      dependent destruction srt.
-      + dependent destruction hl.
-        simpl in *.
-        intros.
-        autorewrite with interp_tm.
-        simpl.
-        autorewrite with mod_fns.
-        destruct n0.
-        trivial.
-      +
-        destruct n; [|exfalso; Lia.lia].
-        destruct m; [|exfalso; Lia.lia].
-        erewrite <- (JMeq_eq x).
-
-        dependent destruction hl.
-        dependent destruction hl.
-        dependent destruction hl.
-        simpl in H0.
-        destruct H0 as [? [? _]].
-        intros.
-        autorewrite with interp_tm.
-        simpl.
-        autorewrite with mod_fns.
-        erewrite H0.
-        erewrite H1.
-        cbv.
-        trivial.
-      + dependent destruction hl.
-        dependent destruction hl.
-
-        destruct n.
-
-        * erewrite <- (JMeq_eq x).
-          intros.
-          simpl in H0.
-          destruct H0 as [? _].
-          autorewrite with interp_tm.
-          simpl.
-
-          Transparent mod_fns.
-          Opaque n_tuple_slice.
-          cbv.
-          erewrite H0.
-
-          destruct (n_tuple_slice hi lo (tt : n_tuple bool 0)).
-          trivial.
-        * clear H0.
-          set (foo := Slice (Datatypes.S n) hi lo) in x.
-          (* if only we could rewrite with x0 in foo... *)
-         admit.
-      + dependent destruction hl.
-        dependent destruction hl.
-        simpl in *.
-        intros.
-        autorewrite with interp_tm.
-        Opaque mod_fns.
-        simpl.
-        autorewrite with mod_fns.
-        destruct (P4A.find H h (interp_tm v t)).
-        destruct n.
-        trivial.
-  Admitted.
+    intros; now destruct (interp_tm v t).
+  Qed.
 
 
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,
       interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
   Proof.
-
-    pose proof (tm_ind' sig).
-    specialize (H0 (fun c srt (t : tm c srt) => forall v, interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := c) t))).
-    apply H0; clear H0; intros.
-    - autorewrite with simplify_concat_zero.
-      trivial.
+    intros.
+    dependent induction t using tm_ind'.
+    - now autorewrite with simplify_concat_zero.
     - destruct srt;
-      autorewrite with simplify_concat_zero.
-      + unfold simplify_concat_zero_obligations_obligation_1.
-        trivial.
-      + dependent destruction hl.
-        dependent destruction hl.
-        dependent destruction hl.
-        simpl in H0.
-        destruct H0 as [? [? _]].
-
-        destruct n.
+      repeat dependent destruction hl.
+      + now autorewrite with simplify_concat_zero.
+      + destruct n.
         * autorewrite with simplify_concat_zero.
-          unfold simplify_concat_zero_obligations_obligation_2.
-          erewrite <- H1.
-          autorewrite with interp_tm.
-          simpl.
+          autorewrite with interp_tm; simpl.
           autorewrite with mod_fns.
-
-          pose proof concat_emp.
-          pose proof (@interp_zero_tm c (Bits 0)).
-          simpl in H3.
-          erewrite H3.
-          erewrite concat_emp'.
-          trivial.
+          destruct (interp_tm v t).
+          rewrite concat_emp'.
+          apply H0.
         * autorewrite with simplify_concat_zero.
-          unfold simplify_concat_zero_obligations_obligation_4.
-          unfold simplify_concat_zero_obligations_obligation_5.
-          unfold eq_rect_r.
-          simpl.
-          autorewrite with interp_tm.
-          unfold interp_tms.
-          unfold simplify_concat_zero_obligations_obligation_3.
-
-          erewrite H0.
-          erewrite H1.
-          trivial.
-      + unfold simplify_concat_zero_obligations_obligation_7, simplify_concat_zero_obligations_obligation_8.
-        simpl.
-        dependent destruction hl.
-        dependent destruction hl.
-        unfold eq_rect_r.
-        simpl in *.
-        destruct H0 as [? _].
-        autorewrite with interp_tm.
-        simpl.
-        erewrite <- H0.
-        trivial.
-      + unfold simplify_concat_zero_obligations_obligation_9; trivial.
+          autorewrite with interp_tm; simpl.
+          autorewrite with mod_fns.
+          f_equal; apply H0.
+      + autorewrite with simplify_concat_zero.
+        autorewrite with interp_tm; simpl.
+        do 2 f_equal.
+        apply H0.
+      + now autorewrite with simplify_concat_zero.
   Qed.
 
   Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
@@ -329,13 +165,13 @@ Section AutModel.
     autorewrite with interp_fm;
     repeat erewrite <- simplify_concat_zero_corr;
     (try now split; intros; auto).
-
     - split; unfold "~"; intros; apply H0; eapply IHf; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - setoid_rewrite IHf. split; intros; auto.
   Qed.
+
 
   (* It feels like this should be an instance of map_subst, but I can't get
      that to go through so here's a direct proof. *)
