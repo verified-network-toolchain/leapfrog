@@ -22,22 +22,17 @@ Module PlainUnroll.
 
   ClearEnvCtors.
 
-  RegisterEnvCtors 
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
-    (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)   
-    (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
+  RegisterEnvCtors
+    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
 
   Lemma prebisim_mpls_unroll:
-    pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-                    {| cr_st := {|
+    forall q1 q2,
+      interp_conf_rel' {| cr_st := {|
                           cs_st1 := {|
                             st_state := inl (inl (MPLSPlain.ParseMPLS));
                             st_buf_len := 0;
@@ -49,11 +44,19 @@ Module PlainUnroll.
                         |};
                         cr_ctx := BCEmp;
                         cr_rel := btrue;
-                    |}.
+                     |} q1 q2 ->
+    pre_bisimulation A
+                     (wp r_states)
+                     top
+                     []
+                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     q1 q2.
   Proof.
+    intros.
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
-  Time Admitted. 
+  Time Admitted.
 End PlainUnroll.
 
 Module VectUnroll.
@@ -73,22 +76,17 @@ Module VectUnroll.
 
   ClearEnvCtors.
 
-  RegisterEnvCtors 
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
-    (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)   
-    (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
+  RegisterEnvCtors
+    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
 
   Lemma prebisim_mpls_inline:
-    pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-                    {| cr_st := {|
+    forall q1 q2,
+      interp_conf_rel' {| cr_st := {|
                           cs_st1 := {|
                             st_state := inl (inl (MPLSPlain.ParseMPLS));
                             st_buf_len := 0;
@@ -100,11 +98,19 @@ Module VectUnroll.
                         |};
                         cr_ctx := BCEmp;
                         cr_rel := btrue;
-                    |}.
+                     |} q1 q2 ->
+    pre_bisimulation A
+                     (wp r_states)
+                     top
+                     []
+                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     q1 q2.
   Proof.
+    intros.
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
-  Time Admitted. 
+  Time Admitted.
 End VectUnroll.
 
 Module UnrollInline.
@@ -124,22 +130,17 @@ Module UnrollInline.
 
   ClearEnvCtors.
 
-  RegisterEnvCtors 
-    (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
-    (MPLSUnroll.HdrUDP, FirstOrderConfRelSimplified.Bits 32)   
-    (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32) 
-    (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)  
+  RegisterEnvCtors
+    (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSUnroll.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
 
   Lemma prebisim_mpls_inline:
-    pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-                    {| cr_st := {|
+    forall q1 q2,
+      interp_conf_rel' {| cr_st := {|
                           cs_st1 := {|
                             st_state := inl (inl (MPLSUnroll.ParseMPLS0));
                             st_buf_len := 0;
@@ -151,11 +152,19 @@ Module UnrollInline.
                         |};
                         cr_ctx := BCEmp;
                         cr_rel := btrue;
-                    |}.
+                     |} q1 q2 ->
+    pre_bisimulation A
+                     (wp r_states)
+                     top
+                     []
+                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     q1 q2.
   Proof.
+    intros.
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
-  Time Admitted. 
+  Time Admitted.
 
   Definition r_states' :=
     Eval vm_compute in (Reachability.reachable_states
@@ -163,25 +172,28 @@ Module UnrollInline.
                           200
                           MPLSUnroll.ParseMPLS1
                           MPLSInline.ParseMPLS).
-  Goal pre_bisimulation A
-      (wp r_states')
-      top
-      []
-      [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-        BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-      {| cr_st := {|
-            cs_st1 := {|
-              st_state := inl (inl (MPLSUnroll.ParseMPLS1));
-              st_buf_len := 0;
-            |};
-            cs_st2 := {|
-              st_state := inl (inr (MPLSInline.ParseMPLS));
-              st_buf_len := 0;
-            |};
-          |};
-          cr_ctx := BCEmp;
-          cr_rel := btrue;
-      |}.
+  Goal
+    forall q1 q2,
+      interp_conf_rel' {| cr_st := {|
+                          cs_st1 := {|
+                            st_state := inl (inl (MPLSUnroll.ParseMPLS1));
+                            st_buf_len := 0;
+                          |};
+                          cs_st2 := {|
+                            st_state := inl (inr (MPLSInline.ParseMPLS));
+                            st_buf_len := 0;
+                          |};
+                        |};
+                        cr_ctx := BCEmp;
+                        cr_rel := btrue;
+                     |} q1 q2 ->
+    pre_bisimulation A
+                     (wp r_states)
+                     top
+                     []
+                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     q1 q2.
   Proof.
     set (a := A) in *.
     time "build phase" repeat (time "single step" run_bisim top top' r_states').

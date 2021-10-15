@@ -18,16 +18,15 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
-RegisterEnvCtors (IncrementalBits.Pref, FirstOrderConfRelSimplified.Bits 1)  (IncrementalBits.Suf, FirstOrderConfRelSimplified.Bits 1) (BigBits.Pref, FirstOrderConfRelSimplified.Bits 1) (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
+RegisterEnvCtors
+  (IncrementalBits.Pref, FirstOrderConfRelSimplified.Bits 1)
+  (IncrementalBits.Suf, FirstOrderConfRelSimplified.Bits 1)
+  (BigBits.Pref, FirstOrderConfRelSimplified.Bits 1)
+  (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
 
 Lemma prebisim_incremental_sep:
-  pre_bisimulation A
-                   (wp r_states)
-                   top
-                   []
-                   [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                    BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-                   {| cr_st := {|
+  forall q1 q2,
+    interp_conf_rel' {| cr_st := {|
                         cs_st1 := {|
                           st_state := inl (inl (IncrementalBits.Start));
                           st_buf_len := 0;
@@ -39,8 +38,16 @@ Lemma prebisim_incremental_sep:
                       |};
                       cr_ctx := BCEmp;
                       cr_rel := btrue;
-                   |}.
+                   |} q1 q2 ->
+  pre_bisimulation A
+                   (wp r_states)
+                   top
+                   []
+                   [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
+                    BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                   q1 q2.
 Proof.
+  intros.
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim top'.
 Time Admitted.

@@ -24,27 +24,30 @@ RegisterEnvCtors
   (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
 
 Lemma prebisim_babyip:
-  pre_bisimulation
-    A
-    (WP.wp r_states)
-    top
-    []
-    (mk_init _ _ _ A 10 BabyIP1.Start BabyIP2.Start)
-    {| cr_st := {|
-        cs_st1 := {|
-          st_state := inl (inl (BabyIP1.Start));
-          st_buf_len := 0;
-        |};
-        cs_st2 := {|
-          st_state := inl (inr (BabyIP2.Start));
-          st_buf_len := 0;
-        |};
-      |};
-      cr_ctx := BCEmp;
-      cr_rel := btrue;
-   |}.
+  forall q1 q2,
+    interp_conf_rel' {| cr_st := {|
+                        cs_st1 := {|
+                          st_state := inl (inl (BabyIP1.Start));
+                          st_buf_len := 0;
+                        |};
+                        cs_st2 := {|
+                          st_state := inl (inr (BabyIP2.Start));
+                          st_buf_len := 0;
+                        |};
+                      |};
+                      cr_ctx := BCEmp;
+                      cr_rel := btrue;
+                   |} q1 q2 ->
+  pre_bisimulation A
+                   (wp r_states)
+                   top
+                   []
+                   (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
+                   q1 q2.
 Proof.
   idtac "running babyip bisimulation".
+
+  intros.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   cbv in rel0.
   subst rel0.

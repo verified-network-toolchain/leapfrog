@@ -1084,59 +1084,41 @@ Section WPProofs.
   Qed.
 
   Lemma wp_pred_pair_safe:
-    forall size t1 t2 phi phi',
-      In phi' (wp_pred_pair (a:=a) phi (size, (t1, t2))) ->
-      forall q1 q2,
-        interp_conf_rel a phi' q1 q2 ->
-        forall bs,
-          length bs = size ->
-          interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
+    forall size top phi t1 t2 q1 q2,
+      interp_crel a top (wp_pred_pair (a:=a) phi (size, (t1, t2))) q1 q2 ->
+      forall bs,
+        length bs = size ->
+        interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     unfold wp_pred_pair.
     intros.
     simpl in *; destruct H0; try tauto.
-    subst phi'.
     unfold interp_conf_rel, interp_conf_state, interp_state_template in H1.
     simpl in *.
   Admitted.
 
   (* prove this first *)
   Theorem wp_safe:
-    forall top phi phi',
-      In phi' (wp (a:=a) top phi) ->
-      forall q1 q2,
-        interp_tpairs top q1 q2 ->
-        interp_conf_rel a phi' q1 q2 ->
-        exists size,
-        forall bs,
-          List.length bs = size ->
-          interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
+    forall top r phi q1 q2,
+      interp_crel a top (wp (a := a) r phi) q1 q2 ->
+      forall bs,
+        List.length bs = Nat.min (configuration_room_left q1)
+                                 (configuration_room_left q2) ->
+        interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     intros.
-    unfold wp in *.
-    repeat match goal with
-           | H: In _ (flat_map _ _) |- _ =>
-             apply in_flat_map_Exists in H
-           | H: Exists _ _ |- _ =>
-             apply Exists_exists in H
-           | H: exists _, _ |- _ => destruct H
-           | H: _ /\ _ |- _ => destruct H
-           end.
-    destruct x as [size [t1 t2]].
-    exists size; intros.
-    eapply wp_pred_pair_safe in H3; eauto.
-  Qed.
-  
+    unfold wp in H0.
+    eapply wp_pred_pair_safe in H1; eauto.
+  Admitted.
+
   (* prove this later *)
   Theorem wp_complete:
-    forall top phi,
-      forall bs q1 q2,
-        List.Exists (fun '(t1, t2) => interp_state_template t1 q1 /\
-                                    interp_state_template t2 q2) top ->
-        interp_conf_rel a phi (follow q1 bs) (follow q2 bs) ->
-        exists phi',
-          interp_conf_rel a phi' q1 q2 /\
-          In phi' (wp (a:=a) top phi).
+    forall top r phi q1 q2,
+      (forall bs,
+        List.length bs = Nat.min (configuration_room_left q1)
+                                 (configuration_room_left q2) ->
+        interp_conf_rel a phi (follow q1 bs) (follow q2 bs)) ->
+      interp_crel a top (wp (a := a) r phi) q1 q2.
   Proof.
   Admitted.
 

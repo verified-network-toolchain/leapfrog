@@ -46,28 +46,28 @@ Section WPLeaps.
   Notation δ := step.
 
   Reserved Notation "R ⇝ S" (at level 10).
-  Inductive pre_bisimulation : crel a -> crel a -> conf_rel a -> Prop :=
+  Inductive pre_bisimulation : crel a -> crel a -> rel conf :=
   | PreBisimulationClose:
-      forall R S,
-        R ⫤ S ->
-        R ⇝ [] S
+      forall R q1 q2,
+        ⟦R⟧ q1 q2 ->
+        R ⇝ [] q1 q2
   | PreBisimulationSkip:
-      forall (R T: crel a) (C: conf_rel a) S (H: {R ⊨ C} + {~(R ⊨ C)}),
+      forall (R T: crel a) (C: conf_rel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
         match H with
         | left _ => True
         | _ => False
         end ->
-        R ⇝ T S ->
-        R ⇝ (C :: T) S
+        R ⇝ T q1 q2 ->
+        R ⇝ (C :: T) q1 q2
   | PreBisimulationExtend:
-      forall (R T: crel a) (C: conf_rel a) (W: crel a) S (H: {R ⊨ C} + {~(R ⊨ C)}),
+      forall (R T: crel a) (C: conf_rel a) (W: crel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
         match H with
         | right _ => True
         | _ => False
         end ->
         W = wp C ->
-        (C :: R) ⇝ (W ++ T) S ->
-        R ⇝ (C :: T) S
+        (C :: R) ⇝ (W ++ T) q1 q2 ->
+        R ⇝ (C :: T) q1 q2
   where "R ⇝ T" := (pre_bisimulation R T).
 
   Fixpoint range (n: nat) :=

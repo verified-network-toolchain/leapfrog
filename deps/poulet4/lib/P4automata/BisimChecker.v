@@ -193,7 +193,7 @@ Ltac skip_bisim :=
 
 Ltac extend_bisim' HN r_states :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ =>
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
     apply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ tauto | trivial |];
@@ -227,7 +227,7 @@ Declare ML Module "mirrorsolve".
 
 Ltac verify_interp top top' :=
   match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ =>
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
     [
@@ -247,7 +247,7 @@ Ltac verify_interp top top' :=
   tryif ( guard n = 2) then
     match goal with
     | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ =>
+    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ _ =>
       clear H;
       let HN := fresh "HN" in
       assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
@@ -265,9 +265,16 @@ Ltac run_bisim top top' r_states :=
 
 Ltac close_bisim top' :=
   apply PreBisimulationClose;
-  eapply simplify_entailment_correct' with (i := top');
-  eapply compile_simplified_entailment_correct'; simpl; intros;
-  crunch_foterm;
   match goal with
-  | |- ?X => time "smt check pos" check_interp_pos X; admit
+  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
+    let H := fresh "H" in
+    assert (H: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
+      eapply simplify_entailment_correct' with (i := top');
+      eapply compile_simplified_entailment_correct'; simpl; intros;
+      crunch_foterm;
+      match goal with
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    );
+    apply H; [cbv; trivial | auto]
   end.
