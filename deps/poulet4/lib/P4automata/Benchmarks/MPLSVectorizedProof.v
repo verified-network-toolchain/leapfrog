@@ -49,11 +49,15 @@ Module PlainUnroll.
                      (wp r_states)
                      top
                      []
-                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     (mk_init _ _ _ A 200 MPLSPlain.ParseMPLS MPLSUnroll.ParseMPLS0)
                      q1 q2.
   Proof.
     intros.
+
+    set (rel0 := (mk_init _ _ _ _ _ _ _)).
+    vm_compute in rel0.
+    subst rel0.
+
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
@@ -103,11 +107,15 @@ Module VectUnroll.
                      (wp r_states)
                      top
                      []
-                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     (mk_init _ _ _ A 200 MPLSPlain.ParseMPLS MPLSInline.ParseMPLS)
                      q1 q2.
   Proof.
     intros.
+
+    set (rel0 := (mk_init _ _ _ _ _ _ _)).
+    vm_compute in rel0.
+    subst rel0.
+
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
@@ -157,11 +165,15 @@ Module UnrollInline.
                      (wp r_states)
                      top
                      []
-                     [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                      BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                     (mk_init _ _ _ A 200 MPLSUnroll.ParseMPLS0 MPLSInline.ParseMPLS)
                      q1 q2.
   Proof.
     intros.
+
+    set (rel0 := (mk_init _ _ _ _ _ _ _)).
+    vm_compute in rel0.
+    subst rel0.
+
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
@@ -190,12 +202,18 @@ Module UnrollInline.
     pre_bisimulation A
                      (wp r_states)
                      top
-                     []
+                     (mk_init _ _ _ A 200 MPLSUnroll.ParseMPLS1 MPLSInline.ParseMPLS)
                      [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
                       BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
                      q1 q2.
   Proof.
     set (a := A) in *.
+    intros.
+
+    set (rel0 := (mk_init _ _ _ _ _ _ _)).
+    vm_compute in rel0.
+    subst rel0.
+
     time "build phase" repeat (time "single step" run_bisim top top' r_states').
     time "close phase" close_bisim top'.
   Time Admitted.

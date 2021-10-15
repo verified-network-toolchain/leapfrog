@@ -43,11 +43,16 @@ Lemma prebisim_incremental_sep:
                    (wp r_states)
                    top
                    []
-                   [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                    BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
+                   (mk_init _ _ _ A 200 IncrementalBits.Start BigBits.Parse)
                    q1 q2.
 Proof.
+  idtac "running smallfilter bisimulation".
+
   intros.
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  cbv in rel0.
+  subst rel0.
+
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim top'.
 Time Admitted.
