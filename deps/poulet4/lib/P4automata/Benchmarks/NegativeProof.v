@@ -20,29 +20,34 @@ RegisterEnvCtors
   (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)
   (ParseZero.Bit, FirstOrderConfRelSimplified.Bits 1).
 
-
 (* These parsers are different, this proof should fail *)
-Lemma prebisim_negative:
-  pre_bisimulation A
-                   (wp r_states)
-                   top
-                   []
-                   [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
-                    BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
-                   {| cr_st := {|
-                        cs_st1 := {|
-                          st_state := inl (inl (ParseOne.Start));
-                          st_buf_len := 0;
-                        |};
-                        cs_st2 := {|
-                          st_state := inl (inr (ParseZero.Start));
-                          st_buf_len := 0;
-                        |};
-                      |};
-                      cr_ctx := BCEmp;
-                      cr_rel := btrue;
-                   |}.
+Goal
+  forall q1 q2,
+    interp_conf_rel' {| 
+      cr_st := {|
+        cs_st1 := {|
+          st_state := inl (inl (ParseOne.Start));
+          st_buf_len := 0;
+        |};
+        cs_st2 := {|
+          st_state := inl (inr (ParseZero.Start));
+          st_buf_len := 0;
+        |};
+      |};
+      cr_ctx := BCEmp;
+      cr_rel := btrue;
+    |} q1 q2 ->
+      pre_bisimulation  A
+                        (wp r_states)
+                        top
+                        []
+                        (mk_init _ _ _ A 200 ParseOne.Start ParseZero.Start)
+                        q1 q2.
 Proof.
+  intros.
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  cbv in rel0.
+  subst rel0.
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   Fail time "close phase" close_bisim top'.
 Abort.
