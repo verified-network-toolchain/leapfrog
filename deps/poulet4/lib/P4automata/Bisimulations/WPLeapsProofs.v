@@ -34,7 +34,10 @@ Section WPLeapsProofs.
   Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
 
   Variable (a: P4A.t S H).
-  Variable (r: list (state_template a * state_template a)).
+
+  Variable (s1: S1).
+  Variable (s2: S2).
+  Definition r := reachable_states a (length (valid_state_pairs a)) s1 s2.
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -133,16 +136,44 @@ Section WPLeapsProofs.
     induction R; cbn; intuition.
   Qed.
 
-  Lemma init_vs_accepting:
-    forall (q1 q2: conf) s1 s2,
-      ⟦mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2⟧ q1 q2 ->
-      top q1 q2 ->
-      (accepting q1 <-> accepting q2).
+  Lemma interp_crel_nodup:
+    forall R (q1 q2: conf),
+      ⟦R⟧ q1 q2 <->
+      ⟦nodup (conf_rel_eq_dec (a := a)) R⟧ q1 q2.
   Proof.
   Admitted.
 
+  Lemma interp_crel_quantify:
+    forall R (q1 q2: conf),
+      ⟦R⟧ q1 q2 <->
+      top q1 q2 /\ (forall phi, In phi R -> ⦇phi⦈ q1 q2).
+  Proof.
+  Admitted.
+
+  Hypothesis top_versus_reachable:
+    forall q1 q2,
+      top q1 q2 ->
+      In (conf_to_state_template q1, conf_to_state_template q2) r.
+
+  Lemma init_vs_accepting:
+    forall (q1 q2: conf) s1 s2,
+      ⟦mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2⟧ q1 q2 ->
+      (accepting q1 <-> accepting q2).
+  Proof.
+    intros.
+    unfold mk_init in H0.
+    rewrite <- interp_crel_nodup in H0.
+    unfold mk_partition in H0.
+    rewrite interp_crel_quantify in H0.
+    destruct H0.
+    apply top_versus_reachable in H0.
+    unfold r in H0.
+    unfold accepting.
+    split; intros.
+  Admitted.
+
   Lemma wp_leaps_implies_bisim_leaps:
-    forall q1 q2 s1 s2,
+    forall q1 q2,
       let init := mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2 in
       pre_bisimulation a (WP.wp r) top [] init q1 q2 ->
       top q1 q2 ->
@@ -157,7 +188,6 @@ Section WPLeapsProofs.
       + reflexivity.
       + rewrite <- interp_rels_vs_interp_crel, interp_rels_intersect_top.
         exact H2.
-      + destruct H2; apply H2.
     - simpl interp_rels at 1.
       unfold follow_closed; intros.
       clear H2; induction bs using rev_ind.
