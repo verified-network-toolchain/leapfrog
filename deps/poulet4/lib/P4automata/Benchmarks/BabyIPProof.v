@@ -49,7 +49,7 @@ Proof.
 
   intros.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
-  cbv in rel0.
+  vm_compute in rel0.
   subst rel0.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).

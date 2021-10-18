@@ -50,7 +50,7 @@ Proof.
 
   intros.
   set (rel0 := (mk_init _ _ _ _ _ _ _)).
-  cbv in rel0.
+  vm_compute in rel0.
   subst rel0.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
