@@ -5,6 +5,9 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -76,11 +79,12 @@ Module ParseOne.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract (existT _ _ Bit);
-         st_trans := TSel (CExpr (EHdr Bit))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inr (A := state) true |}]
-                              (inr false) |}
+      {| st_op := extract(Bit);
+         st_trans := transition select (| EHdr Bit |) {{
+           [| exact #b|1 |] ==> accept ;;;
+            @reject state
+         }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -153,11 +157,12 @@ Module ParseZero.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract (existT _ _ Bit);
-         st_trans := TSel (CExpr (EHdr Bit))
-                              [{| sc_pat := PExact (VBits 1 (tt, false));
-                                  sc_st := inr (A := state) true |}]
-                              (inr false) |}
+      {| st_op := extract(Bit);
+         st_trans := transition select (| EHdr Bit |) {{
+           [| exact #b|0 |] ==> accept ;;;
+            @reject state
+         }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=

@@ -7,6 +7,9 @@ Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.ConfRel.
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
 
 Module BabyIP1.
   Inductive state :=
@@ -67,19 +70,19 @@ Module BabyIP1.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract (existT header 20 HdrIP);
-         st_trans := P4A.TSel (CExpr (ESlice (n := 20) (EHdr HdrIP) 19 16))
-                              [{| sc_pat := PExact (VBits 4 (tt, false, false, false, true));
-                                  sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits 4 (tt, false, false, false, false));
-                                 sc_st := inl ParseTCP |}]
-                              (inr false) |}
+      {| st_op := extract(HdrIP);
+         st_trans := transition select (| (EHdr HdrIP)[19 -- 16] |) {{
+          [| exact #b|0|0|0|1 |] ==> inl ParseUDP ;;;
+          [| exact #b|0|0|0|0 |] ==> inl ParseTCP ;;;
+          reject 
+         }}
+      |}
     | ParseUDP =>
-      {| st_op := OpExtract (existT header 20 HdrUDP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := extract(HdrUDP);
+         st_trans := transition accept |}
     | ParseTCP =>
-      {| st_op := OpExtract (existT header 28 HdrTCP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := extract(HdrTCP);
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state _ :=
@@ -139,16 +142,16 @@ Module BabyIP2.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract (existT header 40 HdrCombi);
-         st_trans := P4A.TSel (CExpr (ESlice (n := 40) (EHdr HdrCombi) 19 16))
-                              [{| sc_pat := PExact (VBits 4 (tt, false, false, false, true));
-                                  sc_st := inr true |};
-                              {| sc_pat := PExact (VBits 4 (tt, false, false, false, false));
-                                 sc_st := inl ParseSeq |}]
-                              (inr false) |}
+      {| st_op := extract(HdrCombi);
+         st_trans := transition select (| (EHdr HdrCombi)[19 -- 16] |) {{
+          [| exact #b|0|0|0|1 |] ==> accept ;;;
+          [| exact #b|0|0|0|0 |] ==> inl ParseSeq ;;;
+            reject
+        }} 
+      |}
     | ParseSeq =>
-      {| st_op := OpExtract (existT header 8 HdrSeq);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := extract(HdrSeq);
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state _ :=

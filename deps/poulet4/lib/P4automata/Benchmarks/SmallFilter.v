@@ -5,6 +5,9 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -78,14 +81,15 @@ Module IncrementalBits.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := OpExtract (existT _ _ Pref);
-         st_trans := TSel (CExpr (EHdr Pref))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inl Finish |}]
-                              (inr false) |}
+      {| st_op := extract(Pref);
+         st_trans := transition select (| EHdr Pref |) {{
+          [| exact #b|1 |] ==> inl Finish ;;;
+            reject
+          }} ;
+      |}
     | Finish =>
-      {| st_op := OpExtract (existT _ _ Suf);
-         st_trans := TGoto _ (inr true) |}
+      {| st_op := extract(Suf);
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -163,13 +167,14 @@ Module BigBits.
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := OpSeq
-        (OpExtract (existT _ _ Pref))
-        (OpExtract (existT _ _ Suf));
-         st_trans := TSel (CExpr (EHdr Pref))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inr true |}]
-                              (inr (A := state) false) |}
+      {| st_op := 
+          extract(Pref) ;; 
+          extract(Suf);
+         st_trans := transition select (| EHdr Pref |) {{
+           [| exact #b|1 |] ==> accept ;;;
+            @reject state
+          }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -242,11 +247,12 @@ Module OneBit.
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := (OpExtract (existT header 2 Pref));
-         st_trans := TSel (CExpr (ESlice (n := 2) (EHdr Pref) 0 0))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inr true |}]
-                              (inr (A := state) false) |}
+      {| st_op := extract(Pref);
+         st_trans := transition select (| (EHdr Pref)[0 -- 0] |) {{
+           [| exact #b|1 |] ==> accept ;;;
+            @reject state
+         }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=

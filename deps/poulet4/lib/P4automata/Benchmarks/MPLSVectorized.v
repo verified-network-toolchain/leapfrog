@@ -5,6 +5,10 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
+
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -80,19 +84,21 @@ Module MPLSPlain.
   Definition states (s: state) :=
     match s with
     | ParseMPLS =>
-      {| st_op := OpSeq
-        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
-        (OpExtract (existT _ _ HdrMPLS0));
-         st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits 1 (tt, false));
-                                 sc_st := inl ParseMPLS |}]
-                              (inr false) |}
+      {| st_op :=
+          HdrMPLS1 <- EHdr HdrMPLS0 ;;
+          extract(HdrMPLS0) ;
+         st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
+            [| exact #b|1 |] ==> inl ParseUDP ;;;
+            [| exact #b|0 |] ==> inl ParseMPLS ;;;
+              reject
+          }}
+      |}
     | ParseUDP =>
-      {| st_op := OpExtract (existT _ _ HdrUDP);
-         st_trans := TGoto _ (inr true) |}
+      {| st_op := extract(HdrUDP);
+         st_trans := transition accept |}
     end.
+
+  
 
   Program Definition aut: Syntax.t state header :=
     {| t_states := states |}.
@@ -169,28 +175,28 @@ Module MPLSUnroll.
   Definition states (s: state) :=
     match s with
     | ParseMPLS0 =>
-      {| st_op := OpSeq
-        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
-        (OpExtract (existT _ _ HdrMPLS0));
-         st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits 1 (tt, false));
-                                 sc_st := inl ParseMPLS1 |}]
-                              (inr false) |}
+      {| st_op := 
+          HdrMPLS1 <- EHdr HdrMPLS0 ;; 
+          extract(HdrMPLS0);
+         st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
+          [| exact (#b|1) |] ==> inl ParseUDP ;;;
+          [| exact (#b|0) |] ==> inl ParseMPLS1 ;;;
+            reject
+         }}
+      |}
     | ParseMPLS1 =>
-      {| st_op := OpSeq
-        (OpAsgn HdrMPLS1 (EHdr HdrMPLS0))
-        (OpExtract (existT _ _ HdrMPLS0));
-          st_trans := TSel (CExpr (ESlice (EHdr HdrMPLS0) 24 24))
-                              [{| sc_pat := PExact (VBits 1 (tt, true));
-                                  sc_st := inl ParseUDP |};
-                              {| sc_pat := PExact (VBits 1 (tt, false));
-                                  sc_st := inl ParseMPLS0 |}]
-                              (inr false) |}
+      {| st_op := 
+          HdrMPLS1 <- EHdr HdrMPLS0 ;;
+          extract(HdrMPLS0) ;
+         st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
+          [| exact (#b|1) |] ==> inl ParseUDP ;;; 
+          [| exact (#b|0) |] ==> inl ParseMPLS0 ;;; 
+            reject
+         }} 
+      |}
     | ParseUDP =>
-      {| st_op := OpExtract (existT _ _ HdrUDP);
-         st_trans := TGoto _ (inr true) |}
+      {| st_op := extract(HdrUDP);
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -267,25 +273,20 @@ Module MPLSInline.
   Definition states (s: state) :=
     match s with
     | ParseMPLS =>
-      {| st_op := OpSeq 
-          (OpExtract (existT _ _ HdrMPLS1))
-          (OpSeq 
-            (OpExtract (existT _ _ HdrMPLS0))
-            (OpAsgn HdrUDP (EHdr HdrMPLS0))
-          );
-         st_trans := TSel (CPair 
-            (CExpr (ESlice (n := 32) (EHdr HdrMPLS1) 24 24))
-            (CExpr (ESlice (n := 32) (EHdr HdrMPLS0) 24 24)))
-            [{| sc_pat := PPair (PExact (VBits 1 (tt, true))) (PAny 1);
-                sc_st := inr true |};
-             {| sc_pat := PPair (PExact (VBits 1 (tt, false))) (PExact (VBits 1 (tt, true)));
-                sc_st := inl ParseUDP |};
-              {| sc_pat := PPair (PExact (VBits 1 (tt, false))) (PExact (VBits 1 (tt, false)));
-                sc_st := inl ParseMPLS |}]
-            (inr false) |}
+      {| st_op :=
+          extract(HdrMPLS1) ;;
+          extract(HdrMPLS0) ;;
+          HdrUDP <- EHdr HdrMPLS0 ;
+         st_trans := transition select (| (EHdr HdrMPLS1)[24 -- 24], (EHdr HdrMPLS0)[24 -- 24]|) {{
+          [| exact (#b|1), * |] ==> accept ;;;
+          [| exact (#b|0), exact (#b|1) |] ==> inl ParseUDP ;;;
+          [| exact (#b|0), exact (#b|0) |] ==> inl ParseMPLS ;;;
+            reject
+          }}
+      |}
     | ParseUDP =>
-      {| st_op := OpExtract (existT _ _ HdrUDP);
-         st_trans := TGoto _ (inr true) |}
+      {| st_op := extract(HdrUDP) ;
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state header :=
