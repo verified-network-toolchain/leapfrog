@@ -41,6 +41,8 @@ Module IncrementalBits.
   | Pref : header 1
   | Suf : header 1.
 
+  Derive Signature for header.
+
   Equations header_eqdec_ (n: nat) (x: IncrementalBits.header n) (y: IncrementalBits.header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ IncrementalBits.Pref IncrementalBits.Pref := left eq_refl ;

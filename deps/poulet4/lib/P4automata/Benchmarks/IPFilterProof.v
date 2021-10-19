@@ -1,257 +1,61 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.IPFilter.
-From Hammer Require Import Tactics.
+Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
+Require Import Poulet4.P4automata.Benchmarks.IPFilter.
 
-Require Import SMTCoq.SMTCoq.
 
-Import BVList.BITVECTOR_LIST.
-Local Open Scope bv_scope.
+Notation H := (UDPCombined.header + UDPInterleaved.header).
+Notation A := IPFilter.aut.
+Notation conf := (P4automaton.configuration (P4A.interp A)).
+Notation start_left := UDPCombined.Parse.
+Notation start_right := UDPInterleaved.ParseIP.
 
-Lemma neg_impl: 
-  forall (P Q: Prop),
-    inhabited P ->
-    ~ (P -> Q) <-> P /\ ~ Q.
-Proof.
-  intros.
-  intuition.
-Qed.
+Definition r_states :=
+  Eval vm_compute in (Reachability.reachable_states
+                        A
+                        200
+                        start_left
+                        start_right).
 
-Lemma prebisim_ipfilter:
-  pre_bisimulation IPFilter.aut
-                   (WPSymLeap.wp (H:=_))
-                   (separated _ _ _ IPFilter.aut)
-                   nil
-                   (mk_init 10 IPFilter.aut UDPCombined.Parse UDPInterleaved.ParseIP)
-                   (inl (inl UDPCombined.Parse), [], [])
-                   (inl (inr UDPInterleaved.ParseIP), [], []).
+Definition top : Relations.rel conf := fun _ _ => True.
+Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+
+Declare ML Module "mirrorsolve".
+
+RegisterEnvCtors
+  (UDPCombined.HdrIP, FirstOrderConfRelSimplified.Bits 20)
+  (UDPCombined.HdrUDP, FirstOrderConfRelSimplified.Bits 20)
+  (UDPInterleaved.HdrIP, FirstOrderConfRelSimplified.Bits 20)
+  (UDPInterleaved.HdrUDP, FirstOrderConfRelSimplified.Bits 20).
+
+  Lemma prebisim_incremental_sep:
+  forall q1 q2,
+    interp_conf_rel' {| cr_st := {|
+                        cs_st1 := {|
+                          st_state := inl (inl (start_left));
+                          st_buf_len := 0;
+                        |};
+                        cs_st2 := {|
+                          st_state := inl (inr (start_right));
+                          st_buf_len := 0;
+                        |};
+                      |};
+                      cr_ctx := BCEmp;
+                      cr_rel := btrue;
+                   |} q1 q2 ->
+  pre_bisimulation A
+                   (wp r_states)
+                   top
+                   []
+                   (mk_init _ _ _ A 200 start_left start_right)
+                   q1 q2.
 Proof.
   idtac "running ipfilter bisimulation".
-  set (rel0 := mk_init 10 IPFilter.aut UDPCombined.Parse UDPInterleaved.ParseIP).
-  cbv in rel0.
+  
+  intros.
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  vm_compute in rel0.
   subst rel0.
-  time solve_bisim.
-  time solve_bisim.
-  time solve_bisim.
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: (forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit
-  end.
 
-  eapply PreBisimulationSkip with (H0:=left H);
-  [ exact I | ];
-  clear H.
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end. 
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-  
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~(forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)) by admit;
-              pose (t := wp a C);
-          eapply PreBisimulationExtend with (H0 := right H) (W := t);
-          [ tauto | reflexivity |];
-          compute in t;
-          simpl (_ ++ _);
-          unfold t;
-          clear t; 
-          clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: forall q1 q2 : P4automaton.configuration (P4A.interp a),
-              interp_crel i R q1 q2 -> interp_conf_rel C q1 q2)
-      by admit;
-    eapply PreBisimulationSkip with (H0:=left H);
-    [ exact I | ];
-    clear H
-  end.
-  
-  apply PreBisimulationClose.
-  
-
-  (* repeat (unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template).
-  intuition eauto;
-  firstorder (try congruence);
-  sauto limit:5000. *)
-
-
-(* 
-  repeat (unfold interp_crel, interp_conf_rel, interp_conf_state, interp_state_template).
-    
-  simpl (List.map interp_conf_rel _).
-  unfold fold_right.
-  unfold RelationClasses.relation_conjunction.
-  unfold RelationClasses.predicate_intersection. 
-  sauto.
-
-  unfold Relations.interp_rels, separated, interp_store_rel.
-  unfold map.
-  simpl (List.fold_right _ _ _).
-  unfold RelationClasses.relation_conjunction.
-  unfold RelationClasses.predicate_intersection. 
-  simpl.
-  intuition.
-  vm_compute.
-
-  intuition; (try sauto) || (
-
-    vm_compute;
-    intros;
-
-    repeat match goal with 
-    | H: (exists _, _) |- _ => destruct H
-    | H: _ /\ _ |- _ => destruct H
-    end;
-    congruence
-  ). *)
-
-  admit.
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "close phase" close_bisim top'.
 
 Time Admitted.

@@ -5,7 +5,11 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.Syntax.
+
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -35,39 +39,62 @@ Module UDPInterleaved.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrIP
-  | HdrUDP.
+  Inductive header : nat -> Type :=
+  | HdrIP : header 20
+  | HdrUDP : header 20.
 
-  Scheme Equality for header.
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-  Global Program Instance header_finite: @Finite header _ header_eq_dec :=
-    {| enum := [HdrIP; HdrUDP] |}.
+  Derive Signature for header.
+
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrIP HdrIP := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [20; 20].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP] |}.
   Next Obligation.
     repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
   Qed.
+
 
   Definition states (s: state) :=
     match s with
     | ParseIP =>
-      {| st_op := OpExtract 20 (HRVar HdrIP);
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrIP)) 19 16))
-                              [{| sc_pat := PExact (VBits [false; false; false; true]);
-                                  sc_st := inl ParseUDP |}]
-                              (inr false) |}
+      {| st_op := extract(HdrIP);
+         st_trans := transition select (| (EHdr HdrIP)[19 -- 16] |) {{
+           [| exact #b|0|0|0|1 |] ==> inl ParseUDP ;;;
+            reject
+         }} 
+      |}
     | ParseUDP =>
-      {| st_op := OpExtract 20 (HRVar HdrUDP);
-         st_trans := P4A.TGoto _ (inr true) |}
+      {| st_op := extract(HdrUDP);
+         st_trans := transition accept |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -101,38 +128,60 @@ Module UDPCombined.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrIP
-  | HdrUDP.
+  Inductive header : nat -> Type :=
+  | HdrIP : header 20
+  | HdrUDP : header 20.
 
-  Scheme Equality for header.
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-  Global Program Instance header_finite: @Finite header _ header_eq_dec :=
-    {| enum := [HdrIP; HdrUDP] |}.
+  Derive Signature for header.
+
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrIP HdrIP := left eq_refl ;
+    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
+    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
+  }.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [20; 20].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP] |}.
   Next Obligation.
     repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
   Qed.
 
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := OpSeq
-        (OpExtract 20 (HRVar HdrIP))
-        (OpExtract 20 (HRVar HdrUDP));
-         st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrIP)) 19 16))
-                              [{| sc_pat := PExact (VBits [false; false; false; true]);
-                                  sc_st := inr true |}]
-                              (inr (A := state) false) |}
+      {| st_op := 
+          extract(HdrIP) ;;
+          extract(HdrUDP) ;
+         st_trans := transition select (| (EHdr HdrIP)[19 -- 16] |) {{
+          [| exact #b|0|0|0|1 |] ==> accept ;;;
+            @reject state
+        }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=
