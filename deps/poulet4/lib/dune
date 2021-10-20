@@ -17,7 +17,8 @@
    P4automata.Benchmarks.EthRefComb
    P4automata.Benchmarks.EthRefCombSmall
    P4automata.Benchmarks.EthSmall
-   P4automata.Benchmarks.Ethernet
+   ; P4automata.Benchmarks.Ethernet
+   P4automata.Benchmarks.EthernetProof
    ; P4automata.Benchmarks.IPFilter
    P4automata.Benchmarks.IPFilterProof
    P4automata.Benchmarks.IncPostfilter
