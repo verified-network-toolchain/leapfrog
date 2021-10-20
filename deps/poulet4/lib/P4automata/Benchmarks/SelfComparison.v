@@ -9,6 +9,8 @@ Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.Notations.
 
+Require Import Poulet4.P4automata.BisimChecker.
+
 Open Scope p4a.
 
 (*
@@ -41,6 +43,8 @@ Module ReadUndef.
   | HdrVLAN: header vlan_size
   | HdrUDP: header udp_size.
 
+  Derive Signature for header.
+
   Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ HdrEth HdrEth := left eq_refl ;
@@ -58,7 +62,7 @@ Module ReadUndef.
 
   Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
-    intros n; solve_indexed_finiteness n [2; 2; 2; 2].
+    intros n; solve_indexed_finiteness n [2].
   Qed.
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrEth ;
@@ -66,15 +70,7 @@ Module ReadUndef.
                  existT _ _ HdrVLAN ;
                  existT _ _ HdrUDP ] |}.
   Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    cbn in *;
-    repeat match goal with
-           | H: False |- False => exact H
-           | H: _ = _ |- _ => inversion H
-           | H: _ \/ _ |- _ => destruct H
-           end.
+    solve_header_finite.
   Qed.
   Next Obligation.
   dependent destruction X; subst;
@@ -119,9 +115,6 @@ Module ReadUndef.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Next Obligation.
-    destruct s; cbv.
-    cbv.
   Solve Obligations with (destruct s; cbv; Lia.lia).
 
 End ReadUndef.
