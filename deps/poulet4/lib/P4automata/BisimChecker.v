@@ -14,6 +14,8 @@ Require Import Poulet4.P4automata.CompileConfRel.
 Require Import Poulet4.P4automata.CompileConfRelSimplified.
 Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
 
+Require Import Coq.Arith.PeanoNat.
+
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
         {| cs_st1 := {| st_state := s1; st_buf_len := n1 |};
@@ -298,3 +300,23 @@ Ltac solve_header_finite :=
   | H: List.In _ _ |- _ => destruct H
   | H: _ = _ |- _ => inversion H
   end.
+
+(* solves a header eq_dec from a list of finite indices and decision procedures, e.g. 
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
+  Defined.
+
+*)
+Ltac solve_header_eqdec_ n x y indfuns :=
+  match indfuns with
+  | existT _ ?index ?f :: ?indfuns =>
+    destruct (Nat.eq_dec n index); [
+      subst; exact (f x y)  |
+      solve_header_eqdec_ n x y indfuns
+    ]
+  | nil =>
+    destruct x; exfalso; auto
+  end.
+  

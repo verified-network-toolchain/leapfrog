@@ -71,15 +71,13 @@ Module MPLSPlain.
       end
     end
   );
-  congruence.
+  intros H; inversion H.
   Defined.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-    match (Nat.eq_dec n 32) with 
-    | left H => 
-      eq_rec_r (fun _ => _) h32_eq_dec H x y
-    | right _ => ltac:(destruct x; exfalso; congruence)
-    end.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -184,16 +182,13 @@ Module MPLSUnroll.
       | HdrUDP => left eq_refl
       end
     end
-  );
-  congruence.
+  ); intros H; inversion H.
   Defined.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-    match (Nat.eq_dec n 32) with 
-    | left H => 
-      eq_rec_r (fun _ => _) h32_eq_dec H x y
-    | right _ => ltac:(destruct x; exfalso; congruence)
-    end.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -305,16 +300,13 @@ Module MPLSInline.
       | HdrUDP => left eq_refl
       end
     end
-  );
-  congruence.
+  ); intros H; inversion H.
   Defined.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-    match (Nat.eq_dec n 32) with 
-    | left H => 
-      eq_rec_r (fun _ => _) h32_eq_dec H x y
-    | right _ => ltac:(destruct x; exfalso; congruence)
-    end.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 

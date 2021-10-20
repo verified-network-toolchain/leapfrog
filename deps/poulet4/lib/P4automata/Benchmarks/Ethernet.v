@@ -73,31 +73,11 @@ Module Reference.
     | _, _ => idProp
     end.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-    match (Nat.eq_dec n 64) with 
-    | left H => 
-      eq_rec_r (fun _ => _) h64_eq_dec H x y
-    | right _ => 
-      match (Nat.eq_dec n 48) with 
-      | left H => 
-        eq_rec_r (fun _ => _) h48_eq_dec H x y
-      | right _ => 
-        match (Nat.eq_dec n 16) with 
-        | left H => 
-          eq_rec_r (fun _ => _) h16_eq_dec H x y
-        | right _ => ltac:(destruct x; exfalso; congruence)
-        end
-      end
-    end.
-  (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HPref HPref := left eq_refl ;
-    header_eqdec_ _ HDest HDest := left eq_refl ;
-    header_eqdec_ _ HSrc HSrc := left eq_refl ;
-    header_eqdec_ _ HProto HProto := left eq_refl ;
-    header_eqdec_ _ _ _ := _ ;
-  }.
-  Solve All Obligations with right; congruence. *)
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 64 h64_eq_dec) :: (existT _ 48 h48_eq_dec) :: ( existT _ 16 h16_eq_dec) :: nil).
+  Defined. 
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -193,20 +173,11 @@ Module Combined.
     end.
 
   Local Obligation Tactic := intros.
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-    match (Nat.eq_dec n 176) with 
-    | left H => eq_rec_r (fun _ => _) h176_eq_dec H x y
-    | right _ => ltac:(destruct x; exfalso; congruence)
-    end.
-
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 176 h176_eq_dec) :: nil).
+  Defined. 
   
-  (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrVar HdrVar := left eq_refl ;
-  }.
-  Print header_eqdec_.
-  Solve All Obligations with right; congruence. *)
-
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
   Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
