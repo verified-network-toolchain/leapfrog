@@ -1068,6 +1068,44 @@ Section WPProofs.
   Proof.
   Admitted.
 
+  Lemma reachable_step_size:
+    forall prev size s,
+      Reachability.reachable_pair_step' prev = (size, s) ->
+      size = Reachability.reads_left (a:=a) prev.
+  Proof.
+    unfold Reachability.reachable_pair_step'.
+    intros.
+    destruct prev.
+    congruence.
+  Qed.
+
+  Lemma reaches_length:
+    forall size cur prev,
+      In (size, prev) (reaches (a:=a) cur prev) ->
+      size = Reachability.reads_left prev.
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (Reachability.reachable_pair_step' _) eqn:?.
+    destruct (in_dec _ _); simpl in *; [eauto with datatypes | tauto].
+    destruct H0; [|tauto].
+    inversion H0; subst.
+    eapply reachable_step_size; eauto.
+  Qed.
+
+  Lemma reaches_exists:
+    forall cur prev size l,
+      Reachability.reachable_pair_step' prev = (size, l) ->
+      In cur l ->
+      In (size, prev) (reaches (a:=a) cur prev).
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (Reachability.reachable_pair_step' _).
+    inversion H0; subst.
+    destruct (in_dec _ _); [eauto with datatypes | tauto].
+  Qed.
+
   Lemma reaches_prev:
     forall cur prev prev' size,
       In (size, prev') (reaches (a:=a) cur prev) ->
@@ -1081,6 +1119,32 @@ Section WPProofs.
       + congruence.
       + tauto.
     - simpl in H0; tauto.
+  Qed.
+
+  Lemma reads_left_config_left:
+    forall st1 st2 (q1 q2: conf),
+      interp_state_template st1 q1 ->
+      interp_state_template st2 q2 ->
+      Reachability.reads_left (a:=a) (st1, st2) =
+      Nat.min (configuration_room_left q1)
+              (configuration_room_left q2).
+  Proof.
+    unfold interp_state_template, configuration_room_left, Reachability.reads_left.
+    intuition.
+    destruct st1 as [st1 b1].
+    destruct st2 as [st2 b2].
+    destruct q1.
+    destruct q2.
+    simpl in *.
+    subst st1 b1 st2 b2.
+    destruct conf_state eqn:Hq1;
+      destruct conf_state0 eqn:Hq2;
+      autorewrite with size' in *;
+      cbn.
+    - reflexivity.
+    - destruct conf_buf_len0; try Lia.lia.
+    - destruct conf_buf_len0; try Lia.lia.
+    - destruct conf_buf_len0; try Lia.lia.
   Qed.
 
   Lemma wp_pred_pair_safe:
@@ -1097,6 +1161,51 @@ Section WPProofs.
     simpl in *.
   Admitted.
 
+  Lemma reachable_step_backwards:
+    forall st st' bs sts q1 q2,
+      Reachability.reachable_pair_step' st' = (length bs, sts) ->
+      In st sts ->
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st; cs_st2 := snd st|}
+                        (follow q1 bs)
+                        (follow q2 bs) ->
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st'; cs_st2 := snd st'|}
+                        q1
+                        q2.
+  Proof.
+    intros [st1 st2] [st1' st2'].
+    unfold Reachability.reachable_pair_step'.
+    intros.
+    set (k := Reachability.reads_left (st1', st2')) in *.
+    inversion H0.
+    subst sts.
+    clear H0.
+    apply in_prod_iff in H1.
+    unfold interp_conf_state; cbn; intuition.
+    - admit.
+    - admit.
+  Admitted.
+
+  Lemma wp_template_complete:
+    forall st st' q1 q2 bs,
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st; cs_st2 := snd st|}
+                        (follow q1 bs) (follow q2 bs) ->
+      In (length bs, st') (reaches st st') ->
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st'; cs_st2 := snd st'|}
+                        q1 q2.
+  Proof.
+    intros [st1 st2] [st1' st2'] q1 q2 bs.
+    unfold reaches.
+    intros.
+    destruct (Reachability.reachable_pair_step' _) eqn:?.
+    destruct (in_dec _ _); simpl in H1; intuition.
+    inversion H2; subst n.
+    eapply reachable_step_backwards; eauto.
+  Qed.
+
   (* prove this first *)
   Theorem wp_safe:
     forall top r phi q1 q2,
@@ -1107,8 +1216,55 @@ Section WPProofs.
         interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     intros.
+    set (q1' := follow q1 bs) in *.
+    set (q2' := follow q2 bs) in *.
+    unfold interp_conf_rel.
+    intros.
+    destruct phi as [[phi_st1 phi_st2] phi_ctx phi_rel] eqn:?; cbn in *.
+    simpl.
+    intros.
+    intuition.
     unfold wp in H0.
-    eapply wp_pred_pair_safe in H1; eauto.
+    simpl in *.
+    set (r' := flat_map (wp_pred_pair phi)
+                       (flat_map (reaches (phi_st1, phi_st2))
+                                 r))
+      in *.
+    unfold interp_crel in H0.
+    assert (forall size st,
+               In st r ->
+               In (size, st)
+                  (reaches (cs_st1 (cr_st phi), cs_st2 (cr_st phi)) st) ->
+               forall r',
+                 In r' (wp_pred_pair phi (size, st)) ->
+                 interp_conf_rel a r' q1 q2).
+    {
+      subst phi.
+      pose proof (Relations.interp_rels_in _ _ _ _ _ H0).
+      setoid_rewrite in_map_iff in H3.
+      intros.
+      subst r'.
+      repeat setoid_rewrite in_flat_map in H3.
+      simpl in *.
+      eapply H3.
+      destruct st in *; simpl in *.
+      intuition.
+      subst r'0.
+      eexists; intuition eauto.
+      eexists; intuition eauto.
+      simpl.
+      intuition.
+    }
+    set (st1 := {| st_state := conf_state q1;
+                   st_buf_len := conf_buf_len q1|}).
+    set (st2 := {| st_state := conf_state q2;
+                   st_buf_len := conf_buf_len q2|}).
+    set (qst := {|cs_st1 := st1; cs_st2 := st2|}).
+    change phi_st1 with (fst (phi_st1, phi_st2)) in H2.
+    change phi_st2 with (snd (phi_st1, phi_st2)) in H2.
+    eapply wp_template_complete in H2; eauto.
+    destruct (Reachability.reachable_pair_step' (st1, st2)) eqn:?.
+    eapply reaches_exists in Heqp.
   Admitted.
 
   (* prove this later *)
