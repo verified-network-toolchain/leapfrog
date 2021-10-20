@@ -13,6 +13,12 @@ Require Import Poulet4.P4automata.BisimChecker.
 
 Open Scope p4a.
 
+(* These sizes should be bigger. *)
+Notation eth_size := 2.
+Notation ip_size := 2.
+Notation vlan_size := 2.
+Notation udp_size := 2.
+
 (*
 This example is an undefined-value example inspired by the running
 example in the SafeP4 paper (https://arxiv.org/pdf/1906.07223.pdf).
@@ -32,11 +38,6 @@ Module ReadUndef.
     solve_finiteness.
   Qed.
 
-  (* These sizes should be bigger. *)
-  Notation eth_size := 2.
-  Notation ip_size := 2.
-  Notation vlan_size := 2.
-  Notation udp_size := 2.
   Inductive header : nat -> Type :=
   | HdrEth: header eth_size
   | HdrIP: header ip_size

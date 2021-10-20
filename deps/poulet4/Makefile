@@ -26,7 +26,7 @@ clean:
 	rm _CoqProject
 	dune clean -p poulet4
 
-benchmarks-small: smallfilter 
+benchmarks-small: smallfilter selfcmp
 
 benchmarks-medium: babyip mplsvectorized ipfilter ethernet
 
@@ -49,6 +49,9 @@ ethernet: build
 
 negative: build
 	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
+
+selfcmp: build
+	xargs coqc lib/P4automata/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
