@@ -7,6 +7,9 @@ Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Notations.
 
+Require Import Coq.Arith.PeanoNat.
+Require Import Poulet4.P4automata.BisimChecker.
+
 Open Scope p4a.
 
 
@@ -43,13 +46,40 @@ Module MPLSPlain.
   | HdrMPLS1 : header 32 
   | HdrUDP : header 32.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
-    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
-    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
-    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
-  }.
+  Derive Signature for header.
+
+  Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+  refine (
+    match x with 
+    | HdrMPLS0 => 
+      match y with 
+      | HdrMPLS0 => left eq_refl
+      | HdrMPLS1 => right _
+      | HdrUDP => right _
+      end
+    | HdrMPLS1 => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => left eq_refl
+      | HdrUDP => right _
+      end
+    | HdrUDP => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => right _
+      | HdrUDP => left eq_refl
+      end
+    end
+  );
+  congruence.
+  Defined.
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+    match (Nat.eq_dec n 32) with 
+    | left H => 
+      eq_rec_r (fun _ => _) h32_eq_dec H x y
+    | right _ => ltac:(destruct x; exfalso; congruence)
+    end.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -60,17 +90,13 @@ Module MPLSPlain.
 
   Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
-    intros n; solve_indexed_finiteness n [32; 32; 32].
+    intros n; solve_indexed_finiteness n [32].
   Qed.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    destruct H;
-    now inversion H || now inversion H0.
+    solve_header_finite.
   Qed.
   Next Obligation.
   dependent destruction X; subst;
@@ -134,13 +160,40 @@ Module MPLSUnroll.
   | HdrMPLS1 : header 32 
   | HdrUDP : header 32.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
-    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
-    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
-    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
-  }.
+  Derive Signature for header.
+
+  Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+  refine (
+    match x with 
+    | HdrMPLS0 => 
+      match y with 
+      | HdrMPLS0 => left eq_refl
+      | HdrMPLS1 => right _
+      | HdrUDP => right _
+      end
+    | HdrMPLS1 => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => left eq_refl
+      | HdrUDP => right _
+      end
+    | HdrUDP => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => right _
+      | HdrUDP => left eq_refl
+      end
+    end
+  );
+  congruence.
+  Defined.
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+    match (Nat.eq_dec n 32) with 
+    | left H => 
+      eq_rec_r (fun _ => _) h32_eq_dec H x y
+    | right _ => ltac:(destruct x; exfalso; congruence)
+    end.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -151,17 +204,13 @@ Module MPLSUnroll.
 
   Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
-    intros n; solve_indexed_finiteness n [32; 32; 32].
+    intros n; solve_indexed_finiteness n [32].
   Qed.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    destruct H;
-    now inversion H || now inversion H0.
+    solve_header_finite.
   Qed.
   Next Obligation.
   dependent destruction X; subst;
@@ -232,13 +281,40 @@ Module MPLSInline.
   | HdrMPLS1 : header 32 
   | HdrUDP : header 32.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrMPLS0 HdrMPLS0 := left eq_refl ;
-    header_eqdec_ _ HdrMPLS1 HdrMPLS1 := left eq_refl ;
-    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
-    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
-  }.
+  Derive Signature for header.
+
+  Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+  refine (
+    match x with 
+    | HdrMPLS0 => 
+      match y with 
+      | HdrMPLS0 => left eq_refl
+      | HdrMPLS1 => right _
+      | HdrUDP => right _
+      end
+    | HdrMPLS1 => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => left eq_refl
+      | HdrUDP => right _
+      end
+    | HdrUDP => 
+      match y with 
+      | HdrMPLS0 => right _
+      | HdrMPLS1 => right _
+      | HdrUDP => left eq_refl
+      end
+    end
+  );
+  congruence.
+  Defined.
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+    match (Nat.eq_dec n 32) with 
+    | left H => 
+      eq_rec_r (fun _ => _) h32_eq_dec H x y
+    | right _ => ltac:(destruct x; exfalso; congruence)
+    end.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -249,17 +325,13 @@ Module MPLSInline.
 
   Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
-    intros n; solve_indexed_finiteness n [32; 32; 32].
+    intros n; solve_indexed_finiteness n [32].
   Qed.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
   Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    destruct H;
-    now inversion H || now inversion H0.
+    solve_header_finite.
   Qed.
   Next Obligation.
   dependent destruction X; subst;

@@ -51,53 +51,44 @@ Module Reference.
 
   Derive Signature for header.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-  refine (
+  Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y} := 
+    match x, y with 
+    | HPref, HPref => left eq_refl
+    | _, _ => idProp
+    end.
+  Definition h48_eq_dec (x y: header 48) : {x = y} + {x <> y}. 
+    refine (match x, y with 
+    | HDest, HDest => left eq_refl
+    | HSrc, HSrc => left eq_refl
+    | HSrc, HDest => right _
+    | HDest, HSrc => right _
+    | _, _ => idProp
+    end);
+    congruence.
+    Defined.
+
+  Definition h16_eq_dec (x y: header 16) : {x = y} + {x <> y} := 
+    match x, y with 
+    | HProto, HProto => left eq_refl
+    | _, _ => idProp
+    end.
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
     match (Nat.eq_dec n 64) with 
-    | left H => _
-    | right H => _
-    end
-  ).
-  - subst.
-    exact (
-      match x, y with 
-      | HPref, HPref => left eq_refl
-      | _, _ => idProp
-      end
-    ).
-  - refine (
-      match (Nat.eq_dec n 16) with 
-      | left H => _
-      | right H => _
-      end
-    ).
-
-    * subst.
-      exact (
-        match x, y with 
-        | HProto, HProto => left eq_refl
-        | _, _ => idProp
+    | left H => 
+      eq_rec_r (fun _ => _) h64_eq_dec H x y
+    | right _ => 
+      match (Nat.eq_dec n 48) with 
+      | left H => 
+        eq_rec_r (fun _ => _) h48_eq_dec H x y
+      | right _ => 
+        match (Nat.eq_dec n 16) with 
+        | left H => 
+          eq_rec_r (fun _ => _) h16_eq_dec H x y
+        | right _ => ltac:(destruct x; exfalso; congruence)
         end
-      ).
-    * refine (
-        match (Nat.eq_dec n 48) with 
-        | left H => _
-        | right H => _
-        end
-      ).
-      + subst.
-        refine (
-          match x, y with 
-          | HDest, HDest => left eq_refl
-          | HSrc, HSrc => left eq_refl
-          | HSrc, HDest => right _
-          | HDest, HSrc => right _
-          | _, _ => idProp
-          end
-        ); congruence.
-      + destruct x; exfalso; congruence.
-  Defined.
-
+      end
+    end.
   (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ HPref HPref := left eq_refl ;
@@ -196,23 +187,17 @@ Module Combined.
 
   Derive Signature for header.
 
+  Definition h176_eq_dec (x y: header 176) : {x = y} + {x <> y} := 
+    match x, y with 
+    | HdrVar, HdrVar => left eq_refl
+    end.
+
   Local Obligation Tactic := intros.
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    destruct (Nat.eq_dec n 176).
-    - 
-      subst.
-      exact (
-        match x with
-        | HdrVar => 
-          match y with 
-          | HdrVar => left eq_refl
-          end
-        end 
-      ).
-    - inversion x.
-      exfalso.
-      auto.
-  Defined.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+    match (Nat.eq_dec n 176) with 
+    | left H => eq_rec_r (fun _ => _) h176_eq_dec H x y
+    | right _ => ltac:(destruct x; exfalso; congruence)
+    end.
 
   
   (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
