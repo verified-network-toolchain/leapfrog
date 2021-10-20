@@ -14,10 +14,10 @@ Require Import Poulet4.P4automata.BisimChecker.
 Open Scope p4a.
 
 (* These sizes should be bigger. *)
-Notation eth_size := 100.
-Notation ip_size := 2.
-Notation vlan_size := 2.
-Notation udp_size := 2.
+Notation eth_size := 112.
+Notation ip_size := 160.
+Notation vlan_size := 32.
+Notation udp_size := 64.
 
 (*
 This example is an undefined-value example inspired by the running
@@ -46,7 +46,7 @@ Module ReadUndef.
 
   Derive Signature for header.
 
-  Definition h100_eq_dec (x y: header 100) : {x = y} + {x <> y}.
+  Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
     refine (
         match x, y with 
         | HdrEth, HdrEth => left eq_refl
@@ -55,18 +55,28 @@ Module ReadUndef.
       intros H; inversion H.
   Defined.
 
-  Definition h2_eq_dec (x y: header 2) : {x = y} + {x <> y}.
+  Definition h160_eq_dec (x y: header 160) : {x = y} + {x <> y}.
     refine (
         match x, y with 
         | HdrIP, HdrIP => left eq_refl
-        | HdrIP, HdrVLAN => right _
-        | HdrIP, HdrUDP => right _
+        | _, _ => idProp
+        end);
+      intros H; inversion H.
+  Defined.
+
+  Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+    refine (
+        match x, y with 
         | HdrVLAN, HdrVLAN => left eq_refl
-        | HdrVLAN, HdrIP => right _
-        | HdrVLAN, HdrUDP => right _
+        | _, _ => idProp
+        end);
+      intros H; inversion H.
+  Defined.
+
+  Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y}.
+    refine (
+        match x, y with 
         | HdrUDP, HdrUDP => left eq_refl
-        | HdrUDP, HdrIP => right _
-        | HdrUDP, HdrVLAN => right _
         | _, _ => idProp
         end);
       intros H; inversion H.
@@ -74,8 +84,10 @@ Module ReadUndef.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
     solve_header_eqdec_ n x y 
-      [existT (fun n => forall x y: header n, {x = y} + {x <> y}) 2 h2_eq_dec;
-       existT (fun n => forall x y: header n, {x = y} + {x <> y}) 100 h100_eq_dec].
+      [existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h112_eq_dec;
+       existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h160_eq_dec;
+       existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h32_eq_dec;
+       existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h64_eq_dec].
   Defined. 
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
@@ -117,7 +129,7 @@ Module ReadUndef.
                                 }}
       |}
     | DefaultVLAN =>
-      {| st_op := HdrVLAN <- ELit (Ntuple.l2t (cons 0 (cons 0 nil))%p4abits);;
+      {| st_op := HdrVLAN <- ELit (Ntuple.n_tuple_repeat _ false) ;;
                   extract(HdrIP);
          st_trans := transition (inl ParseUDP)
       |}
@@ -131,8 +143,8 @@ Module ReadUndef.
       |}
     | ParseUDP =>
       {| st_op := extract(HdrUDP);
-         st_trans := transition select (| EHdr HdrVLAN |) {{
-                                    [| exact #b|1|1 |] ==> reject ;;;
+         st_trans := transition select (| (EHdr HdrVLAN)[3--0] |) {{
+                                    [| exact #b|1|1|1|1 |] ==> reject ;;;
                                     accept
                                 }}
       |}
