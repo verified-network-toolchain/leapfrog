@@ -44,7 +44,7 @@ Lemma prebisim_babyip:
                    (mk_init _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)
                    q1 q2.
 Proof.
-  idtac "running babyip bisimulation".
+  idtac "running self-comparison bisimulation".
 
   intros.
   set (rel0 := (mk_init _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)).
