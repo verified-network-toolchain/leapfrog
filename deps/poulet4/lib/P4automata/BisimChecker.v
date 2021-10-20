@@ -278,3 +278,23 @@ Ltac close_bisim top' :=
     );
     apply H; [cbv; trivial | auto]
   end.
+
+(* solves a header finiteness goal of the form: 
+List.NoDup
+  [existT (fun n : nat => header n) 64 HPref;
+  existT (fun n : nat => header n) 48 HDest;
+  existT (fun n : nat => header n) 48 HSrc;
+  existT (fun n : nat => header n) 16 HProto] 
+  
+  which is an obligation for: 
+
+    @Finite {n & header n} _ header_eqdec' 
+  
+  *)
+Ltac solve_header_finite := 
+  repeat constructor;
+  unfold "~"; intros;
+  repeat match goal with 
+  | H: List.In _ _ |- _ => destruct H
+  | H: _ = _ |- _ => inversion H
+  end.

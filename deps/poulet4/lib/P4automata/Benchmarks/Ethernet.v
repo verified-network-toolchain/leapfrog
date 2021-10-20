@@ -5,7 +5,12 @@ Require Import Coq.Program.Program.
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Poulet4.P4automata.Syntax.
+
+Require Import Poulet4.P4automata.Notations.
+Require Import Poulet4.P4automata.BisimChecker.
+
+Open Scope p4a.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -35,40 +40,74 @@ Module Reference.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header: Set :=
-  | HPref
-  | HDest
-  | HSrc
-  | HProto.
+  Inductive header: nat ->  Type :=
+  | HPref : header 64
+  | HDest : header 48
+  | HSrc : header 48
+  | HProto : header 16.
 
-  Scheme Equality for header.
 
-  Global Program Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Derive Signature for header.
 
-  Global Program Instance header_finite: @Finite header _ header_eqdec :=
-    {| enum := [HPref; HDest; HSrc; HProto] |}.
+  Local Obligation Tactic := intros.
+
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HPref HPref := left eq_refl ;
+    header_eqdec_ _ HDest HDest := left eq_refl ;
+    header_eqdec_ _ HSrc HSrc := left eq_refl ;
+    header_eqdec_ _ HProto HProto := left eq_refl ;
+    header_eqdec_ _ _ _ := _ ;
+  }.
+  Solve All Obligations with right; congruence.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [64; 48; 16].
+  Qed.
+
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HPref ; existT _ _ HDest ; existT _ _ HSrc; existT _ _ HProto ] |}.
   Next Obligation.
-    repeat constructor; eauto with datatypes;
-    cbn;
-    intuition congruence.
+    solve_header_finite.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  unfold List.In.
+  repeat match goal with 
+  | X: {_ & _} |- _ => destruct X
+  | X: header _ |- _ =>
+    dependent destruction X; subst;
+    repeat match goal with
+    | |- _ \/ _ => (now left; trivial) || right
+    end
+  end.
   Qed.
+
+
+
 
   Definition states (s: state) := 
     match s with 
-    | SPref => {| st_op := OpExtract 64 (HRVar HPref);
-                  st_trans := TGoto _ (inl SDest) |}
-    | SDest => {| st_op := OpExtract 48 (HRVar HDest);
-                  st_trans := TGoto _ (inl SSrc) |}
-    | SSrc => {| st_op := OpExtract 48 (HRVar HSrc);
-                  st_trans := TGoto _ (inl SProto) |}
-    | SProto => {| st_op := OpExtract 16 (HRVar HProto);
-                  st_trans := P4A.TSel (CExpr (EHdr (HRVar HProto)))
-                    [{| sc_pat := PExact (VBits [true;false;false;false;false;false;false;false;false;false;false;false;false;false;false;false]);
-                        sc_st := inr true |}]
-                    (inr false) |}
+    | SPref => {| st_op := extract(HPref);
+                  st_trans := transition (inl SDest) |}
+    | SDest => {| st_op := extract(HDest);
+                  st_trans := transition (inl SSrc) |}
+    | SSrc => {| st_op := extract(HSrc);
+                  st_trans := transition (inl SProto) |}
+    | SProto => {| st_op := extract(HProto);
+                  st_trans := transition select (| EHdr HProto |) {{
+                    [| exact #b|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+                      reject
+                  }}
+                |}
     end.
   
 
@@ -105,40 +144,58 @@ Module Combined.
     destruct x; intuition congruence.
   Qed.
 
-  Inductive header :=
-  | HdrVar.
+  Inductive header : nat -> Type :=
+  | HdrVar : header 176.
 
-  Global Instance header_eqdec: EquivDec.EqDec header eq.
-    vm_compute.
-    intros.
-    left.
-    destruct x; destruct x0; trivial.
+  Derive Signature for header.
+
+  Local Obligation Tactic := intros.
+
+  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  {
+    header_eqdec_ _ HdrVar HdrVar := left eq_refl ;
+  }.
+  Solve All Obligations with right; congruence.
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
   Defined.
 
-  Global Program Instance header_finite: @Finite header _ header_eqdec :=
-    {| enum := [HdrVar] |}.
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [176].
+  Qed.
+
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrVar ] |}.
   Next Obligation.
-  repeat constructor;
-    repeat match goal with
-           | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-           | |- ~ List.In _ [] => apply List.in_nil
-           | |- ~ List.In _ (_ :: _) => unfold not; intros
-           | H: List.In _ (_::_) |- _ => inversion H; clear H
-           | _ => discriminate
-           end.
+    solve_header_finite.
   Qed.
   Next Obligation.
-    destruct x; intuition congruence.
+  unfold List.In.
+  repeat match goal with 
+  | X: {_ & _} |- _ => destruct X
+  | X: header _ |- _ =>
+    dependent destruction X; subst;
+    repeat match goal with
+    | |- _ \/ _ => (now left; trivial) || right
+    end
+  end.
   Qed.
 
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := (OpExtract 176 (HRVar HdrVar));
-        st_trans := P4A.TSel (CExpr (ESlice (EHdr (HRVar HdrVar)) 176 160))
-                              [{| sc_pat := PExact (VBits [true;false;false;false;false;false;false;false;false;false;false;false;false;false;false;false]);
-                                  sc_st := inr true |}]
-                              (inr (A := state) false) |}
+      {| st_op := extract(HdrVar);
+        st_trans := transition select (| (EHdr HdrVar)[176 -- 160] |) {{
+          [| exact #b|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+            @reject state
+        }}
+      |}
     end.
 
   Program Definition aut: Syntax.t state header :=
@@ -148,15 +205,5 @@ Module Combined.
 End Combined.
 
 Module RefComb.
-  Definition state: Type := Sum.S Reference.state Combined.state.
-  Global Instance state_eq_dec: EquivDec.EqDec state eq :=
-    ltac:(typeclasses eauto).
-
-  Definition header := Sum.H Reference.header Combined.header.
-  Global Instance header_eq_dec: EquivDec.EqDec header eq :=
-    ltac:(typeclasses eauto).
-  Global Instance header_finite: @Finite header _ header_eq_dec :=
-    ltac:(typeclasses eauto).
-
   Definition aut := sum Reference.aut Combined.aut.
 End RefComb.
