@@ -28,7 +28,7 @@ clean:
 
 benchmarks-small: smallfilter 
 
-benchmarks-medium: babyip mplsvectorized ipfilter
+benchmarks-medium: babyip mplsvectorized ipfilter ethernet
 
 benchmarks-all: benchmarks-small benchmarks-medium negative
 
@@ -43,6 +43,9 @@ babyip: build
 
 mplsvectorized: build
 	xargs coqc lib/P4automata/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
+
+ethernet: build
+	xargs coqc lib/P4automata/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
 
 negative: build
 	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"

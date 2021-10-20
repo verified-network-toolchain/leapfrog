@@ -10,6 +10,8 @@ Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.P4automata.Notations.
 Require Import Poulet4.P4automata.BisimChecker.
 
+Require Import Coq.Arith.PeanoNat.
+
 Open Scope p4a.
 
 Ltac prep_equiv :=
@@ -49,9 +51,54 @@ Module Reference.
 
   Derive Signature for header.
 
-  Local Obligation Tactic := intros.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+  refine (
+    match (Nat.eq_dec n 64) with 
+    | left H => _
+    | right H => _
+    end
+  ).
+  - subst.
+    exact (
+      match x, y with 
+      | HPref, HPref => left eq_refl
+      | _, _ => idProp
+      end
+    ).
+  - refine (
+      match (Nat.eq_dec n 16) with 
+      | left H => _
+      | right H => _
+      end
+    ).
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+    * subst.
+      exact (
+        match x, y with 
+        | HProto, HProto => left eq_refl
+        | _, _ => idProp
+        end
+      ).
+    * refine (
+        match (Nat.eq_dec n 48) with 
+        | left H => _
+        | right H => _
+        end
+      ).
+      + subst.
+        refine (
+          match x, y with 
+          | HDest, HDest => left eq_refl
+          | HSrc, HSrc => left eq_refl
+          | HSrc, HDest => right _
+          | HDest, HSrc => right _
+          | _, _ => idProp
+          end
+        ); congruence.
+      + destruct x; exfalso; congruence.
+  Defined.
+
+  (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ HPref HPref := left eq_refl ;
     header_eqdec_ _ HDest HDest := left eq_refl ;
@@ -59,7 +106,7 @@ Module Reference.
     header_eqdec_ _ HProto HProto := left eq_refl ;
     header_eqdec_ _ _ _ := _ ;
   }.
-  Solve All Obligations with right; congruence.
+  Solve All Obligations with right; congruence. *)
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -150,12 +197,30 @@ Module Combined.
   Derive Signature for header.
 
   Local Obligation Tactic := intros.
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    destruct (Nat.eq_dec n 176).
+    - 
+      subst.
+      exact (
+        match x with
+        | HdrVar => 
+          match y with 
+          | HdrVar => left eq_refl
+          end
+        end 
+      ).
+    - inversion x.
+      exfalso.
+      auto.
+  Defined.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
+  
+  (* Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ HdrVar HdrVar := left eq_refl ;
   }.
-  Solve All Obligations with right; congruence.
+  Print header_eqdec_.
+  Solve All Obligations with right; congruence. *)
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 

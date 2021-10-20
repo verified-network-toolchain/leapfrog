@@ -14,9 +14,6 @@
    ; P4automata.Benchmarks.BabyIP
    P4automata.Benchmarks.BabyIPProof
    P4automata.Benchmarks.BabyIPProofSimplified
-   P4automata.Benchmarks.EthRefComb
-   P4automata.Benchmarks.EthRefCombSmall
-   P4automata.Benchmarks.EthSmall
    ; P4automata.Benchmarks.Ethernet
    P4automata.Benchmarks.EthernetProof
    ; P4automata.Benchmarks.IPFilter
