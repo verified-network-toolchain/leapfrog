@@ -16,3 +16,4 @@ makefile.conf
 extraction/lib/*.ml*
 _build
 poulet4.install
+_CoqProject

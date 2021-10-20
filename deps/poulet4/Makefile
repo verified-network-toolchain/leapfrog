@@ -16,13 +16,14 @@
 
 all: build
 
-build:
+build: _CoqProject
 	dune build -p poulet4
 
-install:
+install: _CoqProject
 	dune install -p poulet4
 
 clean:
+	rm _CoqProject
 	dune clean -p poulet4
 
 benchmarks-small: smallfilter 
@@ -45,3 +46,7 @@ mplsvectorized: build
 
 negative: build
 	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
+
+_CoqProject: _CoqProject.noplugins
+	cp _CoqProject.noplugins _CoqProject
+	echo "\n-I $(OPAMROOT)/default/lib/mirrorsolve\n" >> _CoqProject
