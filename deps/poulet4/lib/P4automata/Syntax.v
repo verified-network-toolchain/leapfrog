@@ -56,7 +56,8 @@ Section Syntax.
   Inductive expr : nat -> Type :=
   | EHdr {n} (h: H n): expr n
   | ELit {n} (bs: n_tuple bool n): expr n
-  | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo).
+  | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo)
+  | EConcat {n m} (l: expr n) (r: expr m): expr (n + m).
   (* todo: binops, ...? *)
 
   Definition state_ref: Type := S + bool.
@@ -178,6 +179,7 @@ Section Fmap.
     | EHdr _ h => EHdr _ (g h)
     | ELit _ bs => ELit _ bs
     | ESlice e hi lo => ESlice (expr_fmapH e) hi lo
+    | EConcat l r => EConcat (expr_fmapH l) (expr_fmapH r)
     end.
 
   Definition state_ref_fmapS (s: state_ref S1) : state_ref S2 :=
@@ -285,7 +287,11 @@ Section Interp.
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
         let '(VBits _ bs) := eval_expr _ st e in
-        VBits _ (n_slice bs hi lo)
+        VBits _ (n_slice bs hi lo);
+      eval_expr n st (EConcat l r) :=
+        let '(VBits _ bs_l) := eval_expr _ st l in
+        let '(VBits _ bs_r) := eval_expr _ st r in
+        VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
   Equations extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess := {

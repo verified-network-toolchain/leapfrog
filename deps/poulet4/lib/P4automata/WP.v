@@ -65,6 +65,7 @@ Section WP.
     | P4A.EHdr h => BEHdr c s (P4A.HRVar (existT _ _ h))
     | P4A.ELit bs => BELit _ c (Ntuple.t2l bs)
     | P4A.ESlice e hi lo => BESlice (expr_to_bit_expr s e) hi lo
+    | P4A.EConcat l r => BEConcat (expr_to_bit_expr s l) (expr_to_bit_expr s r)
     end.
 
   Definition val_to_bit_expr {c n} (value: P4A.v n) : bit_expr H c :=
