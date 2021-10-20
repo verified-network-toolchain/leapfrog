@@ -14,7 +14,7 @@ Require Import Poulet4.P4automata.BisimChecker.
 Open Scope p4a.
 
 (* These sizes should be bigger. *)
-Notation eth_size := 2.
+Notation eth_size := 100.
 Notation ip_size := 2.
 Notation vlan_size := 2.
 Notation udp_size := 2.
@@ -46,45 +46,36 @@ Module ReadUndef.
 
   Derive Signature for header.
 
-  Definition h2_eq_dec (x y: header 2) : {x = y} + {x <> y}.
-  refine (
-    match x with 
-    | HdrEth => 
-      match y with 
-      | HdrEth => left eq_refl
-      | HdrIP => right _
-      | HdrVLAN => right _
-      | HdrUDP => right _
-      end
-    | HdrIP => 
-      match y with 
-      | HdrEth => right _
-      | HdrIP => left eq_refl
-      | HdrVLAN => right _
-      | HdrUDP => right _
-      end
-    | HdrVLAN => 
-      match y with 
-      | HdrEth => right _
-      | HdrIP => right _
-      | HdrVLAN => left eq_refl
-      | HdrUDP => right _
-      end
-    | HdrUDP => 
-      match y with 
-      | HdrEth => right _
-      | HdrIP => right _
-      | HdrVLAN => right _
-      | HdrUDP => left eq_refl
-      end
-    end
-  ); intros H; inversion H.
+  Definition h100_eq_dec (x y: header 100) : {x = y} + {x <> y}.
+    refine (
+        match x, y with 
+        | HdrEth, HdrEth => left eq_refl
+        | _, _ => idProp
+        end);
+      intros H; inversion H.
   Defined.
 
+  Definition h2_eq_dec (x y: header 2) : {x = y} + {x <> y}.
+    refine (
+        match x, y with 
+        | HdrIP, HdrIP => left eq_refl
+        | HdrIP, HdrVLAN => right _
+        | HdrIP, HdrUDP => right _
+        | HdrVLAN, HdrVLAN => left eq_refl
+        | HdrVLAN, HdrIP => right _
+        | HdrVLAN, HdrUDP => right _
+        | HdrUDP, HdrUDP => left eq_refl
+        | HdrUDP, HdrIP => right _
+        | HdrUDP, HdrVLAN => right _
+        | _, _ => idProp
+        end);
+      intros H; inversion H.
+  Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
     solve_header_eqdec_ n x y 
-      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 2 h2_eq_dec) :: nil).
+      [existT (fun n => forall x y: header n, {x = y} + {x <> y}) 2 h2_eq_dec;
+       existT (fun n => forall x y: header n, {x = y} + {x <> y}) 100 h100_eq_dec].
   Defined. 
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
@@ -96,7 +87,7 @@ Module ReadUndef.
 
   Global Instance header_finite: forall n, @Finite (header n) _ _.
   Proof.
-    intros n; solve_indexed_finiteness n [2].
+    intros n; solve_indexed_finiteness n [eth_size;ip_size;vlan_size;udp_size].
   Qed.
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
     {| enum := [ existT _ _ HdrEth ;
