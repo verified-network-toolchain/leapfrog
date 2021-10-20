@@ -64,7 +64,7 @@ Module Reference.
     | HDest, HSrc => right _
     | _, _ => idProp
     end);
-    congruence.
+    intros H; inversion H.
     Defined.
 
   Definition h16_eq_dec (x y: header 16) : {x = y} + {x <> y} := 

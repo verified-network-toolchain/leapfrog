@@ -45,14 +45,47 @@ Module ReadUndef.
 
   Derive Signature for header.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrEth HdrEth := left eq_refl ;
-    header_eqdec_ _ HdrIP HdrIP := left eq_refl ;
-    header_eqdec_ _ HdrVLAN HdrVLAN := left eq_refl ;
-    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
-    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
-  }.
+  Definition h2_eq_dec (x y: header 2) : {x = y} + {x <> y}.
+  refine (
+    match x with 
+    | HdrEth => 
+      match y with 
+      | HdrEth => left eq_refl
+      | HdrIP => right _
+      | HdrVLAN => right _
+      | HdrUDP => right _
+      end
+    | HdrIP => 
+      match y with 
+      | HdrEth => right _
+      | HdrIP => left eq_refl
+      | HdrVLAN => right _
+      | HdrUDP => right _
+      end
+    | HdrVLAN => 
+      match y with 
+      | HdrEth => right _
+      | HdrIP => right _
+      | HdrVLAN => left eq_refl
+      | HdrUDP => right _
+      end
+    | HdrUDP => 
+      match y with 
+      | HdrEth => right _
+      | HdrIP => right _
+      | HdrVLAN => right _
+      | HdrUDP => left eq_refl
+      end
+    end
+  ); intros H; inversion H.
+  Defined.
+
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 2 h2_eq_dec) :: nil).
+  Defined. 
+
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
   Global Instance header_eqdec': EquivDec.EqDec (H' header) eq.
