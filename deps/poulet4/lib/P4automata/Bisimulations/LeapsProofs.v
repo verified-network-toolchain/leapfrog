@@ -22,6 +22,80 @@ Section LeapsProofs.
   Variable (a: p4automaton).
   Notation conf := (configuration a).
 
+  Lemma config_room_left_nonzero:
+    forall q: conf,
+      configuration_room_left q > 0.
+  Proof.
+    intros.
+    destruct q.
+    unfold configuration_room_left.
+    destruct conf_state;
+      cbn in *;
+      autorewrite with size' in *;
+      lia.
+  Qed.
+
+  Lemma config_room_left_bound:
+    forall q: conf,
+      configuration_room_left q <= size' a (conf_state q).
+  Proof.
+    intros.
+    unfold configuration_room_left.
+    lia.
+  Qed.
+
+  Lemma leap_size_nonzero:
+    forall (q1 q2: conf),
+      leap_size _ q1 q2 > 0.
+  Proof.
+    unfold leap_size.
+    intros.
+    pose proof (config_room_left_nonzero q1).
+    pose proof (config_room_left_nonzero q2).
+    destruct (conf_state q1), (conf_state q2);
+      lia.
+  Qed.
+
+  Lemma state_stable:
+    forall bs (q: conf),
+      length bs < configuration_room_left q ->
+      conf_state (follow q bs) = conf_state q.
+  Proof.
+    induction bs; intros; cbn; autorewrite with follow.
+    - auto.
+    - unfold step.
+      destruct (le_lt_dec _ _).
+      + exfalso.
+        unfold configuration_room_left in *; simpl in *.
+        lia.
+      + cbn.
+        rewrite IHbs; auto.
+        unfold configuration_room_left in *; simpl in *.
+        lia.
+  Qed.
+
+  Lemma step_done:
+    forall (q: conf) s b,
+      conf_state q = inr s ->
+      conf_state (step q b) = inr s.
+  Proof.
+    intros.
+    unfold step.
+    destruct (le_lt_dec _ _).
+    - cbn.
+      generalize (eq_rect (S (conf_buf_len q)) (Ntuple.n_tuple bool)
+                          (Ntuple.n_tuple_cons (conf_buf q) b) (size' a (conf_state q)) 
+                          (squeeze (conf_buf_sane _) l)).
+      rewrite H.
+      intros.
+      autorewrite with transitions'.
+      reflexivity.
+    - simpl.
+      rewrite H in l.
+      autorewrite with size' in *.
+      lia.
+  Qed.
+
   Program Instance close_interpolate_sound
     : Upto.SoundClosure a (close_interpolate a).
   Next Obligation.
@@ -29,41 +103,129 @@ Section LeapsProofs.
   Qed.
   Next Obligation.
     induction H0; eauto.
-    unfold configuration_has_room in H1, H2.
-    repeat (unfold step; destruct (le_lt_dec _ _); try lia).
-    unfold accepting; simpl.
-    subst; easy.
+    unfold accepting in *; simpl in *.
+    destruct (conf_state q1) as [s1|[|]] eqn:?, (conf_state q2) as [s2|[|]] eqn:?;
+      try intuition congruence.
+    - destruct (PeanoNat.Nat.eq_dec (leap_size a q1 q2) 1).
+      + rewrite e in H1.
+        eapply H.
+        replace (step q1 b) with (follow q1 [b]) by reflexivity.
+        replace (step q2 b) with (follow q2 [b]) by reflexivity.
+        eapply H1.
+        reflexivity.
+      + assert (leap_size a q1 q2 > 1).
+        {
+          pose proof (leap_size_nonzero q1 q2).
+          lia.
+        }
+        unfold leap_size in H2.
+        rewrite Heqs, Heqs0 in H2.
+        assert (configuration_room_left q1 > 1)
+          by lia.
+        assert (configuration_room_left q2 > 1)
+          by lia.
+        assert (conf_state (step q1 b) = conf_state q1).
+        {
+          replace (step q1 b) with (follow q1 [b]) by reflexivity.
+          apply state_stable.
+          simpl.
+          lia.
+        }
+        assert (conf_state (step q2 b) = conf_state q2).
+        {
+          replace (step q2 b) with (follow q2 [b]) by reflexivity.
+          apply state_stable.
+          simpl.
+          lia.
+        }
+        intuition congruence.
+    - assert (forall buf,
+                 length buf = leap_size a q1 q2 ->
+                 conf_state (follow q1 buf) = inr true <->
+                 conf_state (follow q2 buf) = inr true)
+        by eauto.
+      destruct (PeanoNat.Nat.eq_dec (configuration_room_left q1) 1).
+      + assert (Hleap: leap_size a q1 q2 = 1).
+        {
+          unfold leap_size.
+          rewrite Heqs, Heqs0.
+          auto.
+        }
+        replace (step q1 b) with (follow q1 [b]) by reflexivity.
+        replace (step q2 b) with (follow q2 [b]) by reflexivity.
+        eapply H2.
+        rewrite Hleap.
+        reflexivity.
+      + assert (configuration_room_left q1 > 1).
+        {
+          pose proof (config_room_left_nonzero q1).
+          lia.
+        }
+        assert (conf_state (step q1 b) = conf_state q1).
+        {
+          replace (step q1 b) with (follow q1 [b]) by reflexivity.
+          apply state_stable.
+          simpl.
+          lia.
+        }
+        rewrite H4.
+        replace (conf_state (step q2 b)) with (@inr (states a) _ false)
+          by (symmetry; eauto using step_done).
+        intuition congruence.
+    - erewrite !step_done by eauto.
+      tauto.
+    - assert (forall buf,
+                 length buf = leap_size a q1 q2 ->
+                 conf_state (follow q1 buf) = inr true <->
+                 conf_state (follow q2 buf) = inr true)
+        by eauto.
+      destruct (PeanoNat.Nat.eq_dec (configuration_room_left q2) 1).
+      + assert (Hleap: leap_size a q1 q2 = 1).
+        {
+          unfold leap_size.
+          rewrite Heqs, Heqs0.
+          auto.
+        }
+        replace (step q1 b) with (follow q1 [b]) by reflexivity.
+        replace (step q2 b) with (follow q2 [b]) by reflexivity.
+        eapply H2.
+        rewrite Hleap.
+        reflexivity.
+      + assert (configuration_room_left q2 > 1).
+        {
+          pose proof (config_room_left_nonzero q2).
+          lia.
+        }
+        assert (conf_state (step q2 b) = conf_state q2).
+        {
+          replace (step q2 b) with (follow q2 [b]) by reflexivity.
+          apply state_stable.
+          simpl.
+          lia.
+        }
+        rewrite H4.
+        replace (conf_state (step q1 b)) with (@inr (states a) _ false)
+          by (symmetry; eauto using step_done).
+        intuition congruence.
+    - erewrite !step_done by eauto.
+      tauto.
   Qed.
   Next Obligation.
-    revert b; induction H0; intros; eauto.
-    destruct (le_lt_dec (Nat.min (configuration_room_left q1)
-                                 (configuration_room_left q2)) 2).
-    - apply InterpolateBase.
-      replace (step (step q1 b) b0) with (follow q1 [b; b0]) by auto.
-      replace (step (step q2 b) b0) with (follow q2 [b; b0]) by auto.
-      apply H5; simpl.
-      unfold configuration_room_left in *.
-      unfold configuration_has_room in H1, H2.
-      lia.
-    - unfold configuration_room_left in *.
-      eapply InterpolateStep with (s1 := s1) (s2 := s2); auto.
-      + unfold configuration_has_room, step.
-        destruct (le_lt_dec _ _); simpl; lia.
-      + unfold configuration_has_room, step.
-        destruct (le_lt_dec _ _); simpl; lia.
-      + unfold step.
-        destruct (le_lt_dec _ _); try lia.
-        easy.
-      + unfold step.
-        destruct (le_lt_dec _ _); try lia.
-        easy.
-      + intros.
-        repeat rewrite <- follow_equation_2.
-        apply H5; simpl.
-        unfold configuration_room_left in H6.
-        rewrite H6; unfold step.
-        repeat (destruct (le_lt_dec _ _)); simpl; lia.
-  Qed.
+    revert b.
+    induction H0.
+    - intros.
+      destruct q1 as [sr1 l1 buf1 Hsane1 store1].
+      destruct q2 as [sr2 l2 buf2 Hsane2 store2].
+      destruct sr1 as [s1|s1] eqn:Hs1,
+               sr2 as [s2|s2] eqn:Hs2.
+      + admit.
+      + admit.
+      + admit.
+      + eapply InterpolateStep.
+        cbv.
+        simpl in *.
+        subst.
+  Admitted.
   Next Obligation.
     induction H0.
     - eauto using InterpolateBase.
@@ -81,58 +243,14 @@ Section LeapsProofs.
     exists (bisimilar_with_leaps a).
     split; auto.
     intros c1' c2' ?; split; [now inversion H0|].
+    clear H.
+    clear c1 c2.
     intros.
-    destruct (conf_state c1') eqn:?;
-    destruct (conf_state c2') eqn:?.
-    - destruct (le_lt_dec 2 (min (configuration_room_left c1')
-                                 (configuration_room_left c2'))).
-      + unfold configuration_room_left in *.
-        eapply InterpolateStep with (s1 := s) (s2 := s0); auto.
-        * unfold configuration_has_room in *; lia.
-        * unfold configuration_has_room in *; lia.
-        * now apply InterpolateBase.
-        * now inversion H0.
-      + rewrite <- follow_equation_1.
-        rewrite <- follow_equation_1 at 1.
-        repeat rewrite <- follow_equation_2.
-        inversion H0.
-        apply InterpolateBase, H2; auto; simpl.
-        unfold configuration_room_left in *.
-        destruct c1', c2'; simpl in *.
-        lia.
-    - rewrite <- follow_equation_1.
-      rewrite <- follow_equation_1 at 1.
-      repeat rewrite <- follow_equation_2.
+    constructor 2.
+    - constructor 1; auto.
+    - intros.
       inversion H0.
-      clear H0.
-      subst.
-      apply InterpolateBase, H2; auto; simpl.
-      unfold configuration_room_left.
-      destruct c1', c2'; simpl in *; subst.
-      cbn in *.
-      clear H2 H1.
-      autorewrite with size' in *.
-      lia.
-    - rewrite <- follow_equation_1.
-      rewrite <- follow_equation_1 at 1.
-      repeat rewrite <- follow_equation_2.
-      inversion H0; clear H0; subst.
-      apply InterpolateBase, H2; auto; simpl.
-      unfold configuration_room_left.
-      clear H1 H2.
-      destruct c1', c2'; simpl in *; subst.
-      autorewrite with size' in *.
-      lia.
-    - rewrite <- follow_equation_1.
-      rewrite <- follow_equation_1 at 1.
-      repeat rewrite <- follow_equation_2.
-      inversion H0; clear H0; subst.
-      apply InterpolateBase, H2; auto; simpl.
-      unfold configuration_room_left.
-      clear H1 H2.
-      destruct c1', c2'; simpl in *; subst.
-      autorewrite with size' in *.
-      lia.
+      eauto.
   Qed.
 
   Lemma bisimilar_implies_bisimilar_with_leaps:

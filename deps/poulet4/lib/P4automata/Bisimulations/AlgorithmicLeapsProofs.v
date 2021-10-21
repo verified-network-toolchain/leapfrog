@@ -26,7 +26,7 @@ Section AlgorithmicLeaps.
       R q1 q2 ->
       (accepting q1 <-> accepting q2) /\
       (forall buf : list bool,
-          length buf = Nat.min (configuration_room_left q1) (configuration_room_left q2) ->
+          length buf = Leaps.leap_size _ q1 q2 ->
           R (follow q1 buf) (follow q2 buf)).
 
   Lemma bisimilar_is_bisimulation:
@@ -47,8 +47,7 @@ Section AlgorithmicLeaps.
 
   Definition follow_closed (R T: rel conf) : Prop :=
     forall q1 q2 bs,
-        length bs = Nat.min (configuration_room_left q1)
-                            (configuration_room_left q2) ->
+        length bs = Leaps.leap_size _ q1 q2 ->
         R q1 q2 /\ T q1 q2 ->
         R (follow q1 bs) (follow q2 bs).
 

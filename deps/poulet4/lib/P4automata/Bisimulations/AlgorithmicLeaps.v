@@ -7,6 +7,7 @@ Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
+Require Import Poulet4.P4automata.Bisimulations.Leaps.
 
 Section AlgorithmicLeaps.
   Variable (a: p4automaton).
@@ -38,9 +39,7 @@ Section AlgorithmicLeaps.
         (forall q1 q2,
             ⟦W⟧ q1 q2 ->
             (forall bs,
-                length bs = Nat.min
-                              (configuration_room_left q1)
-                              (configuration_room_left q2) ->
+                length bs = Leaps.leap_size _ q1 q2 ->
                 C (follow q1 bs) (follow q2 bs))) ->
         R ⇝ (C :: T) q1 q2
   where "R ⇝ S" := (pre_bisimulation R S).
