@@ -96,6 +96,57 @@ Section LeapsProofs.
       lia.
   Qed.
 
+  Lemma leap_size_step:
+    forall (q1 q2: conf) b,
+      leap_size a q1 q2 > 1 ->
+      leap_size a q1 q2 = 1 + leap_size a (step q1 b) (step q2 b).
+  Proof.
+    unfold leap_size.
+    intros.
+    destruct (conf_state q1) eqn:?, (conf_state q2) eqn:?;
+             simpl in *;
+      unfold configuration_room_left in *.
+    - unfold step; simpl.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      rewrite Heqs.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      rewrite Heqs0.
+      pose proof (conf_buf_sane q1).
+      pose proof (conf_buf_sane q2).
+      pose proof (cap a s).
+      pose proof (cap a s0).
+      rewrite Heqs, Heqs0 in *.
+      autorewrite with size' in *.
+      lia.
+    - assert (conf_state (step q2 b) = inr b0)
+        by auto using step_done.
+      rewrite H0.
+      unfold step; simpl.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      rewrite Heqs.
+      pose proof (conf_buf_sane q1).
+      pose proof (conf_buf_sane q2).
+      pose proof (cap a s).
+      rewrite Heqs in *.
+      lia.
+    - assert (conf_state (step q1 b) = inr b0)
+        by auto using step_done.
+      rewrite H0.
+      unfold step; simpl.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      rewrite Heqs0.
+      pose proof (conf_buf_sane q1).
+      pose proof (conf_buf_sane q2).
+      pose proof (cap a s).
+      rewrite Heqs0 in *.
+      lia.
+    - lia.
+  Qed.
+
   Program Instance close_interpolate_sound
     : Upto.SoundClosure a (close_interpolate a).
   Next Obligation.
@@ -213,19 +264,35 @@ Section LeapsProofs.
   Next Obligation.
     revert b.
     induction H0.
+    - auto.
     - intros.
-      destruct q1 as [sr1 l1 buf1 Hsane1 store1].
-      destruct q2 as [sr2 l2 buf2 Hsane2 store2].
-      destruct sr1 as [s1|s1] eqn:Hs1,
-               sr2 as [s2|s2] eqn:Hs2.
-      + admit.
-      + admit.
-      + admit.
-      + eapply InterpolateStep.
-        cbv.
-        simpl in *.
-        subst.
-  Admitted.
+      replace (step (step q1 b) b0) with (follow q1 [b; b0]) by reflexivity.
+      replace (step (step q2 b) b0) with (follow q2 [b; b0]) by reflexivity.
+      destruct (PeanoNat.Nat.eq_dec (leap_size a q1 q2) 2);
+        [|destruct (PeanoNat.Nat.eq_dec (leap_size a q1 q2) 1)].
+      + eapply InterpolateBase.
+        eauto.
+      + assert (R (follow q1 [b]) (follow q2 [b]))
+          by eauto.
+        autorewrite with follow in *.
+        auto.
+      + autorewrite with follow.
+        eapply InterpolateStep.
+        * apply IHclose_interpolate.
+        * assert (leap_size a q1 q2 = 1 + leap_size a (step q1 b) (step q2 b)).
+          {
+            eapply leap_size_step.
+            pose proof (leap_size_nonzero q1 q2).
+            lia.
+          }
+          intros.
+          replace (follow (step q1 b) buf) with (follow q1 (b::buf)) by reflexivity.
+          replace (follow (step q2 b) buf) with (follow q2 (b::buf)) by reflexivity.
+          apply H1.
+          erewrite leap_size_step; simpl; eauto.
+          pose proof (leap_size_nonzero q1 q2).
+          lia.
+  Qed.
   Next Obligation.
     induction H0.
     - eauto using InterpolateBase.
