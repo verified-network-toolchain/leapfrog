@@ -64,10 +64,16 @@ Section ReachablePairs.
     let '(s1, s2) := s in
     let len1 := s1.(st_buf_len) in
     let len2 := s2.(st_buf_len) in
-    let s1 := s1.(st_state) in
-    let s2 := s2.(st_state) in
-    Nat.min (P4A.P4A.size' (P4A.interp a) s1 - len1)
-            (P4A.P4A.size' (P4A.interp a) s2 - len2).
+    match s1.(st_state), s2.(st_state) with
+    | inl s1, inl s2 =>
+      Nat.min (P4A.size a s1 - len1)
+              (P4A.size a s2 - len2)
+    | inl s1, inr _ =>
+      (P4A.size a s1 - len1)
+    | inr _, inl s2 =>
+      (P4A.size a s2 - len2)
+    | inr _, inr _ => 1
+    end.
 
   Definition advance (steps: nat) (t1: state_template a) (s: P4A.state_ref S) :=
     match s with
