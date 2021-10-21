@@ -41,7 +41,7 @@ Equations transitions'
   (st: store a)
   : state_ref a := {
   transitions' a (inl s) st := transitions a s st;
-  transitions' a (inr b) st := inr b
+  transitions' a (inr b) st := inr false
 }.
 
 Lemma cap' (a: p4automaton): forall s, 0 < size' a s.

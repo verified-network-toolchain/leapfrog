@@ -77,14 +77,14 @@ Section LeapsProofs.
   Lemma step_done:
     forall (q: conf) s b,
       conf_state q = inr s ->
-      conf_state (step q b) = inr s.
+      conf_state (step q b) = inr false.
   Proof.
     intros.
     unfold step.
     destruct (le_lt_dec _ _).
     - cbn.
       generalize (eq_rect (S (conf_buf_len q)) (Ntuple.n_tuple bool)
-                          (Ntuple.n_tuple_cons (conf_buf q) b) (size' a (conf_state q)) 
+                          (Ntuple.n_tuple_cons (conf_buf q) b) (size' a (conf_state q))
                           (squeeze (conf_buf_sane _) l)).
       rewrite H.
       intros.
