@@ -120,8 +120,8 @@ Section LeapsProofs.
       rewrite Heqs, Heqs0 in *.
       autorewrite with size' in *.
       lia.
-    - assert (conf_state (step q2 b) = inr b0)
-        by auto using step_done.
+    - assert (conf_state (step q2 b) = inr false)
+        by eauto using step_done.
       rewrite H0.
       unfold step; simpl.
       destruct (le_lt_dec _ _); try lia.
@@ -132,8 +132,8 @@ Section LeapsProofs.
       pose proof (cap a s).
       rewrite Heqs in *.
       lia.
-    - assert (conf_state (step q1 b) = inr b0)
-        by auto using step_done.
+    - assert (conf_state (step q1 b) = inr false)
+        by eauto using step_done.
       rewrite H0.
       unfold step; simpl.
       destruct (le_lt_dec _ _); try lia.
