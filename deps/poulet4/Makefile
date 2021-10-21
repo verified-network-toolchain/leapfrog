@@ -55,4 +55,4 @@ selfcmp: build
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
-	echo "\n-I $(OPAMROOT)/default/lib/mirrorsolve\n" >> _CoqProject
+	echo -e "\n-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve\n" >> _CoqProject
