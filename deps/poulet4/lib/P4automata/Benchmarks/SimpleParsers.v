@@ -43,6 +43,8 @@ Module ParseOne.
   Inductive header : nat -> Type :=
   | Bit : header 1.
 
+  Derive Signature for header.
+
   Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
   {
     header_eqdec_ _ Bit Bit := left eq_refl ;
