@@ -1,4 +1,5 @@
 Require Import Coq.Lists.List.
+Require Import Coq.Logic.JMeq.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.micromega.Lia.
 Require Import Compare_dec.
@@ -90,6 +91,22 @@ Definition initial_configuration
   conf_store := store
 |}.
 
+Lemma conf_buf_len_done
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_state q = inr b ->
+  conf_buf_len q = 0.
+Proof.
+  intros.
+  destruct q.
+  simpl in *.
+  rewrite H in conf_buf_sane0.
+  autorewrite with size' in conf_buf_sane0.
+  lia.
+Qed.
+
 Lemma squeeze {n m}: n < m -> m <= 1+n -> 1+n = m.
 Proof.
   lia.
@@ -121,6 +138,94 @@ Definition step
     |}
   end.
 
+Lemma conf_state_step_done
+  {a: p4automaton}
+  (q: configuration a)
+  (h b: bool)
+:
+  conf_state q = inr h ->
+  conf_state (step q b) = inr false.
+Proof.
+  intros.
+  unfold step.
+  destruct (le_lt_dec _ _).
+  - cbn.
+    match goal with
+    | |- context [update' _ _ ?t _] =>
+      generalize t; intros
+    end.
+    destruct (conf_state q); [discriminate|].
+    now autorewrite with transitions'.
+  - exfalso.
+    rewrite H in l.
+    autorewrite with size' in *.
+    lia.
+Qed.
+
+Lemma conf_state_step_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_buf_len q + 1 < size' a (conf_state q) ->
+  conf_state (step q b) = conf_state q
+.
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); auto; lia.
+Qed.
+
+Lemma conf_buf_len_step_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_buf_len q + 1 < size' a (conf_state q) ->
+  conf_buf_len (step q b) = conf_buf_len q + 1
+.
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); simpl; lia.
+Qed.
+
+Lemma conf_buf_len_step_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_buf_len q + 1 = size' a (conf_state q) ->
+  conf_buf_len (step q b) = 0
+.
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); simpl; lia.
+Qed.
+
+Lemma conf_state_step_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+  (Heq: 1 + conf_buf_len q = size' a (conf_state q))
+:
+  let buf' := Ntuple.n_tuple_cons (conf_buf q) b in
+  let store' := update' a
+                        (conf_state q)
+                        (eq_rect _ _ buf' _ Heq)
+                        (conf_store q) in
+  conf_state (step q b) = transitions' a (conf_state q) store'
+.
+Proof.
+  unfold step; destruct (Compare_dec.le_lt_dec _ _); [simpl|Lia.lia].
+  set (t := transitions' _ _ _);
+    pattern (squeeze (conf_buf_sane q) l) in t.
+  set (t' := transitions' _ _ _);
+    pattern Heq in t'.
+  subst t t'.
+  apply JMeq_congr.
+  destruct Heq, (squeeze (conf_buf_sane q) l).
+  apply JMeq_refl.
+Qed.
+
 Equations follow
   {a: p4automaton}
   (c: configuration a)
@@ -129,6 +234,59 @@ Equations follow
   follow c nil := c;
   follow c (b :: input) := follow (step c b) input
 }.
+
+Lemma conf_state_follow_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  conf_buf_len q + length bs < size' a (conf_state q) ->
+  conf_state (follow q bs) = conf_state q
+.
+Proof.
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    simpl in H.
+    rewrite IHbs.
+    + apply conf_state_step_fill; auto; lia.
+    + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
+Qed.
+
+Lemma conf_buf_len_follow_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  conf_buf_len q + length bs = size' a (conf_state q) ->
+  conf_buf_len (follow q bs) = 0
+.
+Proof.
+  revert q; induction bs; intros.
+  - simpl in H; pose proof (conf_buf_sane q); lia.
+  - destruct bs; simpl in *.
+    + autorewrite with follow.
+      apply conf_buf_len_step_transition; auto.
+    + rewrite follow_equation_2; apply IHbs.
+      rewrite conf_buf_len_step_fill, conf_state_step_fill; lia.
+Qed.
+
+Lemma conf_buf_len_follow_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  conf_buf_len q + length bs < size' a (conf_state q) ->
+  conf_buf_len (follow q bs) = conf_buf_len q + length bs
+.
+Proof.
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    simpl in *. rewrite IHbs.
+    + rewrite conf_buf_len_step_fill; auto; simpl; lia.
+    + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
+Qed.
 
 Lemma follow_append
   {a: p4automaton}
@@ -142,6 +300,18 @@ Proof.
   - rewrite <- app_comm_cons.
     autorewrite with follow.
     now rewrite IHbuf.
+Qed.
+
+Lemma follow_done {a: p4automaton} (q: configuration a) (bs: list bool):
+  conf_state q = inr false ->
+  conf_state (follow q bs) = inr false.
+Proof.
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    apply IHbs.
+    eapply conf_state_step_done.
+    exact H.
 Qed.
 
 Definition accepting

@@ -3,6 +3,7 @@ Require Import Coq.Relations.Relations.
 Require Import Coq.Program.Program.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
+Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Lia.
 
@@ -52,14 +53,6 @@ Section ReachablePairs.
   Definition state_pairs : Type :=
     list state_pair.
 
-  Definition possible_next_states (st: P4A.state S H) : list (P4A.state_ref S) :=
-    match st.(P4A.st_trans) with
-    | P4A.TGoto _ s' =>
-      [s']
-    | P4A.TSel _ cases default =>
-      default :: List.map (fun c => P4A.sc_st c) cases
-    end.
-
   Definition reads_left (s: state_pair) : nat:=
     let '(s1, s2) := s in
     let len1 := s1.(st_buf_len) in
@@ -75,15 +68,121 @@ Section ReachablePairs.
     | inr _, inr _ => 1
     end.
 
+  Lemma reads_left_lower_bound (q1 q2: conf):
+    1 <= reads_left
+        (conf_to_state_template q1,
+         conf_to_state_template q2).
+  Proof.
+    unfold reads_left, configuration_room_left; simpl.
+    pose proof (conf_buf_sane q1).
+    pose proof (conf_buf_sane q2).
+    destruct (conf_state q1), (conf_state q2);
+    autorewrite with size' in *; simpl in *;
+    Lia.lia.
+  Qed.
+
+  Lemma reads_left_commutative (t1 t2: state_template a):
+    reads_left (t1, t2) = reads_left (t2, t1).
+  Proof.
+    unfold reads_left.
+    destruct (st_state t1), (st_state t2); Lia.lia.
+  Qed.
+
+  Lemma reads_left_upper_bound (q1 q2: conf) (s: S):
+    conf_state q1 = inl s ->
+    reads_left
+        (conf_to_state_template q1,
+         conf_to_state_template q2) <= configuration_room_left q1.
+  Proof.
+    intros; unfold reads_left, configuration_room_left; simpl.
+    rewrite H0; autorewrite with size'; simpl.
+    destruct (conf_state q2); Lia.lia.
+  Qed.
+
   Definition advance (steps: nat) (t1: state_template a) (s: P4A.state_ref S) :=
     match s with
     | inl s =>
       let st := P4A.t_states a s in
-      if Compare_dec.le_gt_dec (size (P4A.interp a) s) (t1.(st_buf_len) + steps)
-      then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states st)
+      if Compare_dec.le_gt_dec (size a s) (t1.(st_buf_len) + steps)
+      then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states _ _ st)
       else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + steps |}]
     | inr b => [{| st_state := inr false; st_buf_len := 0 |}]
     end.
+
+  Lemma advance_correct_active q bs s:
+    conf_state q = inl s ->
+    1 <= length bs <= configuration_room_left q ->
+    List.In (conf_to_state_template (follow q bs))
+      (advance (length bs)
+        (conf_to_state_template q)
+        (st_state (conf_to_state_template q))).
+  Proof.
+    intros.
+    unfold configuration_room_left in H1.
+    unfold advance; simpl; rewrite H0 in *.
+    autorewrite with size' in H1; simpl in H1.
+    destruct (Compare_dec.le_gt_dec _ _).
+    - assert (P4A.size a s = conf_buf_len q + length bs) by Lia.lia.
+      unfold conf_to_state_template.
+      apply List.in_map_iff; eexists; split.
+      + rewrite conf_buf_len_follow_transition; [reflexivity|].
+        rewrite H0; now autorewrite with size'.
+      + simpl.
+        apply conf_state_follow_transition_syntactic; auto.
+        admit.
+    - left.
+      unfold conf_to_state_template.
+      f_equal.
+      + rewrite conf_state_follow_fill; auto.
+        rewrite H0.
+        now autorewrite with size'.
+      + rewrite conf_buf_len_follow_fill; auto.
+        rewrite H0.
+        now autorewrite with size'.
+  Admitted.
+
+  Lemma advance_correct_passive q1 bs b:
+    conf_state q1 = inr b ->
+    1 <= length bs ->
+    List.In (conf_to_state_template (follow q1 bs))
+      (advance (length bs)
+        (conf_to_state_template q1)
+        (st_state (conf_to_state_template q1))).
+  Proof.
+    intros.
+    destruct bs.
+    - simpl in H1.
+      Lia.lia.
+    - autorewrite with follow.
+      unfold advance; simpl.
+      rewrite H0.
+      unfold conf_to_state_template.
+      rewrite follow_done.
+      + left.
+        f_equal.
+        erewrite conf_buf_len_done.
+        reflexivity.
+        rewrite follow_done.
+        reflexivity.
+        eapply conf_state_step_done.
+        exact H0.
+      + now apply conf_state_step_done with (h := b).
+  Qed.
+
+  Lemma advance_correct q1 bs:
+    (forall s, conf_state q1 = inl s ->
+               length bs <= configuration_room_left q1) ->
+    1 <= length bs ->
+    List.In (conf_to_state_template (follow q1 bs))
+      (advance (length bs)
+        (conf_to_state_template q1)
+        (st_state (conf_to_state_template q1))).
+  Proof.
+    intros.
+    destruct (conf_state q1) eqn:?.
+    - apply advance_correct_active with (s := s); intuition.
+    - now apply advance_correct_passive with (b := b).
+  Qed.
 
   Definition reachable_pair_step' (r0: state_pair) : nat * state_pairs :=
     let '(t1, t2) := r0 in
@@ -421,13 +520,13 @@ Section ReachablePairs.
      {| st_state := inr true; st_buf_len := 0 |}] ++
     List.flat_map (fun s =>
       List.map (fun n => {| st_state := inl s; st_buf_len := n |})
-               (List.seq 0 (size (P4A.interp a) s))
+               (List.seq 0 (size a s))
       ) (List.map inl (enum S1) ++ List.map inr (enum S2)).
 
   Definition valid_state_template (t: state_template a) :=
     match st_state t with
     | inr _ => st_buf_len t = 0
-    | inl s => st_buf_len t < size (P4A.interp a) s
+    | inl s => st_buf_len t < size a s
     end.
 
   Lemma valid_state_templates_accurate:
@@ -580,6 +679,21 @@ Section ReachablePairs.
         apply chain_preserve_valid with (p := s) (l := lpost ++ [a1]); auto.
         rewrite List.in_app_iff; right.
         apply List.in_eq.
+  Qed.
+
+  Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
+    (forall p, List.In p r -> valid_state_pair p) ->
+    List.In p1 (reachable_states' (length valid_state_pairs) r) ->
+    List.In p2 (reachable_step [p1]) ->
+    List.In p2 (reachable_states' (length valid_state_pairs) r).
+  Proof.
+    intros.
+    apply reachable_states_bound with (fuel := Datatypes.S (length valid_state_pairs)); auto.
+    unfold reachable_states'.
+    fold (reachable_states' (length valid_state_pairs) r).
+    revert H2; apply reachable_step_mono.
+    unfold List.incl; intros.
+    destruct H2; try contradiction; now subst.
   Qed.
 
   Definition reachable_states n s1 s2 : state_pairs :=

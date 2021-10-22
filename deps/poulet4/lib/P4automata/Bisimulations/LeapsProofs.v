@@ -74,28 +74,6 @@ Section LeapsProofs.
         lia.
   Qed.
 
-  Lemma step_done:
-    forall (q: conf) s b,
-      conf_state q = inr s ->
-      conf_state (step q b) = inr false.
-  Proof.
-    intros.
-    unfold step.
-    destruct (le_lt_dec _ _).
-    - cbn.
-      generalize (eq_rect (S (conf_buf_len q)) (Ntuple.n_tuple bool)
-                          (Ntuple.n_tuple_cons (conf_buf q) b) (size' a (conf_state q))
-                          (squeeze (conf_buf_sane _) l)).
-      rewrite H.
-      intros.
-      autorewrite with transitions'.
-      reflexivity.
-    - simpl.
-      rewrite H in l.
-      autorewrite with size' in *.
-      lia.
-  Qed.
-
   Lemma leap_size_step:
     forall (q1 q2: conf) b,
       leap_size a q1 q2 > 1 ->
@@ -121,7 +99,7 @@ Section LeapsProofs.
       autorewrite with size' in *.
       lia.
     - assert (conf_state (step q2 b) = inr false)
-        by eauto using step_done.
+        by eauto using conf_state_step_done.
       rewrite H0.
       unfold step; simpl.
       destruct (le_lt_dec _ _); try lia.
@@ -133,7 +111,7 @@ Section LeapsProofs.
       rewrite Heqs in *.
       lia.
     - assert (conf_state (step q1 b) = inr false)
-        by eauto using step_done.
+        by eauto using conf_state_step_done.
       rewrite H0.
       unfold step; simpl.
       destruct (le_lt_dec _ _); try lia.
@@ -221,9 +199,9 @@ Section LeapsProofs.
         }
         rewrite H4.
         replace (conf_state (step q2 b)) with (@inr (states a) _ false)
-          by (symmetry; eauto using step_done).
+          by (symmetry; eauto using conf_state_step_done).
         intuition congruence.
-    - erewrite !step_done by eauto.
+    - erewrite !conf_state_step_done by eauto.
       tauto.
     - assert (forall buf,
                  length buf = leap_size a q1 q2 ->
@@ -256,9 +234,9 @@ Section LeapsProofs.
         }
         rewrite H4.
         replace (conf_state (step q1 b)) with (@inr (states a) _ false)
-          by (symmetry; eauto using step_done).
+          by (symmetry; eauto using conf_state_step_done).
         intuition congruence.
-    - erewrite !step_done by eauto.
+    - erewrite !conf_state_step_done by eauto.
       tauto.
   Qed.
   Next Obligation.
