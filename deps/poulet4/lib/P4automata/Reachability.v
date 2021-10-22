@@ -129,8 +129,11 @@ Section ReachablePairs.
         rewrite H0; now autorewrite with size'.
       + simpl.
         apply conf_state_follow_transition_syntactic; auto.
-        Fail rewrite H0.
-        admit.
+        unfold S in *.
+        rewrite H0.
+        autorewrite with size'.
+        simpl.
+        lia.
     - left.
       unfold conf_to_state_template.
       f_equal.
@@ -140,7 +143,7 @@ Section ReachablePairs.
       + rewrite conf_buf_len_follow_fill; auto.
         rewrite H0.
         now autorewrite with size'.
-  Admitted.
+  Qed.
 
   Lemma advance_correct_passive q1 bs b:
     conf_state q1 = inr b ->
