@@ -110,7 +110,7 @@ Section ReachablePairs.
     end.
 
   Lemma advance_correct_active q bs s:
-    conf_state q = inl s ->
+    conf_state (a := interp a) q = inl s ->
     1 <= length bs <= configuration_room_left q ->
     List.In (conf_to_state_template (follow q bs))
       (advance (length bs)
@@ -129,6 +129,7 @@ Section ReachablePairs.
         rewrite H0; now autorewrite with size'.
       + simpl.
         apply conf_state_follow_transition_syntactic; auto.
+        Fail rewrite H0.
         admit.
     - left.
       unfold conf_to_state_template.

@@ -455,24 +455,26 @@ Section Properties.
 
   Variable (a: t S H).
 
+  Import P4A.
+
   Lemma conf_state_step_transition_syntactic
     (q: P4A.configuration (interp a))
     (b: bool)
     (s: S)
   :
-    P4A.conf_state q = inl s ->
-    1 + P4A.conf_buf_len q = P4A.size' (interp a) (P4A.conf_state q) ->
-    List.In (P4A.conf_state (P4A.step q b))
+    conf_state q = inl s ->
+    1 + conf_buf_len q = size' (interp a) (conf_state q) ->
+    List.In (conf_state (step q b))
             (possible_next_states _ _ (t_states a s)).
   Proof.
     intros.
-    rewrite P4automaton.conf_state_step_transition with (Heq := H1).
-    destruct (P4A.conf_state q); [|discriminate].
+    rewrite conf_state_step_transition with (Heq := H1).
+    destruct (conf_state q); [|discriminate].
     autorewrite with update'.
     autorewrite with transitions'.
     simpl.
-    unfold transitions.
-    unfold eval_trans.
+    unfold Syntax.transitions.
+    unfold Syntax.eval_trans.
     inversion H0; subst.
     unfold possible_next_states.
     destruct (st_trans _).
@@ -491,27 +493,27 @@ Section Properties.
   Qed.
 
   Lemma conf_state_follow_transition_syntactic
-    (q: P4A.configuration (interp a))
+    (q: configuration (interp a))
     (bs: list bool)
     (s: S)
   :
-    P4A.conf_state q = inl s ->
-    length bs + P4A.conf_buf_len q = P4A.size' (interp a) (P4A.conf_state q) ->
-    List.In (P4A.conf_state (P4A.follow q bs))
+    conf_state q = inl s ->
+    length bs + conf_buf_len q = size' (interp a) (conf_state q) ->
+    List.In (conf_state (follow q bs))
             (possible_next_states _ _ (t_states a s)).
   Proof.
     revert q; induction bs; intros.
     - simpl in H1.
-      pose proof (P4A.conf_buf_sane q).
+      pose proof (conf_buf_sane q).
       Lia.lia.
     - destruct bs; simpl in *.
       + autorewrite with follow.
         now apply conf_state_step_transition_syntactic.
-      + rewrite P4A.follow_equation_2.
+      + rewrite follow_equation_2.
         apply IHbs.
-        * rewrite P4A.conf_state_step_fill; auto; Lia.lia.
-        * rewrite P4A.conf_buf_len_step_fill; try Lia.lia.
-          rewrite P4A.conf_state_step_fill; Lia.lia.
+        * rewrite conf_state_step_fill; auto; Lia.lia.
+        * rewrite conf_buf_len_step_fill; try Lia.lia.
+          rewrite conf_state_step_fill; Lia.lia.
   Qed.
 
 End Properties.
