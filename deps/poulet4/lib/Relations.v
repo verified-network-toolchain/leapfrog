@@ -16,6 +16,15 @@ Notation "x ⊓ y" := (relation_conjunction x y) (at level 40).
 Definition interp_rels {A} (i: rel A) (R: rels A) : relation A :=
   List.fold_right relation_conjunction i R.
 
+Lemma interp_rels_intersect_top:
+  forall A q1 q2 (R: rels A) top,
+    interp_rels top R q1 q2 <->
+    (top ⊓ interp_rels top R) q1 q2.
+Proof.
+  induction R; cbn; intuition.
+  apply IHR, H1.
+Qed.
+
 Local Program Instance f_Equivalence {A B} {equiv: rel B} `{Equivalence B equiv} (f: A -> B): Equivalence (fun x y => equiv (f x) (f y)).
 Next Obligation.
   repeat intro.

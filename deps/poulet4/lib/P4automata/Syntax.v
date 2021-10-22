@@ -371,6 +371,14 @@ Section Interp.
   Definition transitions (s: S) (st: store) : state_ref S :=
     eval_trans st (a.(t_states) s).(st_trans).
 
+  Definition possible_next_states (st: state S H) : list (state_ref S) :=
+    match st.(st_trans) with
+    | TGoto _ s' =>
+      [s']
+    | TSel _ cases default =>
+      default :: List.map (fun c => sc_st c) cases
+    end.
+
   Definition interp : P4A.p4automaton :=
     {| P4A.store := store;
        P4A.states := S;
@@ -426,3 +434,86 @@ Section Inline.
 
 End Inline.
 
+Section Properties.
+
+  (* State identifiers. *)
+  Variable (S1: Type).
+  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
+  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+
+  Variable (S2: Type).
+  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
+  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+
+  Notation S := ((S1 + S2)%type).
+
+  (* Header identifiers. *)
+  Variable (H: nat -> Type).
+  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
+  Context `{H'_eq_dec: EquivDec.EqDec (H' H) eq}.
+  Context `{H_finite: @Finite (H' H) _ H'_eq_dec}.
+
+  Variable (a: t S H).
+
+  Import P4A.
+
+  Lemma conf_state_step_transition_syntactic
+    (q: P4A.configuration (interp a))
+    (b: bool)
+    (s: S)
+  :
+    conf_state q = inl s ->
+    1 + conf_buf_len q = size' (interp a) (conf_state q) ->
+    List.In (conf_state (step q b))
+            (possible_next_states _ _ (t_states a s)).
+  Proof.
+    intros.
+    rewrite conf_state_step_transition with (Heq := H1).
+    destruct (conf_state q); [|discriminate].
+    autorewrite with update'.
+    autorewrite with transitions'.
+    simpl.
+    unfold Syntax.transitions.
+    unfold Syntax.eval_trans.
+    inversion H0; subst.
+    unfold possible_next_states.
+    destruct (st_trans _).
+    - apply List.in_eq.
+    - induction cases.
+      + simpl; now left.
+      + simpl eval_sel.
+        rewrite List.map_cons.
+        destruct (match_pat _ _ _ _).
+        * apply List.in_cons.
+          apply List.in_eq.
+        * destruct IHcases.
+          -- rewrite H2 at 2.
+             apply List.in_eq.
+          -- now repeat apply List.in_cons.
+  Qed.
+
+  Lemma conf_state_follow_transition_syntactic
+    (q: configuration (interp a))
+    (bs: list bool)
+    (s: S)
+  :
+    conf_state q = inl s ->
+    length bs + conf_buf_len q = size' (interp a) (conf_state q) ->
+    List.In (conf_state (follow q bs))
+            (possible_next_states _ _ (t_states a s)).
+  Proof.
+    revert q; induction bs; intros.
+    - simpl in H1.
+      pose proof (conf_buf_sane q).
+      Lia.lia.
+    - destruct bs; simpl in *.
+      + autorewrite with follow.
+        now apply conf_state_step_transition_syntactic.
+      + rewrite follow_equation_2.
+        apply IHbs.
+        * rewrite conf_state_step_fill; auto; Lia.lia.
+        * rewrite conf_buf_len_step_fill; try Lia.lia.
+          rewrite conf_state_step_fill; Lia.lia.
+  Qed.
+
+End Properties.

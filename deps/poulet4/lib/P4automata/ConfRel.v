@@ -528,6 +528,46 @@ Section ConfRel.
     now cbn.
   Qed.
 
+  Lemma interp_crel_app:
+    forall R1 R2 q1 q2 top,
+      interp_crel top (R1 ++ R2) q1 q2 <->
+      interp_crel top R1 q1 q2 /\
+      interp_crel top R2 q1 q2.
+  Proof.
+    intros.
+    induction R1; cbn; intuition.
+    induction R2; intuition.
+  Qed.
+
+  Lemma interp_rels_vs_interp_crel:
+    forall q1 q2 R top,
+      interp_rels top (map interp_conf_rel R) q1 q2 <->
+      interp_crel top R q1 q2.
+  Proof.
+    induction R; intuition.
+  Qed.
+
+  Lemma interp_crel_quantify:
+    forall (R: crel) (q1 q2: conf) top,
+      interp_crel top R q1 q2 <->
+      top q1 q2 /\ (forall phi, In phi R -> interp_conf_rel phi q1 q2).
+  Proof.
+    intros; induction R.
+    - intuition.
+    - rewrite interp_crel_cons, IHR; intuition.
+      destruct H4; subst; intuition.
+  Qed.
+
+  Lemma interp_crel_nodup:
+    forall (R: crel) (q1 q2: conf) top,
+      interp_crel top R q1 q2 <->
+      interp_crel top (nodup (conf_rel_eq_dec) R) q1 q2.
+  Proof.
+    intros.
+    repeat rewrite interp_crel_quantify.
+    now setoid_rewrite nodup_In.
+  Qed.
+
   Record entailment :=
     { e_prem: crel;
       e_concl: conf_rel }.

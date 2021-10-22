@@ -203,3 +203,10 @@ Section option_rec.
     end
   .
 End option_rec.
+
+Ltac modus_ponens H :=
+  match type of H with
+  | ?P -> ?C =>
+    let Hnew := fresh H in assert (Hnew: P);
+    [ clear H | specialize (H Hnew); clear Hnew ]
+  end.
