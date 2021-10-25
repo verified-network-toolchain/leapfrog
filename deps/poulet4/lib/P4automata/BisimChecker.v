@@ -173,6 +173,7 @@ Ltac extend_bisim r_states :=
     let H := fresh "H" in
     assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [ idtac |
+    let t := fresh "t" in 
     pose (t := WP.wp r_states C);
     apply PreBisimulationExtend with (H0 := right H) (W := t);
     [ trivial | tauto |];
