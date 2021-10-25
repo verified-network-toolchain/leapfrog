@@ -13,9 +13,9 @@ install: [
   ["dune" "install"]
 ]
 depends: [
-  "bignum"
+  "bignum" {= "v0.14.0"}
   "mirrorsolve"
   "coq-compcert" {= "3.9"}
-  "coq" {build}
-  "coq-equations" {build}
+  "coq" {build & = "8.13.2"}
+  "coq-equations" {build & = "1.3~beta1+8.13"}
 ]
