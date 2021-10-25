@@ -54,7 +54,7 @@ selfcmp: build
 	xargs coqc lib/P4automata/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
 
 ipoptions: build
-	xargs coqc lib/P4automata/Benchmarks/IPOptionsProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/P4automata/Benchmarks/IPOptionsProof.v < _CoqProject | grep "Tactic call\|remaining goals"
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject

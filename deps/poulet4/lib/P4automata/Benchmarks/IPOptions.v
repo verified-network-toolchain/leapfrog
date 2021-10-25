@@ -2739,3 +2739,235 @@ Module IPOptionsRef2.
   Solve Obligations with (destruct s; cbv; Lia.lia).
 
 End IPOptionsRef2.
+
+
+Module IPOptions32.
+  Inductive state :=
+  | Parse0
+  | Parse1
+
+  | Parse01
+  | Parse11
+  
+  | Parse02
+  | Parse12
+
+  | Parse03
+  | Parse13.
+
+  Scheme Equality for state.
+
+  Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
+  Global Program Instance state_finite: @Finite state _ state_eq_dec :=
+    {| enum := [  Parse0 ; Parse1
+    ; Parse01 ; Parse11
+      ; Parse02 ; Parse12
+    ; Parse03 ; Parse13 ]; |}.
+  Next Obligation.
+    repeat constructor;
+      repeat match goal with
+             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
+             | |- ~ List.In _ [] => apply List.in_nil
+             | |- ~ List.In _ (_ :: _) => unfold not; intros
+             | H: List.In _ (_::_) |- _ => inversion H; clear H
+             | _ => discriminate
+             end.
+  Qed.
+  Next Obligation.
+    destruct x; intuition congruence.
+  Qed.
+
+  Inductive header : nat -> Type :=
+  | Scratch8 : header 8
+  | Scratch16 : header 16
+  | T0 : header 8
+  | L0 : header 8
+  | V0 : header 24
+  | T1 : header 8
+  | L1 : header 8
+  | V1 : header 24.
+
+  Derive Signature for header.
+
+  Definition h8_eq_dec (x y: header 8) : {x = y} + {x <> y}.
+    refine (
+    match x with 
+    | Scratch8 =>
+      match y with
+      | Scratch8  => left eq_refl
+      | T0 => right _
+      | L0 => right _
+      | T1 => right _
+      | L1 => right _
+      end
+    | T0 =>
+      match y with
+      | Scratch8  => right _
+      | T0 => left eq_refl
+      | L0 => right _
+      | T1 => right _
+      | L1 => right _
+      end
+      
+    | L0 =>
+      match y with
+      | Scratch8  => right _
+      | T0 => right _
+      | L0 => left eq_refl
+      | T1 => right _
+      | L1 => right _
+      end
+      
+    | T1 =>
+      match y with
+      | Scratch8  => right _
+      | T0 => right _
+      | L0 => right _
+      | T1 => left eq_refl
+      | L1 => right _
+      end
+      
+    | L1 =>
+      match y with
+      | Scratch8  => right _
+      | T0 => right _
+      | L0 => right _
+      | T1 => right _
+      | L1 => left eq_refl
+      end
+    end
+  ); intros H; inversion H.
+  Defined.
+
+  Definition h16_eq_dec (x y: header 16) : {x = y} + {x <> y} :=
+    match x, y with 
+    | Scratch16, Scratch16 => left eq_refl
+    | _, _ => idProp
+    end.
+
+  Definition h24_eq_dec (x y: header 24) : {x = y} + {x <> y}.
+  refine (
+    match x with 
+    | V0 =>
+      match y with
+      | V0  => left eq_refl
+      | V1 => right _
+      end
+    | V1 =>
+      match y with
+      | V0  => right _
+      | V1 => left eq_refl
+      end
+    end
+  ); intros H; inversion H.
+  Defined.
+
+  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+    solve_header_eqdec_ n x y 
+      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h8_eq_dec) :: 
+        (existT _ _ h16_eq_dec) :: (existT _ _ h24_eq_dec) :: nil).
+  Defined. 
+
+  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+
+  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
+  Proof.
+    solve_eqdec'.
+  Defined.
+
+  Global Instance header_finite: forall n, @Finite (header n) _ _.
+  Proof.
+    intros n; solve_indexed_finiteness n [8; 16; 24].
+  Qed.
+
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum :=   [existT _ _ Scratch8 ;
+    existT _ _ Scratch16 ;
+    existT _ _ T0 ;
+    existT _ _ L0 ;
+    existT _ _ V0 ;
+    existT _ _ T1 ;
+    existT _ _ L1 ;
+    existT _ _ V1 
+    ]; |}.
+  Next Obligation.
+    solve_header_finite.
+  Qed.
+  Next Obligation.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
+  Qed.
+
+  Definition states (s: state) :=
+    match s with
+    | Parse0 =>
+      {| st_op := 
+          extract(T0) ;;
+          extract(L0) ;
+         st_trans := transition select (| EHdr T0, EHdr L0 |) {{
+           [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+           [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+           [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
+           [| *, exact #b|0|0|0|0|0|0|1|0 |] ==> inl Parse02 ;;;
+           [| *, exact #b|0|0|0|0|0|0|1|1 |] ==> inl Parse03 ;;;
+            reject
+         }}
+      |}
+    | Parse01 =>
+      {| st_op := 
+          extract(Scratch8) ;;
+          V0 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr V0)[24--8]) ;
+         st_trans := transition inl Parse1;
+      |}
+    | Parse02 =>
+      {| st_op := 
+          extract(Scratch16) ;;
+          V0 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr V0)[24--16]) ;
+         st_trans := transition inl Parse1;
+      |}
+    | Parse03 =>
+      {| st_op := 
+          extract(V0) ;
+         st_trans := transition inl Parse1;
+      |}
+    | Parse1 =>
+      {| st_op := 
+          extract(T1) ;;
+          extract(L1) ;
+         st_trans := transition select (| EHdr T1, EHdr L1 |) {{
+           [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+           [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+           [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
+           [| *, exact #b|0|0|0|0|0|0|1|0 |] ==> inl Parse12 ;;;
+           [| *, exact #b|0|0|0|0|0|0|1|1 |] ==> inl Parse13 ;;;
+            reject
+         }}
+      |}
+    | Parse11 =>
+      {| st_op := 
+          extract(Scratch8) ;;
+          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr V1)[24--8]) ;
+         st_trans := transition accept;
+      |}
+    | Parse12 =>
+      {| st_op := 
+          extract(Scratch16) ;;
+          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr V1)[24--16]) ;
+         st_trans := transition accept;
+      |}
+    | Parse13 =>
+      {| st_op := 
+          extract(V1) ;
+         st_trans := transition accept;
+      |}
+    end.
+
+  Program Definition aut: Syntax.t state header :=
+    {| t_states := states |}.
+  Solve Obligations with (destruct s; cbv; Lia.lia).
+
+End IPOptions32.

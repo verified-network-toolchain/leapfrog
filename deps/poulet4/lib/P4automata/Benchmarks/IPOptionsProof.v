@@ -4,6 +4,20 @@ Require Import Poulet4.P4automata.Benchmarks.IPOptions.
 
 Declare ML Module "mirrorsolve".
 
+Ltac hashcons_list xs :=
+  match xs with
+  | ?x :: ?xs =>
+    hashcons_list xs;
+    let v := fresh "v" in 
+    set (v := x)
+    
+  | ?x :: nil =>
+    let v := fresh "v" in 
+    set (v := x)
+  | nil =>
+    idtac
+  end.
+
 (* Module SelfComparison.
     
   Notation H := (IPOptionsRef.header + IPOptionsRef.header).
@@ -99,12 +113,17 @@ Module SelfComparison.
   Notation H := (IPOptionsRef2.header + IPOptionsRef2.header).
   Notation A := (Sum.sum IPOptionsRef2.aut IPOptionsRef2.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
+
   Definition r_states :=
     Eval vm_compute in (Reachability.reachable_states
                           A
-                          10
+                          5
                           IPOptionsRef2.Parse0
                           IPOptionsRef2.Parse0).
+
+  (* Definition r_with_len := Eval vm_compute in (length r_states, r_states).
+
+  Print r_with_len. *)
 
   Definition top : Relations.rel conf := fun _ _ => True.
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
@@ -129,6 +148,20 @@ Module SelfComparison.
     (  IPOptionsRef5.L2, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsRef5.V2, FirstOrderConfRelSimplified.Bits 64).
 
+    Inductive mark : nat -> Type := M : forall (n: nat), mark n.
+    
+  Ltac measure_goals := match goal with 
+    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+      let x := fresh "rem_goals" in
+      pose proof (x := M (length R));
+      vm_compute in x;
+      match goal with 
+      | H : mark ?n |- _ => 
+        idtac "remaining goals: " n;
+        clear H
+      end
+    end.
+
   Lemma prebisim_babyip:
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
@@ -148,15 +181,76 @@ Module SelfComparison.
                     (wp r_states)
                     top
                     []
-                    (mk_init _ _ _ A 10 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)
+                    (mk_init _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)
                     q1 q2.
   Proof.
     idtac "running ipoptions ref self-comparison bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ A 10 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)).
+    set (rel0 := (mk_init _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)).
     vm_compute in rel0.
     subst rel0.
+    clear H.
+
+    match goal with 
+    | |- pre_bisimulation _ _ _ _ ?G _ _ =>
+      hashcons_list G
+    end.
+
+    Set Ltac Profiling.
+
+
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    do 25 ((time "single step" run_bisim top top' r_states);
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
+      let r := fresh "r" in 
+      set (r := N)
+    | _ => idtac
+    end).
+
+    idtac "150 steps...".
+    
 
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.

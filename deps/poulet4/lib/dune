@@ -14,6 +14,7 @@
    P4automata.Benchmarks.SelfComparisonProof
    P4automata.Benchmarks.SimpleBucketProof
    P4automata.Benchmarks.IPOptionsProof
+   P4automata.Benchmarks.IPOptionsProofSmall
    ; P4automata.Benchmarks.BabyIP
    P4automata.Benchmarks.BabyIPProof
    P4automata.Benchmarks.BabyIPProofSimplified
