@@ -21,7 +21,7 @@ Section ReachablePairs.
   Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
   Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
 
-  Definition S: Type := S1 + S2.
+  Notation S := (S1 + S2)%type.
 
   (* Header identifiers. *)
   Variable (H: nat -> Type).
@@ -129,7 +129,6 @@ Section ReachablePairs.
         rewrite H0; now autorewrite with size'.
       + simpl.
         apply conf_state_follow_transition_syntactic; auto.
-        unfold S in *.
         rewrite H0.
         autorewrite with size'.
         simpl.

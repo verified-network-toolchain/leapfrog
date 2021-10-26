@@ -20,7 +20,7 @@ Obligation Tactic := prep_equiv.
 Module ParseOne.
   Inductive state :=
   | Start.
-  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=  
+  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=
   { state_eq_dec Start Start := left eq_refl }.
 
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
@@ -100,7 +100,7 @@ End ParseOne.
 Module ParseZero.
   Inductive state :=
   | Start.
-  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=  
+  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=
   { state_eq_dec Start Start := left eq_refl }.
 
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
@@ -178,7 +178,7 @@ Module ParseZero.
 End ParseZero.
 
 Module OneZero.
-  Definition state: Type := Sum.S ParseOne.state ParseZero.state.
+  Definition state: Type := ParseOne.state + ParseZero.state.
   Global Instance state_eq_dec: EquivDec.EqDec state eq :=
     ltac:(typeclasses eauto).
 
@@ -222,7 +222,7 @@ End OneZero.
 Module TwoOnesChunk.
   Inductive state :=
   | Start.
-  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=  
+  Equations state_eq_dec (l: state) (r: state) : {l = r} + {l <> r} :=
   { state_eq_dec Start Start := left eq_refl }.
 
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
@@ -326,20 +326,20 @@ Module TwoOnesBucket.
   Derive Signature for header.
 
   Definition h1_eq_dec (x y: header 1) : {x = y} + {x <> y} :=
-    match x, y with 
+    match x, y with
     | Val, Val => left eq_refl
     | _, _ => idProp
     end.
   Definition h2_eq_dec (x y: header 2) : {x = y} + {x <> y} :=
-    match x, y with 
+    match x, y with
     | Bits, Bits => left eq_refl
     | _, _ => idProp
     end.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 1 h1_eq_dec) :: (existT _ 2 h2_eq_dec) :: nil).
-  Defined. 
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -370,7 +370,7 @@ Module TwoOnesBucket.
   Definition states (s: state) :=
     match s with
     | Start =>
-      {| st_op := 
+      {| st_op :=
           extract(Val) ;;
           Bits <- EConcat (m := 1) (EHdr Val) ((EHdr Bits)[1--1]) ;
          st_trans := transition select (| EHdr Val |) {{
@@ -379,7 +379,7 @@ Module TwoOnesBucket.
          }}
       |}
     | Next =>
-      {| st_op := 
+      {| st_op :=
           extract(Val) ;;
           Bits <- EConcat (m := 1) (ESlice (n := 2) (EHdr Bits) 0 0) (EHdr Val) ;
          st_trans := transition select (| EHdr Val |) {{

@@ -55,8 +55,8 @@ Module Simple.
   Program Definition aut: Syntax.t state header :=
     {| t_states x := st_start |}.
   Solve Obligations with (unfold st_start; cbv; Lia.lia).
-  
-End Simple. 
+
+End Simple.
 
 Module Split.
   Inductive state: Set :=
@@ -118,11 +118,11 @@ Module Split.
          | StSplit2 => st_split2
          end |}.
   Solve Obligations with (destruct s; cbv; Lia.lia).
-  
+
 End Split.
 
 Module SimpleSplit.
-  Definition state: Type := Sum.S Simple.state Split.state.
+  Definition state: Type := Simple.state + Split.state.
   Global Instance state_eq_dec: EquivDec.EqDec state eq :=
     ltac:(typeclasses eauto).
 
@@ -133,5 +133,5 @@ Module SimpleSplit.
     ltac:(typeclasses eauto).
 
   Definition aut := sum Simple.aut Split.aut.
-  
+
 End SimpleSplit.

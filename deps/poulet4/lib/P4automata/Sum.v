@@ -37,7 +37,7 @@ Section Sum.
   Variable (a1: Syntax.t S1 H1).
   Variable (a2: Syntax.t S2 H2).
 
-  Definition S : Type := S1 + S2.
+  Notation S := (S1 + S2)%type.
 
   Global Instance S_eq_dec: EquivDec.EqDec S eq :=
     ltac:(typeclasses eauto).

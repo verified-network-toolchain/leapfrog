@@ -19,7 +19,7 @@ Section WPProofs.
   Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
   Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
 
-  Definition S: Type := S1 + S2.
+  Notation S := (S1 + S2)%type.
 
   (* Header identifiers. *)
   Variable (H: nat -> Type).

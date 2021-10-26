@@ -169,8 +169,8 @@ Module BigBits.
   Definition states (s: state) :=
     match s with
     | Parse =>
-      {| st_op := 
-          extract(Pref) ;; 
+      {| st_op :=
+          extract(Pref) ;;
           extract(Suf);
          st_trans := transition select (| EHdr Pref |) {{
            [| exact #b|1 |] ==> accept ;;;
@@ -265,7 +265,7 @@ End OneBit.
 
 Module IncrementalSeparate.
 
-  Definition state: Type := Sum.S IncrementalBits.state BigBits.state.
+  Definition state: Type := IncrementalBits.state + BigBits.state.
   Global Instance state_eq_dec: EquivDec.EqDec state eq :=
     ltac:(typeclasses eauto).
 
@@ -306,7 +306,7 @@ Module IncrementalSeparate.
 End IncrementalSeparate.
 
 Module SeparateCombined.
-  Definition state: Type := Sum.S BigBits.state OneBit.state.
+  Definition state: Type := BigBits.state + OneBit.state.
   Global Instance state_eq_dec: EquivDec.EqDec state eq :=
     ltac:(typeclasses eauto).
 
@@ -347,7 +347,7 @@ Module SeparateCombined.
 End SeparateCombined.
 
 Module IncrementalCombined.
-  Definition state: Type := Sum.S IncrementalBits.state OneBit.state.
+  Definition state: Type := IncrementalBits.state + OneBit.state.
   Global Instance state_eq_dec: EquivDec.EqDec state eq :=
     ltac:(typeclasses eauto).
 

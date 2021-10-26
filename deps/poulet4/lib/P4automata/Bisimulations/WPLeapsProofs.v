@@ -157,15 +157,12 @@ Section WPLeapsProofs.
     - simpl interp_rels at 1.
       unfold follow_closed; intros.
       apply top_closed.
-      rewrite H2.
-      unfold leap_size, reads_left.
-      simpl.
-      unfold configuration_room_left.
-      simpl.
-      unfold Reachability.S.
-      destruct (conf_state q0), (conf_state q3);
-      now autorewrite with size'.
-      intuition.
+      + rewrite H2.
+        unfold leap_size, reads_left; simpl.
+        unfold configuration_room_left; simpl.
+        destruct (conf_state q0), (conf_state q3);
+        now autorewrite with size'.
+      + intuition.
     - replace [] with (map (interp_conf_rel a) []) by reflexivity.
       now apply pre_bisimulation_embed.
   Qed.
