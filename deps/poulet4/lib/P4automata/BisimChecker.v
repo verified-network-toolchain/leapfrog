@@ -320,4 +320,18 @@ Ltac solve_header_eqdec_ n x y indfuns :=
   | nil =>
     destruct x; exfalso; auto
   end.
+
   
+Ltac hashcons_list xs :=
+  match xs with
+  | ?x :: ?xs =>
+    hashcons_list xs;
+    let v := fresh "v" in 
+    set (v := x)
+    
+  | ?x :: nil =>
+    let v := fresh "v" in 
+    set (v := x)
+  | nil =>
+    idtac
+  end.

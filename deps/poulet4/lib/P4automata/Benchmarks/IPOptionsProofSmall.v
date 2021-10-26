@@ -4,20 +4,6 @@ Require Import Poulet4.P4automata.Benchmarks.IPOptions.
 
 Declare ML Module "mirrorsolve".
 
-Ltac hashcons_list xs :=
-  match xs with
-  | ?x :: ?xs =>
-    hashcons_list xs;
-    let v := fresh "v" in 
-    set (v := x)
-    
-  | ?x :: nil =>
-    let v := fresh "v" in 
-    set (v := x)
-  | nil =>
-    idtac
-  end.
-
 Module SelfComparison.
     
   Notation H := (IPOptions32.header + IPOptions32.header).
