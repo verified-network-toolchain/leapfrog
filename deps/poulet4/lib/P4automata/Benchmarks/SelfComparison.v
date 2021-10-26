@@ -13,7 +13,6 @@ Require Import Poulet4.P4automata.BisimChecker.
 
 Open Scope p4a.
 
-(* These sizes should be bigger. *)
 Notation eth_size := 112.
 Notation ip_size := 160.
 Notation vlan_size := 32.
