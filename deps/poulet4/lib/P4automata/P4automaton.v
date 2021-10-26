@@ -216,12 +216,8 @@ Lemma conf_state_step_transition
 .
 Proof.
   unfold step; destruct (Compare_dec.le_lt_dec _ _); [simpl|Lia.lia].
-  set (t := transitions' _ _ _);
-    pattern (squeeze (conf_buf_sane q) l) in t.
-  set (t' := transitions' _ _ _);
-    pattern Heq in t'.
-  subst t t'.
-  apply JMeq_congr.
+  repeat f_equal.
+  apply JMeq_eq.
   destruct Heq, (squeeze (conf_buf_sane q) l).
   apply JMeq_refl.
 Qed.
