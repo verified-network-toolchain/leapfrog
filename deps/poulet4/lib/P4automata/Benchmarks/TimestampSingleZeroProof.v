@@ -1,10 +1,10 @@
 Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
 Require Import Poulet4.P4automata.Benchmarks.Timestamp.
 
-Notation H := (TimestampRefKeepSingle.header + TimestampSpecSingle.header).
-Notation A := (Sum.sum TimestampRefKeepSingle.aut TimestampSpecSingle.aut).
+Notation H := (TimestampRefZeroSingle.header + TimestampSpecSingle.header).
+Notation A := (Sum.sum TimestampRefZeroSingle.aut TimestampSpecSingle.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := TimestampRefKeepSingle.Start.
+Notation start_left := TimestampRefZeroSingle.Start.
 Notation start_right := TimestampSpecSingle.Start.
 
 Definition r_states :=
@@ -24,14 +24,14 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 Declare ML Module "mirrorsolve".
 
 RegisterEnvCtors
-  (TimestampRefKeepSingle.Typ, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampRefKeepSingle.Len, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampRefKeepSingle.Value, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampRefKeepSingle.Scratch8, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampRefKeepSingle.Scratch16, FirstOrderConfRelSimplified.Bits 16)
-  (TimestampRefKeepSingle.Scratch24, FirstOrderConfRelSimplified.Bits 24)
-  (TimestampRefKeepSingle.Scratch32, FirstOrderConfRelSimplified.Bits 32)
-  (TimestampRefKeepSingle.Scratch40, FirstOrderConfRelSimplified.Bits 40)
+  (TimestampRefZeroSingle.Typ, FirstOrderConfRelSimplified.Bits 8)
+  (TimestampRefZeroSingle.Len, FirstOrderConfRelSimplified.Bits 8)
+  (TimestampRefZeroSingle.Value, FirstOrderConfRelSimplified.Bits 48)
+  (TimestampRefZeroSingle.Scratch8, FirstOrderConfRelSimplified.Bits 8)
+  (TimestampRefZeroSingle.Scratch16, FirstOrderConfRelSimplified.Bits 16)
+  (TimestampRefZeroSingle.Scratch24, FirstOrderConfRelSimplified.Bits 24)
+  (TimestampRefZeroSingle.Scratch32, FirstOrderConfRelSimplified.Bits 32)
+  (TimestampRefZeroSingle.Scratch40, FirstOrderConfRelSimplified.Bits 40)
   (TimestampSpecSingle.Typ, FirstOrderConfRelSimplified.Bits 8)
   (TimestampSpecSingle.Len, FirstOrderConfRelSimplified.Bits 8)
   (TimestampSpecSingle.Scratch8, FirstOrderConfRelSimplified.Bits 8)
