@@ -19,7 +19,7 @@ Notation tcp_size := 160.
 Notation udp_size := 160.
 Notation icmp_size := 32.
 
-  Inductive header: nat -> Type :=
+Inductive header: nat -> Type :=
 | HdrEth: header eth_size
 | HdrVLAN0: header vlan_size
 | HdrVLAN1: header vlan_size
@@ -32,7 +32,6 @@ Notation icmp_size := 32.
 Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
 Proof.
 Admitted.
-
 Global Instance header_finite: forall n, @Finite (header n) _ _.
 Proof.
 Admitted.

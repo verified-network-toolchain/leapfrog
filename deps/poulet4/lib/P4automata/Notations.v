@@ -50,6 +50,8 @@ Definition reject {A} := @inr A _ false.
 Notation "*" := (PAny _) : p4a_scope.
 Notation "'exact' e" := (PExact e) (at level 60): p4a_scope.
 
+Notation "'hexact' n" := (PExact (VBits _ (Ntuple.nat2t _ n))) (at level 60): p4a_scope.
+
 Notation "[| x |] ==> target " := ({| sc_pat := x%p4a ; sc_st := target%p4a |}) (at level 60): p4a_scope.
 
 Notation "[| x , .. , y , z |] ==> target" := 

@@ -53,6 +53,13 @@ Fixpoint l2t {A: Type} (l: list A) : n_tuple A (length l) :=
   | a::l => n_tuple_cons (l2t l) a
   end.
 
+Fixpoint nat2t (n: nat) (v: nat) : n_tuple bool n :=
+  match n as n' return n_tuple bool n' with
+  | 0 => tt
+  | S n =>
+    (nat2t n (Nat.div2 v), Nat.eqb (Nat.modulo v 2) 0)
+  end.
+
 Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
   match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
   | 0 =>
