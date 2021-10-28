@@ -12,7 +12,7 @@ Open Scope p4a.
 
 Notation eth_size := 112.
 Notation vlan_size := 160.
-Notation ipv4_size := 64.
+Notation ipv4_size := 160.
 Notation tcp_size := 160.
 Notation udp_size := 160.
 Notation gre_size := 32.
@@ -55,9 +55,6 @@ Inductive state: Type :=
 | ParseGRE2
 | ParseNVGRE
 | ParseVXLAN.
-
-Check 0x1000.
-
 
 Definition states (s: state) : P4A.state state header :=
   match s with
