@@ -1,9 +1,8 @@
+From Equations Require Import Equations.
 Require Import Coq.Lists.List.
-Import ListNotations.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
-Require Import Coq.micromega.Lia.
-From Equations Require Import Equations.
+Import ListNotations.
 
 Require Import Poulet4.Relations.
 Require Import Poulet4.FinType.
@@ -60,11 +59,10 @@ Equations bvar_eqdec {c} (x y: bvar c) : {x = y} + {x <> y} :=
                                               else in_right;
     bvar_eqdec _ _ := in_right }.
 Next Obligation.
-  apply n.
+  contradict n.
   apply Eqdep_dec.inj_pair2_eq_dec.
-  apply bctx_eq_dec.
-  inversion H.
-  assumption.
+  - apply bctx_eq_dec.
+  - now inversion n.
 Qed.
 #[global] Transparent bvar_eqdec.
 
@@ -840,4 +838,3 @@ End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} a phi.
 Arguments interp_crel {_} {_} {_} {_} a i rel.
 Arguments interp_entailment {_ _ _ _} a i e.
-

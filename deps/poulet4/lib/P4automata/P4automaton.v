@@ -1,11 +1,11 @@
+From Equations Require Import Equations.
 Require Import Coq.Lists.List.
 Require Import Coq.Logic.JMeq.
-Require Import Coq.Classes.EquivDec.
 Require Import Coq.micromega.Lia.
-Require Import Compare_dec.
+Require Import Coq.Arith.Compare_dec.
+
 Require Import Poulet4.Relations.
 Require Import Poulet4.P4automata.Ntuple.
-From Equations Require Import Equations.
 
 Record p4automaton := MkP4Automaton {
   store: Type;

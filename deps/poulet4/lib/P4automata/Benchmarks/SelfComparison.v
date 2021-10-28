@@ -1,14 +1,13 @@
 Require Coq.Classes.EquivDec.
-Require Import Coq.Arith.PeanoNat.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
+
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.Notations.
-
 Require Import Poulet4.P4automata.BisimChecker.
 
 Open Scope p4a.
@@ -47,7 +46,7 @@ Module ReadUndef.
 
   Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrEth, HdrEth => left eq_refl
         | _, _ => idProp
         end);
@@ -56,7 +55,7 @@ Module ReadUndef.
 
   Definition h160_eq_dec (x y: header 160) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrIP, HdrIP => left eq_refl
         | _, _ => idProp
         end);
@@ -65,7 +64,7 @@ Module ReadUndef.
 
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrVLAN, HdrVLAN => left eq_refl
         | _, _ => idProp
         end);
@@ -74,7 +73,7 @@ Module ReadUndef.
 
   Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrUDP, HdrUDP => left eq_refl
         | _, _ => idProp
         end);
@@ -82,12 +81,12 @@ Module ReadUndef.
   Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       [existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h112_eq_dec;
        existT _ _ h160_eq_dec;
        existT _ _ h32_eq_dec;
        existT _ _ h64_eq_dec].
-  Defined. 
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -180,7 +179,7 @@ Module ReadUndefIncorrect.
 
   Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrEth, HdrEth => left eq_refl
         | _, _ => idProp
         end);
@@ -189,7 +188,7 @@ Module ReadUndefIncorrect.
 
   Definition h160_eq_dec (x y: header 160) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrIP, HdrIP => left eq_refl
         | _, _ => idProp
         end);
@@ -198,7 +197,7 @@ Module ReadUndefIncorrect.
 
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrVLAN, HdrVLAN => left eq_refl
         | _, _ => idProp
         end);
@@ -207,7 +206,7 @@ Module ReadUndefIncorrect.
 
   Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y}.
     refine (
-        match x, y with 
+        match x, y with
         | HdrUDP, HdrUDP => left eq_refl
         | _, _ => idProp
         end);
@@ -215,12 +214,12 @@ Module ReadUndefIncorrect.
   Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       [existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h112_eq_dec;
        existT _ _ h160_eq_dec;
        existT _ _ h32_eq_dec;
        existT _ _ h64_eq_dec].
-  Defined. 
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 

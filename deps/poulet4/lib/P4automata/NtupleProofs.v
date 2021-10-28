@@ -1,5 +1,5 @@
 Require Import Coq.Lists.List.
-Require Import Coq.NArith.BinNat.
+
 Require Import Poulet4.FinType.
 Require Import Poulet4.TypeNeq.
 Require Import Poulet4.P4automata.Ntuple.

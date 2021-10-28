@@ -1,7 +1,6 @@
 Require Import Coq.Lists.List.
-Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Equality.
 Import List.ListNotations.
+
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
@@ -90,7 +89,7 @@ Section AlgorithmicLeaps.
       }
       split.
       + apply IHpre_bisimulation; auto.
-      + intros. 
+      + intros.
         constructor 2; auto.
         apply IHpre_bisimulation; eauto.
     - assert (coaccepting (⟦C :: R⟧ ⊓ ⟦W ++ T⟧)).

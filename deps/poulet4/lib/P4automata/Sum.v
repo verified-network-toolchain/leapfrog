@@ -1,11 +1,10 @@
 Require Coq.Lists.List.
-Import List.ListNotations.
 Require Coq.Logic.Eqdep_dec.
 Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Program.
+Import List.ListNotations.
+
 Require Import Poulet4.FinType.
 Require Import Poulet4.HAList.
-Require Poulet4.P4cub.Envn.
 Require Poulet4.P4automata.Syntax.
 
 Open Scope list_scope.

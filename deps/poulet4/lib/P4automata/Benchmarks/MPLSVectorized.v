@@ -2,16 +2,14 @@ Require Coq.Classes.EquivDec.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
+
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Notations.
-
-Require Import Coq.Arith.PeanoNat.
 Require Import Poulet4.P4automata.BisimChecker.
 
 Open Scope p4a.
-
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
@@ -43,28 +41,28 @@ Module MPLSPlain.
 
   Inductive header : nat -> Type :=
   | HdrMPLS0 : header 32
-  | HdrMPLS1 : header 32 
+  | HdrMPLS1 : header 32
   | HdrUDP : header 32.
 
   Derive Signature for header.
 
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
   refine (
-    match x with 
-    | HdrMPLS0 => 
-      match y with 
+    match x with
+    | HdrMPLS0 =>
+      match y with
       | HdrMPLS0 => left eq_refl
       | HdrMPLS1 => right _
       | HdrUDP => right _
       end
-    | HdrMPLS1 => 
-      match y with 
+    | HdrMPLS1 =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => left eq_refl
       | HdrUDP => right _
       end
-    | HdrUDP => 
-      match y with 
+    | HdrUDP =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => right _
       | HdrUDP => left eq_refl
@@ -75,7 +73,7 @@ Module MPLSPlain.
   Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
   Defined.
 
@@ -122,7 +120,7 @@ Module MPLSPlain.
          st_trans := transition accept |}
     end.
 
-  
+
 
   Program Definition aut: Syntax.t state header :=
     {| t_states := states |}.
@@ -155,28 +153,28 @@ Module MPLSUnroll.
 
   Inductive header : nat -> Type :=
   | HdrMPLS0 : header 32
-  | HdrMPLS1 : header 32 
+  | HdrMPLS1 : header 32
   | HdrUDP : header 32.
 
   Derive Signature for header.
 
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
   refine (
-    match x with 
-    | HdrMPLS0 => 
-      match y with 
+    match x with
+    | HdrMPLS0 =>
+      match y with
       | HdrMPLS0 => left eq_refl
       | HdrMPLS1 => right _
       | HdrUDP => right _
       end
-    | HdrMPLS1 => 
-      match y with 
+    | HdrMPLS1 =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => left eq_refl
       | HdrUDP => right _
       end
-    | HdrUDP => 
-      match y with 
+    | HdrUDP =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => right _
       | HdrUDP => left eq_refl
@@ -186,7 +184,7 @@ Module MPLSUnroll.
   Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
   Defined.
 
@@ -219,8 +217,8 @@ Module MPLSUnroll.
   Definition states (s: state) :=
     match s with
     | ParseMPLS0 =>
-      {| st_op := 
-          HdrMPLS1 <- EHdr HdrMPLS0 ;; 
+      {| st_op :=
+          HdrMPLS1 <- EHdr HdrMPLS0 ;;
           extract(HdrMPLS0);
          st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
           [| exact (#b|1) |] ==> inl ParseUDP ;;;
@@ -229,14 +227,14 @@ Module MPLSUnroll.
          }}
       |}
     | ParseMPLS1 =>
-      {| st_op := 
+      {| st_op :=
           HdrMPLS1 <- EHdr HdrMPLS0 ;;
           extract(HdrMPLS0) ;
          st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
-          [| exact (#b|1) |] ==> inl ParseUDP ;;; 
-          [| exact (#b|0) |] ==> inl ParseMPLS0 ;;; 
+          [| exact (#b|1) |] ==> inl ParseUDP ;;;
+          [| exact (#b|0) |] ==> inl ParseMPLS0 ;;;
             reject
-         }} 
+         }}
       |}
     | ParseUDP =>
       {| st_op := extract(HdrUDP);
@@ -273,28 +271,28 @@ Module MPLSInline.
 
   Inductive header : nat -> Type :=
   | HdrMPLS0 : header 32
-  | HdrMPLS1 : header 32 
+  | HdrMPLS1 : header 32
   | HdrUDP : header 32.
 
   Derive Signature for header.
 
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
   refine (
-    match x with 
-    | HdrMPLS0 => 
-      match y with 
+    match x with
+    | HdrMPLS0 =>
+      match y with
       | HdrMPLS0 => left eq_refl
       | HdrMPLS1 => right _
       | HdrUDP => right _
       end
-    | HdrMPLS1 => 
-      match y with 
+    | HdrMPLS1 =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => left eq_refl
       | HdrUDP => right _
       end
-    | HdrUDP => 
-      match y with 
+    | HdrUDP =>
+      match y with
       | HdrMPLS0 => right _
       | HdrMPLS1 => right _
       | HdrUDP => left eq_refl
@@ -304,7 +302,7 @@ Module MPLSInline.
   Defined.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
   Defined.
 

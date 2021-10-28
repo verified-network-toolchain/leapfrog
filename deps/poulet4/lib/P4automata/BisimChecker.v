@@ -1,13 +1,9 @@
-Require Import Coq.Relations.Relations.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
 Require Poulet4.P4automata.WP.
 Require Poulet4.P4automata.Reachability.
-Require Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
-
-Import List.ListNotations.
 Require Import Poulet4.P4automata.FirstOrder.
 Require Import Poulet4.P4automata.FirstOrderConfRel.
 Require Import Poulet4.P4automata.CompileConfRel.
@@ -15,6 +11,8 @@ Require Import Poulet4.P4automata.CompileConfRelSimplified.
 Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
 
 Require Import Coq.Arith.PeanoNat.
+Import List.ListNotations.
+
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -173,7 +171,7 @@ Ltac extend_bisim r_states :=
     let H := fresh "H" in
     assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [ idtac |
-    let t := fresh "t" in 
+    let t := fresh "t" in
     pose (t := WP.wp r_states C);
     apply PreBisimulationExtend with (H0 := right H) (W := t);
     [ trivial | tauto |];
@@ -282,30 +280,30 @@ Ltac close_bisim top' :=
     apply H; [cbv; trivial | auto]
   end.
 
-(* solves a header finiteness goal of the form: 
+(* solves a header finiteness goal of the form:
 List.NoDup
   [existT (fun n : nat => header n) 64 HPref;
   existT (fun n : nat => header n) 48 HDest;
   existT (fun n : nat => header n) 48 HSrc;
-  existT (fun n : nat => header n) 16 HProto] 
-  
-  which is an obligation for: 
+  existT (fun n : nat => header n) 16 HProto]
 
-    @Finite {n & header n} _ header_eqdec' 
-  
+  which is an obligation for:
+
+    @Finite {n & header n} _ header_eqdec'
+
   *)
-Ltac solve_header_finite := 
+Ltac solve_header_finite :=
   repeat constructor;
   unfold "~"; intros;
-  repeat match goal with 
+  repeat match goal with
   | H: List.In _ _ |- _ => destruct H
   | H: _ = _ |- _ => inversion H
   end.
 
-(* solves a header eq_dec from a list of finite indices and decision procedures, e.g. 
+(* solves a header eq_dec from a list of finite indices and decision procedures, e.g.
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
   Defined.
 
@@ -321,16 +319,16 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-  
+
 Ltac hashcons_list xs :=
   match xs with
   | ?x :: ?xs =>
     hashcons_list xs;
-    let v := fresh "v" in 
+    let v := fresh "v" in
     set (v := x)
-    
+
   | ?x :: nil =>
-    let v := fresh "v" in 
+    let v := fresh "v" in
     set (v := x)
   | nil =>
     idtac

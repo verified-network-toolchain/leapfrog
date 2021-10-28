@@ -1,7 +1,6 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Equality.
-Require Import Coq.Logic.Eqdep_dec.
-Require Import Coq.Logic.JMeq.
+
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Ntuple.
 Require Import Poulet4.P4automata.NtupleProofs.

@@ -1,5 +1,4 @@
 Require Import Coq.Classes.EquivDec.
-Require Import Coq.Lists.List.
 Import List.ListNotations.
 
 Section DepEnv.

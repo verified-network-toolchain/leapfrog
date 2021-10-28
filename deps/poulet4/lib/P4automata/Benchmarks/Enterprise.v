@@ -1,8 +1,7 @@
 Require Coq.Classes.EquivDec.
-Require Import Coq.Arith.PeanoNat.
 Require Coq.Lists.List.
 Import List.ListNotations.
-Require Import Coq.Program.Program.
+
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
@@ -36,7 +35,7 @@ Global Instance header_finite: forall n, @Finite (header n) _ _.
 Proof.
 Admitted.
 Global Instance header_finite': @Finite {n & header n} _ header_eqdec'.
-Admitted.  
+Admitted.
 
 Inductive state: Type :=
 | ParseEth

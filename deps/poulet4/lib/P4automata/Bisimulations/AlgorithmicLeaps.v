@@ -1,6 +1,4 @@
 Require Import Coq.Lists.List.
-Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Equality.
 Import List.ListNotations.
 
 Require Import Poulet4.P4automata.P4automaton.
