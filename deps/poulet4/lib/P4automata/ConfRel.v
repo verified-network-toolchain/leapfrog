@@ -469,8 +469,9 @@ Section ConfRel.
   Next Obligation.
     intro Hs.
     inversion Hs.
-    dependent destruction H2.
-    eauto.
+    apply Eqdep_dec.inj_pair2_eq_dec in H2.
+    - contradiction.
+    - apply bctx_eq_dec.
   Qed.
   #[global] Transparent conf_rel_eq_dec.
 
