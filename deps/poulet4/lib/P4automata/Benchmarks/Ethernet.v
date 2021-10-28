@@ -2,15 +2,13 @@ Require Coq.Classes.EquivDec.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
+
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.Syntax.
-
 Require Import Poulet4.P4automata.Notations.
 Require Import Poulet4.P4automata.BisimChecker.
-
-Require Import Coq.Arith.PeanoNat.
 
 Open Scope p4a.
 
@@ -51,13 +49,13 @@ Module Reference.
 
   Derive Signature for header.
 
-  Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y} := 
-    match x, y with 
+  Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y} :=
+    match x, y with
     | HPref, HPref => left eq_refl
     | _, _ => idProp
     end.
-  Definition h48_eq_dec (x y: header 48) : {x = y} + {x <> y}. 
-    refine (match x, y with 
+  Definition h48_eq_dec (x y: header 48) : {x = y} + {x <> y}.
+    refine (match x, y with
     | HDest, HDest => left eq_refl
     | HSrc, HSrc => left eq_refl
     | HSrc, HDest => right _
@@ -67,17 +65,17 @@ Module Reference.
     intros H; inversion H.
     Defined.
 
-  Definition h16_eq_dec (x y: header 16) : {x = y} + {x <> y} := 
-    match x, y with 
+  Definition h16_eq_dec (x y: header 16) : {x = y} + {x <> y} :=
+    match x, y with
     | HProto, HProto => left eq_refl
     | _, _ => idProp
     end.
 
 
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 64 h64_eq_dec) :: (existT _ 48 h48_eq_dec) :: ( existT _ 16 h16_eq_dec) :: nil).
-  Defined. 
+  Defined.
 
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
@@ -99,7 +97,7 @@ Module Reference.
   Qed.
   Next Obligation.
   unfold List.In.
-  repeat match goal with 
+  repeat match goal with
   | X: {_ & _} |- _ => destruct X
   | X: header _ |- _ =>
     dependent destruction X; subst;
@@ -112,8 +110,8 @@ Module Reference.
 
 
 
-  Definition states (s: state) := 
-    match s with 
+  Definition states (s: state) :=
+    match s with
     | SPref => {| st_op := extract(HPref);
                   st_trans := transition (inl SDest) |}
     | SDest => {| st_op := extract(HDest);
@@ -127,18 +125,18 @@ Module Reference.
                   }}
                 |}
     end.
-  
+
 
   Program Definition aut: Syntax.t state header :=
     {| t_states := states |}.
   Solve Obligations with (destruct s; cbv; Lia.lia).
-  
-End Reference. 
+
+End Reference.
 
 Module Combined.
   Inductive state :=
   | Parse.
-  
+
   Global Instance state_eqdec: EquivDec.EqDec state eq.
     vm_compute.
     intros.
@@ -167,17 +165,17 @@ Module Combined.
 
   Derive Signature for header.
 
-  Definition h176_eq_dec (x y: header 176) : {x = y} + {x <> y} := 
-    match x, y with 
+  Definition h176_eq_dec (x y: header 176) : {x = y} + {x <> y} :=
+    match x, y with
     | HdrVar, HdrVar => left eq_refl
     end.
 
   Local Obligation Tactic := intros.
   Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y 
+    solve_header_eqdec_ n x y
       ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 176 h176_eq_dec) :: nil).
-  Defined. 
-  
+  Defined.
+
   Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 
   Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
@@ -198,7 +196,7 @@ Module Combined.
   Qed.
   Next Obligation.
   unfold List.In.
-  repeat match goal with 
+  repeat match goal with
   | X: {_ & _} |- _ => destruct X
   | X: header _ |- _ =>
     dependent destruction X; subst;
@@ -222,7 +220,7 @@ Module Combined.
   Program Definition aut: Syntax.t state header :=
     {| t_states := states |}.
   Solve Obligations with (destruct s; cbv; Lia.lia).
-  
+
 End Combined.
 
 Module RefComb.

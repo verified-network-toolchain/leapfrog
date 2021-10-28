@@ -1,16 +1,16 @@
 From Equations Require Import Equations.
-Require Import Coq.Program.Equality.
+
 Require Import Coq.Classes.EquivDec.
+
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.P4automaton.
-Require Poulet4.P4automata.FirstOrderConfRelSimplified.
-Require Poulet4.P4automata.FirstOrderBitVec.
 Require Import Poulet4.P4automata.Ntuple.
-
-Import FirstOrder.
+Require Import Poulet4.P4automata.FirstOrder.
 Import HListNotations.
 
+Require Poulet4.P4automata.FirstOrderConfRelSimplified.
+Require Poulet4.P4automata.FirstOrderBitVec.
 Module FOS := FirstOrderConfRelSimplified.
 Module FOBV := FirstOrderBitVec.
 
@@ -189,7 +189,7 @@ Section CompileFirstOrderConfRelSimplified.
 
   Lemma compile_simplified_fm_bv_correct:
       forall c' v v' fm,
-        
+
         interp_fm (m := FOS.fm_model a) v fm <->
         interp_fm (m := FOBV.fm_model) v' (compile_fm (c := c') fm)
         .

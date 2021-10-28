@@ -1,13 +1,12 @@
 From Equations Require Import Equations.
 Require Import Coq.Program.Equality.
-Require Import Coq.Classes.EquivDec.
+
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.FirstOrderConfRelSimplified.
 Require Import Poulet4.P4automata.Ntuple.
-
-Import FirstOrder.
+Require Import Poulet4.P4automata.FirstOrder.
 Import HListNotations.
 
 Section CompileConfRelSimplified.

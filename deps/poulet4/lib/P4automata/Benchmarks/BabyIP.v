@@ -1,8 +1,8 @@
 Require Coq.Classes.EquivDec.
-Require Import Coq.Arith.PeanoNat.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
+
 Require Import Poulet4.P4automata.Syntax.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Sum.
@@ -74,7 +74,7 @@ Module BabyIP1.
          st_trans := transition select (| (EHdr HdrIP)[19 -- 16] |) {{
           [| exact #b|0|0|0|1 |] ==> inl ParseUDP ;;;
           [| exact #b|0|0|0|0 |] ==> inl ParseTCP ;;;
-          reject 
+          reject
          }}
       |}
     | ParseUDP =>
@@ -147,7 +147,7 @@ Module BabyIP2.
           [| exact #b|0|0|0|1 |] ==> accept ;;;
           [| exact #b|0|0|0|0 |] ==> inl ParseSeq ;;;
             reject
-        }} 
+        }}
       |}
     | ParseSeq =>
       {| st_op := extract(HdrSeq);

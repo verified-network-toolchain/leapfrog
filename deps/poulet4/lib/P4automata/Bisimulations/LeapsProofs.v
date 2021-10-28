@@ -1,15 +1,12 @@
 Require Import Coq.micromega.Lia.
-Require Import Compare_dec.
+Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Lists.List.
-Require Import Coq.Classes.EquivDec.
-Require Import Coq.Program.Equality.
 Import List.ListNotations.
 
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
-Require Poulet4.P4automata.Reachability.
 Require Poulet4.P4automata.Bisimulations.Upto.
 Require Poulet4.P4automata.Bisimulations.UptoProofs.
 Require Import Poulet4.P4automata.Bisimulations.Leaps.
@@ -128,9 +125,11 @@ Section LeapsProofs.
   Program Instance close_interpolate_sound
     : Upto.SoundClosure a (close_interpolate a).
   Next Obligation.
+    unfold Upto.closure_extends; intros.
     eauto using InterpolateBase.
   Qed.
   Next Obligation.
+    unfold Upto.closure_preserves_accept; intros.
     induction H0; eauto.
     unfold accepting in *; simpl in *.
     destruct (conf_state q1) as [s1|[|]] eqn:?, (conf_state q2) as [s2|[|]] eqn:?;
@@ -240,6 +239,7 @@ Section LeapsProofs.
       tauto.
   Qed.
   Next Obligation.
+    unfold Upto.closure_preserves_transition; intros.
     revert b.
     induction H0.
     - auto.
@@ -272,6 +272,7 @@ Section LeapsProofs.
           lia.
   Qed.
   Next Obligation.
+    unfold Upto.closure_mono; intros.
     induction H0.
     - eauto using InterpolateBase.
     - eauto using InterpolateStep.
