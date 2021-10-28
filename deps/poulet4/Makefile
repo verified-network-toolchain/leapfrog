@@ -26,6 +26,9 @@ clean:
 	rm _CoqProject
 	dune clean -p poulet4
 
+min-imports:
+	find lib/P4automata/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
+
 benchmarks-small: smallfilter selfcmp
 
 benchmarks-medium: babyip mplsvectorized ipfilter ethernet
