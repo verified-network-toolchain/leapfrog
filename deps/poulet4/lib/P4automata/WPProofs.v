@@ -8,6 +8,7 @@ Require Import Poulet4.P4automata.NtupleProofs.
 Require Import Poulet4.P4automata.P4automaton.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.WP.
+Require Import Poulet4.P4automata.Bisimulations.Leaps.
 
 Section WPProofs.
   (* State identifiers. *)
@@ -1196,8 +1197,7 @@ Section WPProofs.
     forall top r phi q1 q2,
       interp_crel a top (wp (a := a) r phi) q1 q2 ->
       forall bs,
-        List.length bs = Nat.min (configuration_room_left q1)
-                                 (configuration_room_left q2) ->
+        List.length bs = leap_size (P4A.interp a) q1 q2 ->
         interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     intros.
@@ -1256,8 +1256,7 @@ Section WPProofs.
   Theorem wp_complete:
     forall top r phi q1 q2,
       (forall bs,
-        List.length bs = Nat.min (configuration_room_left q1)
-                                 (configuration_room_left q2) ->
+        List.length bs = leap_size (P4A.interp a) q1 q2 ->
         interp_conf_rel a phi (follow q1 bs) (follow q2 bs)) ->
       interp_crel a top (wp (a := a) r phi) q1 q2.
   Proof.

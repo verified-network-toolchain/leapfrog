@@ -83,7 +83,7 @@ Section WPLeapsProofs.
         eapply wp_safe; auto.
         rewrite <- H2.
         exact H4.
-  Admitted.
+  Qed.
 
   Lemma not_equally_accepting_correct q1 q2:
     not_equally_accepting S1 S2 H a (conf_to_state_template q1,
