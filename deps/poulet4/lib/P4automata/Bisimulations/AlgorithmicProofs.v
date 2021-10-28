@@ -1,5 +1,4 @@
 Require Import Coq.micromega.Lia.
-Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 

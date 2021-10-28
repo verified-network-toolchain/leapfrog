@@ -1,6 +1,5 @@
 Require Import Coq.micromega.Lia.
 Require Import Compare_dec.
-Require Import Coq.Lists.List.
 Import List.ListNotations.
 
 Require Import Poulet4.P4automata.P4automaton.
