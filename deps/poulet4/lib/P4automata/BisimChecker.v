@@ -167,6 +167,20 @@ Proof.
 Qed.
 
 
+Ltac hashcons_list xs :=
+  match xs with
+  | ?x :: ?xs =>
+    hashcons_list xs;
+    let v := fresh "v" in 
+    set (v := x)
+    
+  | ?x :: nil =>
+    let v := fresh "v" in 
+    set (v := x)
+  | _ => idtac
+  end.
+
+
 Ltac extend_bisim r_states :=
   match goal with
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
@@ -176,10 +190,16 @@ Ltac extend_bisim r_states :=
     let t := fresh "t" in 
     pose (t := WP.wp r_states C);
     apply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ trivial | tauto |];
+    [ trivial | subst t; reflexivity |];
     vm_compute in t;
-    simpl (_ ++ _);
-    clear t]
+    subst t;
+    match goal with 
+    | |- pre_bisimulation _ _ _ (?R' :: ?R'') (?X ++ _) _ =>
+      let r := fresh "R" in 
+      set (r := R');
+      hashcons_list X;
+      simpl (_ ++ _)
+    end ]
   end.
 
 Ltac skip_bisim :=
@@ -199,11 +219,17 @@ Ltac extend_bisim' HN r_states :=
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
     apply PreBisimulationExtend with (H0 := right HN) (W := t);
-    [ tauto | trivial |];
-    vm_compute in t;
-    simpl (_ ++ _);
-    clear t;
-    clear HN
+    [ trivial | subst t; reflexivity |];
+    clear HN;
+    time "wp compute" vm_compute in t;
+    subst t;
+    match goal with 
+    | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
+      let r := fresh "R'" in 
+      set (r := R');
+      hashcons_list X;
+      simpl (_ ++ _)
+    end
   end.
 
 Ltac skip_bisim' H :=
@@ -322,16 +348,3 @@ Ltac solve_header_eqdec_ n x y indfuns :=
   end.
 
   
-Ltac hashcons_list xs :=
-  match xs with
-  | ?x :: ?xs =>
-    hashcons_list xs;
-    let v := fresh "v" in 
-    set (v := x)
-    
-  | ?x :: nil =>
-    let v := fresh "v" in 
-    set (v := x)
-  | nil =>
-    idtac
-  end.

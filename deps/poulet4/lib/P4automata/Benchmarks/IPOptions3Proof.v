@@ -109,18 +109,7 @@ Proof.
 
   time "build phase" repeat (run_bisim top top' r_states;
     try rewrite H8;
-    try rewrite H16;
-    try match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  => 
-      let rs := fresh "rs" in 
-      set (rs := N' :: T);
-      let r := fresh "r" in 
-      set (r := N)
-      
-    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  => 
-      let r := fresh "r" in 
-      set (r := N)
-    end
+    try rewrite H16
   ).
   time "close phase" close_bisim top'.
 
