@@ -1196,9 +1196,25 @@ Section WPProofs.
     eapply reachable_step_backwards; eauto.
   Qed.
 
+  Lemma follow_in_reaches:
+    forall bs prev s1 s2 p1 p2 prev1 prev2,
+      length bs = leap_size (P4A.interp a) p1 p2 ->
+      interp_state_template prev1 p1 ->
+      interp_state_template prev2 p2 ->
+      interp_state_template s1 (follow p1 bs) ->
+      interp_state_template s2 (follow p2 bs) ->
+      In (length bs, prev) (reaches (a:=a) (s1, s2) (prev1, prev2)).
+  Proof.
+  Admitted.
+
+  Definition conf2st (q: conf) : state_template a :=
+    {| st_state := conf_state q;
+       st_buf_len := conf_buf_len q |}.
+
   (* prove this first *)
   Theorem wp_safe:
     forall top r phi q1 q2,
+      In (conf2st q1, conf2st q2) r ->
       interp_crel a top (wp (a := a) r phi) q1 q2 ->
       forall bs,
         List.length bs = leap_size (P4A.interp a) q1 q2 ->
@@ -1229,13 +1245,13 @@ Section WPProofs.
                  interp_conf_rel a r' q1 q2).
     {
       subst phi.
-      pose proof (Relations.interp_rels_in _ _ _ _ _ H0).
-      setoid_rewrite in_map_iff in H3.
+      pose proof (Relations.interp_rels_in _ _ _ _ _ H1).
+      setoid_rewrite in_map_iff in H4.
       intros.
       subst r'.
-      repeat setoid_rewrite in_flat_map in H3.
+      repeat setoid_rewrite in_flat_map in H4.
       simpl in *.
-      eapply H3.
+      eapply H4.
       destruct st in *; simpl in *.
       intuition.
       subst r'0.
@@ -1252,52 +1268,40 @@ Section WPProofs.
     change phi_st1 with (fst (phi_st1, phi_st2)) in H2.
     change phi_st2 with (snd (phi_st1, phi_st2)) in H2.
     destruct (Reachability.reachable_pair_step' (st1, st2)) eqn:?.
-    assert (follow_in_reaches:
-              forall prev s1 s2 p1 p2 prev1 prev2,
-               interp_state_template prev1 p1 ->
-               interp_state_template prev2 p2 ->
-               interp_state_template s1 (follow p1 bs) ->
-               interp_state_template s2 (follow p2 bs) ->
-               In (length bs, prev) (reaches (a:=a) (s1, s2) (prev1, prev2))).
-    { admit. }
-    assert (In (st1, st2) r).
-    { admit. }
     assert (In (length bs, (st1, st2)) (reaches (a:=a) (phi_st1, phi_st2) (st1, st2))).
     {
       eapply follow_in_reaches with (p1 := q1) (p2 := q2);
         try solve [cbv; tauto
-                  |unfold interp_conf_state in H2;
+                  |unfold interp_conf_state in H3;
                    subst q1' q2';
-                   simpl in H2;
+                   simpl in H3;
                    tauto].
     }
-    assert (forall r,
-               In r (map (interp_conf_rel a) (wp_pred_pair phi (length bs, (st1, st2)))) ->
-               r q1 q2).
+    assert (Hpairq: interp_crel a top (wp_pred_pair phi (length bs, (st1, st2))) q1 q2).
     {
-      pose proof (Relations.interp_rels_in _ _ _ _ _ H0).
-      intros.
-      rewrite in_map_iff in H7.
-      destruct H7 as [cr [? ?]].
-      eapply H6.
-      subst r0.
-      rewrite in_map_iff.
-      eexists; intuition.
-      apply in_flat_map.
-      subst phi.
-      eexists; intuition.
-      apply in_flat_map.
-      exists (st1, st2).
-      intuition eauto.
+      unfold interp_crel.
+      apply Relations.in_interp_rels.
+      - eapply Relations.interp_rels_bound; eauto.
+      - pose proof (Relations.interp_rels_in _ _ _ _ _ H1).
+        intros.
+        rewrite in_map_iff in H7.
+        destruct H7 as [cr [? ?]].
+        eapply H6.
+        subst r0.
+        rewrite in_map_iff.
+        eexists; intuition.
+        apply in_flat_map.
+        subst phi.
+        eexists; intuition.
+        apply in_flat_map.
+        exists (st1, st2).
+        intuition eauto.
     }
-    assert (Hpairq: interp_crel a top (wp_pred_pair phi (length bs, (st1, st2))) q1 q2)
-      by admit.
     eapply (wp_pred_pair_safe (length bs) top phi st1 st2 q1 q2) in Hpairq; eauto.
     unfold interp_conf_rel in Hpairq.
     subst phi q1' q2'.
-    eapply Hpairq.
     eauto.
-  Admitted.
+  Qed.
 
   (* prove this later *)
   Theorem wp_complete:
