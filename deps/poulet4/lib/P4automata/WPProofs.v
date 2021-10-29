@@ -1323,12 +1323,13 @@ Section WPProofs.
            (conf_buf (follow q2 bs)) (conf_store (follow q1 bs))
            (conf_store (follow q2 bs))).
     {
-      intros.
+      eapply weaken_rel_interp; auto.
+    }
     destruct phi as [[? ?] ? ?].
     simpl in *.
     eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
     eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
-  Admitted.
+  Qed.
 
   Lemma reachable_step_backwards:
     forall st st' bs sts q1 q2,
