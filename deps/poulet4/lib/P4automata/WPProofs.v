@@ -1138,16 +1138,15 @@ Section WPProofs.
   Qed.
 
   Lemma wp_pred_pair_safe:
-    forall size top phi t1 t2 q1 q2,
-      interp_crel a top (wp_pred_pair (a:=a) phi (size, (t1, t2))) q1 q2 ->
+    forall size phi t1 t2 q1 q2,
+      interp_conf_rel a (wp_pred_pair (a:=a) phi (size, (t1, t2))) q1 q2 ->
       forall bs,
         length bs = size ->
         interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     unfold wp_pred_pair.
     intros.
-    simpl in *; destruct H0; try tauto.
-    unfold interp_conf_rel, interp_conf_state, interp_state_template in H1.
+    unfold interp_conf_rel, interp_conf_state, interp_state_template in *.
     simpl in *.
   Admitted.
 
@@ -1227,33 +1226,29 @@ Section WPProofs.
     intuition.
     unfold wp in H0.
     simpl in *.
-    set (r' := flat_map (wp_pred_pair phi)
-                       (flat_map (reaches (phi_st1, phi_st2))
-                                 r))
+    set (r' := map (wp_pred_pair phi)
+                   (flat_map (reaches (phi_st1, phi_st2))
+                             r))
       in *.
     unfold interp_crel in H0.
     assert (forall size st,
                In st r ->
                In (size, st)
                   (reaches (cs_st1 (cr_st phi), cs_st2 (cr_st phi)) st) ->
-               forall r',
-                 In r' (wp_pred_pair phi (size, st)) ->
-                 interp_conf_rel a r' q1 q2).
+               interp_conf_rel a (wp_pred_pair phi (size, st)) q1 q2).
     {
       subst phi.
       pose proof (Relations.interp_rels_in _ _ _ _ _ H1).
       setoid_rewrite in_map_iff in H4.
       intros.
       subst r'.
-      repeat setoid_rewrite in_flat_map in H4.
+      repeat (setoid_rewrite in_map_iff in H4 || setoid_rewrite in_flat_map in H4).
       simpl in *.
       eapply H4.
       destruct st in *; simpl in *.
       intuition.
-      subst r'0.
       eexists; intuition eauto.
       eexists; intuition eauto.
-      simpl.
       intuition.
     }
     set (st1 := {| st_state := conf_state q1;
@@ -1273,27 +1268,13 @@ Section WPProofs.
                    simpl in H3;
                    tauto].
     }
-    assert (Hpairq: interp_crel a top (wp_pred_pair phi (length bs, (st1, st2))) q1 q2).
+    assert (Hpairq: interp_conf_rel a (wp_pred_pair phi (length bs, (st1, st2))) q1 q2).
     {
-      unfold interp_crel.
-      apply Relations.in_interp_rels.
-      - eapply Relations.interp_rels_bound; eauto.
-      - pose proof (Relations.interp_rels_in _ _ _ _ _ H1).
-        intros.
-        rewrite in_map_iff in H7.
-        destruct H7 as [cr [? ?]].
-        eapply H6.
-        subst r0.
-        rewrite in_map_iff.
-        eexists; intuition.
-        apply in_flat_map.
-        subst phi.
-        eexists; intuition.
-        apply in_flat_map.
-        exists (st1, st2).
-        intuition eauto.
+      eapply H4; eauto.
+      subst phi.
+      eapply H5.
     }
-    eapply (wp_pred_pair_safe (length bs) top phi st1 st2 q1 q2) in Hpairq; eauto.
+    eapply (wp_pred_pair_safe (length bs) phi st1 st2 q1 q2) in Hpairq; eauto.
     unfold interp_conf_rel in Hpairq.
     subst phi q1' q2'.
     eauto.
@@ -1326,3 +1307,5 @@ Section WPProofs.
 *)
 
 End WPProofs.
+
+Print Assumptions wp_safe.
