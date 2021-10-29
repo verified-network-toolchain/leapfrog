@@ -53,6 +53,7 @@ Section WPLeapsProofs.
   Lemma pre_bisimulation_embed:
     forall R T q1 q2,
       pre_bisimulation a (WP.wp r) top R T q1 q2 ->
+      In (conf_to_state_template q1, conf_to_state_template q2) r ->
       AlgorithmicLeaps.pre_bisimulation
         (P4A.interp a)
         top
@@ -67,20 +68,21 @@ Section WPLeapsProofs.
       + intros.
         destruct H0; [|contradiction].
         now apply i.
-      + apply IHpre_bisimulation.
+      + apply IHpre_bisimulation; eauto.
     - eapply AlgorithmicLeaps.PreBisimulationExtend.
       + intro.
         destruct H0; [contradiction|].
         apply n.
         unfold interp_entailment; simpl; intros.
-        now apply H4.
+        auto.
       + fold (map (interp_conf_rel a) T).
         rewrite map_cons, map_app in IHpre_bisimulation.
-        exact IHpre_bisimulation.
+        eauto.
       + intros.
-        eapply wp_safe; auto.
-        rewrite <- H2.
-        exact H4.
+        rewrite H3 in H5.
+        eapply wp_safe; try assumption; [|apply H5].
+        apply interp_rels_bound in H5.
+        apply H5.
   Qed.
 
   Lemma not_equally_accepting_correct q1 q2:

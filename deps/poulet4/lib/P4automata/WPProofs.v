@@ -1207,14 +1207,10 @@ Section WPProofs.
   Proof.
   Admitted.
 
-  Definition conf2st (q: conf) : state_template a :=
-    {| st_state := conf_state q;
-       st_buf_len := conf_buf_len q |}.
-
   (* prove this first *)
   Theorem wp_safe:
     forall top r phi q1 q2,
-      In (conf2st q1, conf2st q2) r ->
+      In (conf_to_state_template q1, conf_to_state_template q2) r ->
       interp_crel a top (wp (a := a) r phi) q1 q2 ->
       forall bs,
         List.length bs = leap_size (P4A.interp a) q1 q2 ->
