@@ -1060,13 +1060,58 @@ Section WPProofs.
   Qed.
 *)
 
+  Lemma in_interp_tpairs:
+    forall ts q1 q2 t1 t2,
+      In (t1, t2) ts ->
+      interp_state_template t1 q1 ->
+      interp_state_template t2 q2 ->
+      interp_tpairs (a:=a) ts q1 q2.
+  Proof.
+    induction ts; intros; simpl.
+    - exact H0.
+    - destruct a0.
+      simpl in H0.
+      destruct H0.
+      + left.
+        split; congruence.
+      + right.
+        eapply IHts; eauto.
+  Qed.
+
+  Lemma reaches_prev:
+    forall cur prev prev' size,
+      In (size, prev') (reaches (a:=a) cur prev) ->
+      prev' = prev.
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (Reachability.reachable_pair_step' _) in H0.
+    destruct (in_dec _ _) in H0.
+    - simpl in *; destruct H0.
+      + congruence.
+      + tauto.
+    - simpl in H0; tauto.
+  Qed.
+
+  (* n.b. not sure this lemma is used anywhere yet *)
   Lemma wp_bounded:
     forall top phi phi' q1 q2,
       In phi' (wp (a:=a) top phi) ->
-      interp_conf_rel a phi' q1 q2 ->
+      interp_conf_state (cr_st phi') q1 q2 ->
       interp_tpairs top q1 q2.
   Proof.
-  Admitted.
+    intros.
+    unfold wp, wp_pred_pair in *.
+    apply in_map_iff in H0.
+    destruct H0 as [[? [? ?]] [? ?]].
+    subst phi'.
+    apply in_flat_map in H2.
+    destruct H2 as [[? ?] [? ?]].
+    unfold interp_conf_state in H1.
+    destruct H1; simpl in *.
+    apply reaches_prev in H2.
+    eapply in_interp_tpairs; eauto || congruence.
+  Qed.
 
   Lemma reachable_step_size:
     forall prev size s,
@@ -1106,21 +1151,6 @@ Section WPProofs.
     destruct (in_dec _ _); [eauto with datatypes | tauto].
   Qed.
 
-  Lemma reaches_prev:
-    forall cur prev prev' size,
-      In (size, prev') (reaches (a:=a) cur prev) ->
-      prev' = prev.
-  Proof.
-    unfold reaches.
-    intros.
-    destruct (Reachability.reachable_pair_step' _) in H0.
-    destruct (in_dec _ _) in H0.
-    - simpl in *; destruct H0.
-      + congruence.
-      + tauto.
-    - simpl in H0; tauto.
-  Qed.
-
   Lemma reads_left_config_left:
     forall st1 st2 (q1 q2: conf),
       interp_state_template st1 q1 ->
@@ -1137,8 +1167,146 @@ Section WPProofs.
     destruct (conf_state q1), (conf_state q2); auto.
   Qed.
 
+  Definition pick {A} (s: side) (x: A * A) :=
+    match s with
+    | Left => fst x
+    | Right => snd x
+    end.
+
+  Lemma wp_lpred_pair_safe:
+    forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
+      interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
+      forall bs (q1' q2': conf),
+        q1' = pick si (follow q1 bs, q1) ->
+        q2' = pick si (q2, follow q2 bs) ->
+        interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
+  Proof.
+  Admitted.
+
+  Lemma weaken_expr_size:
+    forall c n (e: bit_expr H c) l1 l2,
+      be_size l1 l2 (weaken_bit_expr n e) = be_size l1 l2 e.
+  Proof.
+    induction e; intros; try destruct a0; simpl; auto.
+    rewrite !IHe.
+    reflexivity.
+  Qed.
+
+  Lemma weaken_bvar_interp:
+    forall (c: bctx) (n: nat) (valu: bval c) (bits: n_tuple bool n) (b: bvar c),
+    interp_bvar ((valu, bits): bval (BCSnoc c n)) (weaken_bvar n b) ~= interp_bvar valu b.
+  Proof.
+    destruct b, valu; simpl; autorewrite with interp_bvar; reflexivity.
+  Qed.
+
+  Lemma weaken_expr_interp:
+    forall c n e (valu: bval c) (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
+      interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1 store2 ~= 
+      interp_bit_expr (a:=a) e valu buf1 buf2 store1 store2.
+  Proof.
+    induction e; intros; simpl; autorewrite with interp_bit_expr in *.
+    - auto.
+    - destruct a0; autorewrite with interp_bit_expr; auto.
+    - destruct a0; simpl; auto.
+    - apply weaken_bvar_interp.
+    - set (v1 := interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v2 := interp_bit_expr e valu buf1 buf2 store1 store2).
+      assert (Hvv: v1 ~= v2) by eauto.
+      revert Hvv.
+      generalize v1 as x1, v2 as x2.
+      generalize (be_size l1 l2 (weaken_bit_expr n e)).
+      generalize (be_size l1 l2 e).
+      intros.
+      inversion Hvv.
+      apply n_tuple_inj in H1.
+      revert Hvv.
+      clear H3 H2.
+      revert x1.
+      rewrite H1.
+      intros.
+      rewrite Hvv.
+      auto.
+    - set (v11 := interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v12 := interp_bit_expr e1 valu buf1 buf2 store1 store2).
+      set (v21 := interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v22 := interp_bit_expr e2 valu buf1 buf2 store1 store2).
+      assert (Hv1: v11 ~= v12) by eauto.
+      assert (Hv2: v21 ~= v22) by eauto.
+      revert Hv1 Hv2.
+      generalize v11 as x11, v12 as x12.
+      generalize v21 as x21, v22 as x22.
+      generalize (be_size l1 l2 (weaken_bit_expr n e1)).
+      generalize (be_size l1 l2 e1).
+      generalize (be_size l1 l2 (weaken_bit_expr n e2)).
+      generalize (be_size l1 l2 e2).
+      intros.
+      inversion Hv1.
+      inversion Hv2.
+      clear H3 H2 H5 H6.
+      apply n_tuple_inj in H1.
+      apply n_tuple_inj in H4.
+      subst n3.
+      subst n1.
+      rewrite Hv1, Hv2.
+      reflexivity.
+  Qed.
+
+  Lemma weaken_rel_interp:
+    forall c (valu: bval c) n rel (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
+      interp_store_rel rel valu buf1 buf2 store1 store2 <->
+      interp_store_rel (a:=a) (weaken_store_rel n rel) (valu, bits) buf1 buf2 store1 store2.
+  Proof.
+    induction rel; intros; simpl; autorewrite with interp_store_rel in *.
+    - split; auto.
+    - split; auto.
+    - destruct (Classes.eq_dec _ _); destruct (Classes.eq_dec _ _).
+      + assert (He1: interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1 store2 ~= 
+                                interp_bit_expr (a:=a) e1 valu buf1 buf2 store1 store2)
+          by auto using weaken_expr_interp.
+        assert (He2: interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1 store2 ~= 
+                                interp_bit_expr (a:=a) e2 valu buf1 buf2 store1 store2)
+          by auto using weaken_expr_interp.
+        revert He1 He2.
+        generalize (interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1 store2).
+        generalize (interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1 store2).
+        generalize (interp_bit_expr (a:=a) e1 valu buf1 buf2 store1 store2).
+        generalize (interp_bit_expr (a:=a) e2 valu buf1 buf2 store1 store2).
+        revert e.
+        revert e0.
+        rewrite !weaken_expr_size.
+        generalize (be_size l1 l2 e2).
+        generalize (be_size l1 l2 e1).
+        intros.
+        subst n0.
+        rewrite He1, He2.
+        rewrite <- !Eqdep_dec.eq_rect_eq_dec; auto using PeanoNat.Nat.eq_dec.
+        tauto.
+      + exfalso.
+        rewrite !weaken_expr_size in *.
+        congruence.
+      + exfalso.
+        rewrite !weaken_expr_size in *.
+        congruence.
+      + tauto.
+    - rewrite <- brand_corr.
+      autorewrite with interp_store_rel in *.
+      rewrite IHrel1, IHrel2 by eauto.
+      intuition eauto.
+    - rewrite <- bror_corr.
+      autorewrite with interp_store_rel in *.
+      rewrite IHrel1, IHrel2 by eauto.
+      intuition eauto.
+    - rewrite IHrel1, IHrel2 by eauto.
+      intuition eauto.
+  Qed.
+
   Lemma wp_pred_pair_safe:
     forall size phi t1 t2 q1 q2,
+      interp_state_template t1 q1 ->
+      interp_state_template t2 q2 ->
       interp_conf_rel a (wp_pred_pair (a:=a) phi (size, (t1, t2))) q1 q2 ->
       forall bs,
         length bs = size ->
@@ -1148,6 +1316,18 @@ Section WPProofs.
     intros.
     unfold interp_conf_rel, interp_conf_state, interp_state_template in *.
     simpl in *.
+    intuition.
+    pose (bits := l2t bs).
+    rewrite H3 in bits.
+    cut (interp_store_rel (weaken_store_rel size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
+           (conf_buf (follow q2 bs)) (conf_store (follow q1 bs))
+           (conf_store (follow q2 bs))).
+    {
+      intros.
+    destruct phi as [[? ?] ? ?].
+    simpl in *.
+    eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
+    eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
   Admitted.
 
   Lemma reachable_step_backwards:
@@ -1274,6 +1454,10 @@ Section WPProofs.
       subst phi.
       eapply H5.
     }
+    assert (interp_state_template st1 q1)
+     by (unfold interp_state_template; simpl; tauto).
+    assert (interp_state_template st2 q2)
+     by (unfold interp_state_template; simpl; tauto).
     eapply (wp_pred_pair_safe (length bs) phi st1 st2 q1 q2) in Hpairq; eauto.
     unfold interp_conf_rel in Hpairq.
     subst phi q1' q2'.
