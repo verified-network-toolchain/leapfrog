@@ -1126,11 +1126,16 @@ Section WPProofs.
       interp_state_template st1 q1 ->
       interp_state_template st2 q2 ->
       Reachability.reads_left (a:=a) (st1, st2) =
-      Nat.min (configuration_room_left q1)
-              (configuration_room_left q2).
+      leap_size (P4A.interp a) q1 q2.
   Proof.
-    (* thm statement is now wrong, TODO fix *)
-  Admitted.
+    unfold interp_state_template.
+    unfold Reachability.reads_left.
+    unfold leap_size.
+    unfold configuration_room_left.
+    intuition.
+    rewrite !H2, !H3, !H0, !H4.
+    destruct (conf_state q1), (conf_state q2); auto.
+  Qed.
 
   Lemma wp_pred_pair_safe:
     forall size top phi t1 t2 q1 q2,
@@ -1246,9 +1251,52 @@ Section WPProofs.
     set (qst := {|cs_st1 := st1; cs_st2 := st2|}).
     change phi_st1 with (fst (phi_st1, phi_st2)) in H2.
     change phi_st2 with (snd (phi_st1, phi_st2)) in H2.
-    eapply wp_template_complete in H2; eauto.
     destruct (Reachability.reachable_pair_step' (st1, st2)) eqn:?.
-    eapply reaches_exists in Heqp.
+    assert (follow_in_reaches:
+              forall prev s1 s2 p1 p2 prev1 prev2,
+               interp_state_template prev1 p1 ->
+               interp_state_template prev2 p2 ->
+               interp_state_template s1 (follow p1 bs) ->
+               interp_state_template s2 (follow p2 bs) ->
+               In (length bs, prev) (reaches (a:=a) (s1, s2) (prev1, prev2))).
+    { admit. }
+    assert (In (st1, st2) r).
+    { admit. }
+    assert (In (length bs, (st1, st2)) (reaches (a:=a) (phi_st1, phi_st2) (st1, st2))).
+    {
+      eapply follow_in_reaches with (p1 := q1) (p2 := q2);
+        try solve [cbv; tauto
+                  |unfold interp_conf_state in H2;
+                   subst q1' q2';
+                   simpl in H2;
+                   tauto].
+    }
+    assert (forall r,
+               In r (map (interp_conf_rel a) (wp_pred_pair phi (length bs, (st1, st2)))) ->
+               r q1 q2).
+    {
+      pose proof (Relations.interp_rels_in _ _ _ _ _ H0).
+      intros.
+      rewrite in_map_iff in H7.
+      destruct H7 as [cr [? ?]].
+      eapply H6.
+      subst r0.
+      rewrite in_map_iff.
+      eexists; intuition.
+      apply in_flat_map.
+      subst phi.
+      eexists; intuition.
+      apply in_flat_map.
+      exists (st1, st2).
+      intuition eauto.
+    }
+    assert (Hpairq: interp_crel a top (wp_pred_pair phi (length bs, (st1, st2))) q1 q2)
+      by admit.
+    eapply (wp_pred_pair_safe (length bs) top phi st1 st2 q1 q2) in Hpairq; eauto.
+    unfold interp_conf_rel in Hpairq.
+    subst phi q1' q2'.
+    eapply Hpairq.
+    eauto.
   Admitted.
 
   (* prove this later *)
