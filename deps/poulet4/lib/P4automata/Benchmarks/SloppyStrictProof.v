@@ -81,13 +81,63 @@ Lemma prebisim_sloppystrict:
                    (mk_init' 200 Sloppy.ParseEthernet Strict.ParseEthernet)
                    q1 q2.
 Proof.
-  idtac "running sloppystrict bisimulation".
+  idtac "running sloppystrict bisimulation (language equivalence)".
 
   intros.
   set (rel0 := (mk_init' 200 Sloppy.ParseEthernet Strict.ParseEthernet)).
   vm_compute in rel0.
   subst rel0.
 
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "close phase" close_bisim top'.
+Time Admitted.
+
+Lemma prebisim_sloppystrict_stores:
+  forall q1 q2,
+    interp_conf_rel' {| cr_st := {|
+                        cs_st1 := {|
+                          st_state := inl (inl (Sloppy.ParseEthernet));
+                          st_buf_len := 0;
+                        |};
+                        cs_st2 := {|
+                          st_state := inl (inr (Strict.ParseEthernet));
+                          st_buf_len := 0;
+                        |};
+                      |};
+                      cr_ctx := BCEmp;
+                      cr_rel := btrue;
+                   |} q1 q2 ->
+  pre_bisimulation A
+                   (wp r_states)
+                   top
+                   []
+                   (* Invariant: if both automata accept, then
+                      (1) they have the same data in their ethernet headers, and
+                      (2) if the left automaton found an IPv4 (resp. IPv6)
+                          ethertype, then they agree on the contents of the
+                          IPv4 (resp. IPv6) header. *)
+                   [BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢
+                       (BRAnd (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrEthernet))))
+                                    (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))))
+                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))) 111 96)
+                                            (BELit _ _ [true; false; false; false;
+                                                        false; true; true; false;
+                                                        false; false; false; false;
+                                                        false; false; false; false]))
+                                      (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrIPv4))))
+                                            (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrIPv4))))))
+                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))) 111 96)
+                                            (BELit _ _ [true; false; false; false;
+                                                        false; true; true; false;
+                                                        true; true; false; true;
+                                                        true; true; false; true]))
+                                      (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrIPv6))))
+                                            (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrIPv6))))))
+                        btrue)))]
+                   q1 q2.
+Proof.
+  idtac "running sloppystrict bisimulation (store relation)".
+  intros.
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim top'.
 Time Admitted.
