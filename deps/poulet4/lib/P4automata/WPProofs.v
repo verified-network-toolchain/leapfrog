@@ -419,7 +419,6 @@ Section WPProofs.
                         (update_conf_store (a:=P4A.interp a)
                                            (P4A.assign _ hdr (P4A.VBits size w) q.(conf_store))
                                            q).(conf_store)
-
         ~=
         interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
                         valu
@@ -498,54 +497,29 @@ Section WPProofs.
       + now apply IHphi2.
   Qed.
 
-  (*
-  Lemma brand_interp:
-    forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
-      interp_store_rel (a:=a) (brand r1 r2) valu q1 q2 <->
-      interp_store_rel (a:=a) (BRAnd r1 r2) valu q1 q2.
-  Proof.
-    intros.
-    destruct r1, r2; simpl; auto.
-  Qed.
-
-  Lemma bror_interp:
-    forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
-      interp_store_rel (a:=a) (bror r1 r2) valu q1 q2 <->
-      interp_store_rel (a:=a) (BROr r1 r2) valu q1 q2.
-  Proof.
-    intros.
-    destruct r1, r2; simpl; tauto.
-  Qed.
-
-  Lemma brimpl_interp:
-    forall ctx (r1 r2: store_rel _ ctx) valu q1 q2,
-      interp_store_rel (a:=a) (brimpl r1 r2) valu q1 q2 <->
-      interp_store_rel (a:=a) (BRImpl r1 r2) valu q1 q2.
-  Proof.
-    intros.
-    destruct r1, r2; simpl; tauto.
-  Qed.
-
   Lemma sr_subst_hdr_left:
     forall c (valu: bval c) size (hdr: H size) exp phi c1 s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
       conf_state c1 = s1 ->
       conf_store c1 = st1 ->
       conf_buf c1 = buf1 ->
-      Ntuple.t2l w = interp_bit_expr exp valu c1 c2 ->
+      w ~= interp_bit_expr exp valu buf1 c2.(conf_buf) st1 c2.(conf_store) ->
       interp_store_rel
         (a:=a)
         (WP.sr_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
         valu
-        c1
-        c2 <->
+        buf1
+        c2.(conf_buf)
+        st1
+        c2.(conf_store)
+      <->
       interp_store_rel
         (a:=a)
         phi
         valu
-        (update_conf_store (a:=P4A.interp a)
-                           (P4A.assign _ hdr (P4A.VBits size w) st1)
-                           c1)
-        c2.
+        buf1
+        c2.(conf_buf)
+        (P4A.assign _ hdr (P4A.VBits size w) st1)
+        c2.(conf_store).
   Proof.
     induction phi;
       simpl in *;
@@ -561,8 +535,9 @@ Section WPProofs.
       try erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *;
       simpl in *;
       try solve [erewrite !be_subst_hdr_left in *; eauto|intuition].
-  Qed.
+  Admitted.
 
+  (*
   Lemma sr_subst_hdr_right:
     forall c (valu: bval c) size (hdr: H size) exp phi c1 c2 s2 st2 buf2 (w: Ntuple.n_tuple bool size),
       conf_state c2 = s2 ->
@@ -599,7 +574,9 @@ Section WPProofs.
       simpl in *;
       try solve [erewrite !be_subst_hdr_right in *; eauto|intuition].
   Qed.
+*)
 
+  (*
   Lemma wp_op'_size:
     forall (c: bctx) si size (o: P4A.op H size) n phi m phi',
       WP.wp_op' (c:=c) si o (size + n, phi) = (m, phi') ->
@@ -1474,22 +1451,6 @@ Section WPProofs.
       interp_crel a top (wp (a := a) r phi) q1 q2.
   Proof.
   Admitted.
-
-  (*
-  Lemma syn_pre_1bit_concrete_implies_sem_pre:
-  forall R S q1 q2,
-    SynPreSynWP.ctopbdd _ _ _ a top R ->
-    SynPreSynWP.ctopbdd _ _ _ a top S ->
-    SynPreSynWP.pre_bisimulation a (WP.wp (H:=H)) top R S q1 q2 ->
-    SemPre.pre_bisimulation (P4A.interp a)
-                            top
-                            (map interp_conf_rel R)
-                            (map interp_conf_rel S)
-                            q1 q2.
-  Proof.
-    eauto using wp_concrete_safe, wp_concrete_bdd, SynPreSynWP.syn_pre_implies_sem_pre.
-  Qed.
-*)
 
 End WPProofs.
 
