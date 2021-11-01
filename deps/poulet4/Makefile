@@ -31,7 +31,7 @@ min-imports:
 
 benchmarks-small: smallfilter selfcmp
 
-benchmarks-medium: babyip mplsvectorized ipfilter ethernet
+benchmarks-medium: babyip mplsvectorized ipfilter ethernet sloppystrict
 
 benchmarks-all: benchmarks-small benchmarks-medium negative
 
@@ -49,6 +49,9 @@ mplsvectorized: build
 
 ethernet: build
 	xargs coqc lib/P4automata/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
+
+sloppystrict: build
+	xargs coqc lib/P4automata/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
 
 negative: build
 	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
