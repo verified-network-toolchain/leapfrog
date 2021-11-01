@@ -57,7 +57,7 @@ Fixpoint nat2t (n: nat) (v: nat) : n_tuple bool n :=
   match n as n' return n_tuple bool n' with
   | 0 => tt
   | S n =>
-    (nat2t n (Nat.div2 v), Nat.eqb (Nat.modulo v 2) 0)
+    (nat2t n (Nat.div2 v), Nat.eqb (Nat.modulo v 2) 1)
   end.
 
 Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
