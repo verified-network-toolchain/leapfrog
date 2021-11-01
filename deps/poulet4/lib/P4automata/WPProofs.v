@@ -1158,6 +1158,15 @@ Section WPProofs.
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
   Proof.
+    intros.
+    unfold wp_lpred in *.
+    destruct prev as [prev_state prev_buf_len].
+    destruct cur as [cur_state cur_buf_len].
+    destruct k.
+    - destruct st_state.
+      + admit.
+      + admit.
+    - 
   Admitted.
 
   Lemma weaken_expr_size:

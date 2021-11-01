@@ -153,7 +153,7 @@ Section WP.
 
   Definition wp_lpred {c: bctx}
              (si: side)
-             (b: bit_expr H c)
+             (b: bvar c)
              (prev cur: state_template a)
              (k: lkind)
              (phi: store_rel H c)
@@ -172,7 +172,7 @@ Section WP.
         sr_subst phi (BELit _ _ []) (BEBuf _ _ si)
       end
     end in
-    sr_subst phi' (beconcat (BEBuf _ _ si) b) (BEBuf _ _ si).
+    sr_subst phi' (beconcat (BEBuf _ _ si) (BEVar _ b)) (BEBuf _ _ si).
 
   Definition wp_pred_pair
              (phi: conf_rel a)
@@ -184,7 +184,7 @@ Section WP.
     let cur_r := phi.(cr_st).(cs_st2) in
     let leap_l := leap_kind prev_l cur_l in
     let leap_r := leap_kind prev_r cur_r in
-    let b := (BEVar H (BVarTop phi.(cr_ctx) size)) in
+    let b := BVarTop phi.(cr_ctx) size in
     let phi_rel := weaken_store_rel size phi_rel in
     {| cr_st := {| cs_st1 := prev_l;
                    cs_st2 := prev_r |};
