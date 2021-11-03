@@ -36,6 +36,12 @@ Section WPProofs.
     | Right => snd x
     end.
 
+  Definition pick_dep {A B} (s: side) (x: A * B) : pick s (A, B) :=
+    match s as s return pick s (A, B) with
+    | Left => fst x
+    | Right => snd x
+    end.
+
   Lemma skipn_skipn:
     forall A (x: list A) n m,
       skipn n (skipn m x) = skipn (n + m) x.
@@ -800,14 +806,19 @@ Section WPProofs.
   Qed.
 
   Lemma be_subst_buf:
-    forall c phi exp si c1 c2 valu w1 w2,
+    forall si c phi exp c1 c2 valu b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
         pick si (interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w1,
                  interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w2) ->
-        interp_bit_expr (a:=a) phi valu
-                        (pick si (w1, c1.(conf_buf)))
-                        (pick si (c2.(conf_buf), w2))
-                        (conf_store c1)
-                        (conf_store c2)
+        pick_dep si (interp_bit_expr (a:=a) phi valu
+                                     w1
+                                     c2.(conf_buf)
+                                          (conf_store c1)
+                                          (conf_store c2),
+                     interp_bit_expr (a:=a) phi valu
+                                     c1.(conf_buf)
+                                          w2
+                                          (conf_store c1)
+                                          (conf_store c2))
         ~= 
         interp_bit_expr (WP.be_subst phi exp (BEBuf H c si))
                       valu
@@ -816,23 +827,29 @@ Section WPProofs.
                       (conf_store c1)
                       (conf_store c2).
   Proof.
+    intros si.
     induction phi; simpl in *; intros.
-    - reflexivity.
+    - destruct si; reflexivity.
     - destruct si, a0; simpl in *;
         autorewrite with interp_bit_expr; auto.
-    - reflexivity.
-    - reflexivity.
+    - destruct si; reflexivity.
+    - destruct si; reflexivity.
     - rewrite beslice_interp.
-      autorewrite with interp_bit_expr in *.
-      apply slice_proper.
-      eauto.
+      destruct si;
+        simpl in *;
+        autorewrite with interp_bit_expr in *;
+        apply slice_proper;
+        eauto.
     - rewrite beconcat_interp.
-      autorewrite with interp_bit_expr in *.
-      apply concat_proper; eauto.
+      destruct si;
+        simpl in *;
+        autorewrite with interp_bit_expr in *;
+        apply concat_proper;
+        eauto.
   Qed.
 
   Lemma sr_subst_buf:
-    forall c si exp valu phi c1 c2 w1 w2,
+    forall c si exp valu phi c1 c2 b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
       pick si (interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w1,
                interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w2) ->
       interp_store_rel
@@ -844,60 +861,69 @@ Section WPProofs.
         c1.(conf_store)
         c2.(conf_store)
       <->
-      interp_store_rel
-        (a:=a)
-        phi
-        valu
-        (pick si (w1, c1.(conf_buf)))
-        (pick si (c2.(conf_buf), w2))
-        c1.(conf_store)
-        c2.(conf_store).
+      pick si (interp_store_rel
+                 (a:=a)
+                 phi
+                 valu
+                 w1
+                 c2.(conf_buf)
+                 c1.(conf_store)
+                 c2.(conf_store),
+               interp_store_rel
+                 (a:=a)
+                 phi
+                 valu
+                 c1.(conf_buf)
+                 w2
+                 c1.(conf_store)
+                 c2.(conf_store)).
   Proof.
     induction phi; simpl in *; intros;
       rewrite <- ?brand_corr, <- ?bror_corr, <- ?brimpl_corr;
       autorewrite with interp_store_rel.
-    - tauto.
-    - tauto.
-    - assert (He1: interp_bit_expr (be_subst e1 exp (BEBuf H c si)) valu (conf_buf c1) (conf_buf c2) (conf_store c1) (conf_store c2)
-                              ~= 
-                              interp_bit_expr e1 valu (pick si (w1, conf_buf c1)) (pick si (conf_buf c2, w2)) (conf_store c1) (conf_store c2))
-        by (symmetry; apply be_subst_buf; eauto).
-      assert (He2: interp_bit_expr (be_subst e2 exp (BEBuf H c si)) valu (conf_buf c1) (conf_buf c2) (conf_store c1) (conf_store c2)
-                              ~= 
-                              interp_bit_expr e2 valu (pick si (w1, conf_buf c1)) (pick si (conf_buf c2, w2)) (conf_store c1) (conf_store c2))
-        by (symmetry; apply be_subst_buf; eauto).
-      assert (Hsize1: (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEBuf H c si)))
-                = 
-                (be_size (conf_buf_len c1) (conf_buf_len c2) e1))
-        by (eapply n_tuple_inj; now inversion He1).
-      assert (Hsize2: (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEBuf H c si)))
-                = 
-                (be_size (conf_buf_len c1) (conf_buf_len c2) e2))
-        by (eapply n_tuple_inj; now inversion He2).
+    - destruct si; tauto.
+    - destruct si; tauto.
+    - pose proof (He1 := be_subst_buf si c e1 exp c1 c2 valu _ _ w1 w2 ltac:(eauto)).
+      pose proof (He2 := be_subst_buf si c e2 exp c1 c2 valu _ _ w1 w2 ltac:(eauto)).
+      assert (Hsize1: pick si
+                   (n_tuple bool (be_size b1 (conf_buf_len c2) e1),
+                    n_tuple bool (be_size (conf_buf_len c1) b2 e1)) =
+              n_tuple bool
+                      (be_size (conf_buf_len c1) (conf_buf_len c2)
+                               (be_subst e1 exp (BEBuf H c si))))
+        by (inversion He1; auto).
+      assert (Hsize2: pick si
+                   (n_tuple bool (be_size b1 (conf_buf_len c2) e2),
+                    n_tuple bool (be_size (conf_buf_len c1) b2 e2)) =
+              n_tuple bool
+                      (be_size (conf_buf_len c1) (conf_buf_len c2)
+                               (be_subst e2 exp (BEBuf H c si))))
+        by (inversion He2; auto).
       revert He1 He2 Hsize1 Hsize2.
-      generalize (interp_bit_expr e1 valu (pick si (w1, conf_buf c1)) (pick si (conf_buf c2, w2)) (conf_store c1) (conf_store c2)).
-      generalize (interp_bit_expr (be_subst e1 exp (BEBuf H c si)) valu (conf_buf c1) (conf_buf c2) (conf_store c1) (conf_store c2)).
-      generalize (interp_bit_expr e2 valu (pick si (w1, conf_buf c1)) (pick si (conf_buf c2, w2)) (conf_store c1) (conf_store c2)).
-      generalize (interp_bit_expr (be_subst e2 exp (BEBuf H c si)) valu (conf_buf c1) (conf_buf c2) (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e1).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e2).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEBuf H c si))).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEBuf H c si))).
+      repeat match goal with
+             | |- context[interp_bit_expr ?e ?v ?b1 ?b2 ?st1 ?st2] => generalize (interp_bit_expr e v b1 b2 st1 st2)
+             | |- context[be_size ?b1 ?b2 ?e] => generalize (be_size b1 b2 e)
+             end.
       intros.
-      subst.
-      destruct (Classes.eq_dec _ _).
-      + destruct e; simpl.
-        intuition; now subst.
-      + tauto.
+      destruct si; simpl in *;
+        apply n_tuple_inj in Hsize1;
+        apply n_tuple_inj in Hsize2;
+        subst.
+      + destruct (Classes.eq_dec n1 n4); subst; simpl.
+        * intuition.
+        * tauto.
+      + destruct (Classes.eq_dec n1 n4); subst; simpl.
+        * intuition.
+        * tauto.
     - rewrite IHphi1 by eauto.
       rewrite IHphi2 by eauto.
-      reflexivity.
+      destruct si; reflexivity.
     - rewrite IHphi1 by eauto.
       rewrite IHphi2 by eauto.
-      reflexivity.
+      destruct si; reflexivity.
     - rewrite IHphi1 by eauto.
       rewrite IHphi2 by eauto.
-      reflexivity.
+      destruct si; reflexivity.
   Qed.
 
   (*
@@ -1347,18 +1373,15 @@ Section WPProofs.
     unfold wp_lpred.
     intros.
     destruct si.
-    - rewrite sr_subst_buf in H0; simpl in *.
-      admit.
-      remember (interp_bit_expr (BEConcat (BEBuf H c Left) b) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2)) as w.
-      assert (interp_bit_expr (BEConcat (BEBuf H c Left) b) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ~= w).
+    - remember (interp_bit_expr (BEConcat (BEBuf H c Left) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2)) as w.
+      assert (interp_bit_expr (BEConcat (BEBuf H c Left) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ~= w).
       {
         rewrite Heqw.
         reflexivity.
       }
       clear Heqw.
-      (* sr_subst_buf lemma looks like it's wrong / constraints exp
-         too much?  substitution should be allowed to change the size
-         of the buffer. *)
+      rewrite sr_subst_buf in H0 by eapply H3.
+      simpl in *.
       admit.
     - admit.
   Admitted.
