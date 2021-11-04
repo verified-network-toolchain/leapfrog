@@ -1231,11 +1231,19 @@ Section WPProofs.
     destruct (conf_state q1), (conf_state q2); auto.
   Qed.
 
+  Ltac set_jmeq var exp :=
+    let Heq := fresh "Heq" in
+    let Hjmeq := fresh "Hjmeq" in
+    remember exp as var eqn:Heq;
+    assert (Hjmeq: var ~= exp)
+        by (rewrite Heq; reflexivity);
+    clear Heq.
+
   Lemma wp_lpred_pair_read_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur Read phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
-        length bs = check_bvar b ->
+        bs = t2l (interp_bvar valu b) ->
         pick si (conf_buf_len q1, conf_buf_len q2)
         + length bs 
         < P4A.P4A.size' _ (pick si (conf_state q1, conf_state q2)) ->
@@ -1255,16 +1263,88 @@ Section WPProofs.
       clear Heqw.
       rewrite sr_subst_buf in H0 by eauto.
       simpl in *.
-      subst.
+      subst q2' q1'.
       autorewrite with interp_store_rel interp_bit_expr in *.
       set (q1' := follow q1 bs).
-      assert (conf_state q1' = conf_state q1) by eauto using conf_state_follow_fill.
-      assert (conf_store q1' = conf_store q1) by eauto using conf_store_follow_fill.
-      destruct q1'.
-      admit.
-    - admit.
-  Admitted.
-
+      assert (Hs: conf_state q1' = conf_state q1) by eauto using conf_state_follow_fill.
+      assert (Hst: conf_store q1' = conf_store q1) by eauto using conf_store_follow_fill.
+      assert (Hlen: conf_buf_len q1' = (conf_buf_len q1) + (length bs)) by eauto using conf_buf_len_follow_fill.
+      assert (conf_buf q1' ~= n_tuple_concat (conf_buf q1) (l2t bs)) by eauto using conf_buf_follow_fill.
+      assert (Hbuf1: conf_buf q1' ~= n_tuple_concat (conf_buf q1) (interp_bvar valu b)).
+      {
+        subst bs.
+        rewrite H3.
+        apply concat_proper; auto.
+        apply l2t_t2l.
+      }
+      assert (Hbuf2: conf_buf q1' ~= w).
+      {
+        eapply JMeq_trans; eauto.
+      }
+      rewrite Hst.
+      subst bs.
+      rewrite t2l_len in Hlen.
+      revert Hbuf2.
+      revert H0.
+      generalize (conf_buf q1').
+      generalize (conf_buf_len q1').
+      generalize w.
+      generalize (conf_buf_len q1 + check_bvar b).
+      intros.
+      inversion Hbuf2.
+      apply n_tuple_inj in H4.
+      subst n0.
+      subst n1.
+      auto.
+    - remember (interp_bit_expr (BEConcat (BEBuf H c Right) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2)) as w.
+      assert (interp_bit_expr (BEConcat (BEBuf H c Right) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ~= w).
+      {
+        rewrite Heqw.
+        reflexivity.
+      }
+      clear Heqw.
+      rewrite sr_subst_buf in H0; simpl; eauto.
+      simpl in *.
+      subst q2' q1'.
+      autorewrite with interp_store_rel interp_bit_expr in *.
+      set (q2' := follow q2 bs).
+      assert (Hs: conf_state q2' = conf_state q2) by eauto using conf_state_follow_fill.
+      assert (Hst: conf_store q2' = conf_store q2) by eauto using conf_store_follow_fill.
+      assert (Hlen: conf_buf_len q2' = (conf_buf_len q2) + (length bs)) by eauto using conf_buf_len_follow_fill.
+      assert (conf_buf q2' ~= n_tuple_concat (conf_buf q2) (l2t bs)) by eauto using conf_buf_follow_fill.
+      assert (Hbuf1: conf_buf q2' ~= n_tuple_concat (conf_buf q2) (interp_bvar valu b)).
+      {
+        subst bs.
+        rewrite H3.
+        apply concat_proper; auto.
+        apply l2t_t2l.
+      }
+      assert (Hbuf2: conf_buf q2' ~= w).
+      {
+        eapply JMeq_trans; eauto.
+      }
+      rewrite Hst.
+      subst bs.
+      rewrite t2l_len in Hlen.
+      revert Hbuf2.
+      revert H0.
+      generalize (conf_buf q2').
+      generalize (conf_buf_len q2').
+      generalize w.
+      generalize (conf_buf_len q2 + check_bvar b).
+      intros.
+      inversion Hbuf2.
+      apply n_tuple_inj in H4.
+      subst n0.
+      subst n1.
+      auto.
+    Unshelve.
+    exact 0.
+    exact tt.
+    exact 0.
+    exact tt.
+  Qed.
+  
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur Jump phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
@@ -1295,12 +1375,14 @@ Section WPProofs.
     forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
+        bs = t2l (interp_bvar valu b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
   Proof.
-    destruct k;
-      eauto using wp_lpred_pair_read_safe, wp_lpred_pair_jump_safe.
+    destruct k; intros; simpl in *.
+    - eapply wp_lpred_pair_jump_safe; eauto.
+    - eapply wp_lpred_pair_read_safe; eauto.
   Admitted.
   
   Lemma weaken_expr_size:
