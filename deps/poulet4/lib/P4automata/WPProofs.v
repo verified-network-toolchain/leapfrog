@@ -1261,7 +1261,6 @@ Section WPProofs.
       assert (conf_state q1' = conf_state q1) by eauto using conf_state_follow_fill.
       assert (conf_store q1' = conf_store q1) by eauto using conf_store_follow_fill.
       destruct q1'.
-      unfold follow.
       admit.
     - admit.
   Admitted.
@@ -1302,7 +1301,7 @@ Section WPProofs.
   Proof.
     destruct k;
       eauto using wp_lpred_pair_read_safe, wp_lpred_pair_jump_safe.
-  Qed.
+  Admitted.
   
   Lemma weaken_expr_size:
     forall c n (e: bit_expr H c) l1 l2,
