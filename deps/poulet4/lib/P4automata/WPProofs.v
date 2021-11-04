@@ -202,137 +202,6 @@ Section WPProofs.
             |erewrite <- IHphi1, IHphi2 in *; auto; congruence].
   Qed.
 
-  Lemma inv_jmeq_size:
-    forall n (xs: n_tuple bool n) m (ys: n_tuple bool m),
-      xs ~= ys ->
-      n = m.
-  Proof.
-    intros.
-    eapply n_tuple_inj.
-    now inversion H0.
-  Qed.
-
-  Lemma t2l_n_eq:
-  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
-    t2l xs = t2l ys ->
-    n = m.
-  Proof.
-    intros.
-    pose proof (t2l_len n xs).
-    pose proof (t2l_len m ys).
-    congruence.
-  Qed.
-
-  Lemma t2l_eq:
-  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
-    t2l xs = t2l ys ->
-    xs ~= ys.
-  Proof.
-    intros.
-    pose proof (t2l_n_eq _ _ _ _ H0).
-    subst m.
-    cut (xs = ys).
-    {
-      intros.
-      subst.
-      reflexivity.
-    }
-    induction n; cbn in *; destruct xs, ys; cbn in *.
-    - reflexivity.
-    - assert (b = b0).
-      {
-        apply f_equal with (f := (fun l => (@last bool) l false)) in H0.
-        erewrite !last_last in H0.
-        congruence.
-      }
-      subst b0.
-      apply app_inv_tail in H0.
-      apply IHn in H0.
-      congruence.
-  Qed.
-
-  Lemma eq_t2l:
-  forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
-    xs ~= ys ->
-    t2l xs = t2l ys.
-  Proof.
-    intros.
-    inversion H0.
-    assert (n = m) by auto using n_tuple_inj.
-    subst m.
-    rewrite H0.
-    reflexivity.
-  Qed.
-
-  Lemma n_tuple_cons_inj_r:
-    forall n m (xs: n_tuple bool n) x (ys: n_tuple bool m) y,
-      n_tuple_cons xs x ~= n_tuple_cons ys y ->
-      xs ~= ys /\ x = y.
-  Proof.
-    induction n; intros.
-    - destruct m.
-      + simpl_JMeq.
-        destruct xs, ys.
-        cbn in *.
-        intuition congruence.
-      + exfalso.
-        apply inv_jmeq_size in H0.
-        Lia.lia.
-    - destruct m, xs; destruct ys.
-      + exfalso.
-        apply inv_jmeq_size in H0.
-        Lia.lia.
-      + pose proof (inv_jmeq_size _ _ _ _ H0).
-        assert (n = m) by Lia.lia.
-        subst m.
-        simpl_JMeq.
-        simpl in *.
-        inversion H0.
-        subst b0.
-        pose proof (IHn _ n0 x n1 y ltac:(rewrite H3; reflexivity)).
-        destruct H2.
-        split; [|auto].
-        rewrite H2.
-        reflexivity.
-  Qed.
-
-  Lemma slice_proper:
-    forall hi lo n m (xs: n_tuple bool n) (ys: n_tuple bool m),
-      xs ~= ys ->
-      n_tuple_slice hi lo xs ~= n_tuple_slice hi lo ys.
-  Proof.
-    intros hi lo n m xs ys Heq.
-    assert (n = m)
-      by (eapply inv_jmeq_size; eauto).
-    revert Heq.
-    revert xs ys.
-    subst m.
-    intros.
-    rewrite Heq.
-    reflexivity.
-  Qed.
-
-  Lemma concat_proper:
-    forall n1 m1 (xs1: n_tuple bool n1) (ys1: n_tuple bool m1)
-      n2 m2 (xs2: n_tuple bool n2) (ys2: n_tuple bool m2),
-      xs1 ~= xs2 ->
-      ys1 ~= ys2 ->
-      n_tuple_concat xs1 ys1 ~= n_tuple_concat xs2 ys2.
-  Proof.
-    intros.
-    assert (n1 = n2) by (eapply inv_jmeq_size; eauto).
-    assert (m1 = m2) by (eapply inv_jmeq_size; eauto).
-    revert H0 H1.
-    revert xs2 ys2.
-    revert xs1 ys1.
-    subst n2.
-    subst m2.
-    intros.
-    rewrite H0.
-    rewrite H1.
-    reflexivity.
-  Qed.
-
   Lemma be_subst_hdr_left:
     forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) c2 (w: Ntuple.n_tuple bool size),
         interp_bit_expr exp valu q.(conf_buf) c2.(conf_buf) q.(conf_store) c2.(conf_store) ~= w ->
@@ -1362,9 +1231,44 @@ Section WPProofs.
     destruct (conf_state q1), (conf_state q2); auto.
   Qed.
 
-  Lemma wp_lpred_pair_safe:
-    forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
-      interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
+  Lemma wp_lpred_pair_read_safe:
+    forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
+      interp_store_rel (wp_lpred (a:=a) si b prev cur Read phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
+      forall bs (q1' q2': conf),
+        length bs = check_bvar b ->
+        pick si (conf_buf_len q1, conf_buf_len q2)
+        + length bs 
+        < P4A.P4A.size' _ (pick si (conf_state q1, conf_state q2)) ->
+        q1' = pick si (follow q1 bs, q1) ->
+        q2' = pick si (q2, follow q2 bs) ->
+        interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
+  Proof.
+    unfold wp_lpred.
+    intros.
+    destruct si.
+    - remember (interp_bit_expr (BEConcat (BEBuf H c Left) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2)) as w.
+      assert (interp_bit_expr (BEConcat (BEBuf H c Left) (BEVar H b)) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ~= w).
+      {
+        rewrite Heqw.
+        reflexivity.
+      }
+      clear Heqw.
+      rewrite sr_subst_buf in H0 by eauto.
+      simpl in *.
+      subst.
+      autorewrite with interp_store_rel interp_bit_expr in *.
+      set (q1' := follow q1 bs).
+      assert (conf_state q1' = conf_state q1) by eauto using conf_state_follow_fill.
+      assert (conf_store q1' = conf_store q1) by eauto using conf_store_follow_fill.
+      destruct q1'.
+      unfold follow.
+      admit.
+    - admit.
+  Admitted.
+
+  Lemma wp_lpred_pair_jump_safe:
+    forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
+      interp_store_rel (wp_lpred (a:=a) si b prev cur Jump phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
@@ -1382,10 +1286,24 @@ Section WPProofs.
       clear Heqw.
       rewrite sr_subst_buf in H0 by eapply H3.
       simpl in *.
+      subst.
+      autorewrite with interp_store_rel interp_bit_expr in *.
       admit.
     - admit.
   Admitted.
 
+  Lemma wp_lpred_pair_safe:
+    forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
+      interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
+      forall bs (q1' q2': conf),
+        q1' = pick si (follow q1 bs, q1) ->
+        q2' = pick si (q2, follow q2 bs) ->
+        interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
+  Proof.
+    destruct k;
+      eauto using wp_lpred_pair_read_safe, wp_lpred_pair_jump_safe.
+  Qed.
+  
   Lemma weaken_expr_size:
     forall c n (e: bit_expr H c) l1 l2,
       be_size l1 l2 (weaken_bit_expr n e) = be_size l1 l2 e.

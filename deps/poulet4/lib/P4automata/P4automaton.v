@@ -6,6 +6,7 @@ Require Import Coq.Arith.Compare_dec.
 
 Require Import Poulet4.Relations.
 Require Import Poulet4.P4automata.Ntuple.
+Require Import Poulet4.P4automata.NtupleProofs.
 
 Record p4automaton := MkP4Automaton {
   store: Type;
@@ -117,7 +118,7 @@ Definition step
   (c: configuration a)
   (b: bool)
   : configuration a :=
-  let buf_padded := n_tuple_cons (conf_buf c) b in
+  let buf_padded : n_tuple bool (1 + conf_buf_len c) := (conf_buf c, b) in
   match le_lt_dec (size' a (conf_state c)) (1 + conf_buf_len c) with
   | left Hle =>
     let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) Hle) in
@@ -175,6 +176,31 @@ Proof.
   destruct (Compare_dec.le_lt_dec _ _); auto; lia.
 Qed.
 
+Lemma conf_store_step_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_buf_len q + 1 < size' a (conf_state q) ->
+  conf_store (step q b) = conf_store q
+.
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); auto; lia.
+Qed.
+
+Lemma conf_buf_step_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  conf_buf_len q + 1 < size' a (conf_state q) ->
+  JMeq (conf_buf (step q b)) ((conf_buf q, b): n_tuple bool (1+conf_buf_len q)).
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); auto; try lia.
+Qed.
+
 Lemma conf_buf_len_step_fill
   {a: p4automaton}
   (q: configuration a)
@@ -207,7 +233,7 @@ Lemma conf_state_step_transition
   (b: bool)
   (Heq: 1 + conf_buf_len q = size' a (conf_state q))
 :
-  let buf' := Ntuple.n_tuple_cons (conf_buf q) b in
+  let buf' := (conf_buf q, b) in
   let store' := update' a
                         (conf_state q)
                         (eq_rect _ _ buf' _ Heq)
@@ -247,6 +273,59 @@ Proof.
     rewrite IHbs.
     + apply conf_state_step_fill; auto; lia.
     + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
+Qed.
+
+Lemma conf_store_follow_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  conf_buf_len q + length bs < size' a (conf_state q) ->
+  conf_store (follow q bs) = conf_store q
+.
+Proof.
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    simpl in H.
+    rewrite IHbs.
+    + apply conf_store_step_fill; auto; lia.
+    + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
+Qed.
+
+Lemma conf_buf_follow_fill
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  conf_buf_len q + length bs < size' a (conf_state q) ->
+  JMeq (conf_buf (follow q bs)) (n_tuple_concat (conf_buf q) (l2t bs))
+.
+Proof.
+  revert q; induction bs; intros.
+  - simpl in H; pose proof (conf_buf_sane q).
+    simpl in *.
+    autorewrite with follow.
+    assert (t2l (conf_buf q) = t2l (n_tuple_concat (conf_buf q) (tt: n_tuple bool 0))).
+    {
+      rewrite t2l_concat.
+      simpl; auto with datatypes.
+    }
+    eauto using t2l_eq.
+  - autorewrite with follow.
+    simpl.
+    specialize (IHbs (step q a0)).
+    simpl in *.
+    rewrite IHbs
+      by (rewrite conf_buf_len_step_fill, conf_state_step_fill; lia).
+    apply t2l_eq.
+    rewrite !t2l_concat, !t2l_cons.
+    replace (t2l (conf_buf (step q a0))) with (t2l (conf_buf q) ++ [a0]).
+    rewrite <- app_assoc.
+    auto.
+    erewrite (t2l_proper _ _ (conf_buf (step q a0)));
+      [|eapply conf_buf_step_fill; lia].
+    auto.
 Qed.
 
 Lemma conf_buf_len_follow_transition
