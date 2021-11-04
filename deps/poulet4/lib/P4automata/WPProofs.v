@@ -1246,7 +1246,7 @@ Section WPProofs.
         bs = t2l (interp_bvar valu b) ->
         pick si (conf_buf_len q1, conf_buf_len q2)
         + length bs 
-        < P4A.P4A.size' _ (pick si (conf_state q1, conf_state q2)) ->
+        < size' _ (pick si (conf_state q1, conf_state q2)) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
@@ -1371,10 +1371,20 @@ Section WPProofs.
     - admit.
   Admitted.
 
+  Print Reachability.reads_left.
+  Definition kind_leap_size (si: side) (k: lkind) (q1 q2: conf) (l: nat) : Prop :=
+    match k with
+    | Read =>
+      l < configuration_room_left (pick si (q1, q2))
+    | Jump =>
+      l = configuration_room_left (pick si (q1, q2))
+    end.
+      
   Lemma wp_lpred_pair_safe:
     forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
+        kind_leap_size si k q1 q2 (check_bvar b) ->
         bs = t2l (interp_bvar valu b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
@@ -1383,8 +1393,12 @@ Section WPProofs.
     destruct k; intros; simpl in *.
     - eapply wp_lpred_pair_jump_safe; eauto.
     - eapply wp_lpred_pair_read_safe; eauto.
-  Admitted.
-  
+      unfold configuration_room_left in *.
+      subst bs.
+      rewrite t2l_len.
+      destruct si; simpl in *; Lia.lia.
+  Qed.
+
   Lemma weaken_expr_size:
     forall c n (e: bit_expr H c) l1 l2,
       be_size l1 l2 (weaken_bit_expr n e) = be_size l1 l2 e.
@@ -1512,6 +1526,7 @@ Section WPProofs.
       interp_conf_rel a (wp_pred_pair (a:=a) phi (size, (t1, t2))) q1 q2 ->
       forall bs,
         length bs = size ->
+        size = leap_size _ q1 q2 ->
         interp_conf_rel a phi (follow q1 bs) (follow q2 bs).
   Proof.
     unfold wp_pred_pair.
@@ -1519,8 +1534,7 @@ Section WPProofs.
     unfold interp_conf_rel, interp_conf_state, interp_state_template in *.
     simpl in *.
     intuition.
-    pose (bits := l2t bs).
-    rewrite H3 in bits.
+    pose (eq_rect (length bs) (fun x => n_tuple bool x) (l2t bs) size H3) as bits.
     cut (interp_store_rel (weaken_store_rel size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
            (conf_buf (follow q2 bs)) (conf_store (follow q1 bs))
            (conf_store (follow q2 bs))).
@@ -1529,9 +1543,42 @@ Section WPProofs.
     }
     destruct phi as [[? ?] ? ?].
     simpl in *.
+    assert (follow q1 bs =
+            follow q1 (t2l (interp_bvar ((valu, bits):bval (BCSnoc _ _)) (BVarTop cr_ctx size)))).
+    {
+      subst bits.
+      subst size.
+      simpl.
+      autorewrite with interp_bvar.
+      rewrite t2l_l2t.
+      reflexivity.
+    }
+    assert (follow q2 bs =
+            follow q2 (t2l (interp_bvar ((valu, bits):bval (BCSnoc _ _)) (BVarTop cr_ctx size)))).
+    {
+      subst bits.
+      subst size.
+      simpl.
+      autorewrite with interp_bvar.
+      rewrite t2l_l2t.
+      reflexivity.
+    }
     eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
     eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
-  Qed.
+    simpl.
+    subst size.
+    rewrite H4.
+    unfold kind_leap_size, leap_kind.
+    simpl.
+    destruct (st_buf_len cs_st1) eqn:?.
+    - admit.
+    - unfold leap_size in *.
+      destruct (conf_state q1) eqn:?; destruct (conf_state q2) eqn:?.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+  Admitted.
 
   Lemma reachable_step_backwards:
     forall st st' bs sts q1 q2,
