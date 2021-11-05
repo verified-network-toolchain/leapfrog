@@ -211,3 +211,7 @@ Definition states (s: state) : P4A.state state header :=
     {| st_op := extract(HdrICMP);
        st_trans := transition accept |}
   end.
+
+  Program Definition aut: Syntax.t state header :=
+    {| t_states := states |}.
+  Solve Obligations with (destruct s; cbv; Lia.lia).
