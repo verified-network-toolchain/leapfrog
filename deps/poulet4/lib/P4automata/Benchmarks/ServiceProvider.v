@@ -8,6 +8,9 @@ Require Import Poulet4.P4automata.Sum.
 Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.P4automata.Notations.
 
+Require Import Poulet4.P4automata.BisimChecker.
+Require Import Coq.Program.Equality.
+
 Open Scope p4a.
 
 Notation eth_size := 112.
@@ -26,15 +29,149 @@ Inductive header: nat -> Type :=
 | HdrIPVer: header 4
 | HdrIPv4: header ipv4_size
 | HdrIPv6: header ipv6_size.
+Derive Signature for header.
+Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | HdrMPLS0 =>
+    match y with
+    | HdrMPLS0 => left eq_refl
+    | HdrMPLS1 => right _
+    | HdrMPLS2 => right _
+    | HdrMPLS3 => right _
+    | HdrMPLS4 => right _
+    | HdrMPLS5 => right _
+    end
+  | HdrMPLS1 =>
+    match y with
+    | HdrMPLS0 => right _
+    | HdrMPLS1 => left eq_refl
+    | HdrMPLS2 => right _
+    | HdrMPLS3 => right _
+    | HdrMPLS4 => right _
+    | HdrMPLS5 => right _
+    end
+  | HdrMPLS2 =>
+    match y with
+    | HdrMPLS0 => right _
+    | HdrMPLS1 => right _
+    | HdrMPLS2 => left eq_refl
+    | HdrMPLS3 => right _
+    | HdrMPLS4 => right _
+    | HdrMPLS5 => right _
+    end
+  | HdrMPLS3 =>
+    match y with
+    | HdrMPLS0 => right _
+    | HdrMPLS1 => right _
+    | HdrMPLS2 => right _
+    | HdrMPLS3 => left eq_refl
+    | HdrMPLS4 => right _
+    | HdrMPLS5 => right _
+    end
+  | HdrMPLS4 =>
+    match y with
+    | HdrMPLS0 => right _
+    | HdrMPLS1 => right _
+    | HdrMPLS2 => right _
+    | HdrMPLS3 => right _
+    | HdrMPLS4 => left eq_refl
+    | HdrMPLS5 => right _
+    end
+  | HdrMPLS5 =>
+    match y with
+    | HdrMPLS0 => right _
+    | HdrMPLS1 => right _
+    | HdrMPLS2 => right _
+    | HdrMPLS3 => right _
+    | HdrMPLS4 => right _
+    | HdrMPLS5 => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition h4_eq_dec (x y: header 4) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | HdrIPVer =>
+    match y with
+    | HdrIPVer => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | HdrEth =>
+    match y with
+    | HdrEth => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition h316_eq_dec (x y: header 316) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | HdrIPv6 =>
+    match y with
+    | HdrIPv6 => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition h156_eq_dec (x y: header 156) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | HdrIPv4 =>
+    match y with
+    | HdrIPv4 => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
+  solve_header_eqdec_ n x y
+    ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h32_eq_dec) ::
+     (existT _ _ h4_eq_dec) ::
+     (existT _ _ h112_eq_dec) ::
+     (existT _ _ h316_eq_dec) ::
+     (existT _ _ h156_eq_dec) ::
+      nil).
+Defined.
 
+Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
 Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
-Proof.
-Admitted.
+  solve_eqdec'.
+Defined.
 Global Instance header_finite: forall n, @Finite (header n) _ _.
-Proof.
-Admitted.
-Global Instance header_finite': @Finite {n & header n} _ header_eqdec'.
-Admitted.
+  intros n; solve_indexed_finiteness n [32; 4 ; 112 ; 316 ; 156 ].
+Qed.
+
+Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+  {| enum := [
+      existT _ _ HdrEth
+    ; existT _ _ HdrMPLS0
+    ; existT _ _ HdrMPLS1
+    ; existT _ _ HdrMPLS2
+    ; existT _ _ HdrMPLS3
+    ; existT _ _ HdrMPLS4
+    ; existT _ _ HdrMPLS5
+    ; existT _ _ HdrIPVer
+    ; existT _ _ HdrIPv4
+    ; existT _ _ HdrIPv6
+    ] |}.
+Next Obligation.
+  solve_header_finite.
+Qed.
+Next Obligation.
+dependent destruction X; subst;
+repeat (
+  match goal with
+  | |- ?L \/ ?R => (now left; trivial) || right
+  end
+).
+Qed.
 
 Inductive state: Type :=
 | ParseEth
