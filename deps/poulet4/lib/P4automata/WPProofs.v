@@ -797,7 +797,6 @@ Section WPProofs.
       destruct si; reflexivity.
   Qed.
 
-  (*
   Lemma wp_op'_size:
     forall (c: bctx) si size (o: P4A.op H size) n phi m phi',
       WP.wp_op' (c:=c) si o (size + n, phi) = (m, phi') ->
@@ -862,10 +861,11 @@ Section WPProofs.
     | P4A.VBits _ vec => vec
     end.
 
+  (*
   Lemma expr_to_bit_expr_sound:
     forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n) (c1 c2: conf),
-      P4A.eval_expr (S1 + S2) H a n (conf_store (match si with Left => c1 | Right => c2 end)) expr =
-      P4A.VBits n (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si _) valu c1 c2).
+      P4A.eval_expr H n (conf_store (match si with Left => c1 | Right => c2 end)) expr ~=
+      P4A.VBits _ (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si _) valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store)).
   Proof.
     assert (Hv: forall v, P4A.VBits match v with P4A.VBits v' => v' end = v).
     {
@@ -880,42 +880,51 @@ Section WPProofs.
       rewrite -> IHexpr in Heqv.
       congruence.
   Qed.
-
-  Lemma n_slice_slice_eq:
-    forall hi lo n (x: Ntuple.n_tuple bool n),
-      Ntuple.t2l (WP.P4A.n_slice _ _ a x hi lo) = P4A.slice (Ntuple.t2l x) hi lo.
-  Proof.
-  Admitted.
+*)
 
   Lemma wp_op'_spec_l:
-    forall c (valu: bval c) o n phi c1 s1 st1 buf1 c2,
+    forall c (valu: bval c) sz (o: P4A.op H sz) n phi c1 s1 st1 (buf1: n_tuple bool (sz + n)) c2,
       P4A.nonempty o ->
       conf_state c1 = s1 ->
       conf_store c1 = st1 ->
-      conf_buf c1 = buf1 ->
+      conf_buf c1 ~= buf1 ->
       interp_store_rel (a:=a)
                        (snd (WP.wp_op' Left o (n + P4A.op_size o, phi)))
                        valu
-                       c1
-                       c2 <->
+                       c1.(conf_buf)
+                       c2.(conf_buf)
+                       st1
+                       c2.(conf_store)
+      <->
       interp_store_rel (a:=a)
                        phi
                        valu
-                       (update_conf_store (fst (P4A.eval_op _ _ a _ _ st1 buf1 o)) c1)
-                       c2.
+                       c1.(conf_buf)
+                       c2.(conf_buf)
+                       (fst (P4A.eval_op _ _ n st1 buf1 o))
+                       c2.(conf_store).
   Proof.
     induction o.
     - intros.
+      autorewrite with eval_op.
       simpl.
+      subst.
       reflexivity.
     - intros.
       destruct H0.
-      simpl (P4A.eval_op _ _ _ _).
-      destruct (P4A.eval_op st1 n buf1 o1) as [st1' n'] eqn:?.
-      destruct (P4A.eval_op st1' n' buf1 o2) as [st2' n''] eqn:?.
-      pose proof (eval_op_size o1 _ _ _ _ _ Heqp).
-      pose proof (eval_op_size o2 _ _ _ _ _ Heqp0).
+      autorewrite with eval_op.
+      destruct (P4A.eval_op _ _ (n + ConfRel.P4A.op_size o2) st1
+                            (rewrite_size
+                               (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 n o1
+                                                                             o2) buf1)
+                            o1) as [st1' n'] eqn:?.
+      destruct (ConfRel.P4A.eval_op H n2 n st1'
+          (rewrite_size
+             (ConfRel.P4A.eval_op_obligations_obligation_2 H n2 n o2) n')
+          o2) as [st2' n''] eqn:?.
       simpl (WP.wp_op' _ _ _).
+      change (P4A.op_size (P4A.OpSeq o1 o2))
+        with (P4A.op_size o1 + P4A.op_size o2).
       destruct (WP.wp_op' Left o2 (n + (P4A.op_size o1 + P4A.op_size o2), phi)) as [wn' phi'] eqn:?.
       assert (wn' = P4A.op_size o1 + n).
       {
@@ -930,39 +939,49 @@ Section WPProofs.
       replace (P4A.op_size o1 + n)
         with (n + P4A.op_size o1)
         by Lia.lia.
-      erewrite IHo1 by eauto.
-      rewrite Heqp; simpl.
-      replace st2' with (fst (P4A.eval_op st1' n' buf1 o2))
-        by (rewrite Heqp0; reflexivity).
-      replace phi' with (snd (WP.wp_op' Left o2 (n + (P4A.op_size o1 + P4A.op_size o2), phi)))
-        by (rewrite Heqp1; reflexivity).
-      rewrite Plus.plus_assoc.
-      erewrite IHo2 by eauto.
-      subst n'.
-      rewrite Heqp0.
-      reflexivity.
+      simpl.
+      pose (buf1' := rewrite_size
+                       (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 n o1 o2)
+                       buf1).
+      assert (conf_buf c1 ~= buf1').
+      {
+        eapply JMeq_trans; eauto using rewrite_size_jmeq.
+      }
+      pose proof (IHo1 (n + n2) phi c1 s1 st1 buf1' c2) as IHo1'.
+      repeat specialize (IHo1' ltac:(eauto)).
+      (*rewrite IHo1'.*)
+
+      admit.
     - simpl.
       intros.
-      rewrite sr_subst_hdr_left.
-      simpl.
-      replace (n + width - width) with n by Lia.lia.
-      simpl.
-      unfold P4A.slice.
-      replace (1 + (n + width - 1)) with (n + width)
-        by Lia.lia.
-      erewrite <- firstn_skipn_comm.
+      simpl in *.
+      replace (n + P4A.op_size (P4A.OpExtract hdr) - projT1 hdr)
+        with n in *
+        by (destruct hdr; unfold P4A.op_size; simpl in *; Lia.lia).
+      autorewrite with eval_op.
+      destruct hdr as [l hdr].
+      simpl in *.
+      destruct (ConfRel.P4A.extract l n buf1) as [h buf] eqn:?.
+      simpl in *.
+      rewrite sr_subst_hdr_left; eauto.
       reflexivity.
+      autorewrite with interp_bit_expr.
+      unfold P4A.op_size.
+      simpl (P4A.op_size _).
+      admit. (* need lemma relating Syntax.extract to n_tuple_slice *)
     - simpl.
       unfold WP.wp_op, WP.wp_op'.
       simpl.
       intros.
-      destruct lhs.
-      rewrite sr_subst_hdr_left.
+      rewrite sr_subst_hdr_left; eauto.
       simpl.
+      (*
       rewrite <- expr_to_bit_expr_sound.
       reflexivity.
-  Qed.
+       *)
+  Admitted.
 
+  (*
   (* This is basically a copy-pasted version of wp_op'_spec_l with
       some things flipped around. *)
   Lemma wp_op'_spec_r:
@@ -1399,6 +1418,27 @@ Section WPProofs.
     - erewrite IHbs by eauto using conf_state_step_done.
       eapply step_done_store; eauto.
   Qed.
+
+  Lemma conf_room_nonzero:
+    forall q: conf,
+      configuration_room_left q > 0.
+  Proof.
+    destruct q.
+    unfold configuration_room_left.
+    simpl.
+    Lia.lia.
+  Qed.
+  
+  Lemma leap_size_nonzero:
+    forall q1 q2: conf,
+      leap_size _ q1 q2 > 0.
+  Proof.
+    unfold leap_size.
+    intros.
+    pose proof (conf_room_nonzero q1).
+    pose proof (conf_room_nonzero q2).
+    destruct (conf_state q1), (conf_state q2); Lia.lia.
+  Qed.
                                                             
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
@@ -1427,18 +1467,22 @@ Section WPProofs.
       subst w.
       autorewrite with interp_store_rel interp_bit_expr in *.
       subst q2'.
-      destruct H3 as [Hlen | [b' [Hst Hlen]]].
-      + admit.
+      destruct H0 as [Hprevst Hprevlen].
+      rewrite Hprevst in *.
+      destruct (conf_state q1) eqn:Hst.
+      + destruct H3 as [Hlen | [b' [Hst' Hlen]]];
+          [|congruence].
+        (* need lemmas about wp_op and jump_cond *)
+        admit.
       + assert (Hbs: length bs > 0).
         {
+          pose proof (conf_room_nonzero q1).
           subst bs.
           rewrite t2l_len.
-          Lia.lia.
+          destruct H3 as [Hlen | [b' [Hst' Hlen]]];
+            Lia.lia.
         }
         unfold kind_leap_size in *.
-        unfold interp_state_template in H0; intuition.
-        rewrite H3 in *.
-        rewrite Hst in *.
         rewrite sr_subst_buf in H1 by (simpl; eauto).
         simpl in *.
         autorewrite with interp_bit_expr in *.
@@ -1595,27 +1639,6 @@ Section WPProofs.
       intuition eauto.
     - rewrite IHrel1, IHrel2 by eauto.
       intuition eauto.
-  Qed.
-
-  Lemma conf_room_nonzero:
-    forall q: conf,
-      configuration_room_left q > 0.
-  Proof.
-    destruct q.
-    unfold configuration_room_left.
-    simpl.
-    Lia.lia.
-  Qed.
-  
-  Lemma leap_size_nonzero:
-    forall q1 q2: conf,
-      leap_size _ q1 q2 > 0.
-  Proof.
-    unfold leap_size.
-    intros.
-    pose proof (conf_room_nonzero q1).
-    pose proof (conf_room_nonzero q2).
-    destruct (conf_state q1), (conf_state q2); Lia.lia.
   Qed.
 
   Lemma leap_size_read_bound1:

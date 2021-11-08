@@ -263,31 +263,12 @@ Section Interp.
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
 
-  Lemma slice_len:
-    forall A hi lo (l: list A),
-      length (slice l hi lo) = Nat.min (1 + hi) (length l) - lo.
-  Proof.
-    unfold slice.
-    intros.
-    rewrite List.skipn_length.
-    rewrite List.firstn_length.
-    reflexivity.
-  Qed.
-
-  Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
-  Proof.
-    pose proof (l2t (slice (t2l l) hi lo)).
-    rewrite slice_len in X.
-    rewrite t2l_len in X.
-    exact X.
-  Defined.
-
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
         let '(VBits _ bs) := eval_expr _ st e in
-        VBits _ (n_slice bs hi lo);
+        VBits _ (n_tuple_slice hi lo bs);
       eval_expr n st (EConcat l r) :=
         let '(VBits _ bs_l) := eval_expr _ st l in
         let '(VBits _ bs_r) := eval_expr _ st r in
