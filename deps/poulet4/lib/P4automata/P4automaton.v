@@ -377,7 +377,7 @@ Proof.
     now rewrite IHbuf.
 Qed.
 
-Lemma follow_done {a: p4automaton} (q: configuration a) (bs: list bool):
+Lemma follow_step {a: p4automaton} (q: configuration a) (bs: list bool):
   conf_state q = inr false ->
   conf_state (follow q bs) = inr false.
 Proof.
@@ -387,6 +387,48 @@ Proof.
     apply IHbs.
     eapply conf_state_step_done.
     exact H.
+Qed.
+
+Lemma follow_done {a: p4automaton} (q: configuration a) (bs: list bool):
+  conf_state q = inr false ->
+  conf_state (follow q bs) = inr false.
+Proof.
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    assert (Hst: conf_state (step q a0) = inr false)
+      by (eapply conf_state_step_done; eauto).
+    eapply IHbs.
+    eauto.
+Qed.
+
+Lemma follow_finish {a: p4automaton} (q: configuration a) (bs: list bool):
+  forall b,
+    length bs > 0 ->
+    conf_state q = inr b ->
+    conf_state (follow q bs) = inr false.
+Proof.
+  cut (forall b,
+          conf_state q = inr b ->
+          conf_state (follow q bs) =
+          match bs with
+          | [] => inr b
+          | _ => inr false
+          end).
+  {
+    intros.
+    destruct bs; eauto.
+    simpl in *.
+    Lia.lia.
+  }
+  revert q; induction bs; intros.
+  - now autorewrite with follow.
+  - autorewrite with follow.
+    assert (Hst: conf_state (step q a0) = inr false)
+      by (eapply conf_state_step_done; eauto).
+    specialize (IHbs (step q a0) _ Hst).
+    rewrite IHbs.
+    destruct bs; reflexivity.
 Qed.
 
 Definition accepting

@@ -1537,6 +1537,145 @@ Section WPProofs.
   Proof.
   Admitted.
 
+  Lemma conf_room_nonzero:
+    forall q: conf,
+      configuration_room_left q > 0.
+  Proof.
+    destruct q.
+    unfold configuration_room_left.
+    simpl.
+    Lia.lia.
+  Qed.
+  
+  Lemma leap_size_nonzero:
+    forall q1 q2: conf,
+      leap_size _ q1 q2 > 0.
+  Proof.
+    unfold leap_size.
+    intros.
+    pose proof (conf_room_nonzero q1).
+    pose proof (conf_room_nonzero q2).
+    destruct (conf_state q1), (conf_state q2); Lia.lia.
+  Qed.
+
+  Lemma leap_size_read_bound1:
+    forall bs t1 t1' (q1 q2: conf),
+      interp_state_template t1 q1 ->
+      interp_state_template t1' (follow q1 bs) ->
+      length bs = leap_size _ q1 q2 ->
+      leap_kind t1 t1' = Read ->
+      length bs < configuration_room_left q1.
+  Proof.
+    intros.
+    pose proof (leap_size_nonzero q1 q2).
+    unfold leap_size, leap_kind in *.
+    destruct (st_buf_len t1') eqn:?; try congruence.
+    destruct (conf_state q1) eqn:?, (conf_state q2) eqn:?.
+    - assert (Hle: length bs <= configuration_room_left q1).
+      {
+        pose proof (Min.min_spec (configuration_room_left q1)
+                                 (configuration_room_left q2)).
+        intuition Lia.lia.
+      }
+      destruct (Compare_dec.le_lt_eq_dec _ _ Hle);
+        [assumption|].
+      assert (conf_buf_len (follow q1 bs) = 0).
+      {
+        apply Syntax.P4A.conf_buf_len_follow_transition.
+        unfold configuration_room_left in *.
+        pose proof (conf_buf_sane q1).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q1 bs) = 0).
+      {
+        apply Syntax.P4A.conf_buf_len_follow_transition.
+        unfold configuration_room_left in *.
+        pose proof (conf_buf_sane q1).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q1 bs) = 0).
+      {
+        eapply conf_buf_len_done.
+        eapply follow_finish; eauto.
+        pose proof (conf_room_nonzero q2).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q1 bs) = 0).
+      {
+        eapply conf_buf_len_done.
+        eapply follow_finish; eauto.
+        pose proof (conf_room_nonzero q2).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+  Qed.
+
+  Lemma leap_size_read_bound2:
+    forall bs t2 t2' (q1 q2: conf),
+      interp_state_template t2 q2 ->
+      interp_state_template t2' (follow q2 bs) ->
+      length bs = leap_size _ q1 q2 ->
+      leap_kind t2 t2' = Read ->
+      length bs < configuration_room_left q2.
+  Proof.
+    intros.
+    pose proof (leap_size_nonzero q1 q2).
+    unfold leap_size, leap_kind in *.
+    destruct (st_buf_len t2') eqn:?; try congruence.
+    destruct (conf_state q1) eqn:?, (conf_state q2) eqn:?.
+    - assert (Hle: length bs <= configuration_room_left q2).
+      {
+        pose proof (Min.min_spec (configuration_room_left q1)
+                                 (configuration_room_left q2)).
+        intuition Lia.lia.
+      }
+      destruct (Compare_dec.le_lt_eq_dec _ _ Hle);
+        [assumption|].
+      assert (conf_buf_len (follow q2 bs) = 0).
+      {
+        apply Syntax.P4A.conf_buf_len_follow_transition.
+        unfold configuration_room_left in *.
+        pose proof (conf_buf_sane q2).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q2 bs) = 0).
+      {
+        eapply conf_buf_len_done.
+        eapply follow_finish; eauto.
+        pose proof (conf_room_nonzero q1).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q2 bs) = 0).
+      {
+        apply Syntax.P4A.conf_buf_len_follow_transition.
+        unfold configuration_room_left in *.
+        pose proof (conf_buf_sane q1).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+    - assert (conf_buf_len (follow q2 bs) = 0).
+      {
+        eapply conf_buf_len_done.
+        eapply follow_finish; eauto.
+        pose proof (conf_room_nonzero q1).
+        Lia.lia.
+      }
+      unfold interp_state_template in *.
+      Lia.lia.
+  Qed.
+
   Lemma wp_pred_pair_safe:
     forall size phi t1 t2 q1 q2,
       interp_state_template t1 q1 ->
@@ -1582,37 +1721,24 @@ Section WPProofs.
       reflexivity.
     }
     simpl in *.
-    assert (length bs = leap_size _ q1 q2 ->
-            leap_kind t1 cs_st1 = Read ->
-            length bs < configuration_room_left q1).
-    { admit. }
-    assert (length bs = leap_size _ q1 q2 ->
-            leap_kind t2 cs_st2 = Read ->
-            length bs < configuration_room_left q2).
-    { admit. }
     eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
     eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
-    + autorewrite with interp_bvar in *.
-      replace (t2l bits) with bs in *
-        by (subst bits; destruct H3; simpl; rewrite t2l_l2t; reflexivity).
-      simpl in *.
-      clear bits H2 H12.
-      unfold leap_kind.
-      destruct (st_buf_len cs_st1) eqn:?; simpl in *.
-      * unfold configuration_room_left.
-        rewrite H4.
-        destruct (conf_state q1) eqn:?,
-                 (conf_state q2) eqn:?.
-        -- admit.
-        -- admit.
-        -- admit.
-        -- admit.
-      * destruct (conf_state q1) eqn:?; simpl.
-        -- rewrite H4.
-           admit.
-        -- exfalso.
-           admit.
-    + admit.
+    + unfold kind_leap_size.
+      destruct (leap_kind t1 cs_st1) eqn:Hlk.
+      * admit.
+      * simpl.
+        subst size.
+        eapply leap_size_read_bound1;
+          unfold interp_state_template;
+          intuition.
+    + unfold kind_leap_size.
+      destruct (leap_kind t2 cs_st2) eqn:Hlk.
+      * admit.
+      * simpl.
+        subst size.
+        eapply leap_size_read_bound2;
+          unfold interp_state_template;
+          intuition.
     + autorewrite with interp_bvar.
       subst size.
       subst bits.
