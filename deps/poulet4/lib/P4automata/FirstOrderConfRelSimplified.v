@@ -195,19 +195,23 @@ Section AutModel.
     forall ctx (f: fm ctx) valu,
       interp_fm valu f <-> interp_fm (m := fm_model) valu (simplify_eq_zero_fm f).
   Proof.
-  Admitted.
-    (* intros.
-    induction f; autorewrite with simplify_concat_zero_fm;
+    intros.
+    induction f; autorewrite with simplify_eq_zero_fm;
     (try now split; intros; auto);
     autorewrite with interp_fm;
-    repeat erewrite <- simplify_concat_zero_corr;
     (try now split; intros; auto).
+    - unfold simplify_eq_zero_fm_obligations_obligation_1. 
+      destruct s.
+      + destruct n.
+        * repeat erewrite interp_zero_tm; split; intros; autorewrite with interp_fm; autorewrite with interp_fm; auto.
+        * autorewrite with interp_fm; split; intros; auto.
+      + autorewrite with interp_fm; split; intros; auto.
     - split; unfold "~"; intros; apply H0; eapply IHf; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - setoid_rewrite IHf. split; intros; auto.
-  Qed. *)
+  Qed.
 
 
   (* It feels like this should be an instance of map_subst, but I can't get
