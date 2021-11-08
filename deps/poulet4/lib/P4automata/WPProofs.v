@@ -675,26 +675,26 @@ Section WPProofs.
   Qed.
 
   Lemma be_subst_buf:
-    forall si c phi exp c1 c2 valu b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
-        pick si (interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w1,
-                 interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w2) ->
+    forall si c phi exp store1 store2 len1 len2 (buf1: n_tuple bool len1) (buf2: n_tuple bool len2) valu b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
+        pick si (interp_bit_expr exp valu buf1 buf2 store1 store2 ~= w1,
+                 interp_bit_expr exp valu buf1 buf2 store1 store2 ~= w2) ->
         pick_dep si (interp_bit_expr (a:=a) phi valu
                                      w1
-                                     c2.(conf_buf)
-                                          (conf_store c1)
-                                          (conf_store c2),
+                                     buf2
+                                     store1
+                                     store2,
                      interp_bit_expr (a:=a) phi valu
-                                     c1.(conf_buf)
+                                     buf1
                                           w2
-                                          (conf_store c1)
-                                          (conf_store c2))
+                                          store1
+                                          store2)
         ~= 
         interp_bit_expr (WP.be_subst phi exp (BEBuf H c si))
                       valu
-                      (conf_buf c1)
-                      (conf_buf c2)
-                      (conf_store c1)
-                      (conf_store c2).
+                      buf1
+                      buf2
+                      store1
+                      store2.
   Proof.
     intros si.
     induction phi; simpl in *; intros.
@@ -718,67 +718,69 @@ Section WPProofs.
   Qed.
 
   Lemma sr_subst_buf:
-    forall c si exp valu phi c1 c2 b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
-      pick si (interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w1,
-               interp_bit_expr exp valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store) ~= w2) ->
+    forall c si exp valu phi store1 store2 len1 len2 (buf1: n_tuple bool len1) (buf2: n_tuple bool len2) b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
+      pick si (interp_bit_expr exp valu buf1 buf2 store1 store2 ~= w1,
+               interp_bit_expr exp valu buf1 buf2 store1 store2 ~= w2) ->
       interp_store_rel
         (a:=a)
         (WP.sr_subst phi exp (BEBuf H c si))
         valu
-        c1.(conf_buf)
-        c2.(conf_buf)
-        c1.(conf_store)
-        c2.(conf_store)
+        buf1
+        buf2
+        store1
+        store2
       <->
       pick si (interp_store_rel
                  (a:=a)
                  phi
                  valu
                  w1
-                 c2.(conf_buf)
-                 c1.(conf_store)
-                 c2.(conf_store),
+                 buf2
+                 store1
+                 store2,
                interp_store_rel
                  (a:=a)
                  phi
                  valu
-                 c1.(conf_buf)
+                 buf1
                  w2
-                 c1.(conf_store)
-                 c2.(conf_store)).
+                 store1
+                 store2).
   Proof.
     induction phi; simpl in *; intros;
       rewrite <- ?brand_corr, <- ?bror_corr, <- ?brimpl_corr;
       autorewrite with interp_store_rel.
     - destruct si; tauto.
     - destruct si; tauto.
-    - pose proof (He1 := be_subst_buf si c e1 exp c1 c2 valu _ _ w1 w2 ltac:(eauto)).
-      pose proof (He2 := be_subst_buf si c e2 exp c1 c2 valu _ _ w1 w2 ltac:(eauto)).
+    - pose proof (He1 := be_subst_buf si c e1 exp store1 store2 len1 len2 buf1 buf2 valu _ _ w1 w2 ltac:(eauto)).
+      pose proof (He2 := be_subst_buf si c e2 exp store1 store2 len1 len2 buf1 buf2 valu _ _ w1 w2 ltac:(eauto)).
       assert (Hsize1: pick si
-                   (n_tuple bool (be_size b1 (conf_buf_len c2) e1),
-                    n_tuple bool (be_size (conf_buf_len c1) b2 e1)) =
+                   (n_tuple bool (be_size b1 len2 e1),
+                    n_tuple bool (be_size len1 b2 e1)) =
               n_tuple bool
-                      (be_size (conf_buf_len c1) (conf_buf_len c2)
+                      (be_size len1 len2 
                                (be_subst e1 exp (BEBuf H c si))))
         by (inversion He1; auto).
       assert (Hsize2: pick si
-                   (n_tuple bool (be_size b1 (conf_buf_len c2) e2),
-                    n_tuple bool (be_size (conf_buf_len c1) b2 e2)) =
+                   (n_tuple bool (be_size b1 len2 e2),
+                    n_tuple bool (be_size len1 b2 e2)) =
               n_tuple bool
-                      (be_size (conf_buf_len c1) (conf_buf_len c2)
+                      (be_size len1 len2
                                (be_subst e2 exp (BEBuf H c si))))
         by (inversion He2; auto).
       revert He1 He2 Hsize1 Hsize2.
       repeat match goal with
-             | |- context[interp_bit_expr ?e ?v ?b1 ?b2 ?st1 ?st2] => generalize (interp_bit_expr e v b1 b2 st1 st2)
-             | |- context[be_size ?b1 ?b2 ?e] => generalize (be_size b1 b2 e)
+             | |- context[interp_bit_expr ?e ?v ?b1 ?b2 ?st1 ?st2] =>
+               generalize (interp_bit_expr (a:=a) e v b1 b2 st1 st2)
+             | |- context[be_size ?b1 ?b2 ?e] =>
+               generalize (be_size b1 b2 e)
              end.
       intros.
       destruct si; simpl in *;
         apply n_tuple_inj in Hsize1;
         apply n_tuple_inj in Hsize2;
         subst.
-      + destruct (Classes.eq_dec n1 n4); subst; simpl.
+      + destruct (Classes.eq_dec _ _); subst; simpl.
         * intuition.
         * tauto.
       + destruct (Classes.eq_dec n1 n4); subst; simpl.
@@ -1366,12 +1368,46 @@ Section WPProofs.
     exact 0.
     exact tt.
   Qed.
-  
+
+  Lemma step_done_store:
+    forall (q: conf) a b,
+      conf_state q = inr b ->
+      conf_store (step q a) = conf_store q.
+  Proof.
+    unfold step.
+    intros.
+    destruct (Compare_dec.le_lt_dec _ _).
+    - simpl.
+      generalize (eq_rect (Datatypes.S (conf_buf_len q)) (n_tuple bool) 
+       (conf_buf q, a0) (size' (P4A.interp a) (conf_state q))
+       (squeeze (conf_buf_sane q) l)).
+      rewrite H0.
+      intros.
+      now autorewrite with update'.
+    - reflexivity.
+  Qed.
+
+  Lemma follow_done_store:
+    forall (q: conf) bs b,
+      conf_state q = inr b ->
+      conf_store (follow q bs) = conf_store q.
+  Proof.
+    intros q bs.
+    revert q.
+    induction bs; intros; autorewrite with follow.
+    - reflexivity.
+    - erewrite IHbs by eauto using conf_state_step_done.
+      eapply step_done_store; eauto.
+  Qed.
+                                                            
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
+      interp_state_template prev (pick si (q1, q2)) ->
       interp_store_rel (wp_lpred (a:=a) si b prev cur Jump phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
+        interp_state_template cur (pick si (q1', q2')) ->
         kind_leap_size si Jump q1 q2 (check_bvar b) ->
+        bs = t2l (interp_bvar valu b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
@@ -1386,27 +1422,59 @@ Section WPProofs.
         reflexivity.
       }
       clear Heqw.
-      rewrite sr_subst_buf in H0 by eapply H4.
+      rewrite sr_subst_buf in H1 by eauto.
       simpl in *.
-      subst.
+      subst w.
       autorewrite with interp_store_rel interp_bit_expr in *.
-      admit.
+      subst q2'.
+      destruct H3 as [Hlen | [b' [Hst Hlen]]].
+      + admit.
+      + assert (Hbs: length bs > 0).
+        {
+          subst bs.
+          rewrite t2l_len.
+          Lia.lia.
+        }
+        unfold kind_leap_size in *.
+        unfold interp_state_template in H0; intuition.
+        rewrite H3 in *.
+        rewrite Hst in *.
+        rewrite sr_subst_buf in H1 by (simpl; eauto).
+        simpl in *.
+        autorewrite with interp_bit_expr in *.
+        replace (conf_store q1') with (conf_store q1)
+          by (symmetry;
+              rewrite H5;
+              eapply follow_done_store; eauto).
+        set (buf' := conf_buf q1').
+        pose proof (conf_buf_sane q1').
+        rewrite H5 in H0.
+        erewrite follow_finish in H0; eauto.
+        autorewrite with size' in *.
+        assert (conf_buf_len (follow q1 bs) = 0) by Lia.lia.
+        assert (Hzero: conf_buf_len q1' = 0) by congruence.
+        generalize buf'.
+        clear buf'.
+        rewrite Hzero.
+        intros buf'.
+        destruct buf'.
+        auto.
     - admit.
   Admitted.
 
   Lemma wp_lpred_pair_safe:
     forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
+      interp_state_template prev (pick si (q1, q2)) ->
       forall bs (q1' q2': conf),
+        interp_state_template cur (pick si (q1', q2')) ->
         kind_leap_size si k q1 q2 (check_bvar b) ->
         bs = t2l (interp_bvar valu b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
   Proof.
-    destruct k; intros; simpl in *.
-    - eapply wp_lpred_pair_jump_safe; eauto.
-    - eapply wp_lpred_pair_read_safe; eauto.
+    destruct k; eauto using wp_lpred_pair_jump_safe, wp_lpred_pair_read_safe.
   Qed.
 
   Lemma weaken_expr_size:
@@ -1766,7 +1834,14 @@ Section WPProofs.
   Proof.
     unfold wp_pred_pair.
     intros.
-    unfold interp_conf_rel, interp_conf_state, interp_state_template in *.
+    unfold interp_conf_rel, interp_conf_state in *.
+    simpl in *.
+    intuition.
+    pose proof H0.
+    pose proof H1.
+    pose proof H6.
+    pose proof H7.
+    unfold interp_state_template in H0, H1, H6, H7.
     simpl in *.
     intuition.
     pose (eq_rect (length bs) (fun x => n_tuple bool x) (l2t bs) size H3) as bits.
@@ -1804,8 +1879,9 @@ Section WPProofs.
       pose proof (leap_size_nonzero q1 q2).
       Lia.lia.
     }
-    eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
-    eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
+    eapply wp_lpred_pair_safe with (si:=Right); simpl.
+    eapply wp_lpred_pair_safe with (si:=Left); simpl.
+    all:eauto.
     + unfold kind_leap_size.
       destruct (leap_kind t1 cs_st1) eqn:Hlk.
       * pose proof (leap_size_jump_bound1 bs t1 cs_st1 q1 q2
@@ -1838,14 +1914,8 @@ Section WPProofs.
         eapply leap_size_read_bound2;
           unfold interp_state_template;
           intuition.
-    + autorewrite with interp_bvar.
-      subst size.
-      subst bits.
-      simpl.
-      rewrite t2l_l2t.
-      reflexivity.
   Qed.
-  
+
   Lemma reachable_step_backwards:
     forall st st' bs sts q1 q2,
       Reachability.reachable_pair_step' st' = (length bs, sts) ->
