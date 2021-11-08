@@ -1529,14 +1529,6 @@ Section WPProofs.
       intuition eauto.
   Qed.
 
-  Lemma follow_zero_was_jump:
-    forall (q: conf) bs,
-      conf_buf_len (follow q bs) = 0 ->
-      length bs >= configuration_room_left q \/
-      exists r, conf_state q = inr r /\ length bs > 0.
-  Proof.
-  Admitted.
-
   Lemma conf_room_nonzero:
     forall q: conf,
       configuration_room_left q > 0.
@@ -1676,6 +1668,92 @@ Section WPProofs.
       Lia.lia.
   Qed.
 
+  Lemma leap_size_jump_bound1:
+    forall bs t1 t1' (q1 q2: conf),
+      interp_state_template t1 q1 ->
+      interp_state_template t1' (follow q1 bs) ->
+      length bs = leap_size _ q1 q2 ->
+      leap_kind t1 t1' = Jump ->
+      length bs = configuration_room_left q1 \/
+      exists b, conf_state q1 = inr b.
+  Proof.
+    intros.
+    unfold leap_kind in *.
+    destruct (st_buf_len t1') eqn:?; [|discriminate].
+    assert (conf_buf_len (follow q1 bs) = 0).
+    {
+      unfold interp_state_template in H1.
+      intuition congruence.
+    }
+    destruct (conf_state q1) eqn:Hst.
+    - left.
+      unfold leap_size in *.
+      rewrite Hst in *.
+      destruct (conf_state q2); eauto.
+      pose proof (Min.min_spec (configuration_room_left q1)
+                               (configuration_room_left q2)).
+      intuition.
+      + congruence.
+      + rewrite H7 in H2.
+        pose proof (conf_room_nonzero q2).
+        destruct (Compare_dec.le_lt_eq_dec _ _ H5);
+          [|congruence].
+        assert (Heq: conf_buf_len (follow q1 bs) = 
+                     conf_buf_len q1 + length bs).
+        {
+          apply conf_buf_len_follow_fill;
+            unfold configuration_room_left in *;
+            Lia.lia.
+        }
+        rewrite H4 in Heq.
+        pose proof (conf_buf_sane q1).
+        Lia.lia.
+    - right.
+      eauto.
+  Qed.
+
+  Lemma leap_size_jump_bound2:
+    forall bs t2 t2' (q1 q2: conf),
+      interp_state_template t2 q2 ->
+      interp_state_template t2' (follow q2 bs) ->
+      length bs = leap_size _ q1 q2 ->
+      leap_kind t2 t2' = Jump ->
+      length bs = configuration_room_left q2 \/
+      exists b, conf_state q2 = inr b.
+  Proof.
+    intros.
+    unfold leap_kind in *.
+    destruct (st_buf_len t2') eqn:?; [|discriminate].
+    assert (conf_buf_len (follow q2 bs) = 0).
+    {
+      unfold interp_state_template in H1.
+      intuition congruence.
+    }
+    destruct (conf_state q2) eqn:Hst.
+    - left.
+      unfold leap_size in *.
+      rewrite Hst in *.
+      destruct (conf_state q1); eauto.
+      pose proof (Min.min_spec (configuration_room_left q1)
+                               (configuration_room_left q2)).
+      intuition.
+      + rewrite H7 in H2.
+        pose proof (conf_room_nonzero q1).
+        assert (Heq: conf_buf_len (follow q2 bs) = 
+                     conf_buf_len q2 + length bs).
+        {
+          apply conf_buf_len_follow_fill;
+            unfold configuration_room_left in *;
+            Lia.lia.
+        }
+        rewrite H4 in Heq.
+        pose proof (conf_buf_sane q2).
+        Lia.lia.
+      + congruence.
+    - right.
+      eauto.
+  Qed.
+  
   Lemma wp_pred_pair_safe:
     forall size phi t1 t2 q1 q2,
       interp_state_template t1 q1 ->
@@ -1721,11 +1799,24 @@ Section WPProofs.
       reflexivity.
     }
     simpl in *.
+    assert (size >= 1).
+    {
+      pose proof (leap_size_nonzero q1 q2).
+      Lia.lia.
+    }
     eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
     eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
     + unfold kind_leap_size.
       destruct (leap_kind t1 cs_st1) eqn:Hlk.
-      * admit.
+      * pose proof (leap_size_jump_bound1 bs t1 cs_st1 q1 q2
+                   ltac:(unfold interp_state_template; eauto)
+                   ltac:(unfold interp_state_template; eauto)
+                   ltac:(congruence) ltac:(congruence))
+             as Hbound.
+        simpl in *.
+        subst size.
+        destruct Hbound as [Hbound | [b Hbound]];
+          eauto.
       * simpl.
         subst size.
         eapply leap_size_read_bound1;
@@ -1733,7 +1824,15 @@ Section WPProofs.
           intuition.
     + unfold kind_leap_size.
       destruct (leap_kind t2 cs_st2) eqn:Hlk.
-      * admit.
+      * pose proof (leap_size_jump_bound2 bs t2 cs_st2 q1 q2
+                   ltac:(unfold interp_state_template; eauto)
+                   ltac:(unfold interp_state_template; eauto)
+                   ltac:(congruence) ltac:(congruence))
+             as Hbound.
+        simpl in *.
+        subst size.
+        destruct Hbound as [Hbound | [b Hbound]];
+          eauto.
       * simpl.
         subst size.
         eapply leap_size_read_bound2;
@@ -1745,7 +1844,7 @@ Section WPProofs.
       simpl.
       rewrite t2l_l2t.
       reflexivity.
-  Admitted.
+  Qed.
   
   Lemma reachable_step_backwards:
     forall st st' bs sts q1 q2,
