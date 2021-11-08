@@ -2,30 +2,27 @@ Require Import Coq.Classes.EquivDec.
 Import List.ListNotations.
 
 Section DepEnv.
-  Variable (I: Type).
-  Context `{I_eq_dec: EquivDec.EqDec I eq}.
-  Variable (K: I -> Type).
-  Context `{K_eq_dec: forall i, EquivDec.EqDec (K i) eq}.
-  Variable (V: I -> Type).
+  Variable (K: Type).
+  Variable (V: K -> Type).
+  Context `{K_eq_dec: EquivDec.EqDec K eq}.
 
   Definition binding :=
-    {i: I & K i & V i}.
+    {k: K & V k}.
 
   Definition t := list binding.
 
-  Fixpoint find {i} (k: K i) (e: t) : option (V i).
-    destruct e as [ | [j k' v] e'].
+  Fixpoint find (k: K) (e: t) : option (V k).
+  Proof.
+    destruct e as [ | [k' v] e'].
     - exact None.
-    - destruct (i == j).
+    - destruct (k == k').
       + unfold "===" in e.
-        subst j.
-        destruct (k == k').
-        * exact (Some v).
-        * exact (find i k e').
-      + exact (find i k e').
+        rewrite <- e in v.
+        exact (Some v).
+      + exact (find k e').
   Defined.
 
-  Definition bind {i} (k: K i) (v: V i) (e: t) : list binding :=
-    existT2 _ _ i k v :: e.
+  Definition bind (k: K) (v: V k) (e: t) : list binding :=
+    existT _ k v :: e.
 
 End DepEnv.

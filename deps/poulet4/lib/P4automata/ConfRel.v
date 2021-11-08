@@ -87,11 +87,12 @@ Section ConfRel.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (P4A.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -227,7 +228,7 @@ Section ConfRel.
       | Left => b1
       | Right => b2
       end
-    | BEHdr a (P4A.HRVar h) => projT1 h
+    | BEHdr a (P4A.HRVar h) => sz h
     | BEVar x => check_bvar x
     | BESlice e hi lo =>
       Nat.min (1 + hi) (be_size b1 b2 e) - lo
@@ -257,7 +258,7 @@ Section ConfRel.
       in
       match h with
       | P4A.HRVar var =>
-        match P4A.find H (projT2 var) store  with
+        match P4A.find _ _ var store  with
         | P4A.VBits _ v => v
         end
       end;
@@ -835,6 +836,6 @@ Section ConfRel.
       + apply H4.
   Qed.
 End ConfRel.
-Arguments interp_conf_rel {_} {_} {_} {_} a phi.
-Arguments interp_crel {_} {_} {_} {_} a i rel.
-Arguments interp_entailment {_ _ _ _} a i e.
+Arguments interp_conf_rel {_} {_} {_} {_} {_} a phi.
+Arguments interp_crel {_} {_} {_} {_} {_} a i rel.
+Arguments interp_entailment {_ _ _ _ _} a i e.
