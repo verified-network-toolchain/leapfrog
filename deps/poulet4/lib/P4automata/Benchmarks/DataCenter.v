@@ -303,4 +303,4 @@ Qed.
 
 Program Definition aut: Syntax.t state header :=
   {| t_states := states |}.
-Solve Obligations with (destruct s; cbv; Lia.lia).
+Solve Obligations with (destruct s; vm_compute; Lia.lia).
