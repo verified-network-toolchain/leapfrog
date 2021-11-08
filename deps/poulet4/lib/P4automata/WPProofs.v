@@ -1239,14 +1239,22 @@ Section WPProofs.
         by (rewrite Heq; reflexivity);
     clear Heq.
 
+  Definition kind_leap_size (si: side) (k: lkind) (q1 q2: conf) (l: nat) : Prop :=
+    match k with
+    | Read =>
+      l < configuration_room_left (pick si (q1, q2))
+    | Jump =>
+      l = configuration_room_left (pick si (q1, q2)) \/
+      exists a, conf_state (pick si (q1, q2)) = inr a /\
+           l >= 1
+    end.
+
   Lemma wp_lpred_pair_read_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur Read phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
         bs = t2l (interp_bvar valu b) ->
-        pick si (conf_buf_len q1, conf_buf_len q2)
-        + length bs 
-        < size' _ (pick si (conf_state q1, conf_state q2)) ->
+        kind_leap_size si Read q1 q2 (check_bvar b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
@@ -1266,6 +1274,13 @@ Section WPProofs.
       subst q2' q1'.
       autorewrite with interp_store_rel interp_bit_expr in *.
       set (q1' := follow q1 bs).
+      assert (conf_buf_len q1 + length bs < size' _ (conf_state q1)).
+      {
+          unfold configuration_room_left in *.
+          subst bs.
+          rewrite t2l_len in *.
+          Lia.lia.
+      }
       assert (Hs: conf_state q1' = conf_state q1) by eauto using conf_state_follow_fill.
       assert (Hst: conf_store q1' = conf_store q1) by eauto using conf_store_follow_fill.
       assert (Hlen: conf_buf_len q1' = (conf_buf_len q1) + (length bs)) by eauto using conf_buf_len_follow_fill.
@@ -1273,7 +1288,7 @@ Section WPProofs.
       assert (Hbuf1: conf_buf q1' ~= n_tuple_concat (conf_buf q1) (interp_bvar valu b)).
       {
         subst bs.
-        rewrite H3.
+        rewrite H4.
         apply concat_proper; auto.
         apply l2t_t2l.
       }
@@ -1292,7 +1307,7 @@ Section WPProofs.
       generalize (conf_buf_len q1 + check_bvar b).
       intros.
       inversion Hbuf2.
-      apply n_tuple_inj in H4.
+      apply n_tuple_inj in H6.
       subst n0.
       subst n1.
       auto.
@@ -1308,6 +1323,13 @@ Section WPProofs.
       subst q2' q1'.
       autorewrite with interp_store_rel interp_bit_expr in *.
       set (q2' := follow q2 bs).
+      assert (conf_buf_len q2 + length bs < size' _ (conf_state q2)).
+      {
+          unfold configuration_room_left in *.
+          subst bs.
+          rewrite t2l_len in *.
+          Lia.lia.
+      }
       assert (Hs: conf_state q2' = conf_state q2) by eauto using conf_state_follow_fill.
       assert (Hst: conf_store q2' = conf_store q2) by eauto using conf_store_follow_fill.
       assert (Hlen: conf_buf_len q2' = (conf_buf_len q2) + (length bs)) by eauto using conf_buf_len_follow_fill.
@@ -1315,7 +1337,7 @@ Section WPProofs.
       assert (Hbuf1: conf_buf q2' ~= n_tuple_concat (conf_buf q2) (interp_bvar valu b)).
       {
         subst bs.
-        rewrite H3.
+        rewrite H4.
         apply concat_proper; auto.
         apply l2t_t2l.
       }
@@ -1334,7 +1356,7 @@ Section WPProofs.
       generalize (conf_buf_len q2 + check_bvar b).
       intros.
       inversion Hbuf2.
-      apply n_tuple_inj in H4.
+      apply n_tuple_inj in H6.
       subst n0.
       subst n1.
       auto.
@@ -1349,6 +1371,7 @@ Section WPProofs.
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur Jump phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
       forall bs (q1' q2': conf),
+        kind_leap_size si Jump q1 q2 (check_bvar b) ->
         q1' = pick si (follow q1 bs, q1) ->
         q2' = pick si (q2, follow q2 bs) ->
         interp_store_rel phi valu (conf_buf q1') (conf_buf q2') (conf_store q1') (conf_store q2').
@@ -1363,7 +1386,7 @@ Section WPProofs.
         reflexivity.
       }
       clear Heqw.
-      rewrite sr_subst_buf in H0 by eapply H3.
+      rewrite sr_subst_buf in H0 by eapply H4.
       simpl in *.
       subst.
       autorewrite with interp_store_rel interp_bit_expr in *.
@@ -1371,15 +1394,6 @@ Section WPProofs.
     - admit.
   Admitted.
 
-  Print Reachability.reads_left.
-  Definition kind_leap_size (si: side) (k: lkind) (q1 q2: conf) (l: nat) : Prop :=
-    match k with
-    | Read =>
-      l < configuration_room_left (pick si (q1, q2))
-    | Jump =>
-      l = configuration_room_left (pick si (q1, q2))
-    end.
-      
   Lemma wp_lpred_pair_safe:
     forall (c: bctx) si (valu: bval c) b prev cur k phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur k phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
@@ -1393,10 +1407,6 @@ Section WPProofs.
     destruct k; intros; simpl in *.
     - eapply wp_lpred_pair_jump_safe; eauto.
     - eapply wp_lpred_pair_read_safe; eauto.
-      unfold configuration_room_left in *.
-      subst bs.
-      rewrite t2l_len.
-      destruct si; simpl in *; Lia.lia.
   Qed.
 
   Lemma weaken_expr_size:
@@ -1519,6 +1529,14 @@ Section WPProofs.
       intuition eauto.
   Qed.
 
+  Lemma follow_zero_was_jump:
+    forall (q: conf) bs,
+      conf_buf_len (follow q bs) = 0 ->
+      length bs >= configuration_room_left q \/
+      exists r, conf_state q = inr r /\ length bs > 0.
+  Proof.
+  Admitted.
+
   Lemma wp_pred_pair_safe:
     forall size phi t1 t2 q1 q2,
       interp_state_template t1 q1 ->
@@ -1563,23 +1581,46 @@ Section WPProofs.
       rewrite t2l_l2t.
       reflexivity.
     }
+    simpl in *.
+    assert (length bs = leap_size _ q1 q2 ->
+            leap_kind t1 cs_st1 = Read ->
+            length bs < configuration_room_left q1).
+    { admit. }
+    assert (length bs = leap_size _ q1 q2 ->
+            leap_kind t2 cs_st2 = Read ->
+            length bs < configuration_room_left q2).
+    { admit. }
     eapply wp_lpred_pair_safe with (si:=Right); simpl; eauto.
     eapply wp_lpred_pair_safe with (si:=Left); simpl; eauto.
-    simpl.
-    subst size.
-    rewrite H4.
-    unfold kind_leap_size, leap_kind.
-    simpl.
-    destruct (st_buf_len cs_st1) eqn:?.
-    - admit.
-    - unfold leap_size in *.
-      destruct (conf_state q1) eqn:?; destruct (conf_state q2) eqn:?.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
+    + autorewrite with interp_bvar in *.
+      replace (t2l bits) with bs in *
+        by (subst bits; destruct H3; simpl; rewrite t2l_l2t; reflexivity).
+      simpl in *.
+      clear bits H2 H12.
+      unfold leap_kind.
+      destruct (st_buf_len cs_st1) eqn:?; simpl in *.
+      * unfold configuration_room_left.
+        rewrite H4.
+        destruct (conf_state q1) eqn:?,
+                 (conf_state q2) eqn:?.
+        -- admit.
+        -- admit.
+        -- admit.
+        -- admit.
+      * destruct (conf_state q1) eqn:?; simpl.
+        -- rewrite H4.
+           admit.
+        -- exfalso.
+           admit.
+    + admit.
+    + autorewrite with interp_bvar.
+      subst size.
+      subst bits.
+      simpl.
+      rewrite t2l_l2t.
+      reflexivity.
   Admitted.
-
+  
   Lemma reachable_step_backwards:
     forall st st' bs sts q1 q2,
       Reachability.reachable_pair_step' st' = (length bs, sts) ->
