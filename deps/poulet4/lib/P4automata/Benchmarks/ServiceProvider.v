@@ -258,3 +258,25 @@ Definition states (s: state) : P4A.state state header :=
     {| st_op := extract(HdrIPv6);
        st_trans := transition accept |}
   end.
+
+Scheme Equality for state.
+Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
+Global Program Instance state_finite: @Finite state _ state_eq_dec :=
+  {| enum := [ParseEth; ParseMPLS0; ParseMPLS1; ParseMPLS2; ParseMPLS3; ParseMPLS4; ParseMPLS5; ParseIPVer; ParseIPv4; ParseIPv6] |}.
+Next Obligation.
+repeat constructor;
+  repeat match goal with
+          | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
+          | |- ~ List.In _ [] => apply List.in_nil
+          | |- ~ List.In _ (_ :: _) => unfold not; intros
+          | H: List.In _ (_::_) |- _ => inversion H; clear H
+          | _ => discriminate
+          end.
+Qed.
+Next Obligation.
+  destruct x; intuition congruence.
+Qed.
+
+Program Definition aut: Syntax.t state header :=
+  {| t_states := states |}.
+Solve Obligations with (destruct s; cbv; Lia.lia).

@@ -261,6 +261,10 @@ Ltac verify_interp top top' :=
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct; simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [
+        typeclasses eauto | 
+        typeclasses eauto 
+      |];
 
       time "reduce goal" crunch_foterm;
 
@@ -286,8 +290,8 @@ Ltac run_bisim top top' r_states :=
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     idtac "extending"; extend_bisim' HN r_states; clear HN
-  | H: interp_entailment _ _ _  |- _ =>
-    idtac "skipping"; skip_bisim' H; clear H
+  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+    idtac "skipping"; skip_bisim' H; clear H; try clear C
   end.
 
 Ltac close_bisim top' :=

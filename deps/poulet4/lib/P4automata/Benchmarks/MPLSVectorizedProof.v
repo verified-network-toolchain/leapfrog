@@ -53,8 +53,7 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
   ClearEnvCtors.
 
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
@@ -87,15 +86,11 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-
-    run_bisim top top' r_states.
-    Locate "⇒".
-    (* Unset Printing Notations. *)
-    unfold "⇒" in v.
+    
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
-End PlainUnroll.
+End PlainInline.
 
 
 Module PlainUnroll.
@@ -122,8 +117,7 @@ Module PlainUnroll.
   ClearEnvCtors.
 
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
@@ -157,10 +151,6 @@ Module PlainUnroll.
     vm_compute in rel0.
     subst rel0.
 
-    run_bisim top top' r_states.
-    Locate "⇒".
-    (* Unset Printing Notations. *)
-    unfold "⇒" in v.
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
@@ -190,8 +180,7 @@ Module VectUnroll.
   ClearEnvCtors.
 
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)

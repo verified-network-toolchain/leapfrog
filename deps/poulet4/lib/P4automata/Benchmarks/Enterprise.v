@@ -152,6 +152,24 @@ Inductive state: Type :=
 | ParseUDP
 | ParseICMP.
 
+Scheme Equality for state.
+Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
+Global Program Instance state_finite: @Finite state _ state_eq_dec :=
+  {| enum := [ParseEth; ParseVLAN0; ParseVLAN1; ParseIPv4; ParseIPv6; ParseTCP; ParseUDP; ParseICMP] |}.
+Next Obligation.
+  repeat constructor;
+    repeat match goal with
+            | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
+            | |- ~ List.In _ [] => apply List.in_nil
+            | |- ~ List.In _ (_ :: _) => unfold not; intros
+            | H: List.In _ (_::_) |- _ => inversion H; clear H
+            | _ => discriminate
+            end.
+Qed.
+Next Obligation.
+  destruct x; intuition congruence.
+Qed.
+
 Definition states (s: state) : P4A.state state header :=
   match s with
   | ParseEth =>
@@ -212,6 +230,6 @@ Definition states (s: state) : P4A.state state header :=
        st_trans := transition accept |}
   end.
 
-  Program Definition aut: Syntax.t state header :=
-    {| t_states := states |}.
-  Solve Obligations with (destruct s; cbv; Lia.lia).
+Program Definition aut: Syntax.t state header :=
+  {| t_states := states |}.
+Solve Obligations with (destruct s; cbv; Lia.lia).

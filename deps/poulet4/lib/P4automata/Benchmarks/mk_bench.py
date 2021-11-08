@@ -135,3 +135,29 @@ def format_headers (hdrs: list[str], widths:dict[str, int]):
   output += format_header_finite(hdrs, widths)
 
   return output
+
+def format_states (states: list[str]):
+  output = f"\
+  Scheme Equality for state.\n\
+  Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.\n\
+  Global Program Instance state_finite: @Finite state _ state_eq_dec :=\n\
+    {{| enum := [{states[0]}"
+  for s in states[1:]:
+    output += f"; {s}"
+  output += f"] |}}.\n"
+  output += f"\
+  Next Obligation.\n\
+  repeat constructor;\n\
+    repeat match goal with\n\
+            | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H\n\
+            | |- ~ List.In _ [] => apply List.in_nil\n\
+            | |- ~ List.In _ (_ :: _) => unfold not; intros\n\
+            | H: List.In _ (_::_) |- _ => inversion H; clear H\n\
+            | _ => discriminate\n\
+            end.\n\
+  Qed.\n\
+  Next Obligation.\n\
+    destruct x; intuition congruence.\n\
+  Qed.\n"
+
+  return output

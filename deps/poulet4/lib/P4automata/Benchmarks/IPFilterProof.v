@@ -8,10 +8,35 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := UDPCombined.Parse.
 Notation start_right := UDPInterleaved.ParseIP.
 
+Require Import Coq.Arith.PeanoNat.
+
+Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
+  match fuel with 
+  | 0 => None 
+  | S x => 
+    let nxt := Reachability.reachable_step r in 
+    let nxt_len := length nxt in 
+    if Nat.eq_dec (length nxt) (length r) then Some nxt_len
+    else 
+      reachable_states_len' nxt x
+  end.
+
+Definition reachable_states_len : nat.
+  refine (
+  let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
+            {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
+  let r := reachable_states_len' [s] 1000 in 
+  _).
+  vm_compute in r.
+  match goal with 
+  | _ := Some ?x |- _ => exact x
+  end.
+  Defined.
+
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
                         A
-                        200
+                        reachable_states_len
                         start_left
                         start_right).
 
@@ -45,7 +70,7 @@ RegisterEnvCtors
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ A 200 start_left start_right)
+                   (mk_init _ _ _ A reachable_states_len start_left start_right)
                    q1 q2.
 Proof.
   idtac "running ipfilter bisimulation".

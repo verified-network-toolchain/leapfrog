@@ -156,6 +156,7 @@ Section ConfRel.
   Derive NoConfusion for bit_expr.
 
   Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+    (* if Nat.ltb hi lo then BELit [] else *)
     match be with
     | BELit l => BELit (P4A.slice l hi lo)
     | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
