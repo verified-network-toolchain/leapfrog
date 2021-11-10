@@ -203,22 +203,27 @@ Section WPProofs.
   Qed.
 
   Lemma be_subst_hdr_left:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) c2 (w: Ntuple.n_tuple bool size),
-        interp_bit_expr exp valu q.(conf_buf) c2.(conf_buf) q.(conf_store) c2.(conf_store) ~= w ->
-        interp_bit_expr (a:=a) phi valu
-                        q.(conf_buf)
-                        c2.(conf_buf)
-                        (update_conf_store (a:=P4A.interp a)
-                                           (P4A.assign _ hdr (P4A.VBits size w) q.(conf_store))
-                                           q).(conf_store)
-                        c2.(conf_store)
-        ~=
-        interp_bit_expr (WP.be_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
-                        valu
-                        q.(conf_buf)
-                        c2.(conf_buf)
-                        q.(conf_store)
-                        c2.(conf_store).
+    forall c (valu: bval c) size (hdr: H size) exp phi
+      st1
+      bs1
+      (buf1: Ntuple.n_tuple bool bs1)
+      st2
+      bs2
+      (buf2: Ntuple.n_tuple bool bs2)
+      (w: Ntuple.n_tuple bool size),
+      interp_bit_expr exp valu buf1 buf2 st1 st2 ~= w ->
+      interp_bit_expr (a:=a) phi valu
+                      buf1
+                      buf2
+                      (P4A.assign _ hdr (P4A.VBits size w) st1)
+                      st2
+      ~=
+      interp_bit_expr (WP.be_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
+                      valu
+                      buf1
+                      buf2
+                      st1
+                      st2.
   Proof.
     induction phi; intros.
     - tauto.
@@ -291,22 +296,27 @@ Section WPProofs.
   Qed.
 
   Lemma be_subst_hdr_right:
-    forall c (valu: bval c) size (hdr: H size) exp phi (q: conf) c1 (w: Ntuple.n_tuple bool size),
-        interp_bit_expr exp valu c1.(conf_buf) q.(conf_buf) c1.(conf_store) q.(conf_store) ~= w ->
-        interp_bit_expr (a:=a) phi valu
-                        c1.(conf_buf)
-                        q.(conf_buf)
-                        c1.(conf_store)
-                        (update_conf_store (a:=P4A.interp a)
-                                           (P4A.assign _ hdr (P4A.VBits size w) q.(conf_store))
-                                           q).(conf_store)
-        ~=
-        interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
-                        valu
-                        c1.(conf_buf)
-                        q.(conf_buf)
-                        c1.(conf_store)
-                        q.(conf_store).
+    forall c (valu: bval c) size (hdr: H size) exp phi
+      st1
+      bs1
+      (buf1: Ntuple.n_tuple bool bs1)
+      st2
+      bs2
+      (buf2: Ntuple.n_tuple bool bs2)
+      (w: Ntuple.n_tuple bool size),
+      interp_bit_expr exp valu buf1 buf2 st1 st2 ~= w ->
+      interp_bit_expr (a:=a) phi valu
+                      buf1
+                      buf2
+                      st1
+                      (P4A.assign _ hdr (P4A.VBits size w) st2)
+      ~=
+      interp_bit_expr (WP.be_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
+                      valu
+                      buf1
+                      buf2
+                      st1
+                      st2.
   Proof.
     induction phi; intros.
     - tauto.
@@ -379,28 +389,32 @@ Section WPProofs.
   Qed.
 
   Lemma sr_subst_hdr_left:
-    forall c (valu: bval c) size (hdr: H size) exp phi c1 s1 st1 buf1 c2 (w: Ntuple.n_tuple bool size),
-      conf_state c1 = s1 ->
-      conf_store c1 = st1 ->
-      conf_buf c1 = buf1 ->
-      w ~= interp_bit_expr exp valu buf1 c2.(conf_buf) st1 c2.(conf_store) ->
+    forall c (valu: bval c) size (hdr: H size) exp phi
+      st1
+      bs1
+      (buf1: n_tuple bool bs1)
+      st2 
+      bs2 
+      (buf2: n_tuple bool bs2)
+      (w: Ntuple.n_tuple bool size),
+      w ~= interp_bit_expr exp valu buf1 buf2 st1 st2 ->
       interp_store_rel
         (a:=a)
         (WP.sr_subst phi exp (BEHdr c Left (P4A.HRVar (existT _ _ hdr))))
         valu
         buf1
-        c2.(conf_buf)
+        buf2
         st1
-        c2.(conf_store)
+        st2
       <->
       interp_store_rel
         (a:=a)
         phi
         valu
         buf1
-        c2.(conf_buf)
+        buf2
         (P4A.assign _ hdr (P4A.VBits size w) st1)
-        c2.(conf_store).
+        st2.
   Proof.
     induction phi;
       simpl in *;
@@ -420,93 +434,90 @@ Section WPProofs.
     - tauto.
     - tauto.
     - tauto.
-    - revert H4.
-      assert (be_size (conf_buf_len c1) (conf_buf_len c2) exp = size).
+    - revert H1.
+      assert (be_size bs1 bs2 exp = size).
       {
         eapply n_tuple_inj.
-        now inversion H3.
+        now inversion H0.
       }
-      assert (Hsize1: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e1).
+      assert (Hsize1: be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e1).
       {
         rewrite <- !be_subst_be_size; auto.
       }
-      assert (Hsize2: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      assert (Hsize2: be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e2).
       {
         rewrite <- !be_subst_be_size; auto.
       }
       revert Hsize2 Hsize1.
-      assert (Heq1: interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)
-                              ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+      assert (Heq1: interp_bit_expr (a:=a) e1 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2 ~=
+                                    interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_left.
-      assert (Heq2: interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)
+      assert (Heq2: interp_bit_expr (a:=a) e2 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_left.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                                  (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-        (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                                  st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+        st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
       revert Heq1 Heq2.
-      revert H4.
-      generalize (interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)).
-      generalize (interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)).
+      revert H1.
+      generalize (interp_bit_expr (a:=a) e1 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2).
+      generalize (interp_bit_expr (a:=a) e2 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2).
       revert Hsize2 Hsize1.
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e1).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      generalize (be_size bs1 bs2 e1).
+      generalize (be_size bs1 bs2 e2).
       intros.
       subst.
       now destruct (Classes.eq_dec n4 n3).
-    - revert H4.
-      assert (be_size (conf_buf_len c1) (conf_buf_len c2) exp = size).
+    - revert H1.
+      assert (be_size bs1 bs2 exp = size).
       {
         eapply n_tuple_inj.
-        now inversion H3.
+        now inversion H0.
       }
-      assert (Hsize1: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e1).
+      assert (Hsize1: be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e1).
       {
         rewrite <- !be_subst_be_size; auto.
       }
-      assert (Hsize2: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      assert (Hsize2: be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e2).
       {
         rewrite <- !be_subst_be_size; auto.
       }
       revert Hsize2 Hsize1.
-      assert (Heq1: interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)
+      assert (Heq1: interp_bit_expr e1 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2
                               ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              st1 st2)
         by now apply be_subst_hdr_left.
-      assert (Heq2: interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)
+      assert (Heq2: interp_bit_expr e2 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              st1 st2)
         by now apply be_subst_hdr_left.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                                  (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-        (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                                  st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+        st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
       revert Heq1 Heq2.
-      revert H4.
-      generalize (interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)).
-      generalize (interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (P4A.assign H hdr (P4A.VBits size w) (conf_store c1)) (conf_store c2)).
+      revert H2.
+      generalize (interp_bit_expr (a:=a) e1 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2).
+      generalize (interp_bit_expr (a:=a) e2 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2).
       revert Hsize2 Hsize1.
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e1).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      generalize (be_size bs1 bs2 e1).
+      generalize (be_size bs1 bs2 e2).
       intros.
       subst.
       now destruct (Classes.eq_dec n4 n3).
@@ -527,27 +538,31 @@ Section WPProofs.
   Qed.
 
   Lemma sr_subst_hdr_right:
-    forall c (valu: bval c) size (hdr: H size) exp phi c1 c2 s2 st2 buf2 (w: Ntuple.n_tuple bool size),
-      conf_state c2 = s2 ->
-      conf_store c2 = st2 ->
-      conf_buf c2 = buf2 ->
-      w ~= interp_bit_expr exp valu c1.(conf_buf) buf2 c1.(conf_store) st2 ->
+    forall c (valu: bval c) size (hdr: H size) exp phi
+      st1
+      bs1
+      (buf1: n_tuple bool bs1)
+      st2 
+      bs2 
+      (buf2: n_tuple bool bs2)
+      (w: Ntuple.n_tuple bool size),
+      w ~= interp_bit_expr exp valu buf1 buf2 st1 st2 ->
       interp_store_rel
         (a:=a)
         (WP.sr_subst phi exp (BEHdr c Right (P4A.HRVar (existT _ _ hdr))))
         valu
-        c1.(conf_buf)
+        buf1
         buf2
-        c1.(conf_store)
+        st1
         st2
       <->
       interp_store_rel
         (a:=a)
         phi
         valu
-        c1.(conf_buf)
+        buf1
         buf2
-        c1.(conf_store)
+        st1
         (P4A.assign _ hdr (P4A.VBits size w) st2).
   Proof.
     induction phi;
@@ -568,93 +583,90 @@ Section WPProofs.
     - tauto.
     - tauto.
     - tauto.
-    - revert H4.
-      assert (be_size (conf_buf_len c1) (conf_buf_len c2) exp = size).
+    - revert H1.
+      assert (be_size bs1 bs2 exp = size).
       {
         eapply n_tuple_inj.
-        now inversion H3.
+        now inversion H0.
       }
-      assert (Hsize1: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e1).
+      assert (Hsize1: be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e1).
       {
         rewrite <- !be_subst_be_size; auto.
       }
-      assert (Hsize2: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      assert (Hsize2: be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e2).
       {
         rewrite <- !be_subst_be_size; auto.
       }
       revert Hsize2 Hsize1.
-      assert (Heq1: interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))
-                              ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+      assert (Heq1: interp_bit_expr (a:=a) e1 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2) ~=
+                                    interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_right.
-      assert (Heq2: interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))
+      assert (Heq2: interp_bit_expr (a:=a) e2 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_right.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                                  (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-        (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                                  st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+        st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
       revert Heq1 Heq2.
-      revert H4.
-      generalize (interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))).
-      generalize (interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))).
+      revert H1.
+      generalize (interp_bit_expr (a:=a) e1 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)).
+      generalize (interp_bit_expr (a:=a) e2 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)).
       revert Hsize2 Hsize1.
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e1).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      generalize (be_size bs1 bs2 e1).
+      generalize (be_size bs1 bs2 e2).
       intros.
       subst.
       now destruct (Classes.eq_dec n4 n3).
-    - revert H4.
-      assert (be_size (conf_buf_len c1) (conf_buf_len c2) exp = size).
+    - revert H1.
+      assert (be_size bs1 bs2 exp = size).
       {
         eapply n_tuple_inj.
-        now inversion H3.
+        now inversion H0.
       }
-      assert (Hsize1: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e1).
+      assert (Hsize1: be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e1).
       {
         rewrite <- !be_subst_be_size; auto.
       }
-      assert (Hsize2: be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
-              = be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      assert (Hsize2: be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))
+              = be_size bs1 bs2 e2).
       {
         rewrite <- !be_subst_be_size; auto.
       }
       revert Hsize2 Hsize1.
-      assert (Heq1: interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))
+      assert (Heq1: interp_bit_expr e1 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)
                               ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              st1 st2)
         by now apply be_subst_hdr_right.
-      assert (Heq2: interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))
+      assert (Heq2: interp_bit_expr e2 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                              (conf_store c1) (conf_store c2))
+                              interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              st1 st2)
         by now apply be_subst_hdr_right.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-                                  (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu (conf_buf c1) (conf_buf c2) 
-        (conf_store c1) (conf_store c2)).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                                  st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+        st1 st2).
+      generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
       revert Heq1 Heq2.
-      revert H4.
-      generalize (interp_bit_expr e1 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))).
-      generalize (interp_bit_expr e2 valu (conf_buf c1) (conf_buf c2) (conf_store c1) (P4A.assign H hdr (P4A.VBits size w) (conf_store c2))).
+      revert H2.
+      generalize (interp_bit_expr (a:=a) e1 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)).
+      generalize (interp_bit_expr (a:=a) e2 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)).
       revert Hsize2 Hsize1.
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e1).
-      generalize (be_size (conf_buf_len c1) (conf_buf_len c2) e2).
+      generalize (be_size bs1 bs2 e1).
+      generalize (be_size bs1 bs2 e2).
       intros.
       subst.
       now destruct (Classes.eq_dec n4 n3).
@@ -861,48 +873,108 @@ Section WPProofs.
     | P4A.VBits _ vec => vec
     end.
 
-  (*
+  Lemma v_inj:
+    forall k j,
+      P4A.v k = P4A.v j ->
+      k = j.
+  Proof.
+    intros.
+    destruct (PeanoNat.Nat.eq_dec k j); auto.
+    exfalso.
+    pose proof (TypeNeq.card_neq (P4A.v k) (P4A.v j)) as Hneq.
+    unfold card in *.
+    simpl in *.
+    apply Hneq; auto.
+    rewrite !map_length.
+    rewrite !length_enum_tuples.
+    intro.
+    apply n.
+    eapply PeanoNat.Nat.pow_inj_r; eauto.
+  Qed.
+
   Lemma expr_to_bit_expr_sound:
     forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n) (c1 c2: conf),
-      P4A.eval_expr H n (conf_store (match si with Left => c1 | Right => c2 end)) expr ~=
-      P4A.VBits _ (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si _) valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store)).
+      P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr ~=
+      P4A.VBits _ (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si expr) valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store)).
   Proof.
-    assert (Hv: forall v, P4A.VBits match v with P4A.VBits v' => v' end = v).
+    assert (Hv: forall n v, P4A.VBits n (match v with P4A.VBits _ v' => v' end) = v).
     {
       intros.
       destruct v; reflexivity.
     }
-    induction expr; intros; cbn; auto.
-    - destruct (P4A.eval_expr (snd (fst _))) eqn:?.
-      unfold P4A.slice.
-      specialize (IHexpr c1 c2).
-      simpl in IHexpr.
-      rewrite -> IHexpr in Heqv.
-      congruence.
-  Qed.
-*)
+    induction expr; intros.
+    - cbn.
+      autorewrite with eval_expr interp_bit_expr in *.
+      rewrite !Hv.
+      destruct si; cbn; auto.
+    - cbn.
+      autorewrite with eval_expr interp_bit_expr in *.
+      assert (l2t (t2l bs) ~= bs) by apply l2t_t2l.
+      assert (length (t2l bs) = n) by apply t2l_len.
+      revert H1.
+      revert H0.
+      generalize (l2t (t2l bs)).
+      generalize (length (t2l bs)).
+      intros.
+      subst.
+      rewrite H0.
+      reflexivity.
+    - simpl (expr_to_bit_expr _ _).
+      autorewrite with eval_expr interp_bit_expr in *.
+      assert (P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr ~=
+           P4A.VBits
+             (be_size (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr si expr))
+             (interp_bit_expr (expr_to_bit_expr si expr) valu (conf_buf c1) 
+                              (conf_buf c2) (conf_store c1) (conf_store c2)))
+        by auto.
+      destruct (P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr) eqn:?.
+      rename n0 into val_e.
+      generalize dependent val_e.
+      generalize (interp_bit_expr (expr_to_bit_expr si expr) valu
+                                  (conf_buf c1)
+                                  (conf_buf c2)
+                                  (conf_store c1)
+                                  (conf_store c2))
+        as val.
+      simpl be_size.
+      generalize (@be_size H c (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr si expr)) as sz.
+      intros sz.
+      change (match sz with
+              | 0 => 0
+              | Datatypes.S m' => Datatypes.S (Nat.min hi m')
+              end - lo)
+        with (Nat.min (1 + hi) sz - lo).
+      intros.
+      inversion H0.
+      apply v_inj in H2.
+      subst n.
+      apply JMeq_eq in H0.
+      inversion H0.
+      subst.
+      reflexivity.
+    - autorewrite with eval_expr in *.
+      autorewrite with interp_bit_expr in *.
+      admit.
+  Admitted.
 
   Lemma wp_op'_spec_l:
-    forall c (valu: bval c) sz (o: P4A.op H sz) n phi c1 s1 st1 (buf1: n_tuple bool (sz + n)) c2,
+    forall c (valu: bval c) sz (o: P4A.op H sz) n phi st1 (buf1: n_tuple bool (sz + n)) len2 (buf2: n_tuple bool len2) st2,
       P4A.nonempty o ->
-      conf_state c1 = s1 ->
-      conf_store c1 = st1 ->
-      conf_buf c1 ~= buf1 ->
       interp_store_rel (a:=a)
-                       (snd (WP.wp_op' Left o (n + P4A.op_size o, phi)))
+                       (snd (WP.wp_op' Left o (P4A.op_size o, phi)))
                        valu
-                       c1.(conf_buf)
-                       c2.(conf_buf)
+                       buf1
+                       buf2
                        st1
-                       c2.(conf_store)
+                       st2
       <->
       interp_store_rel (a:=a)
                        phi
                        valu
-                       c1.(conf_buf)
-                       c2.(conf_buf)
+                       (snd (P4A.eval_op _ _ n st1 buf1 o))
+                       buf2
                        (fst (P4A.eval_op _ _ n st1 buf1 o))
-                       c2.(conf_store).
+                       st2.
   Proof.
     induction o.
     - intros.
@@ -913,57 +985,63 @@ Section WPProofs.
     - intros.
       destruct H0.
       autorewrite with eval_op.
-      destruct (P4A.eval_op _ _ (n + ConfRel.P4A.op_size o2) st1
+      rename n into excess.
+      destruct (P4A.eval_op _ _ (excess + ConfRel.P4A.op_size o2) st1
                             (rewrite_size
-                               (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 n o1
+                               (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 excess o1
                                                                              o2) buf1)
-                            o1) as [st1' n'] eqn:?.
-      destruct (ConfRel.P4A.eval_op H n2 n st1'
+                            o1) as [st1' buf_after_o1] eqn:?.
+      destruct (ConfRel.P4A.eval_op H n2 excess st1'
           (rewrite_size
-             (ConfRel.P4A.eval_op_obligations_obligation_2 H n2 n o2) n')
-          o2) as [st2' n''] eqn:?.
+             (ConfRel.P4A.eval_op_obligations_obligation_2 H n2 excess o2) buf_after_o1)
+          o2) as [st2' buf_after_o2] eqn:?.
       simpl (WP.wp_op' _ _ _).
       change (P4A.op_size (P4A.OpSeq o1 o2))
         with (P4A.op_size o1 + P4A.op_size o2).
-      destruct (WP.wp_op' Left o2 (n + (P4A.op_size o1 + P4A.op_size o2), phi)) as [wn' phi'] eqn:?.
-      assert (wn' = P4A.op_size o1 + n).
+      destruct (WP.wp_op' Left o2 (excess + (P4A.op_size o1 + P4A.op_size o2), phi)) as [wn' phi'] eqn:?.
+      assert (wn' = P4A.op_size o1 + excess).
       {
-        replace (n + (P4A.op_size o1 + P4A.op_size o2))
-          with (P4A.op_size o2 + (P4A.op_size o1 + n))
+        replace (excess + (P4A.op_size o1 + P4A.op_size o2))
+          with (P4A.op_size o2 + (P4A.op_size o1 + excess))
           in Heqp1
           by Lia.lia.
         eapply wp_op'_size.
         eauto.
       }
       subst wn'.
-      replace (P4A.op_size o1 + n)
-        with (n + P4A.op_size o1)
+      replace (P4A.op_size o1 + excess)
+        with (excess + P4A.op_size o1)
         by Lia.lia.
       simpl.
-      pose (buf1' := rewrite_size
-                       (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 n o1 o2)
-                       buf1).
-      assert (conf_buf c1 ~= buf1').
+      set (buf1' := rewrite_size
+                      (ConfRel.P4A.eval_op_obligations_obligation_1
+                         H n1 n2 excess o1 o2) buf1)
+        in *.
+      assert (buf1 ~= buf1').
       {
         eapply JMeq_trans; eauto using rewrite_size_jmeq.
       }
-      pose proof (IHo1 (n + n2) phi c1 s1 st1 buf1' c2) as IHo1'.
-      repeat specialize (IHo1' ltac:(eauto)).
-      (*rewrite IHo1'.*)
+      unfold P4A.op_size in *.
+      pose proof (IHo1 (excess + n2) phi st1 buf1' len2 buf2 st2 ltac:(auto)) as IHo1'.
+      rewrite Heqp in IHo1'.
+      simpl in *.
 
       admit.
     - simpl.
       intros.
-      simpl in *.
-      replace (n + P4A.op_size (P4A.OpExtract hdr) - projT1 hdr)
-        with n in *
-        by (destruct hdr; unfold P4A.op_size; simpl in *; Lia.lia).
       autorewrite with eval_op.
+      change ConfRel.P4A.HRVar with P4A.HRVar.
+      set (exp := (BESlice (BEBuf H c Left) (P4A.op_size (P4A.OpExtract hdr) - 1)
+               (P4A.op_size (P4A.OpExtract hdr) - projT1 hdr))).
+      destruct hdr.
+      rewrite sr_subst_hdr_left.
+
+      destruct (ConfRel.P4A.extract _ _) as (hdr_data, buf') eqn:?.
+      simpl.
       destruct hdr as [l hdr].
       simpl in *.
-      destruct (ConfRel.P4A.extract l n buf1) as [h buf] eqn:?.
-      simpl in *.
-      rewrite sr_subst_hdr_left; eauto.
+      change ConfRel.P4A.HRVar with P4A.HRVar.
+      pose proof (sr_subst_hdr_left _ valu _ hdr expr).
       reflexivity.
       autorewrite with interp_bit_expr.
       unfold P4A.op_size.
@@ -971,14 +1049,33 @@ Section WPProofs.
       admit. (* need lemma relating Syntax.extract to n_tuple_slice *)
     - simpl.
       unfold WP.wp_op, WP.wp_op'.
-      simpl.
       intros.
+      pose proof (expr_to_bit_expr_sound c Left valu n rhs c1 c2).
+      simpl in *.
+      destruct (P4A.eval_expr H n _ rhs) eqn:?.
+      assert (n = @be_size H c (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr Left rhs)).
+      {
+        inversion H4.
+        now apply v_inj in H7.
+      }
+      assert (n1 ~= interp_bit_expr (expr_to_bit_expr Left rhs) valu (conf_buf c1) 
+                 (conf_buf c2) (conf_store c1) (conf_store c2)).
+      {
+        revert H4.
+        generalize (interp_bit_expr (expr_to_bit_expr Left rhs) valu (conf_buf c1) 
+                                    (conf_buf c2) (conf_store c1) (conf_store c2)).
+        rewrite <- H5.
+        intros.
+        apply JMeq_eq in H4.
+        inversion H4.
+        subst.
+        reflexivity.
+      }
+      subst st1.
       rewrite sr_subst_hdr_left; eauto.
-      simpl.
-      (*
-      rewrite <- expr_to_bit_expr_sound.
+      autorewrite with eval_op.
+      rewrite Heqv.
       reflexivity.
-       *)
   Admitted.
 
   (*
