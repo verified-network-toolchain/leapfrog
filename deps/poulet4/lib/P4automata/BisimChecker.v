@@ -244,8 +244,11 @@ Ltac size_script :=
 
 Ltac crunch_foterm :=
   match goal with
-  | |- interp_fm _ ?g =>
+  | |- interp_fm ?v ?g =>
     let temp := fresh "temp" in set (temp := g);
+    vm_compute in temp;
+    subst temp;
+    let temp := fresh "temp1" in set (temp := v);
     vm_compute in temp;
     subst temp
   end.
@@ -261,11 +264,8 @@ Ltac verify_interp top top' :=
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct; simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; 
-      (* [
-        typeclasses eauto | 
-        typeclasses eauto 
-      |]; *)
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
 
       time "reduce goal" crunch_foterm;
 
@@ -302,7 +302,12 @@ Ltac close_bisim top' :=
     let H := fresh "H" in
     assert (H: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
       eapply simplify_entailment_correct' with (i := top');
-      eapply compile_simplified_entailment_correct'; simpl; intros;
+      eapply compile_simplified_entailment_correct'; 
+
+      
+      simpl; intros;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; 
       crunch_foterm;
       match goal with
       | |- ?X => time "smt check pos" check_interp_pos X; admit

@@ -49,7 +49,7 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   Declare ML Module "mirrorsolve".
-
+(* 
   ClearEnvCtors.
 
   RegisterEnvCtors
@@ -57,7 +57,7 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
+    (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32). *)
 
   Lemma prebisim_mpls_unroll:
     forall q1 q2,
@@ -86,7 +86,15 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-    
+    (* match goal with 
+    | |- pre_bisimulation _ ?wp _ _ (?a :: ?b :: ?c :: ?d :: ?e :: ?f :: ?g :: nil) _ _ =>
+      assert (pre_bisimulation A wp top [] (f :: a :: b :: c :: d :: e :: g :: nil) q1 q2 -> pre_bisimulation A wp top [] (a :: b :: c :: d :: e :: f :: g :: nil) q1 q2) by admit
+    end.
+    apply H0.
+
+    run_bisim top top' r_states.
+    run_bisim top top' r_states.
+    run_bisim top top' r_states. *)
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.

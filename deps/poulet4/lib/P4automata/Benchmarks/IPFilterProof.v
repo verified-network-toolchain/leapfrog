@@ -45,13 +45,8 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
-RegisterEnvCtors
-  (UDPCombined.HdrIP, FirstOrderConfRelSimplified.Bits 20)
-  (UDPCombined.HdrUDP, FirstOrderConfRelSimplified.Bits 20)
-  (UDPInterleaved.HdrIP, FirstOrderConfRelSimplified.Bits 20)
-  (UDPInterleaved.HdrUDP, FirstOrderConfRelSimplified.Bits 20).
 
-  Lemma prebisim_incremental_sep:
+Lemma prebisim_incremental_sep:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
                         cs_st1 := {|

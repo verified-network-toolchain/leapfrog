@@ -12,6 +12,8 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := (DataCenter.ParseEth0).
 Notation start_right := (DataCenter.ParseEth0).
 
+SetSMTSolver "cvc4".
+
 Notation r_len := 10.
 (* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
   match fuel with 
@@ -46,7 +48,7 @@ Definition r_states : list (Reachability.state_pair A) :=
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
-ClearEnvCtors.
+(* ClearEnvCtors. *)
 
 (* | HdrEth0: header eth_size
 | HdrEth1: header eth_size
@@ -61,7 +63,7 @@ ClearEnvCtors.
 | HdrNVGRE: header nv_gre_size
 | HdrVXLAN: header vxlan_size *)
 
-
+(* 
 RegisterEnvCtors
   (HdrEth0, FirstOrderConfRelSimplified.Bits eth_size)
   (HdrEth1, FirstOrderConfRelSimplified.Bits eth_size)
@@ -74,7 +76,9 @@ RegisterEnvCtors
   (HdrTCP, FirstOrderConfRelSimplified.Bits tcp_size)
   (HdrUDP, FirstOrderConfRelSimplified.Bits udp_size)
   (HdrNVGRE, FirstOrderConfRelSimplified.Bits nv_gre_size)
-  (HdrVXLAN, FirstOrderConfRelSimplified.Bits vxlan_size).
+  (HdrVXLAN, FirstOrderConfRelSimplified.Bits vxlan_size). *)
+
+
 
 Lemma prebisim_babyip:
   forall q1 q2,

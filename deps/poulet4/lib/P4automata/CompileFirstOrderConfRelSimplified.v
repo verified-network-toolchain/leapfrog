@@ -187,13 +187,80 @@ Section CompileFirstOrderConfRelSimplified.
       quantify compile_store_ctx (compile_fm f)
   }.
 
+  Equations compile_valu 
+    {c: ctx (FOS.sig H)} 
+    (v: valu (FOS.sig H) (FOS.fm_model a) c) 
+    : valu FOBV.sig FOBV.fm_model (compile_ctx c) := {
+    compile_valu (VEmp _ _) := VEmp _ _;
+    compile_valu (VSnoc _ _ (FOS.Bits n) _ _ vinner) := 
+      (* VSnoc _ _ _ _ _ (compile_valu vinner); *)
+      _;
+    compile_valu (VSnoc _ _ (FOS.Store) _ _ vinner) := 
+      _;
+  }.
+  Next Obligation.
+  Admitted.
+  Next Obligation.
+  Admitted.
+
+  Require Import Coq.Program.Equality.
+
   Lemma compile_simplified_fm_bv_correct:
-      forall c' v v' fm,
+      forall c v (fm : fm _ c),
 
         interp_fm (m := FOS.fm_model a) v fm <->
-        interp_fm (m := FOBV.fm_model) v' (compile_fm (c := c') fm)
+        interp_fm (m := FOBV.fm_model) (compile_valu v) (compile_fm (c := c) fm)
         .
   Proof.
-    intros.
   Admitted.
+    (* intros.
+    dependent induction fm;
+    autorewrite with compile_fm;
+    autorewrite with interp_fm;
+    try now (split; intros; trivial).
+    
+    - dependent destruction t; dependent destruction t0;
+      autorewrite with compile_tm;
+      dependent induction v.
+      + inversion v0.
+      + dependent destruction v0;
+        dependent destruction v1;
+        destruct s0;
+        induction c;
+        autorewrite with compile_var.
+        autorewrite with compile_ctx in *.
+        setoid_rewrite compile_var_equation_1.
+        admit.
+        (* split; intros.
+        autorewrite with compile_ctx.
+        unfold compile_ctx.
+        unfold compile_sort in *.
+        erewrite compile_var_equation_1.
+      + dependent induction v. split; intros H0;
+        destruct v0.
+
+        autorewrite with compile_var in *.
+        autorewrite with interp_tm in *.
+        autorewrite with interp_tm in H0.
+      + inversion v.
+      + admit.
+    - setoid_rewrite IHfm; typeclasses eauto || trivial.
+      split; intros; auto.
+    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
+      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
+      split; intros; auto.
+    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
+      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
+      split; intros; auto.
+    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
+      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
+      split; intros; auto.
+    - admit. *)
+  Admitted. *)
 End CompileFirstOrderConfRelSimplified.
+
+Register FOBV.Bits as p4a.sorts.bits.
+
+Register FOBV.BitsLit as p4a.funs.bitslit.
+Register FOBV.Concat as p4a.funs.concat.
+Register FOBV.Slice as p4a.funs.slice.

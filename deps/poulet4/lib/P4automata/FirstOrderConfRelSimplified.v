@@ -248,12 +248,12 @@ Register FImpl as p4a.core.impl.
 Register CEmp as p4a.core.cnil.
 Register CSnoc as p4a.core.csnoc.
 
-Register FirstOrderConfRelSimplified.Bits as p4a.sorts.bits.
+(* Register FirstOrderConfRelSimplified.Bits as p4a.sorts.bits. *)
 Register FirstOrderConfRelSimplified.Store as p4a.sorts.store.
 
-Register FirstOrderConfRelSimplified.BitsLit as p4a.funs.bitslit.
-Register FirstOrderConfRelSimplified.Concat as p4a.funs.concat.
-Register FirstOrderConfRelSimplified.Slice as p4a.funs.slice.
+(* Register FirstOrderConfRelSimplified.BitsLit as p4a.funs.bitslit. *)
+(* Register FirstOrderConfRelSimplified.Concat as p4a.funs.concat. *)
+(* Register FirstOrderConfRelSimplified.Slice as p4a.funs.slice. *)
 Register FirstOrderConfRelSimplified.Lookup as p4a.funs.lookup.
 
 Register HList.HNil as p4a.core.hnil.
