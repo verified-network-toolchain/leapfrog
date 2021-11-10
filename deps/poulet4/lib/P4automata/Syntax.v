@@ -76,6 +76,13 @@ Section Syntax.
   Solve All Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
 
+  Global Program Instance v_finite (n: nat): Finite (v n) :=
+    {| enum := List.map (VBits n) (enum (n_tuple bool n)) |}.
+  Next Obligation.
+  Admitted.
+  Next Obligation.
+  Admitted.
+
   Inductive typ :=
   | TBits (n: nat)
   | TPair (t1 t2: typ).
@@ -262,6 +269,17 @@ Section Interp.
 
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
+
+  Lemma slice_len:
+    forall A hi lo (l: list A),
+      length (slice l hi lo) = Nat.min (1 + hi) (length l) - lo.
+  Proof.
+    unfold slice.
+    intros.
+    rewrite List.skipn_length.
+    rewrite List.firstn_length.
+    reflexivity.
+  Qed.
 
   Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;

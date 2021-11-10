@@ -893,9 +893,15 @@ Section WPProofs.
   Qed.
 
   Lemma expr_to_bit_expr_sound:
-    forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n) (c1 c2: conf),
-      P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr ~=
-      P4A.VBits _ (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si expr) valu c1.(conf_buf) c2.(conf_buf) c1.(conf_store) c2.(conf_store)).
+    forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n)
+      bs1
+      (buf1: n_tuple bool bs1)
+      st1
+      bs2
+      (buf2: n_tuple bool bs2)
+      st2,
+      P4A.eval_expr H n (pick si (st1, st2)) expr ~=
+      P4A.VBits _ (interp_bit_expr (a:=a) (WP.expr_to_bit_expr si expr) valu buf1 buf2 st1 st2).
   Proof.
     assert (Hv: forall n v, P4A.VBits n (match v with P4A.VBits _ v' => v' end) = v).
     {
@@ -921,23 +927,19 @@ Section WPProofs.
       reflexivity.
     - simpl (expr_to_bit_expr _ _).
       autorewrite with eval_expr interp_bit_expr in *.
-      assert (P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr ~=
+      assert (P4A.eval_expr H n (pick si (st1, st2)) expr ~=
            P4A.VBits
-             (be_size (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr si expr))
-             (interp_bit_expr (expr_to_bit_expr si expr) valu (conf_buf c1) 
-                              (conf_buf c2) (conf_store c1) (conf_store c2)))
+             (be_size bs1 bs2 (expr_to_bit_expr si expr))
+             (interp_bit_expr (expr_to_bit_expr si expr) valu buf1 buf2 st1 st2))
         by auto.
-      destruct (P4A.eval_expr H n (conf_store (pick si (c1, c2))) expr) eqn:?.
+      destruct (P4A.eval_expr H n (pick si (st1, st2)) expr) eqn:?.
       rename n0 into val_e.
       generalize dependent val_e.
-      generalize (interp_bit_expr (expr_to_bit_expr si expr) valu
-                                  (conf_buf c1)
-                                  (conf_buf c2)
-                                  (conf_store c1)
-                                  (conf_store c2))
+      generalize (interp_bit_expr (a:=a) (expr_to_bit_expr si expr) valu
+                                  buf1 buf2 st1 st2)
         as val.
       simpl be_size.
-      generalize (@be_size H c (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr si expr)) as sz.
+      generalize (@be_size H c bs1 bs2 (expr_to_bit_expr si expr)) as sz.
       intros sz.
       change (match sz with
               | 0 => 0
@@ -971,7 +973,7 @@ Section WPProofs.
       interp_store_rel (a:=a)
                        phi
                        valu
-                       (snd (P4A.eval_op _ _ n st1 buf1 o))
+                       buf1 
                        buf2
                        (fst (P4A.eval_op _ _ n st1 buf1 o))
                        st2.
@@ -1031,47 +1033,38 @@ Section WPProofs.
       intros.
       autorewrite with eval_op.
       change ConfRel.P4A.HRVar with P4A.HRVar.
-      set (exp := (BESlice (BEBuf H c Left) (P4A.op_size (P4A.OpExtract hdr) - 1)
-               (P4A.op_size (P4A.OpExtract hdr) - projT1 hdr))).
       destruct hdr.
-      rewrite sr_subst_hdr_left.
-
       destruct (ConfRel.P4A.extract _ _) as (hdr_data, buf') eqn:?.
-      simpl.
-      destruct hdr as [l hdr].
       simpl in *.
-      change ConfRel.P4A.HRVar with P4A.HRVar.
-      pose proof (sr_subst_hdr_left _ valu _ hdr expr).
+      rewrite sr_subst_hdr_left with (w:=hdr_data); eauto.
       reflexivity.
       autorewrite with interp_bit_expr.
       unfold P4A.op_size.
-      simpl (P4A.op_size _).
+      unfold n_tuple_slice.
       admit. (* need lemma relating Syntax.extract to n_tuple_slice *)
     - simpl.
       unfold WP.wp_op, WP.wp_op'.
       intros.
-      pose proof (expr_to_bit_expr_sound c Left valu n rhs c1 c2).
+      pose proof (expr_to_bit_expr_sound c Left valu n rhs n0 buf1 st1 len2 buf2 st2).
       simpl in *.
       destruct (P4A.eval_expr H n _ rhs) eqn:?.
-      assert (n = @be_size H c (conf_buf_len c1) (conf_buf_len c2) (expr_to_bit_expr Left rhs)).
+      assert (n = @be_size H c n0 len2 (expr_to_bit_expr Left rhs)).
       {
-        inversion H4.
-        now apply v_inj in H7.
+        inversion H1.
+        apply v_inj; eauto.
       }
-      assert (n1 ~= interp_bit_expr (expr_to_bit_expr Left rhs) valu (conf_buf c1) 
-                 (conf_buf c2) (conf_store c1) (conf_store c2)).
+      assert (n1 ~= interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu
+                    buf1 buf2 st1 st2).
       {
-        revert H4.
-        generalize (interp_bit_expr (expr_to_bit_expr Left rhs) valu (conf_buf c1) 
-                                    (conf_buf c2) (conf_store c1) (conf_store c2)).
-        rewrite <- H5.
+        revert H1.
+        generalize (interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu buf1 buf2 st1 st2). 
+        rewrite <- H2.
         intros.
-        apply JMeq_eq in H4.
-        inversion H4.
+        apply JMeq_eq in H1.
+        inversion H1.
         subst.
         reflexivity.
       }
-      subst st1.
       rewrite sr_subst_hdr_left; eauto.
       autorewrite with eval_op.
       rewrite Heqv.
