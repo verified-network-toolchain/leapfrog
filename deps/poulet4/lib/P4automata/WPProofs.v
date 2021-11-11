@@ -1770,6 +1770,24 @@ Section WPProofs.
         destruct n0.
         eapply interp_store_rel_congr; try eapply H1; eauto.
         * (* need lemma saying that conf_store is eval_op after a transition *)
+          assert (full_buf: n_tuple bool (size' _ (conf_state q1))).
+          admit.
+          assert (full_buf ~= n_tuple_concat (conf_buf q1) (l2t bs)).
+          admit.
+          assert (full_buf': n_tuple bool (size' _ (inl s))).
+          admit.
+          assert (full_buf' ~= full_buf).
+          admit.
+          subst q1'.
+          erewrite conf_store_follow_transition; eauto.
+          replace (update' (P4A.interp a) (conf_state q1) full_buf (conf_store q1))
+            with (update' (P4A.interp a) (inl s) full_buf' (conf_store q1)).
+          autorewrite with update'.
+          simpl.
+          unfold P4A.update.
+          apply eval_op_congr; eauto.
+          unfold buf'', rewrite_size, eq_rect_r.
+          admit.
           admit.
         * (* need lemma saying if cur |= q1' then jump_cond is true *)
           admit.
