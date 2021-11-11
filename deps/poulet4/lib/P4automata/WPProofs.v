@@ -115,17 +115,6 @@ Section WPProofs.
   Proof.
   Admitted.
 
-  Lemma slice_n_tuple_slice_eq:
-    forall A (l: list A) hi lo,
-      JMeq (l2t (ConfRel.P4A.slice l hi lo)) (Ntuple.n_tuple_slice hi lo (l2t l)).
-  Proof.
-    intros.
-    unfold Ntuple.n_tuple_slice.
-    unfold ConfRel.P4A.slice.
-    rewrite skipn_n_tuple_skip_n_eq.
-    (* need lemma about take_n/firstn *)
-  Admitted.
-
   Lemma t2l_fibration:
     forall n m (t1: n_tuple bool n) (t2: n_tuple bool m),
      t2l t1 = t2l t2 ->
@@ -173,6 +162,17 @@ Section WPProofs.
     unfold n_tuple_slice.
     unfold P4A.slice.
     now rewrite t2l_n_tuple_skip_n, t2l_n_tuple_take_n.
+  Qed.
+
+  Lemma slice_n_tuple_slice_eq:
+    forall (l: list bool) hi lo,
+      l2t (ConfRel.P4A.slice l hi lo) ~=
+      n_tuple_slice hi lo (l2t l).
+  Proof.
+    intros.
+    replace l with (t2l (l2t l)) by (now rewrite t2l_l2t).
+    rewrite <- t2l_n_tuple_slice.
+    now rewrite l2t_t2l, t2l_l2t.
   Qed.
 
   Lemma beslice_interp:
