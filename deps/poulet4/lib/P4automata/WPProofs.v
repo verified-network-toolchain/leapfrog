@@ -959,11 +959,102 @@ Section WPProofs.
       admit.
   Admitted.
 
+  Lemma interp_store_rel_congr:
+    forall c phi valu len1 len1'
+      (buf1: n_tuple bool len1)
+      (buf1': n_tuple bool len1')
+      len2 len2' 
+      (buf2: n_tuple bool len2)
+      (buf2': n_tuple bool len2')
+      st1 st1' st2 st2',
+      buf1 ~= buf1' ->
+      buf2 ~= buf2' ->
+      st1 = st1' ->
+      st2 = st2' ->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1 buf2 st1 st2 <->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1' buf2' st1' st2'.
+  Proof.
+    intros.
+    assert (len1 = len1').
+    {
+      inversion H0.
+      apply n_tuple_inj.
+      auto.
+    }
+    assert (len2 = len2').
+    {
+      inversion H1.
+      apply n_tuple_inj.
+      auto.
+    }
+    subst len1'.
+    subst len2'.
+    rewrite H0, H1, H2, H3.
+    reflexivity.
+  Qed.
+
+  Lemma interp_bit_expr_congr_buf1:
+    forall c (e: bit_expr H c) valu l1 l1' l2 (buf1: n_tuple bool l1) (buf1': n_tuple bool l1') (buf2: n_tuple bool l2) st1 st2,
+      buf1 ~= buf1' ->
+      interp_bit_expr (a:=a) e valu buf1 buf2 st1 st2 ~=
+      interp_bit_expr (a:=a) e valu buf1' buf2 st1 st2.
+  Proof.
+  Admitted.
+
+  Lemma n_tuple_skip_n_congr:
+    forall n l1 l2 (x: n_tuple bool l1) (y: n_tuple bool l2),
+      x ~= y ->
+      n_tuple_skip_n n x ~= n_tuple_skip_n n y.
+  Proof.
+    intros.
+    inversion H0.
+    apply n_tuple_inj in H2.
+    subst l2.
+    apply JMeq_eq in H0.
+    subst.
+    reflexivity.
+  Qed.
+
+  Lemma n_tuple_take_all:
+    forall {A: Type} n (x: n_tuple A n),
+      n_tuple_take_n n x ~= x.
+  Proof.
+    intros.
+    unfold n_tuple_take_n.
+    eapply JMeq_trans.
+    - eapply rewrite_size_jmeq.
+    - assert (n = length (t2l x)) by eauto using t2l_len.
+      rewrite <- (l2t_t2l _ _ x).
+      revert H0.
+      generalize (t2l x).
+      intros; subst.
+      rewrite firstn_all.
+      reflexivity.
+  Qed.
+
+  Lemma eval_op_congr:
+    forall (st: P4A.store H)
+      l
+      (buf: n_tuple bool l)
+      (op: P4A.op H l)
+      st'
+      l'
+      (buf': n_tuple bool l')
+      (op': P4A.op H l'),
+      st = st' ->
+      buf ~= buf' ->
+      op ~= op' ->
+      P4A.eval_op H st buf op = P4A.eval_op H st' buf' op'.
+  Proof.
+  Admitted.
+
   Lemma wp_op'_spec_l:
-    forall c (valu: bval c) sz (o: P4A.op H sz) n phi st1 (buf1: n_tuple bool (sz + n)) len2 (buf2: n_tuple bool len2) st2,
+    forall c (valu: bval c) sz (o: P4A.op H sz) n m phi st1 
+      (buf1: n_tuple bool (n + sz + m)) (buf1': n_tuple bool sz) len2 (buf2: n_tuple bool len2) st2,
       P4A.nonempty o ->
+      buf1' ~= n_tuple_take_n sz (n_tuple_skip_n n buf1) ->
       interp_store_rel (a:=a)
-                       (snd (WP.wp_op' Left o (P4A.op_size o, phi)))
+                       (snd (WP.wp_op' Left o (n + sz, phi)))
                        valu
                        buf1
                        buf2
@@ -973,9 +1064,9 @@ Section WPProofs.
       interp_store_rel (a:=a)
                        phi
                        valu
-                       buf1 
+                       buf1
                        buf2
-                       (fst (P4A.eval_op _ _ n st1 buf1 o))
+                       (P4A.eval_op _ st1 buf1' o)
                        st2.
   Proof.
     induction o.
@@ -985,84 +1076,116 @@ Section WPProofs.
       subst.
       reflexivity.
     - intros.
-      destruct H0.
-      autorewrite with eval_op.
-      rename n into excess.
-      destruct (P4A.eval_op _ _ (excess + ConfRel.P4A.op_size o2) st1
-                            (rewrite_size
-                               (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 excess o1
-                                                                             o2) buf1)
-                            o1) as [st1' buf_after_o1] eqn:?.
-      destruct (ConfRel.P4A.eval_op H n2 excess st1'
-          (rewrite_size
-             (ConfRel.P4A.eval_op_obligations_obligation_2 H n2 excess o2) buf_after_o1)
-          o2) as [st2' buf_after_o2] eqn:?.
-      simpl (WP.wp_op' _ _ _).
-      change (P4A.op_size (P4A.OpSeq o1 o2))
-        with (P4A.op_size o1 + P4A.op_size o2).
-      destruct (WP.wp_op' Left o2 (excess + (P4A.op_size o1 + P4A.op_size o2), phi)) as [wn' phi'] eqn:?.
-      assert (wn' = P4A.op_size o1 + excess).
-      {
-        replace (excess + (P4A.op_size o1 + P4A.op_size o2))
-          with (P4A.op_size o2 + (P4A.op_size o1 + excess))
-          in Heqp1
-          by Lia.lia.
-        eapply wp_op'_size.
-        eauto.
-      }
-      subst wn'.
-      replace (P4A.op_size o1 + excess)
-        with (excess + P4A.op_size o1)
+      rewrite wp_op'_seq.
+      destruct (wp_op' Left o2 _) as [n' phi'] eqn:?.
+      replace (n + (n1 + n2)) with (n2 + (n + n1))
+        in Heqp by Lia.lia.
+      pose proof Heqp as Hn'.
+      apply wp_op'_size in Hn'.
+      subst n'.
+      assert (Hsz1: n + n1 + (n2 + m) = n + (n1 + n2) + m)
         by Lia.lia.
-      simpl.
-      set (buf1' := rewrite_size
-                      (ConfRel.P4A.eval_op_obligations_obligation_1
-                         H n1 n2 excess o1 o2) buf1)
-        in *.
-      assert (buf1 ~= buf1').
+      pose (rewrite_size Hsz1 buf1) as ibuf1.
+      assert (Hsz1': n1 = Nat.min n1 (n + n1 + (n2 + m) - n))
+        by Lia.lia.
+      pose (rewrite_size Hsz1' (n_tuple_take_n n1 (n_tuple_skip_n n ibuf1))) as ibuf1'.
+      assert (Hibuf1': ibuf1' ~= n_tuple_take_n n1 (n_tuple_skip_n n ibuf1))
+        by apply rewrite_size_jmeq.
+      destruct H0.
+      pose proof (IHo1 _ _ phi' st1 ibuf1 ibuf1' _ buf2 st2 ltac:(auto) ltac:(auto))
+        as IHo1'.
+      eapply iff_trans.
+      eapply interp_store_rel_congr with (buf1' := ibuf1);
+        eauto using rewrite_size_jmeq.
+      rewrite IHo1'.
+      autorewrite with eval_op.
+      unfold P4A.op_size.
+      set (st1' := @ConfRel.P4A.eval_op H equiv1 H'_eq_dec n1 st1
+          (@rewrite_size bool (Nat.min n1 (n1 + n2)) n1
+             (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 o1)
+             (@n_tuple_take_n bool (n1 + n2) n1 buf1')) o1).
+      assert (Hsz2: n + n1 + n2 + m = n + (n1 + n2) + m) by Lia.lia.
+      pose (ibuf2 := rewrite_size Hsz2 buf1).
+      assert (Hsz2': n2 = Nat.min n2 (n + n1 + n2 + m - (n + n1))) by Lia.lia.
+      pose (ibuf2' := rewrite_size Hsz2' (n_tuple_take_n n2 (n_tuple_skip_n (n + n1) ibuf2))).
+      assert (Hibuf2': ibuf2' ~= n_tuple_take_n n2 (n_tuple_skip_n (n + n1) ibuf2))
+        by apply rewrite_size_jmeq.
+      pose proof (IHo2 (n + n1) m phi st1' ibuf2 ibuf2' _ buf2 st2 ltac:(auto) Hibuf2') as IHo2'.
+      replace (n2 + (n + n1))
+        with (n + n1 + n2)
+        in Heqp by Lia.lia.
+      rewrite Heqp in IHo2'.
+      assert (Hst1': st1' ~= ConfRel.P4A.eval_op H st1 ibuf1' o1).
       {
-        eapply JMeq_trans; eauto using rewrite_size_jmeq.
+        admit.
       }
-      unfold P4A.op_size in *.
-      pose proof (IHo1 (excess + n2) phi st1 buf1' len2 buf2 st2 ltac:(auto)) as IHo1'.
-      rewrite Heqp in IHo1'.
-      simpl in *.
-
-      admit.
+      assert (Hibufs: ibuf1 ~= ibuf2).
+      {
+        admit.
+      }
+      eapply iff_trans.
+      eapply interp_store_rel_congr; try eapply Hibufs; eauto.
+      rewrite Hst1' in IHo2'.
+      simpl in IHo2'.
+      rewrite IHo2'.
+      eapply interp_store_rel_congr; eauto.
+      + admit.
+      + eapply eval_op_congr; eauto.
+        * unfold st1'.
+          eapply eval_op_congr; eauto.
+          rewrite rewrite_size_jmeq.
+          rewrite Hibuf1'.
+          unfold ibuf1.
+          eapply JMeq_trans
+            with (y := n_tuple_take_n n1 (n_tuple_take_n (n1 + n2) (n_tuple_skip_n n buf1))).
+          admit.
+          admit.
+        * unfold ibuf2'.
+          rewrite !rewrite_size_jmeq.
+          eapply JMeq_trans
+            with (y := n_tuple_skip_n n1 (n_tuple_take_n (n1 + n2) (n_tuple_skip_n n buf1))).
+          admit.
+          admit.
     - simpl.
       intros.
       autorewrite with eval_op.
       change ConfRel.P4A.HRVar with P4A.HRVar.
       destruct hdr.
-      destruct (ConfRel.P4A.extract _ _) as (hdr_data, buf') eqn:?.
       simpl in *.
-      rewrite sr_subst_hdr_left with (w:=hdr_data); eauto.
+      rewrite sr_subst_hdr_left with (w:=buf1'); eauto.
       reflexivity.
       autorewrite with interp_bit_expr.
-      unfold P4A.op_size.
       unfold n_tuple_slice.
-      admit. (* need lemma relating Syntax.extract to n_tuple_slice *)
+      replace (n + x - x) with n by Lia.lia.
+      rewrite H1.
+      apply JMeq_trans
+        with (y := n_tuple_skip_n n (n_tuple_take_n (n + x) buf1)).
+      + admit.
+      + eapply n_tuple_skip_n_congr; auto.
+        replace (1 + (n + x - 1)) with (n + x) by Lia.lia.
+        reflexivity.
     - simpl.
-      unfold WP.wp_op, WP.wp_op'.
       intros.
-      pose proof (expr_to_bit_expr_sound c Left valu n rhs n0 buf1 st1 len2 buf2 st2).
+      pose proof (expr_to_bit_expr_sound c Left valu n rhs _ buf1 st1 len2 buf2 st2).
       simpl in *.
       destruct (P4A.eval_expr H n _ rhs) eqn:?.
-      assert (n = @be_size H c n0 len2 (expr_to_bit_expr Left rhs)).
+      assert (n = @be_size H c (n0 + 0 + m) len2 (expr_to_bit_expr Left rhs)).
       {
-        inversion H1.
+        inversion H2.
         apply v_inj; eauto.
       }
-      assert (n1 ~= interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu
-                    buf1 buf2 st1 st2).
+      assert (n1 ~= interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu buf1 buf2 st1 st2).
       {
-        revert H1.
-        generalize (interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu buf1 buf2 st1 st2). 
-        rewrite <- H2.
+        revert H2.
+        generalize (interp_bit_expr (a:=a) (expr_to_bit_expr Left rhs) valu buf1 buf2 st1 st2).
+        generalize (be_size (c:=c) (n0 + 0 + m) len2 (expr_to_bit_expr Left rhs)).
         intros.
-        apply JMeq_eq in H1.
-        inversion H1.
+        inversion H2.
         subst.
+        apply v_inj in H5.
+        subst.
+        apply JMeq_eq in H2.
+        inversion H2.
         reflexivity.
       }
       rewrite sr_subst_hdr_left; eauto.

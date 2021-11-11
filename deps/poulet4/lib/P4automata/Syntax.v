@@ -293,27 +293,24 @@ Section Interp.
         VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
-  Equations extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess := {
-    extract 0 _ l := (tt, l);
-    extract (Datatypes.S n) _ (l, a) :=
-      let '(l1, l2) := extract n _ l in ((l1, a), l2)
-  }.
+  Program Definition extract {A} (excess n: nat) (l: n_tuple A (excess + n)) : n_tuple A n :=
+    rewrite_size _ (n_tuple_skip_n excess l).
+  Next Obligation.
+    Lia.lia.
+  Qed.
 
-  Equations eval_op (sz excess: nat) (st: store) (bits: n_tuple bool (sz + excess)) (o: op H sz) : store * n_tuple bool excess :=
+  Equations eval_op {sz: nat} (st: store) (bits: n_tuple bool sz) (o: op H sz) : store :=
     {
-      eval_op _ _ st bits (OpNil _) := (st, bits);
-      eval_op _ _ st bits (OpSeq o1 o2) :=
-        let '(st, buf') := eval_op (op_size o1)
-                                   (excess + op_size o2)
-                                   st
-                                   (rewrite_size _ bits)
-                                   o1 in
-        eval_op _ excess st (rewrite_size _ buf') o2;
-      eval_op sz excess st bits (OpExtract hdr) :=
-        let (h, buf) := extract _ excess bits in
-        (assign (projT2 hdr) (VBits _ h) st, buf);
-      eval_op _ _ st bits (OpAsgn hdr expr) :=
-        (assign hdr (eval_expr _ st expr) st, bits)
+      eval_op st bits (OpNil _) :=
+        st;
+      eval_op st bits (OpExtract hdr) :=
+        assign (projT2 hdr) (VBits _ bits) st;
+      eval_op st bits (OpSeq o1 o2) :=
+        let bits' := n_tuple_take_n (op_size o1) bits in
+        let st := eval_op st (rewrite_size _ bits') o1 in
+        eval_op st (rewrite_size _ (n_tuple_skip_n (op_size o1) bits)) o2;
+      eval_op st bits (OpAsgn hdr expr) :=
+        assign hdr (eval_expr _ st expr) st
     }.
   Next Obligation.
     unfold op_size.
@@ -329,12 +326,10 @@ Section Interp.
     (bits: n_tuple bool (st_size (t_states a state)))
     (st: store)
     : store :=
-    fst (eval_op (st_size (t_states a state))
-                 0
-                 st
-                 (* Deal with conversion of n-tuple to (n+0)-tuple *)
-                 (eq_rect _ _ bits _ (plus_n_O _))
-                 (a.(t_states) state).(st_op)).
+    eval_op st
+            (* Deal with conversion of n-tuple to (n+0)-tuple *)
+            (eq_rect _ _ bits _ (plus_O_n _))
+            (a.(t_states) state).(st_op).
 
   Equations match_pat {T: typ} (st: store) (c: cond H T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
