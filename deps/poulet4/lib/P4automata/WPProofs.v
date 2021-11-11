@@ -140,12 +140,15 @@ Section WPProofs.
       t2l (n_tuple_take_n m t) = firstn m (t2l t).
   Proof.
     intros.
-    induction m.
-    - reflexivity.
-    - induction n.
-      + reflexivity.
-      + destruct t.
-  Admitted.
+    unfold n_tuple_take_n.
+    generalize (Ntuple.n_tuple_take_n_obligation_1 bool n m t).
+    generalize (Nat.min m n).
+    intros.
+    subst.
+    rewrite rewrite_size_eq.
+    rewrite t2l_l2t.
+    reflexivity.
+  Qed.
 
   Lemma t2l_n_tuple_skip_n:
     forall n m (t: n_tuple bool n),
@@ -1657,8 +1660,69 @@ Section WPProofs.
       destruct (conf_state q1) eqn:Hst.
       + destruct H3 as [Hlen | [b' [Hst' Hlen]]];
           [|congruence].
-        (* need lemmas about wp_op and jump_cond *)
-        admit.
+        unfold wp_op in H1.
+        set (o := (ConfRel.P4A.st_op (ConfRel.P4A.t_states a s))) in *.
+        set (n := P4A.st_size (P4A.t_states a s)) in *.
+        unfold P4A.op_size in *.
+        set (phi' := brimpl (jump_cond Left prev cur)
+                           (sr_subst phi (BELit H c nil) (BEBuf H c Left))) in *.
+        change n with (0 + n) in H1.
+        remember (n_tuple_concat (conf_buf q1) (interp_bvar valu b)) as buf.
+        unfold configuration_room_left in Hlen.
+        rewrite Hst in Hlen.
+        autorewrite with size' in Hlen.
+        simpl in Hlen.
+        assert (Hsz': 0 + P4A.size a s + 0 = conf_buf_len q1 + check_bvar b).
+        {
+          rewrite Hlen.
+          pose proof (conf_buf_sane q1).
+          rewrite Hst in *.
+          autorewrite with size' in *.
+          unfold size in *.
+          simpl in *.
+          Lia.lia.
+        }
+        pose (buf' := rewrite_size Hsz' buf).
+        unfold P4A.size in buf'.
+        assert (Hsz'': n = Nat.min n (0 + P4A.state_size (P4A.t_states a s) + 0 - 0)).
+        {
+          subst n.
+          simpl.
+          unfold P4A.state_size.
+          Lia.lia.
+        }
+        pose (buf'' := rewrite_size Hsz'' (n_tuple_take_n n (n_tuple_skip_n 0 buf'))).
+        assert (P4A.nonempty o) by eauto using P4A.t_nonempty.
+        pose proof (wp_op'_spec_l c valu n o 0 0 phi' (conf_store q1) buf' buf'' _ (conf_buf q2) (conf_store q2)) as wp_op'_spec.
+        specialize (wp_op'_spec ltac:(auto)).
+        specialize (wp_op'_spec ltac:(eauto using rewrite_size_jmeq)).
+        eapply interp_store_rel_congr in H1;
+          [eapply wp_op'_spec in H1 | | | |];
+          eauto;
+          [|subst; now eauto using rewrite_size_jmeq].
+        unfold phi' in H1.
+        rewrite <- brimpl_corr in H1.
+        autorewrite with interp_store_rel in H1.
+        rewrite sr_subst_buf in H1; simpl; eauto.
+        simpl in H1.
+        autorewrite with interp_bit_expr in *.
+        simpl (l2t nil) in *.
+        assert (conf_buf_len q1 + length bs = size' (P4A.interp a) (conf_state q1)).
+        { admit. }
+        assert (Hnil: conf_buf_len q1' = 0).
+        {
+          subst q1'.
+          eapply conf_buf_len_follow_transition; eauto.
+        }
+        generalize (conf_buf q1').
+        rewrite Hnil.
+        intros.
+        destruct n0.
+        eapply interp_store_rel_congr; try eapply H1; eauto.
+        * (* need lemma saying that conf_store is eval_op after a transition *)
+          admit.
+        * (* need lemma saying if cur |= q1' then jump_cond is true *)
+          admit.
       + assert (Hbs: length bs > 0).
         {
           pose proof (conf_room_nonzero q1).
@@ -1688,7 +1752,8 @@ Section WPProofs.
         intros buf'.
         destruct buf'.
         auto.
-    - admit.
+    - (* duplicate above proof with everything swapped from left to right here *)
+      admit.
   Admitted.
 
   Lemma wp_lpred_pair_safe:
