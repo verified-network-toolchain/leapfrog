@@ -154,7 +154,16 @@ Section WPProofs.
     forall n m (t: n_tuple bool n),
       t2l (n_tuple_skip_n m t) = skipn m (t2l t).
   Proof.
-  Admitted.
+    intros.
+    unfold n_tuple_skip_n.
+    generalize (Ntuple.n_tuple_skip_n_obligation_1 bool n m t).
+    generalize (n - m).
+    intros.
+    subst.
+    rewrite rewrite_size_eq.
+    rewrite t2l_l2t.
+    reflexivity.
+  Qed.
 
   Lemma t2l_n_tuple_slice:
     forall n hi lo (t: n_tuple bool n),
@@ -1742,7 +1751,14 @@ Section WPProofs.
         autorewrite with interp_bit_expr in *.
         simpl (l2t nil) in *.
         assert (conf_buf_len q1 + length bs = size' (P4A.interp a) (conf_state q1)).
-        { admit. }
+        {
+          rewrite Hst.
+          autorewrite with size'.
+          unfold size; simpl.
+          subst bs.
+          rewrite t2l_len.
+          Lia.lia.
+        }
         assert (Hnil: conf_buf_len q1' = 0).
         {
           subst q1'.
