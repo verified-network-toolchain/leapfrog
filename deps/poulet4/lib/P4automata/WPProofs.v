@@ -920,6 +920,71 @@ Section WPProofs.
     eapply PeanoNat.Nat.pow_inj_r; eauto.
   Qed.
 
+  Lemma interp_store_rel_congr:
+    forall c phi valu len1 len1'
+      (buf1: n_tuple bool len1)
+      (buf1': n_tuple bool len1')
+      len2 len2' 
+      (buf2: n_tuple bool len2)
+      (buf2': n_tuple bool len2')
+      st1 st1' st2 st2',
+      buf1 ~= buf1' ->
+      buf2 ~= buf2' ->
+      st1 = st1' ->
+      st2 = st2' ->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1 buf2 st1 st2 <->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1' buf2' st1' st2'.
+  Proof.
+    intros.
+    assert (len1 = len1').
+    {
+      inversion H0.
+      apply n_tuple_inj.
+      auto.
+    }
+    assert (len2 = len2').
+    {
+      inversion H1.
+      apply n_tuple_inj.
+      auto.
+    }
+    subst len1'.
+    subst len2'.
+    rewrite H0, H1, H2, H3.
+    reflexivity.
+  Qed.
+
+  Lemma interp_bit_expr_congr_buf1:
+    forall c (e: bit_expr H c) valu l1 l1' l2 (buf1: n_tuple bool l1) (buf1': n_tuple bool l1') (buf2: n_tuple bool l2) st1 st2,
+      buf1 ~= buf1' ->
+      interp_bit_expr (a:=a) e valu buf1 buf2 st1 st2 ~=
+      interp_bit_expr (a:=a) e valu buf1' buf2 st1 st2.
+  Proof.
+  Admitted.
+
+  Lemma vbits_congr:
+    forall n n' (v: n_tuple bool n) (v': n_tuple bool n'),
+      v ~= v' ->
+      P4A.VBits n v ~= P4A.VBits n' v'.
+  Proof.
+  Admitted.
+
+  Lemma vbits_inv:
+    forall n n' (v: n_tuple bool n) (v': n_tuple bool n'),
+      P4A.VBits n v ~= P4A.VBits n' v' ->
+      v ~= v'.
+  Proof.
+  Admitted.
+
+  Lemma n_tuple_concat_congr:
+    forall n1 n1' (v1: n_tuple bool n1) (v1': n_tuple bool n1')
+      n2 n2' (v2: n_tuple bool n2) (v2': n_tuple bool n2'),
+      v1 ~= v1' ->
+      v2 ~= v2' ->
+      n_tuple_concat v1 v2 ~= n_tuple_concat v1' v2'.
+  Proof.
+  Admitted.
+
   Lemma expr_to_bit_expr_sound:
     forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n)
       bs1
@@ -984,50 +1049,19 @@ Section WPProofs.
       reflexivity.
     - autorewrite with eval_expr in *.
       autorewrite with interp_bit_expr in *.
-      admit.
-  Admitted.
-
-  Lemma interp_store_rel_congr:
-    forall c phi valu len1 len1'
-      (buf1: n_tuple bool len1)
-      (buf1': n_tuple bool len1')
-      len2 len2' 
-      (buf2: n_tuple bool len2)
-      (buf2': n_tuple bool len2')
-      st1 st1' st2 st2',
-      buf1 ~= buf1' ->
-      buf2 ~= buf2' ->
-      st1 = st1' ->
-      st2 = st2' ->
-      interp_store_rel (a:=a) (c:=c) phi valu buf1 buf2 st1 st2 <->
-      interp_store_rel (a:=a) (c:=c) phi valu buf1' buf2' st1' st2'.
-  Proof.
-    intros.
-    assert (len1 = len1').
-    {
-      inversion H0.
-      apply n_tuple_inj.
-      auto.
-    }
-    assert (len2 = len2').
-    {
-      inversion H1.
-      apply n_tuple_inj.
-      auto.
-    }
-    subst len1'.
-    subst len2'.
-    rewrite H0, H1, H2, H3.
-    reflexivity.
+      destruct (P4A.eval_expr H n (pick si (st1, st2)) expr1) eqn:?.
+      destruct (P4A.eval_expr H m (pick si (st1, st2)) expr2) eqn:?.
+      simpl.
+      eapply vbits_congr.
+      autorewrite with interp_bit_expr.
+      eapply n_tuple_concat_congr.
+      + eapply vbits_inv.
+        rewrite <- Heqv.
+        eapply IHexpr1.
+      + eapply vbits_inv.
+        rewrite <- Heqv0.
+        eapply IHexpr2.
   Qed.
-
-  Lemma interp_bit_expr_congr_buf1:
-    forall c (e: bit_expr H c) valu l1 l1' l2 (buf1: n_tuple bool l1) (buf1': n_tuple bool l1') (buf2: n_tuple bool l2) st1 st2,
-      buf1 ~= buf1' ->
-      interp_bit_expr (a:=a) e valu buf1 buf2 st1 st2 ~=
-      interp_bit_expr (a:=a) e valu buf1' buf2 st1 st2.
-  Proof.
-  Admitted.
 
   Lemma n_tuple_skip_n_congr:
     forall n l1 l2 (x: n_tuple bool l1) (y: n_tuple bool l2),
