@@ -266,6 +266,9 @@ Ltac verify_interp top top' :=
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+      [
+        typeclasses eauto | typeclasses eauto
+      |];
 
       time "reduce goal" crunch_foterm;
 
@@ -308,6 +311,10 @@ Ltac close_bisim top' :=
       simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; 
+      [
+        typeclasses eauto | typeclasses eauto
+      |];
+      
       crunch_foterm;
       match goal with
       | |- ?X => time "smt check pos" check_interp_pos X; admit

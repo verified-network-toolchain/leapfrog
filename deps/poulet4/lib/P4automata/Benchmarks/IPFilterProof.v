@@ -45,6 +45,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+SetSMTSolver "cvc4".
 
 Lemma prebisim_incremental_sep:
   forall q1 q2,
@@ -75,7 +76,10 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
+  
+
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
+
   time "close phase" close_bisim top'.
 
 Time Admitted.

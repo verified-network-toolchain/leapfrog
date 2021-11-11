@@ -11,6 +11,8 @@ Import HListNotations.
 
 Require Poulet4.P4automata.FirstOrderConfRelSimplified.
 Require Poulet4.P4automata.FirstOrderBitVec.
+
+Require Import Coq.Program.Equality.
 Module FOS := FirstOrderConfRelSimplified.
 Module FOBV := FirstOrderBitVec.
 
@@ -38,6 +40,26 @@ Section CompileFirstOrderConfRelSimplified.
       CSnoc _ (compile_store_ctx_partial hdrs) (FOBV.Bits (projT1 hdr))
   }.
 
+  (* TODO: make this a normal fixpoint or equations definition *)
+  Definition compile_store_valu_partial
+    (hdrs: list (Syntax.H' H))
+    : (HList.t (fun x => (n_tuple bool (projT1 x))) hdrs)
+    -> valu FOBV.sig FOBV.fm_model (compile_store_ctx_partial hdrs).
+  refine ((
+    fix recur hdrs :=
+      match hdrs with 
+      | nil => fun _ => _
+      | hdr :: hdrs => fun vs => 
+        _
+      end 
+  ) hdrs).
+  - exact (VEmp _ _).
+  - inversion vs.
+    refine (VSnoc _ _ _ _ _ _).
+    + exact X.
+    + eapply recur. exact X0.
+  Defined.
+
   Definition compile_store_ctx : ctx FOBV.sig :=
     compile_store_ctx_partial (enum (Syntax.H' H)).
 
@@ -48,6 +70,35 @@ Section CompileFirstOrderConfRelSimplified.
     compile_ctx (CSnoc _ c (FOS.Bits n)) :=
       CSnoc _ (compile_ctx c) (FOBV.Bits n)
   }.
+
+  Equations build_hlist_env 
+    (hdrs: list (Syntax.H' H))
+    (env: P4A.store H)
+    : (HList.t (fun x => (n_tuple bool (projT1 x))) hdrs) := {
+      build_hlist_env nil _ := hnil;
+      build_hlist_env (hdr :: hdrs) env := 
+        _ ::: (build_hlist_env hdrs) env
+    }.
+  Next Obligation.
+  exact (
+    match P4A.find H (projT2 hdr) env with 
+    | P4A.VBits _ v => v 
+    end
+  ).
+  Defined.
+
+  Equations compile_valu 
+    {c: ctx (FOS.sig H)} 
+    (v: valu (FOS.sig H) (FOS.fm_model a) c) 
+    : valu FOBV.sig FOBV.fm_model (compile_ctx c) := {
+    compile_valu (VEmp _ _) := VEmp _ _;
+    compile_valu (VSnoc _ _ (FOS.Bits n) _ v vinner) := 
+      VSnoc _ FOBV.fm_model (FOBV.Bits n) _ v (compile_valu vinner);
+    compile_valu (VSnoc _ _ (FOS.Store) _ v vinner) := 
+      app_valu _ (compile_valu vinner) (compile_store_valu_partial (build_hlist_env _ _))
+  }.
+  Next Obligation.
+  Defined.
 
   Lemma here_or_there
     {X: Type}
@@ -187,33 +238,17 @@ Section CompileFirstOrderConfRelSimplified.
       quantify compile_store_ctx (compile_fm f)
   }.
 
-  Equations compile_valu 
-    {c: ctx (FOS.sig H)} 
-    (v: valu (FOS.sig H) (FOS.fm_model a) c) 
-    : valu FOBV.sig FOBV.fm_model (compile_ctx c) := {
-    compile_valu (VEmp _ _) := VEmp _ _;
-    compile_valu (VSnoc _ _ (FOS.Bits n) _ _ vinner) := 
-      (* VSnoc _ _ _ _ _ (compile_valu vinner); *)
-      _;
-    compile_valu (VSnoc _ _ (FOS.Store) _ _ vinner) := 
-      _;
-  }.
-  Next Obligation.
-  Admitted.
-  Next Obligation.
-  Admitted.
+  
 
-  Require Import Coq.Program.Equality.
+  
 
   Lemma compile_simplified_fm_bv_correct:
       forall c v (fm : fm _ c),
-
         interp_fm (m := FOS.fm_model a) v fm <->
         interp_fm (m := FOBV.fm_model) (compile_valu v) (compile_fm (c := c) fm)
         .
   Proof.
-  Admitted.
-    (* intros.
+    intros.
     dependent induction fm;
     autorewrite with compile_fm;
     autorewrite with interp_fm;
@@ -221,42 +256,14 @@ Section CompileFirstOrderConfRelSimplified.
     
     - dependent destruction t; dependent destruction t0;
       autorewrite with compile_tm;
-      dependent induction v.
-      + inversion v0.
+      dependent induction v;
+      try (now inversion v0).
       + dependent destruction v0;
         dependent destruction v1;
-        destruct s0;
-        induction c;
-        autorewrite with compile_var.
-        autorewrite with compile_ctx in *.
-        setoid_rewrite compile_var_equation_1.
-        admit.
-        (* split; intros.
-        autorewrite with compile_ctx.
-        unfold compile_ctx.
-        unfold compile_sort in *.
-        erewrite compile_var_equation_1.
-      + dependent induction v. split; intros H0;
-        destruct v0.
-
-        autorewrite with compile_var in *.
-        autorewrite with interp_tm in *.
-        autorewrite with interp_tm in H0.
-      + inversion v.
-      + admit.
-    - setoid_rewrite IHfm; typeclasses eauto || trivial.
-      split; intros; auto.
-    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
-      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
-      split; intros; auto.
-    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
-      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
-      split; intros; auto.
-    - setoid_rewrite IHfm1 with (fm0 := fm1); typeclasses eauto || trivial.
-      setoid_rewrite IHfm2 with (fm0 := fm2); typeclasses eauto || trivial.
-      split; intros; auto.
-    - admit. *)
-  Admitted. *)
+        split; intros H''; try (now inversion H'').
+        autorewrite with interp_tm in H''.
+        autorewrite with compile_valu.
+  Admitted.
 End CompileFirstOrderConfRelSimplified.
 
 Register FOBV.Bits as p4a.sorts.bits.
