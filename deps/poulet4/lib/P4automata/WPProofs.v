@@ -1671,6 +1671,19 @@ Section WPProofs.
     destruct (conf_state q1), (conf_state q2); Lia.lia.
   Qed.
 
+  Lemma update'_congr:
+    forall a s s' buf buf' st st',
+      s = s' ->
+      buf ~= buf' ->
+      st = st' ->
+      update' a s buf st = 
+      update' a s' buf' st'.
+  Proof.
+    intros.
+    subst.
+    reflexivity.
+  Qed.
+
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_state_template prev (pick si (q1, q2)) ->
@@ -1770,25 +1783,56 @@ Section WPProofs.
         destruct n0.
         eapply interp_store_rel_congr; try eapply H1; eauto.
         * (* need lemma saying that conf_store is eval_op after a transition *)
-          assert (full_buf: n_tuple bool (size' _ (conf_state q1))).
-          admit.
-          assert (full_buf ~= n_tuple_concat (conf_buf q1) (l2t bs)).
-          admit.
-          assert (full_buf': n_tuple bool (size' _ (inl s))).
-          admit.
-          assert (full_buf' ~= full_buf).
-          admit.
+          assert (Hfb: size' _ (conf_state q1) = conf_buf_len q1 + length bs).
+          {
+            rewrite Hst.
+            autorewrite with size'.
+            simpl.
+            rewrite H4.
+            rewrite t2l_len.
+            rewrite Hlen.
+            Lia.lia.
+          }
+          set (full_buf := rewrite_size Hfb (n_tuple_concat (conf_buf q1) (l2t bs))).
+          assert (full_buf ~= n_tuple_concat (conf_buf q1) (l2t bs))
+            by eapply rewrite_size_jmeq.
+          assert (Hfb': size' _ (inl s) = size' _ (conf_state q1))
+            by now rewrite Hst.
+          set (full_buf' := rewrite_size Hfb' full_buf).
+          assert (full_buf' ~= full_buf)
+            by eapply rewrite_size_jmeq.
           subst q1'.
           erewrite conf_store_follow_transition; eauto.
           replace (update' (P4A.interp a) (conf_state q1) full_buf (conf_store q1))
-            with (update' (P4A.interp a) (inl s) full_buf' (conf_store q1)).
+            with (update' (P4A.interp a) (inl s) full_buf' (conf_store q1))
+            by (apply update'_congr; eauto).
           autorewrite with update'.
           simpl.
           unfold P4A.update.
           apply eval_op_congr; eauto.
-          unfold buf'', rewrite_size, eq_rect_r.
-          admit.
-          admit.
+          unfold buf''.
+          destruct (plus_O_n (ConfRel.P4A.st_size (ConfRel.P4A.t_states a s))); simpl.
+          rewrite rewrite_size_jmeq.
+          eapply JMeq_trans with (y:=full_buf); eauto.
+          rewrite H6.
+          unfold buf'.
+          apply t2l_eq.
+          rewrite t2l_concat, t2l_n_tuple_take_n, t2l_n_tuple_skip_n.
+          rewrite skipn_O.
+          replace n with (length (t2l (rewrite_size Hsz' buf))).
+          rewrite firstn_all.
+          rewrite <- t2l_concat.
+          apply t2l_proper.
+          rewrite rewrite_size_jmeq.
+          rewrite Heqbuf.
+          rewrite H4.
+          apply n_tuple_concat_congr; eauto.
+          erewrite l2t_t2l.
+          reflexivity.
+          unfold n.
+          rewrite t2l_len.
+          unfold P4A.size, P4A.state_size.
+          Lia.lia.
         * (* need lemma saying if cur |= q1' then jump_cond is true *)
           admit.
       + assert (Hbs: length bs > 0).
