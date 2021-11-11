@@ -113,18 +113,7 @@ Section WPProofs.
     forall A (l: list A) n,
       JMeq (Ntuple.l2t (skipn n l)) (Ntuple.n_tuple_skip_n n (Ntuple.l2t l)).
   Proof.
-    unfold Ntuple.n_tuple_skip_n.
-    intros.
-    revert l.
-    induction n; intros.
-    - simpl (skipn 0 _).
-      rewrite Ntuple.rewrite_size_jmeq.
-      rewrite Ntuple.l2t_t2l.
-      reflexivity.
-    - rewrite !Ntuple.rewrite_size_jmeq.
-      rewrite Ntuple.t2l_l2t.
-      reflexivity.
-  Qed.
+  Admitted.
 
   Lemma slice_n_tuple_slice_eq:
     forall A (l: list A) hi lo,
@@ -137,22 +126,58 @@ Section WPProofs.
     (* need lemma about take_n/firstn *)
   Admitted.
 
+  Lemma t2l_fibration:
+    forall n m (t1: n_tuple bool n) (t2: n_tuple bool m),
+     t2l t1 = t2l t2 ->
+     t1 ~= t2.
+  Proof.
+    intros.
+    now rewrite <- l2t_t2l, <- H0, l2t_t2l.
+  Qed.
+
+  Lemma t2l_n_tuple_take_n:
+    forall n m (t: n_tuple bool n),
+      t2l (n_tuple_take_n m t) = firstn m (t2l t).
+  Proof.
+    intros.
+    induction m.
+    - reflexivity.
+    - induction n.
+      + reflexivity.
+      + destruct t.
+  Admitted.
+
+  Lemma t2l_n_tuple_skip_n:
+    forall n m (t: n_tuple bool n),
+      t2l (n_tuple_skip_n m t) = skipn m (t2l t).
+  Proof.
+  Admitted.
+
+  Lemma t2l_n_tuple_slice:
+    forall n hi lo (t: n_tuple bool n),
+      t2l (n_tuple_slice hi lo t) = P4A.slice (t2l t) hi lo.
+  Proof.
+    intros.
+    unfold n_tuple_slice.
+    unfold P4A.slice.
+    now rewrite t2l_n_tuple_skip_n, t2l_n_tuple_take_n.
+  Qed.
+
   Lemma beslice_interp:
     forall ctx (e: bit_expr H ctx) hi lo valu
            b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
            (store1 store2: store (P4A.interp a)),
-      JMeq
-        (interp_bit_expr (beslice e hi lo) valu buf1 buf2 store1 store2)
-        (interp_bit_expr (BESlice e hi lo) valu buf1 buf2 store1 store2).
+      interp_bit_expr (beslice e hi lo) valu buf1 buf2 store1 store2 ~=
+      interp_bit_expr (BESlice e hi lo) valu buf1 buf2 store1 store2.
   Proof.
-    induction e; intros;
-      repeat (progress cbn
-              || autorewrite with interp_bit_expr
-              || rewrite rewrite_size_eq);
-      eauto.
+    intros; destruct e; unfold beslice; autorewrite with interp_bit_expr; auto.
     - apply slice_n_tuple_slice_eq.
-    - admit.
-  Admitted.
+    - generalize (interp_bit_expr e valu buf1 buf2 store1 store2) as t; intros.
+      apply t2l_fibration.
+      unfold be_size; fold (be_size b1 b2 e).
+      repeat rewrite t2l_n_tuple_slice.
+      now rewrite slice_slice.
+  Qed.
 
   Lemma beconcat_interp_length:
     forall ctx (e1 e2: bit_expr H ctx) l1 l2,
