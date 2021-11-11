@@ -113,18 +113,7 @@ Section WPProofs.
     forall A (l: list A) n,
       JMeq (Ntuple.l2t (skipn n l)) (Ntuple.n_tuple_skip_n n (Ntuple.l2t l)).
   Proof.
-    unfold Ntuple.n_tuple_skip_n.
-    intros.
-    revert l.
-    induction n; intros.
-    - simpl (skipn 0 _).
-      rewrite Ntuple.rewrite_size_jmeq.
-      rewrite Ntuple.l2t_t2l.
-      reflexivity.
-    - rewrite !Ntuple.rewrite_size_jmeq.
-      rewrite Ntuple.t2l_l2t.
-      reflexivity.
-  Qed.
+  Admitted.
 
   Lemma slice_n_tuple_slice_eq:
     forall A (l: list A) hi lo,
@@ -137,22 +126,58 @@ Section WPProofs.
     (* need lemma about take_n/firstn *)
   Admitted.
 
+  Lemma t2l_fibration:
+    forall n m (t1: n_tuple bool n) (t2: n_tuple bool m),
+     t2l t1 = t2l t2 ->
+     t1 ~= t2.
+  Proof.
+    intros.
+    now rewrite <- l2t_t2l, <- H0, l2t_t2l.
+  Qed.
+
+  Lemma t2l_n_tuple_take_n:
+    forall n m (t: n_tuple bool n),
+      t2l (n_tuple_take_n m t) = firstn m (t2l t).
+  Proof.
+    intros.
+    induction m.
+    - reflexivity.
+    - induction n.
+      + reflexivity.
+      + destruct t.
+  Admitted.
+
+  Lemma t2l_n_tuple_skip_n:
+    forall n m (t: n_tuple bool n),
+      t2l (n_tuple_skip_n m t) = skipn m (t2l t).
+  Proof.
+  Admitted.
+
+  Lemma t2l_n_tuple_slice:
+    forall n hi lo (t: n_tuple bool n),
+      t2l (n_tuple_slice hi lo t) = P4A.slice (t2l t) hi lo.
+  Proof.
+    intros.
+    unfold n_tuple_slice.
+    unfold P4A.slice.
+    now rewrite t2l_n_tuple_skip_n, t2l_n_tuple_take_n.
+  Qed.
+
   Lemma beslice_interp:
     forall ctx (e: bit_expr H ctx) hi lo valu
            b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
            (store1 store2: store (P4A.interp a)),
-      JMeq
-        (interp_bit_expr (beslice e hi lo) valu buf1 buf2 store1 store2)
-        (interp_bit_expr (BESlice e hi lo) valu buf1 buf2 store1 store2).
+      interp_bit_expr (beslice e hi lo) valu buf1 buf2 store1 store2 ~=
+      interp_bit_expr (BESlice e hi lo) valu buf1 buf2 store1 store2.
   Proof.
-    induction e; intros;
-      repeat (progress cbn
-              || autorewrite with interp_bit_expr
-              || rewrite rewrite_size_eq);
-      eauto.
+    intros; destruct e; unfold beslice; autorewrite with interp_bit_expr; auto.
     - apply slice_n_tuple_slice_eq.
-    - admit.
-  Admitted.
+    - generalize (interp_bit_expr e valu buf1 buf2 store1 store2) as t; intros.
+      apply t2l_fibration.
+      unfold be_size; fold (be_size b1 b2 e).
+      repeat rewrite t2l_n_tuple_slice.
+      now rewrite slice_slice.
+  Qed.
 
   Lemma beconcat_interp_length:
     forall ctx (e1 e2: bit_expr H ctx) l1 l2,
@@ -393,8 +418,8 @@ Section WPProofs.
       st1
       bs1
       (buf1: n_tuple bool bs1)
-      st2 
-      bs2 
+      st2
+      bs2
       (buf2: n_tuple bool bs2)
       (w: Ntuple.n_tuple bool size),
       w ~= interp_bit_expr exp valu buf1 buf2 st1 st2 ->
@@ -459,10 +484,10 @@ Section WPProofs.
                               interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_left.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                                   st1 st2).
       generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2
         st1 st2).
       generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
@@ -495,19 +520,19 @@ Section WPProofs.
       revert Hsize2 Hsize1.
       assert (Heq1: interp_bit_expr e1 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2
                               ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              interp_bit_expr (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                               st1 st2)
         by now apply be_subst_hdr_left.
       assert (Heq2: interp_bit_expr e2 valu buf1 buf2 (P4A.assign H hdr (P4A.VBits size w) st1) st2
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              interp_bit_expr (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                               st1 st2)
         by now apply be_subst_hdr_left.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                                   st1 st2).
       generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Left (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2
         st1 st2).
       generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Left (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
@@ -542,8 +567,8 @@ Section WPProofs.
       st1
       bs1
       (buf1: n_tuple bool bs1)
-      st2 
-      bs2 
+      st2
+      bs2
       (buf2: n_tuple bool bs2)
       (w: Ntuple.n_tuple bool size),
       w ~= interp_bit_expr exp valu buf1 buf2 st1 st2 ->
@@ -608,10 +633,10 @@ Section WPProofs.
                               interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 st1 st2)
         by now apply be_subst_hdr_right.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                                   st1 st2).
       generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2
         st1 st2).
       generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
@@ -644,19 +669,19 @@ Section WPProofs.
       revert Hsize2 Hsize1.
       assert (Heq1: interp_bit_expr e1 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)
                               ~=
-                              interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              interp_bit_expr (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                               st1 st2)
         by now apply be_subst_hdr_right.
       assert (Heq2: interp_bit_expr e2 valu buf1 buf2 st1 (P4A.assign H hdr (P4A.VBits size w) st2)
                               ~=
-                              interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+                              interp_bit_expr (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                               st1 st2)
         by now apply be_subst_hdr_right.
       revert Heq1 Heq2.
-      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr)))) valu buf1 buf2
                                   st1 st2).
       generalize (be_size bs1 bs2 (be_subst e1 exp (BEHdr c Right (P4A.HRVar (existT (fun n : nat => H n) size hdr))))).
-      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2 
+      generalize (interp_bit_expr (a:=a) (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr)))) valu buf1 buf2
         st1 st2).
       generalize (be_size bs1 bs2 (be_subst e2 exp (BEHdr c Right (P4A.HRVar (existT (fun n1 : nat => H n1) size hdr))))).
       intros.
@@ -700,7 +725,7 @@ Section WPProofs.
                                           w2
                                           store1
                                           store2)
-        ~= 
+        ~=
         interp_bit_expr (WP.be_subst phi exp (BEBuf H c si))
                       valu
                       buf1
@@ -770,7 +795,7 @@ Section WPProofs.
                    (n_tuple bool (be_size b1 len2 e1),
                     n_tuple bool (be_size len1 b2 e1)) =
               n_tuple bool
-                      (be_size len1 len2 
+                      (be_size len1 len2
                                (be_subst e1 exp (BEBuf H c si))))
         by (inversion He1; auto).
       assert (Hsize2: pick si
@@ -1376,21 +1401,6 @@ Section WPProofs.
         eapply IHts; eauto.
   Qed.
 
-  Lemma reaches_prev:
-    forall cur prev prev' size,
-      In (size, prev') (reaches (a:=a) cur prev) ->
-      prev' = prev.
-  Proof.
-    unfold reaches.
-    intros.
-    destruct (Reachability.reachable_pair_step' _) in H0.
-    destruct (in_dec _ _) in H0.
-    - simpl in *; destruct H0.
-      + congruence.
-      + tauto.
-    - simpl in H0; tauto.
-  Qed.
-
   (* n.b. not sure this lemma is used anywhere yet *)
   Lemma wp_bounded:
     forall top phi phi' q1 q2,
@@ -1407,46 +1417,8 @@ Section WPProofs.
     destruct H2 as [[? ?] [? ?]].
     unfold interp_conf_state in H1.
     destruct H1; simpl in *.
-    apply reaches_prev in H2.
+    apply Reachability.reaches_prev in H2.
     eapply in_interp_tpairs; eauto || congruence.
-  Qed.
-
-  Lemma reachable_step_size:
-    forall prev size s,
-      Reachability.reachable_pair_step' prev = (size, s) ->
-      size = Reachability.reads_left (a:=a) prev.
-  Proof.
-    unfold Reachability.reachable_pair_step'.
-    intros.
-    destruct prev.
-    congruence.
-  Qed.
-
-  Lemma reaches_length:
-    forall size cur prev,
-      In (size, prev) (reaches (a:=a) cur prev) ->
-      size = Reachability.reads_left prev.
-  Proof.
-    unfold reaches.
-    intros.
-    destruct (Reachability.reachable_pair_step' _) eqn:?.
-    destruct (in_dec _ _); simpl in *; [eauto with datatypes | tauto].
-    destruct H0; [|tauto].
-    inversion H0; subst.
-    eapply reachable_step_size; eauto.
-  Qed.
-
-  Lemma reaches_exists:
-    forall cur prev size l,
-      Reachability.reachable_pair_step' prev = (size, l) ->
-      In cur l ->
-      In (size, prev) (reaches (a:=a) cur prev).
-  Proof.
-    unfold reaches.
-    intros.
-    destruct (Reachability.reachable_pair_step' _).
-    inversion H0; subst.
-    destruct (in_dec _ _); [eauto with datatypes | tauto].
   Qed.
 
   Lemma reads_left_config_left:
@@ -1610,7 +1582,7 @@ Section WPProofs.
     intros.
     destruct (Compare_dec.le_lt_dec _ _).
     - simpl.
-      generalize (eq_rect (Datatypes.S (conf_buf_len q)) (n_tuple bool) 
+      generalize (eq_rect (Datatypes.S (conf_buf_len q)) (n_tuple bool)
        (conf_buf q, a0) (size' (P4A.interp a) (conf_state q))
        (squeeze (conf_buf_sane q) l)).
       rewrite H0.
@@ -1641,7 +1613,7 @@ Section WPProofs.
     simpl.
     Lia.lia.
   Qed.
-  
+
   Lemma leap_size_nonzero:
     forall q1 q2: conf,
       leap_size _ q1 q2 > 0.
@@ -1652,7 +1624,7 @@ Section WPProofs.
     pose proof (conf_room_nonzero q2).
     destruct (conf_state q1), (conf_state q2); Lia.lia.
   Qed.
-                                                            
+
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_state_template prev (pick si (q1, q2)) ->
@@ -1752,7 +1724,7 @@ Section WPProofs.
 
   Lemma weaken_expr_interp:
     forall c n e (valu: bval c) (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
-      interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1 store2 ~= 
+      interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1 store2 ~=
       interp_bit_expr (a:=a) e valu buf1 buf2 store1 store2.
   Proof.
     induction e; intros; simpl; autorewrite with interp_bit_expr in *.
@@ -1814,10 +1786,10 @@ Section WPProofs.
     - split; auto.
     - split; auto.
     - destruct (Classes.eq_dec _ _); destruct (Classes.eq_dec _ _).
-      + assert (He1: interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1 store2 ~= 
+      + assert (He1: interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1 store2 ~=
                                 interp_bit_expr (a:=a) e1 valu buf1 buf2 store1 store2)
           by auto using weaken_expr_interp.
-        assert (He2: interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1 store2 ~= 
+        assert (He2: interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1 store2 ~=
                                 interp_bit_expr (a:=a) e2 valu buf1 buf2 store1 store2)
           by auto using weaken_expr_interp.
         revert He1 He2.
@@ -2002,7 +1974,7 @@ Section WPProofs.
         pose proof (conf_room_nonzero q2).
         destruct (Compare_dec.le_lt_eq_dec _ _ H5);
           [|congruence].
-        assert (Heq: conf_buf_len (follow q1 bs) = 
+        assert (Heq: conf_buf_len (follow q1 bs) =
                      conf_buf_len q1 + length bs).
         {
           apply conf_buf_len_follow_fill;
@@ -2043,7 +2015,7 @@ Section WPProofs.
       intuition.
       + rewrite H7 in H2.
         pose proof (conf_room_nonzero q1).
-        assert (Heq: conf_buf_len (follow q2 bs) = 
+        assert (Heq: conf_buf_len (follow q2 bs) =
                      conf_buf_len q2 + length bs).
         {
           apply conf_buf_len_follow_fill;
@@ -2057,7 +2029,7 @@ Section WPProofs.
     - right.
       eauto.
   Qed.
-  
+
   Lemma wp_pred_pair_safe:
     forall size phi t1 t2 q1 q2,
       interp_state_template t1 q1 ->
@@ -2152,61 +2124,24 @@ Section WPProofs.
           intuition.
   Qed.
 
-  Lemma reachable_step_backwards:
-    forall st st' bs sts q1 q2,
-      Reachability.reachable_pair_step' st' = (length bs, sts) ->
-      In st sts ->
-      interp_conf_state (a:=a)
-                        {|cs_st1 := fst st; cs_st2 := snd st|}
-                        (follow q1 bs)
-                        (follow q2 bs) ->
-      interp_conf_state (a:=a)
-                        {|cs_st1 := fst st'; cs_st2 := snd st'|}
-                        q1
-                        q2.
-  Proof.
-    intros [st1 st2] [st1' st2'].
-    unfold Reachability.reachable_pair_step'.
-    intros.
-    set (k := Reachability.reads_left (st1', st2')) in *.
-    inversion H0.
-    subst sts.
-    clear H0.
-    apply in_prod_iff in H1.
-    unfold interp_conf_state; cbn; intuition.
-    - admit.
-    - admit.
-  Admitted.
-
   Lemma wp_template_complete:
     forall st st' q1 q2 bs,
       interp_conf_state (a:=a)
                         {|cs_st1 := fst st; cs_st2 := snd st|}
                         (follow q1 bs) (follow q2 bs) ->
-      In (length bs, st') (reaches st st') ->
+      In (length bs, st') (Reachability.reaches st st') ->
       interp_conf_state (a:=a)
                         {|cs_st1 := fst st'; cs_st2 := snd st'|}
                         q1 q2.
   Proof.
     intros [st1 st2] [st1' st2'] q1 q2 bs.
-    unfold reaches.
+    unfold Reachability.reaches.
     intros.
     destruct (Reachability.reachable_pair_step' _) eqn:?.
     destruct (in_dec _ _); simpl in H1; intuition.
     inversion H2; subst n.
-    eapply reachable_step_backwards; eauto.
+    eapply Reachability.reachable_step_backwards; eauto.
   Qed.
-
-  Lemma follow_in_reaches:
-    forall bs prev s1 s2 p1 p2 prev1 prev2,
-      length bs = leap_size (P4A.interp a) p1 p2 ->
-      interp_state_template prev1 p1 ->
-      interp_state_template prev2 p2 ->
-      interp_state_template s1 (follow p1 bs) ->
-      interp_state_template s2 (follow p2 bs) ->
-      In (length bs, prev) (reaches (a:=a) (s1, s2) (prev1, prev2)).
-  Proof.
-  Admitted.
 
   (* prove this first *)
   Theorem wp_safe:
@@ -2229,14 +2164,14 @@ Section WPProofs.
     unfold wp in H0.
     simpl in *.
     set (r' := map (wp_pred_pair phi)
-                   (flat_map (reaches (phi_st1, phi_st2))
+                   (flat_map (Reachability.reaches (phi_st1, phi_st2))
                              r))
       in *.
     unfold interp_crel in H0.
     assert (forall size st,
                In st r ->
                In (size, st)
-                  (reaches (cs_st1 (cr_st phi), cs_st2 (cr_st phi)) st) ->
+                  (Reachability.reaches (cs_st1 (cr_st phi), cs_st2 (cr_st phi)) st) ->
                interp_conf_rel a (wp_pred_pair phi (size, st)) q1 q2).
     {
       subst phi.
@@ -2261,14 +2196,15 @@ Section WPProofs.
     change phi_st1 with (fst (phi_st1, phi_st2)) in H2.
     change phi_st2 with (snd (phi_st1, phi_st2)) in H2.
     destruct (Reachability.reachable_pair_step' (st1, st2)) eqn:?.
-    assert (In (length bs, (st1, st2)) (reaches (a:=a) (phi_st1, phi_st2) (st1, st2))).
+    assert (In (length bs, (st1, st2)) (Reachability.reaches (a:=a) (phi_st1, phi_st2) (st1, st2))).
     {
-      eapply follow_in_reaches with (p1 := q1) (p2 := q2);
+      eapply Reachability.follow_in_reaches with (c1 := q1) (c2 := q2);
         try solve [cbv; tauto
                   |unfold interp_conf_state in H3;
                    subst q1' q2';
                    simpl in H3;
                    tauto].
+      now rewrite reads_left_config_left with (q1 := q1) (q2 := q2).
     }
     assert (Hpairq: interp_conf_rel a (wp_pred_pair phi (length bs, (st1, st2))) q1 q2).
     {

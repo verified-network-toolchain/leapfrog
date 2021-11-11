@@ -190,19 +190,11 @@ Section WP.
                    cs_st2 := prev_r |};
        cr_rel := wp_lpred Left b prev_l cur_l leap_l
                           (wp_lpred Right b prev_r cur_r leap_r phi_rel) |}.
-  
-  Definition reaches (cur prev: state_template a * state_template a) : list (nat * (state_template a * state_template a)) :=
-    let '(n, successors) := Reachability.reachable_pair_step' prev in
-    if List.In_dec (Reachability.state_pair_eq_dec (a := a))
-                   cur
-                   successors
-    then [(n, prev)]
-    else [].
 
   Definition wp (phi: conf_rel a) : list (conf_rel a) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in
-    let pred_pairs := List.flat_map (reaches (cur_st_left, cur_st_right)) reachable_states in
+    let pred_pairs := List.flat_map (Reachability.reaches (cur_st_left, cur_st_right)) reachable_states in
     List.map (wp_pred_pair phi) pred_pairs.
 
 End WP.
