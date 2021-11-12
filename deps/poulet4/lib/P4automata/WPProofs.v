@@ -116,15 +116,6 @@ Section WPProofs.
   Proof.
   Admitted.
 
-  Lemma t2l_fibration:
-    forall n m (t1: n_tuple bool n) (t2: n_tuple bool m),
-     t2l t1 = t2l t2 ->
-     t1 ~= t2.
-  Proof.
-    intros.
-    now rewrite <- l2t_t2l, <- H0, l2t_t2l.
-  Qed.
-
   Lemma t2l_n_tuple_take_n:
     forall n m (t: n_tuple bool n),
       t2l (n_tuple_take_n m t) = firstn m (t2l t).
