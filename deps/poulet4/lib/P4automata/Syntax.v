@@ -79,9 +79,16 @@ Section Syntax.
   Global Program Instance v_finite (n: nat): Finite (v n) :=
     {| enum := List.map (VBits n) (enum (n_tuple bool n)) |}.
   Next Obligation.
-  Admitted.
+    apply NoDup_map.
+    - intros x y Heq; inversion Heq; auto.
+    - eapply NtupleProofs.BoolTupleFinite.
+  Qed.
   Next Obligation.
-  Admitted.
+    destruct x.
+    rewrite List.in_map_iff.
+    eexists; intuition eauto.
+    eapply NtupleProofs.BoolTupleFinite.
+  Qed.
 
   Inductive typ :=
   | TBits (n: nat)

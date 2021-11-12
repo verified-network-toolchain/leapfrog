@@ -255,7 +255,10 @@ Lemma update'_congr:
     st = st' ->
     update' a s buf st = update' a s' buf' st'.
 Proof.
-Admitted.
+  intros.
+  subst.
+  reflexivity.
+Qed.
 
 Lemma conf_store_step_transition
   {a: p4automaton}

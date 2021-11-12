@@ -1,5 +1,6 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Equality.
+From Equations Require Import Equations.
 
 Require Import Poulet4.FinType.
 Require Import Poulet4.P4automata.Ntuple.
@@ -969,21 +970,39 @@ Section WPProofs.
       interp_bit_expr (a:=a) e valu buf1 buf2 st1 st2 ~=
       interp_bit_expr (a:=a) e valu buf1' buf2 st1 st2.
   Proof.
-  Admitted.
+    intros.
+    inversion H0.
+    apply n_tuple_inj in H2.
+    subst l1'.
+    rewrite H0.
+    reflexivity.
+  Qed.
 
   Lemma vbits_congr:
     forall n n' (v: n_tuple bool n) (v': n_tuple bool n'),
       v ~= v' ->
       P4A.VBits n v ~= P4A.VBits n' v'.
   Proof.
-  Admitted.
+    intros.
+    inversion H0.
+    apply n_tuple_inj in H2.
+    subst n'.
+    rewrite H0.
+    reflexivity.
+  Qed.
 
   Lemma vbits_inv:
     forall n n' (v: n_tuple bool n) (v': n_tuple bool n'),
       P4A.VBits n v ~= P4A.VBits n' v' ->
       v ~= v'.
   Proof.
-  Admitted.
+    intros.
+    inversion H0.
+    apply v_inj in H2.
+    subst n'.
+    apply JMeq_eq in H0.
+    now inversion H0.
+  Qed.
 
   Lemma n_tuple_concat_congr:
     forall n1 n1' (v1: n_tuple bool n1) (v1': n_tuple bool n1')
@@ -992,7 +1011,16 @@ Section WPProofs.
       v2 ~= v2' ->
       n_tuple_concat v1 v2 ~= n_tuple_concat v1' v2'.
   Proof.
-  Admitted.
+    intros.
+    inversion H0.
+    inversion H1.
+    assert (n1 = n1') by eauto using n_tuple_inj.
+    assert (n2 = n2') by eauto using n_tuple_inj.
+    subst.
+    rewrite H0.
+    rewrite H1.
+    reflexivity.
+  Qed.
 
   Lemma expr_to_bit_expr_sound:
     forall (c: bctx) si (valu: bval c) n (expr: P4A.expr H n)
@@ -1103,7 +1131,7 @@ Section WPProofs.
       reflexivity.
   Qed.
 
-  Lemma eval_op_congr:
+  Lemma eval_op_congr':
     forall (st: P4A.store H)
       l
       (buf: n_tuple bool l)
@@ -1117,7 +1145,34 @@ Section WPProofs.
       op ~= op' ->
       P4A.eval_op H st buf op = P4A.eval_op H st' buf' op'.
   Proof.
-  Admitted.
+    intros.
+    subst.
+    inversion H1.
+    assert (l = l') by (eapply n_tuple_inj; eauto).
+    subst.
+    rewrite H1.
+    rewrite H2.
+    congruence.
+  Qed.
+
+  Lemma eval_op_congr:
+    forall (st: P4A.store H)
+      l
+      (buf: n_tuple bool l)
+      (op: P4A.op H l)
+      st'
+      l'
+      (buf': n_tuple bool l')
+      (op': P4A.op H l'),
+      st = st' ->
+      buf ~= buf' ->
+      op ~= op' ->
+      P4A.eval_op H st buf op ~= P4A.eval_op H st' buf' op'.
+  Proof.
+    intros.
+    erewrite eval_op_congr' by eauto.
+    reflexivity.
+  Qed.
 
   Lemma wp_op'_spec_l:
     forall c (valu: bval c) sz (o: P4A.op H sz) n m phi st1 
@@ -1186,37 +1241,52 @@ Section WPProofs.
         with (n + n1 + n2)
         in Heqp by Lia.lia.
       rewrite Heqp in IHo2'.
-      assert (Hst1': st1' ~= ConfRel.P4A.eval_op H st1 ibuf1' o1).
+      assert (Hst1': st1' = ConfRel.P4A.eval_op H st1 ibuf1' o1).
       {
-        admit.
+        unfold st1'.
+        change (ConfRel.P4A.eval_op) with P4A.eval_op.
+        eapply eval_op_congr'; eauto.
+        unfold ibuf1', ibuf1.
+        rewrite !rewrite_size_jmeq.
+        apply t2l_eq.
+        rewrite !t2l_n_tuple_take_n.
+        rewrite t2l_n_tuple_skip_n.
+        apply t2l_proper in H1.
+        rewrite H1.
+        rewrite !t2l_n_tuple_take_n, !t2l_n_tuple_skip_n.
+        erewrite t2l_proper with (xs := rewrite_size Hsz1 buf1);
+          eauto using rewrite_size_jmeq.
+        rewrite firstn_firstn.
+        replace (Nat.min n1 (n1 + n2)) with n1 by Lia.lia.
+        reflexivity.
       }
-      assert (Hibufs: ibuf1 ~= ibuf2).
-      {
-        admit.
-      }
+      assert (Hibufs: ibuf1 ~= ibuf2)
+        by eauto using JMeq_trans, rewrite_size_jmeq.
       eapply iff_trans.
       eapply interp_store_rel_congr; try eapply Hibufs; eauto.
       rewrite Hst1' in IHo2'.
       simpl in IHo2'.
       rewrite IHo2'.
       eapply interp_store_rel_congr; eauto.
-      + admit.
-      + eapply eval_op_congr; eauto.
-        * unfold st1'.
-          eapply eval_op_congr; eauto.
-          rewrite rewrite_size_jmeq.
-          rewrite Hibuf1'.
-          unfold ibuf1.
-          eapply JMeq_trans
-            with (y := n_tuple_take_n n1 (n_tuple_take_n (n1 + n2) (n_tuple_skip_n n buf1))).
-          admit.
-          admit.
-        * unfold ibuf2'.
-          rewrite !rewrite_size_jmeq.
-          eapply JMeq_trans
-            with (y := n_tuple_skip_n n1 (n_tuple_take_n (n1 + n2) (n_tuple_skip_n n buf1))).
-          admit.
-          admit.
+      + eauto using rewrite_size_jmeq.
+      + eapply eval_op_congr'; eauto.
+        unfold ibuf2'.
+        rewrite !rewrite_size_jmeq.
+        apply t2l_eq.
+        eapply eq_trans
+          with (y := skipn n1 (t2l (n_tuple_take_n (n1 + n2) (n_tuple_skip_n n buf1)))).
+        * rewrite !t2l_n_tuple_take_n, !t2l_n_tuple_skip_n.
+          unfold ibuf2.
+          replace (t2l (rewrite_size Hsz2 buf1)) with (t2l buf1)
+            by (apply eq_t2l; eauto using rewrite_size_jmeq).
+          rewrite <- firstn_skipn_comm.
+          rewrite skipn_skipn.
+          rewrite Plus.plus_comm.
+          reflexivity.
+        * rewrite !t2l_n_tuple_take_n, !t2l_n_tuple_skip_n.
+          rewrite (t2l_proper _ _ _ _ H1).
+          rewrite !t2l_n_tuple_take_n, !t2l_n_tuple_skip_n.
+          reflexivity.
     - simpl.
       intros.
       autorewrite with eval_op.
@@ -1231,7 +1301,11 @@ Section WPProofs.
       rewrite H1.
       apply JMeq_trans
         with (y := n_tuple_skip_n n (n_tuple_take_n (n + x) buf1)).
-      + admit.
+      + apply t2l_eq.
+        rewrite ?t2l_n_tuple_take_n, ?t2l_n_tuple_skip_n.
+        rewrite firstn_skipn_comm.
+        rewrite ?t2l_n_tuple_take_n, ?t2l_n_tuple_skip_n.
+        reflexivity.
       + eapply n_tuple_skip_n_congr; auto.
         replace (1 + (n + x - 1)) with (n + x) by Lia.lia.
         reflexivity.
@@ -1263,7 +1337,7 @@ Section WPProofs.
       autorewrite with eval_op.
       rewrite Heqv.
       reflexivity.
-  Admitted.
+  Qed.
 
   Lemma wp_op'_spec_r:
     forall c (valu: bval c) sz (o: P4A.op H sz) n m phi st2 
@@ -1707,19 +1781,121 @@ Section WPProofs.
     reflexivity.
   Qed.
 
-  Lemma pat_inj:
-    forall t1 t2,
-      P4A.pat t1 = P4A.pat t2 ->
-      t1 = t2.
+  Lemma interp_store_rel_breq_jmeq:
+    forall c e1 e2 valu b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2) st1 st2,
+      interp_store_rel (c:=c) (BREq e1 e2) valu buf1 buf2 st1 st2 <->
+      interp_bit_expr (a:=a) e1 valu buf1 buf2 st1 st2 ~=
+      interp_bit_expr e2 valu buf1 buf2 st1 st2.
   Proof.
-  Admitted.
+    intros.
+    autorewrite with interp_store_rel.
+    destruct (eq_dec _ _).
+    - intuition.
+      + assert (Hr: eq_rect (be_size b1 b2 e1) (n_tuple bool) (interp_bit_expr e1 valu buf1 buf2 st1 st2) (be_size b1 b2 e2) e ~= interp_bit_expr e2 valu buf1 buf2 st1 st2)
+          by now rewrite H0.
+        eapply JMeq_trans; try eapply Hr.
+        clear H0.
+        clear Hr.
+        destruct e.
+        simpl.
+        reflexivity.
+      + apply JMeq_eq.
+        destruct e.
+        simpl.
+        auto.
+    - intuition.
+      apply n.
+      apply n_tuple_inj.
+      now inversion H0.
+  Qed.
+
+  Section PatCondInd.
+    Variable (P: forall ty, P4A.cond H ty -> P4A.pat ty -> Prop).
+    Variable (HExprExact:
+                forall {n e v},
+                  P (P4A.TBits n) (P4A.CExpr e) (P4A.PExact v)).
+    Variable (HExprAny:
+                forall {n e},
+                  P (P4A.TBits n) (P4A.CExpr e) (P4A.PAny n)).
+    Variable (HPair: forall {t1 t2 e1 e2 p1 p2},
+                 P t1 e1 p1 ->
+                 P t2 e2 p2 ->
+                 P (P4A.TPair t1 t2) (P4A.CPair e1 e2) (P4A.PPair p1 p2)).
+    Equations pat_cond_ind ty cond pat : P ty cond pat :=
+      { pat_cond_ind (P4A.TBits n) (P4A.CExpr e) (P4A.PExact v) := HExprExact;
+        pat_cond_ind (P4A.TBits n) (P4A.CExpr e) (P4A.PAny n) := HExprAny;
+        pat_cond_ind (P4A.TPair t1 t2) (P4A.CPair e1 e2) (P4A.PPair p1 p2) :=
+          HPair (pat_cond_ind _ e1 p1) (pat_cond_ind _ e2 p2) }.
+  End PatCondInd.
+  
+  Definition pat_cond_ok ty (cond: P4A.cond H ty) pat :=
+    forall ctx st1 st2 si (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
+      P4A.match_pat H (pick si (st1, st2)) cond pat = true <->
+      interp_store_rel (a:=a) (pat_cond si pat cond) valu buf1 buf2 st1 st2.
+
+  Lemma val_to_bit_expr_interp:
+    forall n (v: P4A.v n) ctx st1 st2 (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
+      interp_bit_expr (a:=a) (val_to_bit_expr H v) valu buf1 buf2 st1 st2 ~= projbits v.
+  Proof.
+    unfold val_to_bit_expr.
+    destruct v.
+    intros.
+    autorewrite with interp_bit_expr.
+    eapply JMeq_trans; eauto using l2t_t2l.
+  Qed.
+
+  Lemma projbits_congr:
+    forall n1 n2 (v1: P4A.v n1) (v2: P4A.v n2),
+      v1 ~= v2 ->
+      projbits v1 ~= projbits v2.
+  Proof.
+    intros.
+    inversion H0.
+    apply v_inj in H2.
+    subst.
+    rewrite H0.
+    reflexivity.
+  Qed.
 
   Lemma pat_cond_safe:
     forall ty (cond: P4A.cond H ty) pat ctx st1 st2 si (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
       P4A.match_pat H (pick si (st1, st2)) cond pat = true <->
       interp_store_rel (a:=a) (pat_cond si pat cond) valu buf1 buf2 st1 st2.
   Proof.
-  Admitted.
+    intros ty cond pat.
+    fold (pat_cond_ok ty cond pat).
+    eapply pat_cond_ind; intros; unfold pat_cond_ok;
+      intros;
+      autorewrite with match_pat pat_cond.
+    - rewrite interp_store_rel_breq_jmeq.
+      destruct (EquivDec.equiv_dec _ _); eauto.
+      + unfold Equivalence.equiv in e0.
+        subst v.
+        intuition.
+        set (be := expr_to_bit_expr si e).
+        assert (ConfRel.P4A.eval_expr H n (pick si (st1, st2)) e ~=
+                P4A.VBits (be_size _ _ be) (interp_bit_expr (a:=a) be valu buf1 buf2 st1 st2))
+          by eapply expr_to_bit_expr_sound.
+        eapply JMeq_trans;
+          [|symmetry; apply val_to_bit_expr_interp].
+        eapply JMeq_trans;
+          [|symmetry; apply projbits_congr; apply H1].
+        reflexivity.
+      + intuition.
+        exfalso.
+        apply c.
+        unfold Equivalence.equiv.
+        rewrite val_to_bit_expr_interp in H0.
+        destruct v.
+        eapply JMeq_eq.
+        eapply JMeq_trans.
+        eapply expr_to_bit_expr_sound.
+        eapply vbits_congr; eauto.
+    - autorewrite with interp_store_rel; tauto.
+    - autorewrite with interp_store_rel.
+      rewrite Bool.andb_true_iff.
+      intuition.
+  Qed.
 
   Lemma cases_cond_safe:
     forall ty (cond: P4A.cond H ty) cases default ctx st1 st2 s si (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
@@ -1888,7 +2064,7 @@ Section WPProofs.
           autorewrite with update'.
           simpl.
           unfold P4A.update.
-          apply eval_op_congr; eauto.
+          apply eval_op_congr'; eauto.
           unfold buf''.
           destruct (plus_O_n (ConfRel.P4A.st_size (ConfRel.P4A.t_states a s))); simpl.
           rewrite rewrite_size_jmeq.
@@ -1949,7 +2125,7 @@ Section WPProofs.
             with (update (P4A.interp a) s buf'' (conf_store q1)).
           simpl.
           unfold P4A.update.
-          eapply eval_op_congr; eauto.
+          eapply eval_op_congr'; eauto.
           destruct (plus_O_n _); reflexivity.
           rewrite <- update'_equation_1.
           apply update'_congr; eauto.
@@ -2111,7 +2287,7 @@ Section WPProofs.
           autorewrite with update'.
           simpl.
           unfold P4A.update.
-          apply eval_op_congr; eauto.
+          apply eval_op_congr'; eauto.
           unfold buf''.
           destruct (plus_O_n (ConfRel.P4A.st_size (ConfRel.P4A.t_states a s))); simpl.
           rewrite rewrite_size_jmeq.
@@ -2171,7 +2347,7 @@ Section WPProofs.
             with (update (P4A.interp a) s buf'' (conf_store q2)).
           simpl.
           unfold P4A.update.
-          eapply eval_op_congr; eauto.
+          eapply eval_op_congr'; eauto.
           destruct (plus_O_n _); reflexivity.
           rewrite <- update'_equation_1.
           apply update'_congr; eauto.
