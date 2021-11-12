@@ -252,17 +252,22 @@ Section CompileFirstOrderConfRelSimplified.
     dependent induction fm;
     autorewrite with compile_fm;
     autorewrite with interp_fm;
-    try now (split; intros; trivial).
-    
-    - dependent destruction t; dependent destruction t0;
-      autorewrite with compile_tm;
-      dependent induction v;
-      try (now inversion v0).
-      + dependent destruction v0;
-        dependent destruction v1;
-        split; intros H''; try (now inversion H'').
-        autorewrite with interp_tm in H''.
-        autorewrite with compile_valu.
+    try (
+      (now (split; intros; trivial)) ||
+      now (setoid_rewrite IHfm; apply iff_refl) || 
+      now (setoid_rewrite IHfm1; setoid_rewrite IHfm2; apply iff_refl)
+    ).
+
+    - admit.
+    - setoid_rewrite IHfm.
+      split;
+      intros.
+      + autorewrite with compile_fm.
+        destruct s; autorewrite with compile_fm.
+        * admit.
+        * admit.
+      + admit.
+  
   Admitted.
 End CompileFirstOrderConfRelSimplified.
 
