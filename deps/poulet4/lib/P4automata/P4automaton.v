@@ -1,6 +1,6 @@
 From Equations Require Import Equations.
 Require Import Coq.Lists.List.
-Require Import Coq.Logic.JMeq.
+Require Import Coq.Program.Equality.
 Require Import Coq.micromega.Lia.
 Require Import Coq.Arith.Compare_dec.
 
@@ -248,6 +248,39 @@ Proof.
   apply JMeq_refl.
 Qed.
 
+Lemma update'_congr:
+  forall a s buf st s' buf' st',
+    s = s' ->
+    buf ~= buf'  ->
+    st = st' ->
+    update' a s buf st = update' a s' buf' st'.
+Proof.
+  intros.
+  subst.
+  reflexivity.
+Qed.
+
+Lemma conf_store_step_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (b: bool)
+:
+  forall full_buf: n_tuple bool (size' a (conf_state q)),
+    conf_buf_len q + 1 = size' a (conf_state q) ->
+    full_buf ~= (conf_buf q, b) ->
+    conf_store (step q b) = update' a (conf_state q) full_buf (conf_store q).
+Proof.
+  intros; unfold step.
+  destruct (Compare_dec.le_lt_dec _ _); simpl; try lia.
+  apply update'_congr; auto.
+  eapply JMeq_trans with (y:= rewrite_size (eq_sym (squeeze (conf_buf_sane q) l)) (conf_buf q, b)).
+  - unfold rewrite_size, eq_rect_r.
+    rewrite eq_sym_involutive.
+    reflexivity.
+  - rewrite H0.
+    eapply rewrite_size_jmeq.
+Qed.
+
 Equations follow
   {a: p4automaton}
   (c: configuration a)
@@ -292,6 +325,7 @@ Proof.
     + apply conf_store_step_fill; auto; lia.
     + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
 Qed.
+
 
 Lemma conf_buf_follow_fill
   {a: p4automaton}
@@ -344,6 +378,74 @@ Proof.
       apply conf_buf_len_step_transition; auto.
     + rewrite follow_equation_2; apply IHbs.
       rewrite conf_buf_len_step_fill, conf_state_step_fill; lia.
+Qed.
+
+Lemma conf_store_follow_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+:
+  forall full_buf: n_tuple bool (size' a (conf_state q)),
+    conf_buf_len q + length bs = size' a (conf_state q) ->
+    full_buf ~= n_tuple_concat (conf_buf q) (l2t bs) ->
+    conf_store (follow q bs) = update' a (conf_state q) full_buf (conf_store q).
+Proof.
+  revert q; induction bs; intros.
+  - simpl in H; pose proof (conf_buf_sane q); lia.
+  - destruct bs; simpl in *.
+    + autorewrite with follow.
+      apply conf_store_step_transition; eauto.
+      rewrite H0.
+      rewrite concat_concat'.
+      reflexivity.
+    + rewrite follow_equation_2.
+      assert (Hs: conf_state (step q a0) = conf_state q).
+      {
+        erewrite conf_state_step_fill; eauto.
+        lia.
+      }
+      assert (Hst: conf_store (step q a0) = conf_store q).
+      {
+        erewrite conf_store_step_fill; eauto.
+        lia.
+      }
+      assert (Hsz: size' a (conf_state (step q a0))
+             = size' a (conf_state q))
+        by (now rewrite Hs).
+      rewrite (IHbs (step q a0) (rewrite_size Hsz full_buf)); eauto.
+      * apply update'_congr; eauto using rewrite_size_jmeq.
+      * rewrite Hsz.
+        rewrite <- H.
+        rewrite conf_buf_len_step_fill; lia.
+      * rewrite rewrite_size_jmeq.
+        rewrite <- l2t_t2l with (t:=full_buf).
+        rewrite <- l2t_t2l.
+        destruct (n_tuple_cons (l2t bs) b) eqn:?.
+        rewrite t2l_concat.
+        assert (Hfull: t2l full_buf = t2l (conf_buf q) ++ (a0 :: t2l n ++ [b0])).
+        {
+          apply t2l_proper in H0.
+          rewrite H0.
+          rewrite t2l_concat.
+          set (f := fun x => t2l (conf_buf q) ++ x).
+          eapply JMeq_congr.
+          replace (a0 :: t2l n ++ [b0])
+            with (a0 :: t2l ((n, b0): n_tuple bool (S (0 + length bs))))
+            by reflexivity.
+          erewrite <- t2l_cons.
+          reflexivity.
+        }
+        rewrite Hfull.
+        replace (t2l (conf_buf (step q a0))) with (t2l (conf_buf q) ++ [a0]).
+        rewrite <- app_assoc.
+        reflexivity.
+        replace [a0] with (t2l ((tt, a0): n_tuple bool 1)).
+        rewrite <- t2l_concat.
+        eapply eq_t2l.
+        symmetry.
+        rewrite concat_concat'; simpl.
+        eapply conf_buf_step_fill; try lia.
+        reflexivity.
 Qed.
 
 Lemma conf_buf_len_follow_fill
@@ -429,6 +531,40 @@ Proof.
     specialize (IHbs (step q a0) _ Hst).
     rewrite IHbs.
     destruct bs; reflexivity.
+Qed.
+
+Lemma conf_state_follow_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+  (s: states a)
+:
+  conf_state q = inl s ->
+  conf_buf_len q + length bs = size' a (conf_state q) ->
+  conf_state (follow q bs) = transitions' a (inl s) (conf_store (follow q bs)).
+Proof.
+  revert q.
+  induction bs; intros; autorewrite with follow.
+  - simpl in *.
+    pose proof (conf_buf_sane q).
+    rewrite H in *.
+    lia.
+  - destruct bs.
+    + simpl in *.
+      autorewrite with follow.
+      unfold step.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      congruence.
+    + assert (conf_buf_len q + 1 < size' a (conf_state q))
+        by (simpl in *; lia).
+      eapply IHbs.
+      * rewrite conf_state_step_fill by auto.
+        congruence.
+      * rewrite conf_buf_len_step_fill by eauto.
+        rewrite conf_state_step_fill by auto.
+        simpl in *.
+        lia.
 Qed.
 
 Definition accepting

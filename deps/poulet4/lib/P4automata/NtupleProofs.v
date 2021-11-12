@@ -20,22 +20,26 @@ Fixpoint enum_tuples' {n: nat} k (t: n_tuple bool n) :=
   | S k => t :: enum_tuples' k (next_tuple n t)
   end.
 
-Definition enum_tuples (n: nat) : list (n_tuple bool n) :=
-  enum_tuples' (Nat.pow 2 n) (n_tuple_repeat n false).
-
-Lemma length_enum_tuples':
-  forall {n} k (t: n_tuple bool n),
-    length (enum_tuples' k t) = k.
-Proof.
-  induction k; simpl; eauto.
-Qed.
+Fixpoint enum_tuples (n: nat) : list (n_tuple bool n) :=
+  match n with
+  | 0 => tt :: nil
+  | S n =>
+    let shorter := enum_tuples n in
+    map (fun t => (t, false)) shorter ++
+    map (fun t => (t, true)) shorter
+  end.
 
 Lemma length_enum_tuples:
   forall n,
     length (enum_tuples n) = Nat.pow 2 n.
 Proof.
-  unfold enum_tuples.
-  eauto using length_enum_tuples'.
+  induction n.
+  - reflexivity.
+  - simpl.
+    rewrite app_length.
+    repeat rewrite map_length.
+    repeat rewrite IHn.
+    Lia.lia.
 Qed.
 
 Fixpoint code (n: nat) : n_tuple bool n -> nat :=
@@ -45,28 +49,66 @@ Fixpoint code (n: nat) : n_tuple bool n -> nat :=
     fun t =>
     let '(t, b) := t in
     match b with
-    | false => 2 * (code n t)
-    | true => S (2 * (code n t))
+    | false => code n t
+    | true => Nat.pow 2 n + code n t
     end
   end.
+
+Lemma code_bound:
+  forall n (t: n_tuple bool n),
+    code n t < Nat.pow 2 n.
+Proof.
+  induction n; intros; destruct t; simpl.
+  - Lia.lia.
+  - destruct b; specialize (IHn n0); Lia.lia.
+Qed.
 
 Lemma code_nth:
   forall n (x: n_tuple bool n),
     nth_error (enum_tuples n) (code n x) = Some x.
 Proof.
-  induction n.
-  - intros [].
-    reflexivity.
-  - unfold enum_tuples.
-    intros [x b].
-    cbn in *.
-    destruct b.
-Admitted.
+  induction n; intros.
+  - now destruct x.
+  - simpl enum_tuples.
+    destruct x.
+    specialize (IHn n0).
+    destruct b; simpl code.
+    + rewrite nth_error_app2;
+      rewrite <- length_enum_tuples, map_length; [|Lia.lia].
+      apply map_nth_error with (f := fun t => (t, true)).
+      fold (n_tuple bool n).
+      rewrite <- IHn; f_equal.
+      Lia.lia.
+    + rewrite nth_error_app1.
+      * now apply map_nth_error with (f := fun t => (t, false)).
+      * rewrite map_length.
+        rewrite length_enum_tuples.
+        apply code_bound.
+Qed.
 
 Global Program Instance BoolTupleFinite (n: nat): Finite (n_tuple bool n) :=
   {| enum := enum_tuples n |}.
 Next Obligation.
-Admitted.
+  induction n.
+  - simpl.
+    constructor.
+    + intro; contradiction.
+    + constructor.
+  - simpl.
+    apply NoDup_app.
+    + apply NoDup_map; auto.
+      intros; congruence.
+    + apply NoDup_map; auto.
+      intros; congruence.
+    + intros; intro.
+      rewrite in_map_iff in *.
+      destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      congruence.
+    + intros; intro.
+      rewrite in_map_iff in *.
+      destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      congruence.
+Qed.
 Next Obligation.
   eapply nth_error_In.
   eapply code_nth.
