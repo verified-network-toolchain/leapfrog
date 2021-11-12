@@ -264,8 +264,10 @@ Section CompileFirstOrderConfRelSimplified.
       intros.
       + autorewrite with compile_fm.
         destruct s; autorewrite with compile_fm.
-        * admit.
-        * admit.
+        * autorewrite with interp_fm.
+          eapply H0.
+        * unfold compile_store_ctx.
+          admit.
       + admit.
   
   Admitted.
