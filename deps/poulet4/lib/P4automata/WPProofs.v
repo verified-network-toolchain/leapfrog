@@ -1684,6 +1684,62 @@ Section WPProofs.
     reflexivity.
   Qed.
 
+  Lemma pat_inj:
+    forall t1 t2,
+      P4A.pat t1 = P4A.pat t2 ->
+      t1 = t2.
+  Proof.
+  Admitted.
+
+  Lemma pat_cond_safe:
+    forall ty (cond: P4A.cond H ty) pat ctx st1 st2 si (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
+      P4A.match_pat H (pick si (st1, st2)) cond pat = true <->
+      interp_store_rel (a:=a) (pat_cond si pat cond) valu buf1 buf2 st1 st2.
+  Proof.
+  Admitted.
+
+  Lemma cases_cond_safe:
+    forall ty (cond: P4A.cond H ty) cases default ctx st1 st2 s si (valu: bval ctx) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
+      P4A.eval_sel S H (pick si (st1, st2)) cond cases default = s ->
+      interp_store_rel (a:=a) (cases_cond si cond s cases default) valu buf1 buf2 st1 st2.
+  Proof.
+    induction cases as [|c cases]; simpl; intros.
+    - subst.
+      destruct (EquivDec.equiv_dec s s);
+        autorewrite with interp_store_rel;
+        [tauto|congruence].
+    - destruct (P4A.match_pat _ _ _ _) eqn:?.
+      + destruct (EquivDec.equiv_dec _ _); [|congruence].
+        rewrite <- bror_corr.
+        autorewrite with interp_store_rel.
+        left.
+        now apply pat_cond_safe.
+      + destruct (EquivDec.equiv_dec _ _).
+        * rewrite <- bror_corr.
+          autorewrite with interp_store_rel.
+          right.
+          now eapply IHcases.
+        * rewrite <- brand_corr; autorewrite with interp_store_rel.
+          rewrite <- brimpl_corr; autorewrite with interp_store_rel.
+          split; eauto.
+          intro.
+          apply pat_cond_safe in H1.
+          congruence.
+  Qed.
+
+  Lemma trans_cond_safe:
+    forall t si c st1 st2 s (valu: bval c) b1 (buf1: n_tuple bool b1) b2 (buf2: n_tuple bool b2),
+      P4A.eval_trans S H (pick si (st1, st2)) t = s ->
+      interp_store_rel (a:=a) (trans_cond si t s) valu buf1 buf2 st1 st2.
+  Proof.
+    induction t; simpl; intros.
+    - subst.
+      destruct (EquivDec.equiv_dec s s);
+        autorewrite with interp_store_rel;
+        [tauto|congruence].
+    - auto using cases_cond_safe.
+  Qed.
+
   Lemma wp_lpred_pair_jump_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_state_template prev (pick si (q1, q2)) ->
@@ -1834,7 +1890,65 @@ Section WPProofs.
           unfold P4A.size, P4A.state_size.
           Lia.lia.
         * (* need lemma saying if cur |= q1' then jump_cond is true *)
-          admit.
+          assert (Hnz: n = conf_buf_len q1 + length bs).
+          {
+            subst n.
+            rewrite Hst in *.
+            autorewrite with size' in *.
+            simpl in *.
+            unfold P4A.size in *.
+            unfold P4A.state_size in *.
+            Lia.lia.
+          }
+          unfold jump_cond.
+          rewrite Hprevst.
+          apply trans_cond_safe.
+          destruct H2.
+          rewrite H2.
+          rewrite H5.
+          erewrite conf_state_follow_transition; eauto.
+          autorewrite with transitions'; simpl.
+          unfold P4A.transitions.
+          change ConfRel.P4A.eval_trans with P4A.eval_trans.
+          assert (Hfb: size' _ (conf_state q1) = conf_buf_len q1 + length bs).
+          {
+            rewrite Hst.
+            autorewrite with size'.
+            rewrite <- Hnz.
+            unfold n.
+            reflexivity.
+          }
+          pose (full_buf := rewrite_size Hfb (n_tuple_concat (conf_buf q1) (l2t bs))).
+          erewrite conf_store_follow_transition with (full_buf0 := full_buf); eauto using rewrite_size_jmeq.
+          f_equal.
+          autorewrite with update'.
+          replace (update' (ConfRel.P4A.interp a) (conf_state q1) full_buf (conf_store q1))
+            with (update (P4A.interp a) s buf'' (conf_store q1)).
+          simpl.
+          unfold P4A.update.
+          eapply eval_op_congr; eauto.
+          destruct (plus_O_n _); reflexivity.
+          rewrite <- update'_equation_1.
+          apply update'_congr; eauto.
+          unfold buf'', buf', full_buf.
+          rewrite !rewrite_size_jmeq.
+          apply t2l_eq.
+          rewrite t2l_n_tuple_take_n.
+          rewrite t2l_n_tuple_skip_n.
+          rewrite skipn_O.
+          replace n with (length (t2l (rewrite_size Hsz' buf))).
+          rewrite firstn_all.
+          apply eq_t2l.
+          rewrite !rewrite_size_jmeq.
+          rewrite Heqbuf.
+          subst bs.
+          apply n_tuple_concat_congr; eauto.
+          symmetry; apply l2t_t2l.
+          rewrite t2l_len.
+          rewrite Hnz.
+          subst bs.
+          rewrite t2l_len.
+          Lia.lia.
       + assert (Hbs: length bs > 0).
         {
           pose proof (conf_room_nonzero q1).

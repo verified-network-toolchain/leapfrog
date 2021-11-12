@@ -486,6 +486,7 @@ Section Properties.
           -- now repeat apply List.in_cons.
   Qed.
 
+
   Lemma conf_state_follow_transition_syntactic
     (q: configuration (interp a))
     (bs: list bool)

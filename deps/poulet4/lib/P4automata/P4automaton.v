@@ -530,6 +530,40 @@ Proof.
     destruct bs; reflexivity.
 Qed.
 
+Lemma conf_state_follow_transition
+  {a: p4automaton}
+  (q: configuration a)
+  (bs: list bool)
+  (s: states a)
+:
+  conf_state q = inl s ->
+  conf_buf_len q + length bs = size' a (conf_state q) ->
+  conf_state (follow q bs) = transitions' a (inl s) (conf_store (follow q bs)).
+Proof.
+  revert q.
+  induction bs; intros; autorewrite with follow.
+  - simpl in *.
+    pose proof (conf_buf_sane q).
+    rewrite H in *.
+    lia.
+  - destruct bs.
+    + simpl in *.
+      autorewrite with follow.
+      unfold step.
+      destruct (le_lt_dec _ _); try lia.
+      simpl.
+      congruence.
+    + assert (conf_buf_len q + 1 < size' a (conf_state q))
+        by (simpl in *; lia).
+      eapply IHbs.
+      * rewrite conf_state_step_fill by auto.
+        congruence.
+      * rewrite conf_buf_len_step_fill by eauto.
+        rewrite conf_state_step_fill by auto.
+        simpl in *.
+        lia.
+Qed.
+
 Definition accepting
   {a: p4automaton}
   (c: configuration a)
