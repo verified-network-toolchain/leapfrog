@@ -267,12 +267,16 @@ Definition states (s: state) : P4A.state state header :=
                                  [| hexact 0x9200 |] ==> inl ParseVLAN1 ;;;
                                  [| hexact 0x9300 |] ==> inl ParseVLAN1 ;;;
                                  [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
+                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseVLAN1 =>
     {| st_op := extract(HdrVLAN1) ;
        st_trans := transition select (| (EHdr HdrVLAN1)[159--144] |)
                               {{ [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
+                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseIPv4 =>

@@ -17,9 +17,10 @@ Notation eth_size := 112.
 Notation vlan_size := 160.
 Notation ipv4_size := 64.
 Notation ipv6_size := 64.
+Notation icmp_size := 32.
 Notation tcp_size := 160.
 Notation udp_size := 160.
-Notation icmp_size := 32.
+Notation arp_size := 64.
 
 Inductive header: nat -> Type :=
 | HdrEth: header eth_size
@@ -29,7 +30,10 @@ Inductive header: nat -> Type :=
 | HdrIPv6: header ipv6_size
 | HdrTCP: header tcp_size
 | HdrUDP: header udp_size
-| HdrICMP: header icmp_size.
+| HdrICMP: header icmp_size
+| HdrICMPv6: header icmp_size
+| HdrARP: header arp_size
+| HdrARPIP: header ipv4_size.
 
 Derive Signature for header.
 Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
@@ -48,6 +52,12 @@ refine (
   | HdrICMP =>
     match y with
     | HdrICMP => left eq_refl
+    | HdrICMPv6 => right _
+    end
+  | HdrICMPv6 =>
+    match y with
+    | HdrICMP => right _
+    | HdrICMPv6 => left eq_refl
     end
   end
 ); unfold "<>"; intros H; inversion H.
@@ -59,11 +69,29 @@ refine (
     match y with
     | HdrIPv4 => left eq_refl
     | HdrIPv6 => right _
+    | HdrARP => right _
+    | HdrARPIP => right _
     end
   | HdrIPv6 =>
     match y with
     | HdrIPv4 => right _
     | HdrIPv6 => left eq_refl
+    | HdrARP => right _
+    | HdrARPIP => right _
+    end
+  | HdrARP =>
+    match y with
+    | HdrIPv4 => right _
+    | HdrIPv6 => right _
+    | HdrARP => left eq_refl
+    | HdrARPIP => right _
+    end
+  | HdrARPIP =>
+    match y with
+    | HdrIPv4 => right _
+    | HdrIPv6 => right _
+    | HdrARP => right _
+    | HdrARPIP => left eq_refl
     end
   end
 ); unfold "<>"; intros H; inversion H.
@@ -129,6 +157,9 @@ Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :
     ; existT _ _ HdrTCP
     ; existT _ _ HdrUDP
     ; existT _ _ HdrICMP
+    ; existT _ _ HdrICMPv6
+    ; existT _ _ HdrARP
+    ; existT _ _ HdrARPIP
     ] |}.
 Next Obligation.
   solve_header_finite.
@@ -150,12 +181,15 @@ Inductive state: Type :=
 | ParseIPv6
 | ParseTCP
 | ParseUDP
-| ParseICMP.
+| ParseICMP
+| ParseICMPv6
+| ParseARP
+| ParseARPIP.
 
 Scheme Equality for state.
 Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
 Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-  {| enum := [ParseEth; ParseVLAN0; ParseVLAN1; ParseIPv4; ParseIPv6; ParseTCP; ParseUDP; ParseICMP] |}.
+  {| enum := [ParseEth; ParseVLAN0; ParseVLAN1; ParseIPv4; ParseIPv6; ParseTCP; ParseUDP; ParseICMP; ParseICMPv6; ParseARP; ParseARPIP] |}.
 Next Obligation.
   repeat constructor;
     repeat match goal with
@@ -181,6 +215,8 @@ Definition states (s: state) : P4A.state state header :=
                                  [| hexact 0x9300 |] ==> inl ParseVLAN0 ;;;
                                  [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
+                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseVLAN0 =>
@@ -192,6 +228,8 @@ Definition states (s: state) : P4A.state state header :=
                                  [| hexact 0x9300 |] ==> inl ParseVLAN1 ;;;
                                  [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
+                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseVLAN1 =>
@@ -199,6 +237,8 @@ Definition states (s: state) : P4A.state state header :=
        st_trans := transition select (| (EHdr HdrVLAN1)[159--144] |)
                               {{ [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
+                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseIPv4 =>
@@ -213,7 +253,7 @@ Definition states (s: state) : P4A.state state header :=
   | ParseIPv6 =>
     {| st_op := extract(HdrIPv6);
        st_trans := transition select (| (EHdr HdrIPv6)[55--48] |)
-                              {{ [| hexact 1 |] ==> inl ParseICMP;;;
+                              {{ [| hexact 1 |] ==> inl ParseICMPv6;;;
                                  [| hexact 6 |] ==> inl ParseTCP;;;
                                  [| hexact 17 |] ==> inl ParseUDP;;;
                                  accept
@@ -228,6 +268,20 @@ Definition states (s: state) : P4A.state state header :=
   | ParseICMP =>
     {| st_op := extract(HdrICMP);
        st_trans := transition accept |}
+  | ParseICMPv6 =>
+    {| st_op := extract(HdrICMPv6);
+       st_trans := transition accept |}
+  | ParseARP =>
+    {| st_op := extract(HdrARP);
+       st_trans := transition select (| (EHdr HdrARP)[31--16] |)
+                              {{ [| hexact 0x0800 |] ==> inl ParseARPIP;;;
+                                 accept
+                              }}
+    |}
+  | ParseARPIP =>
+    {| st_op := extract(HdrARPIP);
+       st_trans := transition accept
+    |}
   end.
 
 Program Definition aut: Syntax.t state header :=
