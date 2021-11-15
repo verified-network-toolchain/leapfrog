@@ -116,15 +116,6 @@ Section WPProofs.
   Proof.
   Admitted.
 
-  Lemma t2l_fibration:
-    forall n m (t1: n_tuple bool n) (t2: n_tuple bool m),
-     t2l t1 = t2l t2 ->
-     t1 ~= t2.
-  Proof.
-    intros.
-    now rewrite <- l2t_t2l, <- H0, l2t_t2l.
-  Qed.
-
   Lemma t2l_n_tuple_take_n:
     forall n m (t: n_tuple bool n),
       t2l (n_tuple_take_n m t) = firstn m (t2l t).
@@ -186,7 +177,7 @@ Section WPProofs.
     intros; destruct e; unfold beslice; autorewrite with interp_bit_expr; auto.
     - apply slice_n_tuple_slice_eq.
     - generalize (interp_bit_expr e valu buf1 buf2 store1 store2) as t; intros.
-      apply t2l_fibration.
+      apply t2l_eq.
       unfold be_size; fold (be_size b1 b2 e).
       repeat rewrite t2l_n_tuple_slice.
       now rewrite slice_slice.
