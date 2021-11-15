@@ -376,20 +376,13 @@ Proof.
     simpl in *.
     revert xs.
     rewrite <- (plus_zero_trans n).
-    reflexivity.
+    intros.
+    apply rewrite_size_jmeq.
   - destruct ys as [ys y]; simpl in *.
     remember (n_tuple_concat' xs ys) as zs.
     remember (zs, y) as zsy.
     change ((n_tuple bool (m + n)%nat * bool)%type) with (n_tuple bool (S m + n)) in zsy.
-    rewrite succ_add_trans.
-    clear Heqzsy Heqzs.
-    generalize (plus_comm_trans n m).
-    revert zs zsy.
-    change (S m + n) with (S (m + n)).
-    generalize (m + n).
-    intros.
-    subst.
-    auto.
+    apply rewrite_size_jmeq.
 Qed.
 
 Lemma t2l_concat:
@@ -400,4 +393,55 @@ Proof.
   replace (t2l (n_tuple_concat xs ys)) with (t2l (n_tuple_concat' xs ys))
     by (eapply t2l_proper; symmetry; eapply concat_concat').
   apply t2l_concat'.
+Qed.
+
+Lemma n_tuple_concat_roundtrip:
+  forall n m (t: n_tuple bool m),
+    JMeq (n_tuple_concat (n_tuple_take_n n t) (n_tuple_skip_n n t)) t.
+Proof.
+  intros.
+  unfold n_tuple_concat.
+  rewrite rewrite_size_jmeq.
+  apply NtupleProofs.t2l_eq.
+  rewrite NtupleProofs.t2l_concat'.
+  rewrite t2l_n_tuple_take_n, t2l_n_tuple_skip_n.
+  apply List.firstn_skipn.
+Qed.
+
+Lemma n_tuple_take_n_roundtrip:
+  forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    t ~= n_tuple_take_n n (n_tuple_concat t t')
+.
+Proof.
+  intros.
+  apply t2l_eq.
+  rewrite t2l_n_tuple_take_n.
+  rewrite t2l_concat.
+  rewrite firstn_app.
+  rewrite t2l_len.
+  replace (n - n) with 0 by Lia.lia.
+  rewrite firstn_O.
+  rewrite app_nil_r.
+  rewrite <- firstn_all at 1.
+  f_equal.
+  apply t2l_len.
+Qed.
+
+Lemma n_tuple_skip_n_roundtrip:
+  forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    t' ~= n_tuple_skip_n n (n_tuple_concat t t')
+.
+Proof.
+  intros.
+  apply t2l_eq.
+  rewrite t2l_n_tuple_skip_n.
+  rewrite t2l_concat.
+  rewrite skipn_app.
+  rewrite <- app_nil_l at 1.
+  rewrite <- skipn_all with (l := t2l t).
+  repeat f_equal.
+  apply t2l_len.
+  rewrite t2l_len.
+  replace (n - n) with 0 by Lia.lia.
+  now rewrite skipn_O.
 Qed.

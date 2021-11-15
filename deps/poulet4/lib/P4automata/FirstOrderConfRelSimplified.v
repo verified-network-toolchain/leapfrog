@@ -200,7 +200,7 @@ Section AutModel.
     (try now split; intros; auto);
     autorewrite with interp_fm;
     (try now split; intros; auto).
-    - unfold simplify_eq_zero_fm_obligations_obligation_1. 
+    - unfold simplify_eq_zero_fm_obligations_obligation_1.
       destruct s.
       + destruct n.
         * repeat erewrite interp_zero_tm; split; intros; autorewrite with interp_fm; autorewrite with interp_fm; auto.

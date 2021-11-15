@@ -274,6 +274,37 @@ Section Interp.
     | None => VBits _ (n_tuple_repeat _ false)
     end.
 
+  Lemma assign_find:
+    forall n (h: H n) v s,
+      find h (assign h v s) = v.
+  Proof.
+    intros.
+    unfold find, assign.
+    unfold Env.find, Env.bind.
+    destruct (equiv_dec _ _).
+    - unfold equiv in e.
+      dependent destruction e.
+      reflexivity.
+    - now unfold equiv, complement in c.
+  Qed.
+
+  Lemma find_not_first:
+    forall h1 h2 v s,
+      h1 <> h2 ->
+      find (projT2 h1) (assign (projT2 h2) v s) =
+      find (projT2 h1) s.
+  Proof.
+    intros.
+    unfold assign.
+    unfold Env.bind.
+    unfold find at 1.
+    unfold Env.find at 1.
+    destruct (equiv_dec _ _).
+    - exfalso.
+      now repeat rewrite <- sigT_eta in e.
+    - reflexivity.
+  Qed.
+
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
 

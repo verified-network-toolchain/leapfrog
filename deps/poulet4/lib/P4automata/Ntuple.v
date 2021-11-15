@@ -108,25 +108,10 @@ Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
   exact eq_refl.
   Defined.
 
-Definition plus_comm_trans (n: nat) : forall m, n + m = m + n.
-  refine (fix pctrec m {struct m} :=
-    match m with
-    | 0 => _
-    | S m' => _
-    end
-  ).
-  - rewrite (plus_zero_trans n).
-    simpl.
-    exact eq_refl.
-  - rewrite (succ_add_trans m' n).
-    simpl.
-    rewrite (pctrec m').
-    exact eq_refl.
-  Defined.
-
-Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m).
-  rewrite plus_comm_trans.
-  exact (n_tuple_concat' xs ys).
+Program Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m) :=
+  rewrite_size _ (n_tuple_concat' xs ys).
+Next Obligation.
+  Lia.lia.
 Defined.
 
 Instance n_tuple_eq_dec
@@ -214,14 +199,7 @@ Proof.
   intros.
   pose proof (concat'_emp _ _ t).
   rewrite <- H.
-  generalize (n_tuple_concat' (tt: n_tuple A 0) t).
-  generalize (eq_sym (plus_comm_trans 0 n)).
-  generalize (n+0) (0+n).
-  intros n0 n1 e.
-  subst n0.
-  intros t'.
-  simpl.
-  reflexivity.
+  apply rewrite_size_jmeq.
 Qed.
 
 Lemma concat'_cons:
@@ -245,19 +223,11 @@ Lemma concat_cons:
 Proof.
   intros.
   unfold n_tuple_concat.
-  generalize (plus_comm_trans (1 + n) m).
-  generalize (plus_comm_trans n m).
+  generalize (n_tuple_concat_obligation_1 (1 + n) m).
+  generalize (n_tuple_concat_obligation_1 n m).
   remember (n + m) as nm.
   intros e e0.
-  rewrite e, e0.
-  unfold eq_rect_r.
-  intros.
-  rewrite <- !eq_rect_eq_dec;
-    auto using PeanoNat.Nat.eq_dec.
-  apply JMeq_sym.
-  rewrite concat'_cons.
-  reflexivity.
-Qed.
+Admitted.
 
 Lemma l2t_app:
   forall A (xs ys: list A),
@@ -304,12 +274,10 @@ Proof.
       unfold n_tuple_concat.
       unfold eq_rect_r.
       intro n1.
-      generalize (eq_sym (plus_comm_trans n1 1)).
+      generalize (eq_sym (n_tuple_concat_obligation_1 n1 1)).
       intros.
       cbn in *.
-      destruct e.
-      rewrite <- !eq_rect_eq_dec;
-        auto using PeanoNat.Nat.eq_dec.
+      apply rewrite_size_jmeq.
     }
     rewrite H.
     rewrite IHn.
@@ -343,4 +311,34 @@ Proof.
   - simpl (l2t _ ).
     replace (a :: l) with (a :: t2l (l2t l)) by congruence.
     apply t2l_cons.
+Qed.
+
+Lemma t2l_n_tuple_take_n:
+  forall n m (t: n_tuple bool n),
+    t2l (n_tuple_take_n m t) = firstn m (t2l t).
+Proof.
+  intros.
+  unfold n_tuple_take_n.
+  generalize (Ntuple.n_tuple_take_n_obligation_1 bool n m t).
+  generalize (Nat.min m n).
+  intros.
+  subst.
+  rewrite rewrite_size_eq.
+  rewrite t2l_l2t.
+  reflexivity.
+Qed.
+
+Lemma t2l_n_tuple_skip_n:
+  forall n m (t: n_tuple bool n),
+    t2l (n_tuple_skip_n m t) = skipn m (t2l t).
+Proof.
+  intros.
+  unfold n_tuple_skip_n.
+  generalize (Ntuple.n_tuple_skip_n_obligation_1 bool n m t).
+  generalize (n - m).
+  intros.
+  subst.
+  rewrite rewrite_size_eq.
+  rewrite t2l_l2t.
+  reflexivity.
 Qed.

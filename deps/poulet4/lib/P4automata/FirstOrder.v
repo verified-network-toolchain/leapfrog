@@ -405,6 +405,39 @@ Section FOL.
       autorewrite with find; auto.
   Qed.
 
+  Lemma interp_tm_reindex_tm:
+    forall m c s (t: tm c s) (v: valu m c) c' (v': valu m c'),
+      interp_tm m c s v t =
+      interp_tm m (app_ctx c' c) s (app_valu v' v) (reindex_tm t).
+  Proof.
+  Admitted.
+
+  Lemma interp_tm_weaken_tm:
+    forall m c s (t: tm c s) (v: valu m c) c' (v': valu m c'),
+      interp_tm m c s v t =
+      interp_tm m (app_ctx c c') s (app_valu v v') (weaken_tm s c c' t).
+  Proof.
+  Admitted.
+
+  Equations tm_cons {c s' s}
+    (t: tm c s)
+    : tm (CSnoc c s') s := {
+    tm_cons (TVar _ _ v) := TVar _ _ (VThere _ _ _ v);
+    tm_cons (TFun _ _ _ fn args) := TFun _ _ _ fn (tms_cons args)
+  } where tms_cons {c s' s}
+    (ts: HList.t (tm c) s)
+    : HList.t (tm (CSnoc c s')) s := {
+    tms_cons hnil := hnil;
+    tms_cons (t ::: ts) := tm_cons t ::: tms_cons ts
+  }.
+
+  Lemma interp_tm_tm_cons:
+    forall m c s (t: tm c s) (v: valu m c) s' val,
+      interp_tm m c s v t =
+      interp_tm m (CSnoc c s') s (VSnoc m s' c val v) (tm_cons t).
+  Proof.
+  Admitted.
+
 End FOL.
 
 Arguments TVar {_ _ _}.
