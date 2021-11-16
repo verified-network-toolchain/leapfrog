@@ -530,7 +530,7 @@ Module Optimized.
       [| *, exact #b|0 |] ==> inl State_4_body ;;;
        reject
     }}
-  }
+  |}
   | State_4_body => {|
     st_op := extract(buf_32);
     st_trans := transition select (| (EHdr buf_32)[31 -- 31], (EHdr buf_32)[30 -- 30], (EHdr buf_32)[29 -- 29], (EHdr buf_32)[28 -- 28], (EHdr buf_32)[27 -- 27], (EHdr buf_32)[26 -- 26], (EHdr buf_32)[25 -- 25], (EHdr buf_32)[24 -- 24], (EHdr buf_32)[23 -- 23], (EHdr buf_32)[22 -- 22], (EHdr buf_32)[21 -- 21], (EHdr buf_32)[20 -- 20], (EHdr buf_32)[19 -- 19], (EHdr buf_32)[18 -- 18], (EHdr buf_32)[17 -- 17], (EHdr buf_32)[16 -- 16]|) {{
