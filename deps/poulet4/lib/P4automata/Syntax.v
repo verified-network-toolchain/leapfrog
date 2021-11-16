@@ -278,7 +278,39 @@ Section Interp.
   Proof.
     intros.
     unfold find, assign.
-  Admitted.
+    unfold Env.bind, Env.bind'.
+    unfold Env.get, Env.get'.
+    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H n h)).
+    intros.
+    unfold store in s.
+    unfold Env.t in s.
+    unfold Env.keylist in s.
+    induction (enum (Env.K' nat H)).
+    contradiction.
+    dependent destruction s.
+    autorewrite with bind.
+    destruct (H'_eq_dec _ _).
+    autorewrite with get.
+    destruct (H'_eq_dec _ _).
+    unfold equiv in *.
+    dependent destruction e0.
+    now dependent destruction e.
+    simpl.
+    destruct i.
+    contradiction.
+    contradiction.
+    simpl.
+    destruct i.
+    unfold equiv, complement in c.
+    exfalso.
+    symmetry in e.
+    contradiction.
+    autorewrite with get.
+    destruct (H'_eq_dec _ _).
+    contradiction.
+    simpl.
+    apply IHl.
+  Qed.
 
   Lemma find_not_first:
     forall h1 h2 v s,
@@ -289,9 +321,46 @@ Section Interp.
     intros.
     unfold assign.
     unfold Env.bind.
-    unfold find at 1.
-  Admitted.
-  
+    unfold Env.bind'.
+    unfold find.
+    unfold Env.get.
+    unfold Env.get'.
+    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H (projT1 h1) (projT2 h1))).
+    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H (projT1 h2) (projT2 h2))).
+    intros.
+    unfold store in s.
+    unfold Env.t in s.
+    unfold Env.keylist in s.
+    induction (enum (Env.K' nat H)).
+    - contradiction.
+    - dependent destruction s.
+      autorewrite with get.
+      autorewrite with bind.
+      destruct (H'_eq_dec _ _).
+      autorewrite with get.
+      destruct (H'_eq_dec _ _).
+      exfalso.
+      unfold equiv, complement in *.
+      rewrite <- sigT_eta in e, e0.
+      congruence.
+      simpl.
+      reflexivity.
+      simpl.
+      autorewrite with get.
+      destruct (H'_eq_dec _ _).
+      reflexivity.
+      simpl.
+      destruct i, i0.
+      exfalso.
+      rewrite <- sigT_eta in e, e0.
+      congruence.
+      unfold equiv, complement in c.
+      congruence.
+      unfold equiv, complement in c.
+      congruence.
+      apply IHl.
+  Qed.
+
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
 
