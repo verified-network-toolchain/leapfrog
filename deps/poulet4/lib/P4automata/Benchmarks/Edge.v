@@ -19,6 +19,10 @@ Module Plain.
   Notation eompls_size := 32.
   Notation ipv4_size := 156.
   Notation ipv6_size := 316.
+  Notation ipv4_size_5 := 152.
+  Notation ipv4_size_6 := 184.
+  Notation ipv4_size_7 := 216.
+  Notation ipv4_size_8 := 248.
 
   Inductive header: nat -> Type :=
   | HdrEth0: header eth_size
@@ -27,7 +31,10 @@ Module Plain.
   | HdrMPLS1: header mpls_size
   | HdrEoMPLS: header eompls_size
   | HdrIPVer: header 4
-  | HdrIPv4: header ipv4_size
+  | HdrIPv4_5: header ipv4_size_5
+  | HdrIPv4_6: header ipv4_size_6
+  | HdrIPv4_7: header ipv4_size_7
+  | HdrIPv4_8: header ipv4_size_8
   | HdrIPv6: header ipv6_size.
 
   Derive Signature for header.
@@ -91,12 +98,42 @@ Module Plain.
     end
   ); unfold "<>"; intros H; inversion H.
   Defined.
-  Definition h156_eq_dec (x y: header 156) : {x = y} + {x <> y}.
+  Definition h152_eq_dec (x y: header 152) : {x = y} + {x <> y}.
   refine (
     match x with
-    | HdrIPv4 =>
+    | HdrIPv4_5 =>
       match y with
-      | HdrIPv4 => left eq_refl
+      | HdrIPv4_5 => left eq_refl
+      end
+    end
+  ); unfold "<>"; intros H; inversion H.
+  Defined.
+  Definition h184_eq_dec (x y: header 184) : {x = y} + {x <> y}.
+  refine (
+    match x with
+    | HdrIPv4_6 =>
+      match y with
+      | HdrIPv4_6 => left eq_refl
+      end
+    end
+  ); unfold "<>"; intros H; inversion H.
+  Defined.
+  Definition h216_eq_dec (x y: header 216) : {x = y} + {x <> y}.
+  refine (
+    match x with
+    | HdrIPv4_7 =>
+      match y with
+      | HdrIPv4_7 => left eq_refl
+      end
+    end
+  ); unfold "<>"; intros H; inversion H.
+  Defined.
+  Definition h248_eq_dec (x y: header 248) : {x = y} + {x <> y}.
+  refine (
+    match x with
+    | HdrIPv4_8 =>
+      match y with
+      | HdrIPv4_8 => left eq_refl
       end
     end
   ); unfold "<>"; intros H; inversion H.
@@ -107,7 +144,10 @@ Module Plain.
       (existT _ _ h4_eq_dec) ::
       (existT _ _ h112_eq_dec) ::
       (existT _ _ h316_eq_dec) ::
-      (existT _ _ h156_eq_dec) ::
+      (existT _ _ h152_eq_dec) ::
+      (existT _ _ h184_eq_dec) ::
+      (existT _ _ h216_eq_dec) ::
+      (existT _ _ h248_eq_dec) ::
         nil).
   Defined.
 
@@ -116,7 +156,7 @@ Module Plain.
     solve_eqdec'.
   Defined.
   Global Instance header_finite: forall n, @Finite (header n) _ _.
-    intros n; solve_indexed_finiteness n [32; 4 ; 112 ; 316 ; 156 ].
+    intros n; solve_indexed_finiteness n [32; 4 ; 112 ; 316 ; 152; 184; 216; 248 ].
   Qed.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
@@ -127,7 +167,10 @@ Module Plain.
       ; existT _ _ HdrMPLS1
       ; existT _ _ HdrEoMPLS
       ; existT _ _ HdrIPVer
-      ; existT _ _ HdrIPv4
+      ; existT _ _ HdrIPv4_5
+      ; existT _ _ HdrIPv4_6
+      ; existT _ _ HdrIPv4_7
+      ; existT _ _ HdrIPv4_8
       ; existT _ _ HdrIPv6
       ] |}.
   Next Obligation.
@@ -150,6 +193,10 @@ Module Plain.
   | ParseEoMPLS
   | ParseIPVer
   | ParseIPv4
+  | ParseIPv4_5
+  | ParseIPv4_6
+  | ParseIPv4_7
+  | ParseIPv4_8
   | ParseIPv6.
 
   Definition states (s: state) : P4A.state state header :=
@@ -161,7 +208,7 @@ Module Plain.
                                   [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|1|0|0|0 |] ==> inl ParseMPLS0 ;;;
                                   [| exact #b|0|0|0|0|1|0|0|0|0|0|0|0|0|0|0|0 |] ==> inl ParseIPv4 ;;;
                                   [| exact #b|1|0|0|0|0|1|1|0|1|1|0|1|1|1|0|1 |] ==> inl ParseIPv6 ;;;
-                                  reject }}
+                                  accept }}
       |}
     | ParseMPLS0 => 
       {| st_op := extract(HdrMPLS0);
@@ -188,7 +235,27 @@ Module Plain.
       {| st_op := extract(HdrEoMPLS);
         st_trans := transition (inl ParseEth1) |}
     | ParseIPv4 =>
-      {| st_op := extract(HdrIPv4);
+      {| st_op := extract(HdrIPVer);
+        st_trans := transition select (| EHdr HdrIPVer |) 
+                                {{  [| exact #b|0|1|0|1 |] ==> inl ParseIPv4_5;;;
+                                    [| exact #b|0|1|1|0 |] ==> inl ParseIPv4_6;;;
+                                    [| exact #b|0|1|1|1 |] ==> inl ParseIPv4_7;;;
+                                    [| exact #b|1|0|0|0 |] ==> inl ParseIPv4_8;;;
+                                  reject
+                                }}
+        
+      |}
+    | ParseIPv4_5 =>
+      {| st_op := extract(HdrIPv4_5);
+        st_trans := transition accept |}
+    | ParseIPv4_6 =>
+      {| st_op := extract(HdrIPv4_6);
+        st_trans := transition accept |}
+    | ParseIPv4_7 =>
+      {| st_op := extract(HdrIPv4_7);
+        st_trans := transition accept |}
+    | ParseIPv4_8 =>
+      {| st_op := extract(HdrIPv4_8);
         st_trans := transition accept |}
     | ParseIPv6 =>
       {| st_op := extract(HdrIPv6);
@@ -203,7 +270,7 @@ Module Plain.
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
   Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-    {| enum := [ParseEth0; ParseEth1; ParseMPLS0; ParseMPLS1; ParseEoMPLS; ParseIPVer; ParseIPv4; ParseIPv6] |}.
+    {| enum := [ParseEth0; ParseEth1; ParseMPLS0; ParseMPLS1; ParseEoMPLS; ParseIPVer; ParseIPv4; ParseIPv6; ParseIPv4_5; ParseIPv4_6; ParseIPv4_7; ParseIPv4_8] |}.
   Next Obligation.
   repeat constructor;
     repeat match goal with
@@ -224,11 +291,30 @@ Module Plain.
 End Plain.
 
 Module Optimized.
-Inductive state := | State_0_suff_1 | State_0_suff_3 | State_3 | State_0 | State_0_suff_2 | State_2 | State_3_suff_3 | State_3_suff_1 | State_1_suff_0 | State_3_suff_0 | State_1 | State_4 | State_3_suff_2 | State_2_suff_0.
+Require Coq.Classes.EquivDec.
+Require Coq.Lists.List.
+Import List.ListNotations.
+Require Import Coq.Program.Program.
+Require Import Poulet4.P4automata.Syntax.
+Require Import Poulet4.FinType.
+Require Import Poulet4.P4automata.Sum.
+Require Import Poulet4.P4automata.Syntax.
+Require Import Poulet4.P4automata.BisimChecker.
+
+Require Import Poulet4.P4automata.Notations.
+
+Open Scope p4a.
+
+Ltac prep_equiv :=
+  unfold Equivalence.equiv, RelationClasses.complement in *;
+  program_simpl; try congruence.
+
+Obligation Tactic := prep_equiv.
+Inductive state := | State_0 | State_1 | State_1_suff_0 | State_0_suff_3 | State_3_suff_1 | State_4 | State_4_trailer | State_4_skip | State_2_suff_0 | State_3 | State_3_suff_2 | State_0_suff_2 | State_2 | State_3_suff_3 | State_3_suff_0 | State_0_suff_1.
 Scheme Equality for state.
 Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
 Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-  {| enum := [State_0_suff_1; State_0_suff_3; State_3; State_0; State_0_suff_2; State_2; State_3_suff_3; State_3_suff_1; State_1_suff_0; State_3_suff_0; State_1; State_4; State_3_suff_2; State_2_suff_0] |}.
+  {| enum := [State_0; State_1; State_1_suff_0; State_0_suff_3; State_3_suff_1; State_4; State_2_suff_0; State_3; State_3_suff_2; State_0_suff_2; State_2; State_3_suff_3; State_3_suff_0; State_0_suff_1; State_4_trailer ; State_4_skip] |}.
 Next Obligation.
 repeat constructor;
   repeat match goal with
@@ -248,6 +334,7 @@ Inductive header : nat -> Type :=
 | buf_64: header 64
 | buf_112: header 112
 | buf_16: header 16
+| buf_32: header 32
 | buf_304: header 304
 | buf_240: header 240
 | buf_144: header 144
@@ -269,6 +356,16 @@ refine (
   | buf_64 =>
     match y with
     | buf_64 => left eq_refl
+    end
+  end
+); unfold "<>"; intros H; inversion H.
+Defined.
+Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
+refine (
+  match x with
+  | buf_32 =>
+    match y with
+    | buf_32 => left eq_refl
     end
   end
 ); unfold "<>"; intros H; inversion H.
@@ -361,6 +458,7 @@ Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> 
      (existT _ _ h128_eq_dec) ::
      (existT _ _ h16_eq_dec) ::
      (existT _ _ h112_eq_dec) ::
+     (existT _ _ h32_eq_dec) ::
      (existT _ _ h304_eq_dec) ::
      (existT _ _ h240_eq_dec) ::
      (existT _ _ h144_eq_dec) ::
@@ -374,7 +472,7 @@ Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
   solve_eqdec'.
 Defined.
 Global Instance header_finite: forall n, @Finite (header n) _ _.
-  intros n; solve_indexed_finiteness n [320; 64 ; 128 ; 16 ; 112 ; 304 ; 240 ; 144 ; 176 ; 208 ].
+  intros n; solve_indexed_finiteness n [320; 64; 32 ; 128 ; 16 ; 112 ; 304 ; 240 ; 144 ; 176 ; 208 ].
 Qed.
 
 Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
@@ -384,6 +482,7 @@ Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :
     ; existT _ _ buf_64
     ; existT _ _ buf_112
     ; existT _ _ buf_16
+    ; existT _ _ buf_32
     ; existT _ _ buf_304
     ; existT _ _ buf_240
     ; existT _ _ buf_144
@@ -406,11 +505,11 @@ Definition states (s: state) :=
   | State_0 => {|
     st_op := extract(buf_112);
     st_trans := transition select (| (EHdr buf_112)[15 -- 15], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[0 -- 0], (EHdr buf_112)[111 -- 111], (EHdr buf_112)[110 -- 110], (EHdr buf_112)[109 -- 109], (EHdr buf_112)[108 -- 108], (EHdr buf_112)[107 -- 107], (EHdr buf_112)[106 -- 106], (EHdr buf_112)[105 -- 105], (EHdr buf_112)[104 -- 104], (EHdr buf_112)[103 -- 103], (EHdr buf_112)[102 -- 102], (EHdr buf_112)[101 -- 101], (EHdr buf_112)[100 -- 100], (EHdr buf_112)[99 -- 99], (EHdr buf_112)[98 -- 98], (EHdr buf_112)[97 -- 97], (EHdr buf_112)[96 -- 96], (EHdr buf_112)[15 -- 15], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[0 -- 0], (EHdr buf_112)[15 -- 15], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[0 -- 0]|) {{
-      (* [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> accept ;;; *)
+      [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_3 ;;;
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|1, exact #b|0, exact #b|1, exact #b|1, exact #b|0, exact #b|1, exact #b|1, exact #b|1, exact #b|0, exact #b|1, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_0_suff_1 ;;;
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|1, exact #b|1, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_0_suff_2 ;;;
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_0_suff_3 ;;;
-      (* [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> accept ;;; *)
+      [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> accept ;;;
       reject
     }}
   |}
@@ -420,11 +519,11 @@ Definition states (s: state) :=
   |}
   | State_0_suff_2 => {|
     st_op := extract(buf_16);
-    st_trans := transition inl State_2;
+    st_trans := transition inl State_4;
   |}
   | State_0_suff_3 => {|
     st_op := extract(buf_16);
-    st_trans := transition inl State_3;
+    st_trans := transition inl State_4;
   |}
   | State_1 => {|
     st_op := extract(buf_16);
@@ -474,17 +573,30 @@ Definition states (s: state) :=
     st_op := extract(buf_240);
     st_trans := transition accept;
   |}
+
   | State_4 => {|
-    st_op := extract(buf_64);
-    st_trans := transition select (| (EHdr buf_64)[15 -- 15], (EHdr buf_64)[14 -- 14], (EHdr buf_64)[13 -- 13], (EHdr buf_64)[12 -- 12], (EHdr buf_64)[11 -- 11], (EHdr buf_64)[10 -- 10], (EHdr buf_64)[9 -- 9], (EHdr buf_64)[8 -- 8], (EHdr buf_64)[7 -- 7], (EHdr buf_64)[6 -- 6], (EHdr buf_64)[5 -- 5], (EHdr buf_64)[4 -- 4], (EHdr buf_64)[3 -- 3], (EHdr buf_64)[2 -- 2], (EHdr buf_64)[1 -- 1], (EHdr buf_64)[0 -- 0], (EHdr buf_64)[31 -- 31], (EHdr buf_64)[30 -- 30], (EHdr buf_64)[29 -- 29], (EHdr buf_64)[28 -- 28], (EHdr buf_64)[27 -- 27], (EHdr buf_64)[26 -- 26], (EHdr buf_64)[25 -- 25], (EHdr buf_64)[24 -- 24], (EHdr buf_64)[23 -- 23], (EHdr buf_64)[22 -- 22], (EHdr buf_64)[21 -- 21], (EHdr buf_64)[20 -- 20], (EHdr buf_64)[19 -- 19], (EHdr buf_64)[18 -- 18], (EHdr buf_64)[17 -- 17], (EHdr buf_64)[16 -- 16], (EHdr buf_64)[47 -- 47], (EHdr buf_64)[46 -- 46], (EHdr buf_64)[45 -- 45], (EHdr buf_64)[44 -- 44], (EHdr buf_64)[43 -- 43], (EHdr buf_64)[42 -- 42], (EHdr buf_64)[41 -- 41], (EHdr buf_64)[40 -- 40], (EHdr buf_64)[39 -- 39], (EHdr buf_64)[38 -- 38], (EHdr buf_64)[37 -- 37], (EHdr buf_64)[36 -- 36], (EHdr buf_64)[35 -- 35], (EHdr buf_64)[34 -- 34], (EHdr buf_64)[33 -- 33], (EHdr buf_64)[32 -- 32], (EHdr buf_64)[63 -- 63], (EHdr buf_64)[62 -- 62], (EHdr buf_64)[61 -- 61], (EHdr buf_64)[60 -- 60], (EHdr buf_64)[59 -- 59], (EHdr buf_64)[58 -- 58], (EHdr buf_64)[57 -- 57], (EHdr buf_64)[56 -- 56], (EHdr buf_64)[55 -- 55], (EHdr buf_64)[54 -- 54], (EHdr buf_64)[53 -- 53], (EHdr buf_64)[52 -- 52], (EHdr buf_64)[51 -- 51], (EHdr buf_64)[50 -- 50], (EHdr buf_64)[49 -- 49], (EHdr buf_64)[48 -- 48]|) {{
-      [| *, *, *, *, *, *, *, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|1, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|1, exact #b|1, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|1, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, exact #b|1, *, *, *, *, *, *, *, *, exact #b|0, exact #b|1, exact #b|1, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
-      [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> reject ;;;
+    st_op := extract(buf_16);
+    st_trans := transition select (| (EHdr buf_16)[8 -- 8] |) {{
+      [| exact #b|0 |] ==> inl State_4_skip ;;;
+      [| exact #b|1 |] ==> inl State_4_trailer ;;;
+      reject
+    }}
+  |}
+
+  | State_4_skip => {| 
+    st_op := extract(buf_32);
+    st_trans := transition inl State_4_trailer
+  |}
+
+  | State_4_trailer => {| 
+    st_op := extract(buf_16);
+    st_trans := transition select (| (EHdr buf_16)[15 -- 12], (EHdr buf_16)[11--8] |) {{
+      [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits rem *) ;;;
+      [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits rem *) ;;;
+      [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits rem *) ;;;
+      [| exact #b|0|1|0|0, exact #b|0|1|1|0 |] ==> inl State_3_suff_1 (* State_3 but with 16 bits rem *) ;;;
+      [| exact #b|0|1|0|0, exact #b|0|1|1|1 |] ==> inl State_3_suff_2 (* State_3 but with 16 bits rem *) ;;;
+      [| exact #b|0|1|0|0, exact #b|1|0|0|0 |] ==> inl State_3_suff_3 (* State_3 but with 16 bits rem *) ;;;
       reject
     }}
   |}
