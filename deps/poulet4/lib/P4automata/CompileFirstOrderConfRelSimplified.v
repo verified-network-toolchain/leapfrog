@@ -276,6 +276,7 @@ Section CompileFirstOrderConfRelSimplified.
   Defined.
 
   Definition init_store: P4A.store H.
+  Proof.
     apply DepEnv.init.
     intro.
     constructor.
@@ -351,19 +352,6 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite <- decompile_store_val_partial_roundtrip; auto.
       apply NoDup_enum.
   Qed.
-
-  Inductive val_almost_equal:
-    forall s,
-      FOS.mod_sorts a s ->
-      FOS.mod_sorts a s ->
-      Prop
-  :=
-  | ValAlmostEqualBits:
-      forall (n: nat) (t: n_tuple bool n), val_almost_equal (FOS.Bits n) t t
-  | ValAmostEqualStore:
-      forall (s1 s2: store (P4A.interp a)),
-        (forall n (h: H n), P4A.find H h s1 = P4A.find H h s2) ->
-        val_almost_equal FOS.Store s1 s2.
 
   Definition store_almost_equal (s1 s2: store (P4A.interp a)) :=
     forall n (h: H n), P4A.find H h s1 = P4A.find H h s2.
