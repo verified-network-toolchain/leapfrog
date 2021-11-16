@@ -1,5 +1,6 @@
 From Equations Require Import Equations.
 Require Import Coq.Program.Equality.
+Require Import Coq.Classes.EquivDec.
 
 Set Universe Polymorphism.
 
@@ -37,6 +38,87 @@ Module HList.
         | HCons a x hlt => P a x /\ all_rec _ hlt
       end.
 
+  Equations get
+             {A B}
+             `{A_eq_dec: EquivDec.EqDec A eq}
+             {ks: list A}
+             (x: A)
+             (pf: List.In x ks)
+             (e: t B ks)
+    : B x :=
+    { get x in_pf (HCons a b rest) :=
+        match A_eq_dec x a with
+        | left pf => eq_rect_r B b pf
+        | right pf' =>
+          let rest_pf :=
+              match in_pf with
+              | or_introl eq_pf => False_ind _ (pf' (eq_sym eq_pf))
+              | or_intror rest_pf => rest_pf
+              end
+          in
+          get x rest_pf rest
+        end }.
+
+  Equations bind
+             {A B}
+             `{A_eq_dec: EquivDec.EqDec A eq}
+             {ks: list A}
+             (x: A)
+             (v: B x)
+             (pf: List.In x ks)
+             (e: t B ks)
+    : t B ks :=
+    { bind x v in_pf (HCons a b rest) :=
+        match A_eq_dec x a with
+        | left pf => HCons a (eq_rect _ B v _ pf) rest
+        | right pf' =>
+          let rest_pf :=
+              match in_pf with
+              | or_introl eq_pf => False_ind _ (pf' (eq_sym eq_pf))
+              | or_intror rest_pf => rest_pf
+              end
+          in
+          HCons a b (bind x v rest_pf rest)
+        end }.
+
+  Lemma get_extensionality
+        {A B}
+        `{A_eq_dec: EquivDec.EqDec A eq}
+        {ks: list A} :
+    forall (e e': t B ks),
+      List.NoDup ks ->
+      (forall k pf, get k pf e = get k pf e') ->
+      e = e'.
+  Proof.
+    dependent induction ks.
+    - intros.
+      dependent destruction e.
+      dependent destruction e'.
+      reflexivity.
+    - intros. 
+      dependent destruction e.
+      dependent destruction e'.
+      pose proof (H0 a (or_introl eq_refl)) as H'.
+      autorewrite with get in H'.
+      replace (A_eq_dec a a) with (@eq_dec _ A_eq_dec a a)
+        in H' by reflexivity.
+      rewrite EqDec.peq_dec_refl in H'.
+      unfold eq_rect_r in H'.
+      simpl in H'.
+      subst b0.
+      f_equal.
+      assert (List.NoDup ks) by now inversion H.
+      eapply IHks; eauto; intros.
+      eauto with datatypes.
+      specialize (H0 k (or_intror pf)).
+      autorewrite with get in H0.
+      destruct (A_eq_dec k a).
+      + exfalso.
+        inversion H.
+        congruence.
+      + apply H0.
+  Qed.
+  
 End HList.
 
 Module HListNotations.

@@ -836,6 +836,6 @@ Section ConfRel.
       + apply H4.
   Qed.
 End ConfRel.
-Arguments interp_conf_rel {_} {_} {_} {_} a phi.
-Arguments interp_crel {_} {_} {_} {_} a i rel.
-Arguments interp_entailment {_ _ _ _} a i e.
+Arguments interp_conf_rel {_} {_} {_} {_} {_} a phi.
+Arguments interp_crel {_} {_} {_} {_} {_} a i rel.
+Arguments interp_entailment {_ _ _ _ _} a i e.
