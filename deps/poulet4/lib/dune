@@ -18,6 +18,7 @@
    P4automata.Benchmarks.DatacenterSelfProof
    P4automata.Benchmarks.EdgeSelfProof
    P4automata.Benchmarks.ServiceproviderSelfProof
+   P4automata.Benchmarks.ServiceProviderTransProof
    P4automata.Benchmarks.SimpleBucketProof
    P4automata.Benchmarks.IPOptionsProof
    P4automata.Benchmarks.IPOptions2Proof
