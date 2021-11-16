@@ -58,7 +58,7 @@ RegisterEnvCtors
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init' (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ A)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ A)
                (mk_partition (Reachability.reachable_states A n s1 s2)).
 
 Lemma prebisim_sloppystrict:
