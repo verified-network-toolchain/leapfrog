@@ -235,28 +235,6 @@ Section CompileFirstOrderConfRelSimplified.
       compile_store_val_partial s (enum (Syntax.H' H));
   }.
 
-  Lemma find_reindex_var:
-    forall n (h: H n) c (v0 : valu FOBV.sig FOBV.fm_model (compile_ctx c))
-      (v1 : var FOBV.sig compile_store_ctx (FOBV.Bits (projT1 (existT H n h))))
-      (v2 : valu FOBV.sig FOBV.fm_model
-              (compile_store_ctx_partial (enum (Syntax.H' H)))),
-    find FOBV.sig FOBV.fm_model v1 v2 =
-    find FOBV.sig FOBV.fm_model (reindex_var v1) (app_valu FOBV.sig v0 v2).
-  Proof.
-  Admitted.
-
-  Lemma find_weaken_var:
-    forall
-      n (h: H n) c v
-      (v1 : valu FOBV.sig FOBV.fm_model
-              (compile_store_ctx_partial (enum (Syntax.H' H))))
-      (v2 : var FOBV.sig (compile_ctx c) (FOBV.Bits (projT1 (existT H n h)))),
-    find FOBV.sig FOBV.fm_model v2 (compile_valu v) =
-    find FOBV.sig FOBV.fm_model (weaken_var compile_store_ctx v2)
-      (app_valu FOBV.sig (compile_valu v) v1).
-  Proof.
-  Admitted.
-
   Transparent compile_store_valu_partial.
 
   Lemma compile_store_val_correct':
@@ -321,7 +299,7 @@ Section CompileFirstOrderConfRelSimplified.
         unfold compile_lookup.
         apply compile_store_val_correct'.
         apply NoDup_enum.
-      + erewrite find_reindex_var; now f_equal.
+      + erewrite <- find_app_right; now f_equal.
     - autorewrite with find.
       rewrite IHv; auto.
       destruct s.
@@ -331,7 +309,7 @@ Section CompileFirstOrderConfRelSimplified.
         now rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_ctx c) (FOBV.Bits n0) (FOBV.Bits n)).
       + rewrite (subscript_equation_3 (ctx1 := c) v0).
         rewrite (compile_valu_equation_3 (c0 := c) m v).
-        erewrite find_weaken_var; now f_equal.
+        erewrite <- find_app_left; now f_equal.
   Qed.
 
   Equations decompile_store_val_partial
@@ -615,6 +593,7 @@ Section CompileFirstOrderConfRelSimplified.
         autorewrite with interp_tm.
         autorewrite with compile_val.
         unfold compile_val_obligations_obligation_1.
+        apply compile_store_val_correct.
   Qed.
 
   Lemma compile_store_valu_partial_invariant:
@@ -724,7 +703,6 @@ Section CompileFirstOrderConfRelSimplified.
            apply IHfm.
            now rewrite (compile_valu_equation_3 val (c0 := c)).
   Qed.
-
 
 End CompileFirstOrderConfRelSimplified.
 
