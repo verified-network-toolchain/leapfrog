@@ -295,6 +295,24 @@ Section CompileFirstOrderConfRelSimplified.
                                   init_store;
   }.
 
+-  Lemma compile_store_val_partial_invariant:
+    forall h v enum s,
+      ~ List.In h enum ->
+      compile_store_val_partial (P4A.assign H (projT2 h) v s) enum =
+      compile_store_val_partial s enum.
+  Proof.
+    intros.
+    induction enum.
+    - reflexivity.
+    - autorewrite with compile_store_val_partial; simpl.
+      rewrite IHenum.
+      + rewrite P4A.find_not_first with (S := S) (equiv0 := equiv0); auto.
+        contradict H0.
+        subst; now apply List.in_eq.
+      + contradict H0.
+        now apply List.in_cons.
+  Qed.
+
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
       List.NoDup enum ->
@@ -307,7 +325,7 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
-      rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0).
+      rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0); auto.
       symmetry.
       rewrite <- NtupleProofs.n_tuple_concat_roundtrip with (n := projT1 a0).
       symmetry.
@@ -315,8 +333,11 @@ Section CompileFirstOrderConfRelSimplified.
         (xs2 := (rewrite_size (decompile_store_val_partial_obligations_obligation_1 a0 enum) _))
         (ys2 := (compile_store_val_partial _ enum)).
       + now rewrite rewrite_size_jmeq.
-      + inversion H0.
-  Admitted.
+      + rewrite compile_store_val_partial_invariant.
+        rewrite <- IHenum.
+        now rewrite rewrite_size_jmeq.
+        all: now inversion H0.
+  Qed.
 
   Lemma compile_val_roundtrip:
     forall s (val: FOBV.mod_sorts (compile_sort s)),
@@ -555,7 +576,10 @@ Section CompileFirstOrderConfRelSimplified.
           compile_store_valu_partial (build_hlist_env enum s) = val.
   Proof.
     induction enum; intros.
-    - admit.
+    - setoid_rewrite build_hlist_env_equation_1.
+      exists init_store.
+      dependent destruction val.
+      reflexivity.
     - dependent destruction val.
       inversion H0.
       specialize (IHenum H4 val).
@@ -564,7 +588,12 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
-  Admitted.
+      subst.
+      rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum)).
+      f_equal.
+      rewrite P4A.assign_find with (S := S) (equiv0 := equiv0); auto.
+      now apply compile_store_valu_partial_invariant.
+  Qed.
 
   Lemma compile_store_valu_partial_surjective:
     forall (val: valu FOBV.sig FOBV.fm_model compile_store_ctx),
