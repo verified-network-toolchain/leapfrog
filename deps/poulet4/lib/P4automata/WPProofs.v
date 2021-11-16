@@ -237,26 +237,22 @@ Section WPProofs.
         auto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
-        unfold P4A.find, P4A.assign.
-        cbn in *.
-        repeat match goal with
-               | H: context[ match ?e with _ => _ end ] |- _ =>
-                 destruct e eqn:?
-               | |- context[ match ?e with _ => _ end ] =>
-                 destruct e eqn:?
-               | |- context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] =>
-                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
-               | H: context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] |- _ =>
-                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
-               | |- _ => progress unfold eq_rect in *
-               | |- _ => progress rewrite !P4A.eq_dec_refl in *
-               | |- _ => progress cbn in *
-               | |- _ => progress subst
-               | |- ?x ~= ?y =>
-                 try (cut (x = y); [intros; subst; now constructor|]; congruence)
-               | |- _ => try congruence
-               end;
-        admit.
+        destruct a0; try easy.
+        simpl.
+        replace h with (projT2 (existT _ hsize h)) by reflexivity.
+        replace hdr with (projT2 (existT _ size hdr)) by reflexivity.
+        replace (ConfRel.P4A.find H _ _)
+        with (P4A.find H (projT2 (existT H hsize h))
+                         (P4A.assign H (projT2 (existT H size hdr))
+                                     (P4A.VBits size w) st1)) by reflexivity.
+        replace (ConfRel.P4A.find H _ st1)
+        with (P4A.find H (projT2 (existT H hsize h)) st1) by reflexivity.
+        rewrite P4A.find_not_first.
+        reflexivity.
+        contradict n.
+        replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
+        replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.
+        now rewrite n.
     - reflexivity.
     - subst.
       autorewrite with interp_bit_expr.
@@ -286,7 +282,7 @@ Section WPProofs.
         eapply concat_proper; eauto.
       + now apply IHphi1.
       + now apply IHphi2.
-  Admitted.
+  Qed.
 
   Lemma be_subst_hdr_right:
     forall c (valu: bval c) size (hdr: H size) exp phi
@@ -330,26 +326,22 @@ Section WPProofs.
         auto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
-        unfold P4A.find, P4A.assign.
-        cbn in *.
-        repeat match goal with
-               | H: context[ match ?e with _ => _ end ] |- _ =>
-                 destruct e eqn:?
-               | |- context[ match ?e with _ => _ end ] =>
-                 destruct e eqn:?
-               | |- context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] =>
-                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
-               | H: context[ EquivDec.equiv_dec ?A ?R ?e ?E ?x ?y ] |- _ =>
-                 progress (destruct (@EquivDec.equiv_dec A R e E x y))
-               | |- _ => progress unfold eq_rect in *
-               | |- _ => progress rewrite !P4A.eq_dec_refl in *
-               | |- _ => progress cbn in *
-               | |- _ => progress subst
-               | |- ?x ~= ?y =>
-                 try (cut (x = y); [intros; subst; now constructor|]; congruence)
-               | |- _ => try congruence
-               end;
-        admit.
+        destruct a0; try easy.
+        simpl.
+        replace h with (projT2 (existT _ hsize h)) by reflexivity.
+        replace hdr with (projT2 (existT _ size hdr)) by reflexivity.
+        replace (ConfRel.P4A.find H _ _)
+        with (P4A.find H (projT2 (existT H hsize h))
+                         (P4A.assign H (projT2 (existT H size hdr))
+                                     (P4A.VBits size w) st2)) by reflexivity.
+        replace (ConfRel.P4A.find H _ st2)
+        with (P4A.find H (projT2 (existT H hsize h)) st2) by reflexivity.
+        rewrite P4A.find_not_first.
+        reflexivity.
+        contradict n.
+        replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
+        replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.
+        now rewrite n.
     - reflexivity.
     - subst.
       autorewrite with interp_bit_expr.
@@ -379,7 +371,7 @@ Section WPProofs.
         eapply concat_proper; eauto.
       + now apply IHphi1.
       + now apply IHphi2.
-  Admitted.
+  Qed.
 
   Lemma sr_subst_hdr_left:
     forall c (valu: bval c) size (hdr: H size) exp phi

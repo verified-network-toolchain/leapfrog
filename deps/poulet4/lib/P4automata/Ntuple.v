@@ -161,7 +161,7 @@ Program Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple 
   n_tuple_skip_n lo (n_tuple_take_n (1 + hi) xs).
 
 Lemma rewrite_size_eq:
-  forall n (x: Ntuple.n_tuple bool n) (pf: n = n),
+  forall n (x: n_tuple bool n) (pf: n = n),
     Ntuple.rewrite_size pf x = x.
 Proof.
   unfold Ntuple.rewrite_size, eq_rect_r.
@@ -217,7 +217,7 @@ Proof.
 Qed.
 
 Lemma concat_cons:
-  forall A n m (xs: n_tuple A n) (ys: n_tuple A m) a,
+  forall bool n m (xs: n_tuple bool n) (ys: n_tuple bool m) a,
     JMeq (n_tuple_cons (n_tuple_concat xs ys) a)
          (n_tuple_concat (n_tuple_cons xs a) ys).
 Proof.
@@ -225,9 +225,16 @@ Proof.
   unfold n_tuple_concat.
   generalize (n_tuple_concat_obligation_1 (1 + n) m).
   generalize (n_tuple_concat_obligation_1 n m).
-  remember (n + m) as nm.
   intros e e0.
-Admitted.
+  rewrite e, e0.
+  replace (rewrite_size eq_refl _) with (n_tuple_concat' xs ys).
+  replace (rewrite_size eq_refl _) with (n_tuple_concat' (n_tuple_cons xs a) ys).
+  - now rewrite concat'_cons.
+  - apply JMeq_eq.
+    now rewrite rewrite_size_jmeq.
+  - apply JMeq_eq.
+    now rewrite rewrite_size_jmeq.
+Qed.
 
 Lemma l2t_app:
   forall A (xs ys: list A),
