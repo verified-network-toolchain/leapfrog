@@ -521,8 +521,24 @@ Section CompileFirstOrderConfRelSimplified.
       compile_store_valu_partial (build_hlist_env enum (P4A.assign H (projT2 h) v s)) =
       compile_store_valu_partial (build_hlist_env enum s).
   Proof.
-    (* Probably something similar to compile_store_val_partial_invariant *)
-  Admitted.
+    induction enum; intros.
+    - now autorewrite with build_hlist_env.
+    - autorewrite with build_hlist_env.
+      simpl.
+      unfold build_hlist_env_obligations_obligation_1.
+      rewrite P4A.find_not_first.
+      + destruct (P4A.find H (projT2 a0) s).
+        specialize (IHenum s).
+        rewrite (compile_store_valu_partial_equation_2 _ (rest := enum)).
+        rewrite (compile_store_valu_partial_equation_2 _ (rest := enum)).
+        f_equal.
+        apply IHenum.
+        contradict H0.
+        now apply List.in_cons.
+      + contradict H0.
+        subst.
+        apply List.in_eq.
+  Qed.
 
   Lemma compile_store_valu_partial_surjective':
     forall enum,
