@@ -581,7 +581,7 @@ def parse_prog(s: str):
 
   return prog
   
-test_prog_str = """\
+edge = """\
 First-Lookup: [0, 12, 0, 0]
   Match: ([ff, 00, 00, 00, 00, 00, 00, 00, 00], [01, 00, 00, 00, 00, 00, 00, 00, 00])   Next-State: 255/255   Adv:  18   Next-Lookup: [0, 0, 0, 0]   Hdr-Starts: [( 0, 4,  0), ( 0, 0,  0), ( 0, 0,  0)]     # Match: [[eompls+ethernet2-1 (l:18) 0:17/17], done=True, patterns=1]   Nxt-State: 255
   Match: ([ff, 00, 00, ff, ff, 00, 00, 00, 00], [00, 00, 00, 08, 00, 00, 00, 00, 00])   Next-State:   3/255   Adv:  14   Next-Lookup: [0, 0, 0, 0]   Hdr-Starts: [( 0, 1, 14), ( 0, 0,  0), ( 0, 0,  0)]     # Match: [[ethernet-1 (l:14) 0:13/13] -> [ipv4-bar0-1 (l:0) 0:--/--], done=False, patterns=1]   Nxt-State: 3
