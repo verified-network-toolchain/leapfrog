@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import dataclasses
+import enum
 from typing import Match, Optional, Pattern
 
 import re
@@ -173,30 +174,56 @@ Qed.\n"
 
   return output
 
-@dataclass
-class tcam_mask:
-  it: Optional[str]
 
-  def __str__(self) -> str :
-    match self.it:
-      case None: return "*"
-      case x: return f"0x{x}"
+class tcam_mask(enum.Enum):
+  BIT = 0
+  # BYTE = 1
+  WILD = 1
 
-  def __add__(self, rhs: tcam_mask):
-    match self.it, rhs.it:
-      case None, None: return self
-      case x, y: return tcam_mask(x + y)
+  @property
+  def width(self):
+    match self:
+      case tcam_mask.BIT: return 1
+      # case tcam_mask.BYTE: return 4
+      case tcam_mask.WILD: return 1
+  
+  def __or__(self, other: tcam_mask):
+    match self, other:
+      case tcam_mask.WILD, _: return tcam_mask.WILD
+      case _, tcam_mask.WILD: return tcam_mask.WILD
+      case _, _:
+        if self == other:
+          return self
+        else:
+          print("can't OR together bit and byte masks:", self, other)
+          assert False
 
-def s_to_mask(s:str) -> Optional[tcam_mask]:
-  anypat = re.compile("0*")
-  if anypat.fullmatch(s):
-    return tcam_mask(None)
-  else:
-    pat = re.compile("[a-f0-9]+")
-    if pat.fullmatch(s):
-      return tcam_mask(s)
+
+def c_to_mask(c: chr) -> tcam_mask:
+  match c: 
+    # case 'f': return tcam_mask.BYTE
+    case '1': return tcam_mask.BIT
+    case '0': return tcam_mask.WILD
+    case _: 
+      print("unhandled mask:", c)
+      assert False
+
+def s_to_masks(s: str) -> list[tcam_mask]:
+  return [c_to_mask(x) for x in s]
+
+def hexs_to_masks(s: str, width: int = 4) -> list[tcam_mask]:
+  binary_byte = bin(int(s, base=16))
+  # Use zfill to pad the string with zeroes as we want all 8 digits of the byte.
+  return [s_to_masks(x) for x in binary_byte[2:].zfill(width)]
+
+def hexp_to_digs(s: str, width: int = 0) -> list[bool]:
+  if not width:
+    width = len(s)*4
+  return [bool(int(c)) for c in bin(int(s, base=16))[2:].zfill(width)]
 
 
+
+  
 @dataclass
 class tcam_transition:
   masks: list[tcam_mask]
@@ -204,33 +231,30 @@ class tcam_transition:
   next_state: int | bool
   next_extract: int
 
+# @dataclass 
+# class tcam_window:
+#   offset: int # in nibbles
+#   width: int
+
 @dataclass
 class tcam_state:
-  window_offsets: list[int]
+  windows: list[int]
   transitions: list[tcam_transition]
 
+  # in bytes
   @property
   def window(self):
-    return max(self.window_offsets) + 2
+    return max(self.windows) + 2
 
 @dataclass
 class tcam_program:
-  window_entries : int
   window_size: int
   states: list[tcam_state]
-
-def smash_list(xs: list):
-  print("smashing:", xs)
-  ret = []
-  for i in range(len(xs)):
-    if i % 2 == 0:
-      ret.append(xs[i] + xs[i + 1])
-  return ret
 
 
 def header_sizes_state(st: tcam_state) -> set[int]:
   
-  window_size = (max(st.window_offsets)+2)*8
+  window_size = st.window*8
   ret = {window_size} | {trans.next_extract*8 - window_size for trans in st.transitions}
   return {x for x in ret if x > 0}
 
@@ -258,13 +282,14 @@ def state_names_prog(p: tcam_program) -> set[str]:
 
 def format_tcam_state(pref: int, st: tcam_state):
 
-  window = max(st.window_offsets) + 2
   output = f"  | State_{pref} => {{|\n"
 
-  window_var = f"buf_{window*8}"
+  bits = st.window*8
+
+  window_var = f"buf_{bits}"
   output += f"    st_op := extract({window_var});\n"
 
-  slices = [f"[{x*8 + 16-1} -- {x * 8}]" for x in st.window_offsets]
+  slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(16)]
 
   output += f"    st_trans := transition select (| " + ", ".join([f"(EHdr {window_var}){x}" for x in slices]) + f"|) {{{{\n"
   
@@ -272,25 +297,31 @@ def format_tcam_state(pref: int, st: tcam_state):
 
   for i, trans in enumerate(st.transitions):
 
-    masks = ""
-    pats = smash_list(trans.pats)
-    for j, mask in enumerate(smash_list(trans.masks)):
-      if mask.it:
-        if mask.it == "ffff":
-          if masks == "":
-            masks = "hexact 0x" + "".join(pats[j])
+    masks_str = ""
+    for j, mask in enumerate(trans.masks):
+      # print("pat:", trans.pats[j])
+      print("mask:", mask, mask == tcam_mask.WILD, mask == tcam_mask.BIT)
+      match mask:
+        case tcam_mask.WILD: 
+          if masks_str == "":
+            masks_str = "*"
           else:
-            masks += f", hexact 0x{''.join(pats[j])}"
-        else:
-          raise Exception(f"unhandled mask: {mask.it}")
-      else:
-        if masks == "":
-          masks = "*"
-        else:
-          masks += f", *"
+            masks_str += f", *"
+        # case tcam_mask.BYTE:
+        #   if masks_str == "":
+        #     masks_str = "hexact 0x" + "".join(trans.pats[j])
+        #   else:
+        #     masks_str += f", hexact 0x{''.join(trans.pats[j])}"
+        case tcam_mask.BIT:
+          # dig = "true" if trans.pats[j] == "1" else "false"
+          dig = trans.pats[j]
+          if masks_str == "":
+            masks_str = f"exact #b|{dig}"
+          else:
+            masks_str += f", exact #b|{dig}"
 
-    nxt_extract = trans.next_extract*8 - window*8
-    output += f"      [| {masks} |] ==> "
+    nxt_extract = trans.next_extract*8 - st.window*8
+    output += f"      [| {masks_str} |] ==> "
 
     if nxt_extract == 0:
       output += "accept"
@@ -358,6 +389,16 @@ def print_tcam_prog(tcp: tcam_program):
   print(format_tcam_prog(tcp))
 
 
+ex_small_prog = tcam_program( window_size=2, states=[
+  tcam_state(windows = [
+      2
+  ], transitions=[tcam_transition(
+    masks=[msk for x in "ff" for msks in hexs_to_masks(str(x)) for msk in msks],
+    pats=["1" if d else "0" for d in hexp_to_digs("08")],
+    next_state=True,
+    next_extract=34
+  )])
+])
 
 #   First-Lookup: [0, 12]
 #   Match: ([ff, 00, 00, ff, ff], [00, 00, 00, 08, 00])   Next-State: 255/255   Adv:  34   Next-Lookup: [0, 0]   Hdr-Starts: [( 0, 1, 14), (14, 4,  0), ( 0, 0,  0)]     
@@ -365,14 +406,14 @@ def print_tcam_prog(tcp: tcam_program):
 #   Match: ([ff, 00, 00, 00, 00], [00, 00, 00, 00, 00])   Next-State: 255/255   Adv:  14   Next-Lookup: [0, 0]   Hdr-Starts: [( 0, 1, 14), ( 0, 0,  0), ( 0, 0,  0)]     
 ex0_transitions = [
   tcam_transition(
-    masks=[tcam_mask(None), tcam_mask(None), tcam_mask("ff"), tcam_mask("ff")],
-    pats=["00", "00", "08", "00"],
+    masks=[msk for x in "0000ffff" for msks in hexs_to_masks(x) for msk in msks],
+    pats=["1" if d else "0" for d in hexp_to_digs("00000800")],
     next_state=True,
     next_extract=34
   ),
   tcam_transition(
-    masks=[tcam_mask(None), tcam_mask(None), tcam_mask("ff"), tcam_mask("ff")],
-    pats=["00", "00", "81", "00"],
+    masks=[msk for x in "0000ffff" for msks in hexs_to_masks(x) for msk in msks],
+    pats=["1" if d else "0" for d in hexp_to_digs("00008100")],
     next_state=1,
     next_extract=16
   ),
@@ -390,20 +431,20 @@ ex0_transitions = [
 #   Match: ([ff, 00, 00, 00, 00], [01, 00, 00, 00, 00])   Next-State: 255/255   Adv:   2   Next-Lookup: [0, 0]   Hdr-Starts: [( 0, 0,  0), ( 0, 0,  0), ( 0, 0,  0)]     
 ex1_transitions = [
   tcam_transition(
-    masks=[tcam_mask("ff"), tcam_mask("ff"), tcam_mask(None), tcam_mask(None)],
-    pats=["08", "00", "00", "00"],
+    masks=[msk for x in "ffff0000" for msks in hexs_to_masks(x) for msk in msks],
+    pats=["1" if d else "0" for d in hexp_to_digs("08000000")],
     next_state=True,
     next_extract=22
   ),
   tcam_transition(
-    masks=[tcam_mask("ff"), tcam_mask("ff"), tcam_mask("ff"), tcam_mask("ff")],
-    pats=["81", "00", "08", "00"],
+    masks=[msk for x in "ffffffff" for msks in hexs_to_masks(x) for msk in msks],
+    pats=["1" if d else "0" for d in hexp_to_digs("81000800")],
     next_state=True,
     next_extract=26
   ),
   # tcam_transition(
   #   masks=[tcam_mask("ff"), tcam_mask("ff"), tcam_mask(None), tcam_mask(None)],
-  #   pats=["81", "00", "00", "00"],
+  #   pats=["8100", "00", "00"],
   #   next_state=True,
   #   next_extract=6
   # ),
@@ -415,9 +456,16 @@ ex1_transitions = [
   # )
 ]
 
-ex_prog = tcam_program(window_entries=2, window_size=2, states=[
-  tcam_state(window_offsets=[0,12], transitions=ex0_transitions),
-  tcam_state(window_offsets=[0,4], transitions=ex1_transitions)
+ex_prog = tcam_program(window_size=2, states=[
+  tcam_state(
+    windows=[
+      0, 12
+    ],
+    transitions=ex0_transitions),
+  tcam_state(
+    windows=[
+      0, 12
+    ], transitions=ex1_transitions)
 ])
 
 def get_prefix(r: Pattern, s:str) -> Optional[tuple[Match, str]]:
@@ -436,14 +484,20 @@ def parse_trans (s: str) -> tuple[trans_data, tcam_transition]:
   # Match: ([ff, ff, ff,00, 00], [01, 08, 00, 00, 00])   Next-State: 255/255   Adv:  22   Next-Lookup: [0, 0]   Hdr-Starts: [( 2, 4,  0), ( 0, 0,  0), ( 0, 0,  0)]  
   pref_m, suff = get_prefix(pref_re, s)
   match_re = re.compile("\(\[([0-9a-f][0-9a-f](,\s*[0-9a-f][0-9a-f])*)\],\s*\[([0-9a-f][0-9a-f](,\s*[0-9a-f][0-9a-f])*)\]\)")
+  
   match_m = match_re.match(pref_m.group(1))
+
+  # print("after first match:", match_m.group(1))
 
   masks_raw = match_m.group(1).split(',')
   pats_raw = match_m.group(3).split(',')
-  trans_masks = [s_to_mask(x.strip()) for x in masks_raw[1:]]
-  trans_pats = [x.strip() for x in pats_raw]
+  width = 8
+  trans_masks = [x for it in masks_raw[1:] for x in hexs_to_masks(it.strip(), width)]
+  trans_pats = [c for x in pats_raw for c in bin(int(x.strip(), base=16))[2:].zfill(width)]
 
-  state = int(trans_pats[0])
+  state = int(trans_pats[0:8])
+
+  assert len(trans_masks) == len(trans_pats[8:])
 
   nxt_state_re = re.compile("\s*Next-State:\s*(\d+)/(\d+)")
   nxt_match, suff = get_prefix(nxt_state_re, suff)
@@ -462,7 +516,7 @@ def parse_trans (s: str) -> tuple[trans_data, tcam_transition]:
 
   lookups = [int(x.strip()) for x in nxt_look_match.group(1).split(",")]
 
-  return (trans_data(state, lookups), tcam_transition(masks=trans_masks, pats=trans_pats[1:], next_state=nxt_state, next_extract=next_extract))
+  return (trans_data(state, lookups), tcam_transition(masks=trans_masks, pats=trans_pats[8:], next_state=nxt_state, next_extract=next_extract))
 
 def parse_first_lookup(s: str) -> list[int]:
   # First-Lookup: [0, 12, 0, 0]
@@ -478,7 +532,7 @@ def parse_prog(s: str):
   trans_dater = [parse_trans(x) for x in lines[1:]]
 
   # map states to lookups
-  states_lookups = {t_data.state: [] for t_data, _ in trans_dater}
+  states_lookups: dict[int, list[list[int]]] = {t_data.state: [] for t_data, _ in trans_dater}
 
   for t_data, trans in trans_dater:
     if type(trans.next_state) == int:
@@ -487,7 +541,7 @@ def parse_prog(s: str):
 
 
  # toss them into a dictionary keyed by state id
-  states = {t_data.state: [] for t_data, _ in trans_dater}
+  states: dict[int, list[tcam_transition]] = {t_data.state: [] for t_data, _ in trans_dater}
 
   for state in states.keys():
     lookupss = states_lookups[state]
@@ -502,21 +556,30 @@ def parse_prog(s: str):
 
   prog_states = []
   for id in state_ids:
-    if id == 0:
-      state = tcam_state(window_offsets=first_lookup, transitions=states[id])
-    else:
-      state = tcam_state(window_offsets=states_lookups[id][0], transitions=states[id])
+    lookups = first_lookup
+    if not id == 0:
+      lookups = states_lookups[id][0]
+      
+   
+    state_masks = [tcam_mask.WILD] * len(lookups) * 4
+    for trans in states[id]:
+
+      for i, mask in enumerate(trans.masks):
+        print("masks and lookups len", len(trans.masks), len(lookups))
+        state_masks[i] |= mask
+    
+    offsets = [x for y in lookups for x in [y*2, y*2+1]]
+
+    windows = [tcam_window(offset=offsets[i], width=state_masks[i].width) for i in range(len(offsets))]
+        
+    state = tcam_state(windows=windows, transitions=states[id])
     prog_states.append(state)
   
-  prog = tcam_program(window_entries=len(first_lookup), window_size=2, states=prog_states)
+  prog = tcam_program(window_size=2, states=prog_states)
   
   print("prog:", prog)
 
   return prog
-
-
-  # do some processing and convert into states
-  # make a prog out of it
   
 test_prog_str = """\
 First-Lookup: [0, 12, 0, 0]
@@ -554,7 +617,7 @@ First-Lookup: [0, 12]
   Match: ([ff, 00, 00, 00, 00], [02, 00, 00, 00, 00])   Next-State: 255/255   Adv:  40   Next-Lookup: [0, 0]   Hdr-Starts: [( 0,  8, 37), ( 0,  0,  0), ( 0,  0,  0)]     # Match: [[ipv6-1 (l:40) 0:39/39], done=True, patterns=1]   Nxt-State: 255
   Match: ([ff, f0, 00, 00, 00], [03, 40, 00, 00, 00])   Next-State:   1/255   Adv:   0   Next-Lookup: [0, 0]   Hdr-Starts: [( 0,  7,  0), ( 0,  0,  0), ( 0,  0,  0)]     # Match: [[mpls-pseudo-1 (l:0) 0:--/0] -> [ipv4-bar0-1 (l:0) 0:--/--], done=False, patterns=1]   Nxt-State: 1
   Match: ([ff, f0, 00, 00, 00], [03, 60, 00, 00, 00])   Next-State:   2/255   Adv:   0   Next-Lookup: [0, 0]   Hdr-Starts: [( 0,  7,  0), ( 0,  8, 37), ( 0,  0,  0)]     # Match: [[mpls-pseudo-1 (l:0) 0:--/0] -> [ipv6-1 (l:40) 0:--/--], done=False, patterns=1]   Nxt-State: 2
-Match: ([ff, 01, 00, 01, 00], [04, 00, 00, 00, 00])   Next-State:   4/255   Adv:   8   Next-Lookup: [0, 4]   Hdr-Starts: [( 2,  3,  4), ( 6,  4,  4), ( 0,  0,  0)]     # Match: [[mpls-1 (l:4) 2:3/3] -> [mpls-2 (l:4) 0:3/3] -> [mpls-3 (l:4) 0:1/1], done=False, patterns=1]   Nxt-State: 4
+  Match: ([ff, 01, 00, 01, 00], [04, 00, 00, 00, 00])   Next-State:   4/255   Adv:   8   Next-Lookup: [0, 4]   Hdr-Starts: [( 2,  3,  4), ( 6,  4,  4), ( 0,  0,  0)]     # Match: [[mpls-1 (l:4) 2:3/3] -> [mpls-2 (l:4) 0:3/3] -> [mpls-3 (l:4) 0:1/1], done=False, patterns=1]   Nxt-State: 4
   Match: ([ff, 01, 00, 01, 00], [04, 00, 00, 01, 00])   Next-State:   3/255   Adv:   6   Next-Lookup: [0, 0]   Hdr-Starts: [( 2,  3,  4), ( 0,  0,  0), ( 0,  0,  0)]     # Match: [[mpls-1 (l:4) 2:3/3] -> [mpls-2 (l:4) 0:3/3] -> [mpls-pseudo-bar0-1 (l:0) 0:--/--], done=False, patterns=1]   Nxt-State: 3
   Match: ([ff, 01, 00, 00, 00], [04, 01, 00, 00, 00])   Next-State:   3/255   Adv:   2   Next-Lookup: [0, 0]   Hdr-Starts: [( 0,  0,  0), ( 0,  0,  0), ( 0,  0,  0)]     # Match: [[mpls-1 (l:4) 2:3/3] -> [mpls-pseudo-bar0-1 (l:0) 0:--/--], done=False, patterns=1]   Nxt-State: 3
 """
