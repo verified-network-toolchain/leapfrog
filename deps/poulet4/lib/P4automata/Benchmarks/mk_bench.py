@@ -214,7 +214,7 @@ def s_to_masks(s: str) -> list[tcam_mask]:
 def hexs_to_masks(s: str, width: int = 4) -> list[tcam_mask]:
   binary_byte = bin(int(s, base=16))
   # Use zfill to pad the string with zeroes as we want all 8 digits of the byte.
-  return [s_to_masks(x) for x in binary_byte[2:].zfill(width)]
+  return [c_to_mask(x) for x in binary_byte[2:].zfill(width)]
 
 def hexp_to_digs(s: str, width: int = 0) -> list[bool]:
   if not width:
@@ -290,6 +290,7 @@ def format_tcam_state(pref: int, st: tcam_state):
   output += f"    st_op := extract({window_var});\n"
 
   slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(15, -1, -1)]
+  # slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(16)]
 
   output += f"    st_trans := transition select (| " + ", ".join([f"(EHdr {window_var}){x}" for x in slices]) + f"|) {{{{\n"
   
@@ -300,7 +301,7 @@ def format_tcam_state(pref: int, st: tcam_state):
     masks_str = ""
     for j, mask in enumerate(trans.masks):
       # print("pat:", trans.pats[j])
-      print("mask:", mask, mask == tcam_mask.WILD, mask == tcam_mask.BIT)
+      # print("mask:", mask, mask == tcam_mask.WILD, mask == tcam_mask.BIT)
       match mask:
         case tcam_mask.WILD: 
           if masks_str == "":
@@ -393,7 +394,7 @@ ex_small_prog = tcam_program( window_size=2, states=[
   tcam_state(windows = [
       2
   ], transitions=[tcam_transition(
-    masks=[msk for x in "ff" for msks in hexs_to_masks(str(x)) for msk in msks],
+    masks=hexs_to_masks("ff"),
     pats=["1" if d else "0" for d in hexp_to_digs("08")],
     next_state=True,
     next_extract=34
@@ -406,13 +407,13 @@ ex_small_prog = tcam_program( window_size=2, states=[
 #   Match: ([ff, 00, 00, 00, 00], [00, 00, 00, 00, 00])   Next-State: 255/255   Adv:  14   Next-Lookup: [0, 0]   Hdr-Starts: [( 0, 1, 14), ( 0, 0,  0), ( 0, 0,  0)]     
 ex0_transitions = [
   tcam_transition(
-    masks=[msk for x in "0000ffff" for msks in hexs_to_masks(x) for msk in msks],
+    masks=hexs_to_masks("0000ffff"),
     pats=["1" if d else "0" for d in hexp_to_digs("00000800")],
     next_state=True,
     next_extract=34
   ),
   tcam_transition(
-    masks=[msk for x in "0000ffff" for msks in hexs_to_masks(x) for msk in msks],
+    masks=hexs_to_masks("0000ffff"), #[msk for x in "0000ffff" for msks in hexs_to_masks(x) for msk in msks],
     pats=["1" if d else "0" for d in hexp_to_digs("00008100")],
     next_state=1,
     next_extract=16
@@ -431,13 +432,13 @@ ex0_transitions = [
 #   Match: ([ff, 00, 00, 00, 00], [01, 00, 00, 00, 00])   Next-State: 255/255   Adv:   2   Next-Lookup: [0, 0]   Hdr-Starts: [( 0, 0,  0), ( 0, 0,  0), ( 0, 0,  0)]     
 ex1_transitions = [
   tcam_transition(
-    masks=[msk for x in "ffff0000" for msks in hexs_to_masks(x) for msk in msks],
+    masks=hexs_to_masks("ffff0000"), #[msk for x in "ffff0000" for msks in hexs_to_masks(x) for msk in msks],
     pats=["1" if d else "0" for d in hexp_to_digs("08000000")],
     next_state=True,
     next_extract=22
   ),
   tcam_transition(
-    masks=[msk for x in "ffffffff" for msks in hexs_to_masks(x) for msk in msks],
+    masks=hexs_to_masks("ffffffff"), #[msk for x in "ffffffff" for msks in hexs_to_masks(x) for msk in msks],
     pats=["1" if d else "0" for d in hexp_to_digs("81000800")],
     next_state=True,
     next_extract=26
@@ -464,7 +465,7 @@ ex_prog = tcam_program(window_size=2, states=[
     transitions=ex0_transitions),
   tcam_state(
     windows=[
-      0, 12
+      0, 4
     ], transitions=ex1_transitions)
 ])
 
@@ -490,12 +491,19 @@ def parse_trans (s: str) -> tuple[trans_data, tcam_transition]:
   # print("after first match:", match_m.group(1))
 
   masks_raw = match_m.group(1).split(',')
+  # print("masks_raw:", masks_raw)
   pats_raw = match_m.group(3).split(',')
   width = 8
   trans_masks = [x for it in masks_raw[1:] for x in hexs_to_masks(it.strip(), width)]
   trans_pats = [c for x in pats_raw for c in bin(int(x.strip(), base=16))[2:].zfill(width)]
+  # print("trans_pats:", trans_pats)
+  # print("trans_masks:", trans_masks)
 
-  state = int(trans_pats[0:8])
+  # assert False
+
+  # print("state string:", ''.join(trans_pats[0:8]))
+
+  state = int(''.join(trans_pats[0:8]), base=2)
 
   assert len(trans_masks) == len(trans_pats[8:])
 
@@ -531,8 +539,12 @@ def parse_prog(s: str):
   first_lookup = parse_first_lookup(lines[0])
   trans_dater = [parse_trans(x) for x in lines[1:]]
 
+  # print("dater", trans_dater)
+
   # map states to lookups
   states_lookups: dict[int, list[list[int]]] = {t_data.state: [] for t_data, _ in trans_dater}
+
+  # print("defined states:", list(states_lookups.keys()))
 
   for t_data, trans in trans_dater:
     if type(trans.next_state) == int:
@@ -560,19 +572,7 @@ def parse_prog(s: str):
     if not id == 0:
       lookups = states_lookups[id][0]
       
-   
-    state_masks = [tcam_mask.WILD] * len(lookups) * 4
-    for trans in states[id]:
-
-      for i, mask in enumerate(trans.masks):
-        print("masks and lookups len", len(trans.masks), len(lookups))
-        state_masks[i] |= mask
-    
-    offsets = [x for y in lookups for x in [y*2, y*2+1]]
-
-    windows = [tcam_window(offset=offsets[i], width=state_masks[i].width) for i in range(len(offsets))]
-        
-    state = tcam_state(windows=windows, transitions=states[id])
+    state = tcam_state(windows=lookups, transitions=states[id])
     prog_states.append(state)
   
   prog = tcam_program(window_size=2, states=prog_states)
