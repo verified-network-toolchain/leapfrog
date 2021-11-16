@@ -19,14 +19,16 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (Reference.HPref, FirstOrderConfRelSimplified.Bits 64)
   (Reference.HSrc, FirstOrderConfRelSimplified.Bits 48)
   (Reference.HDest, FirstOrderConfRelSimplified.Bits 48)
   (Reference.HProto, FirstOrderConfRelSimplified.Bits 16)
   (Combined.HdrVar, FirstOrderConfRelSimplified.Bits 176).
+*)
 
-  Lemma prebisim_incremental_sep:
+Lemma prebisim_incremental_sep:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
                         cs_st1 := {|
@@ -49,7 +51,7 @@ RegisterEnvCtors
                    q1 q2.
 Proof.
   idtac "running ethernet bisimulation".
-  
+
   intros.
   set (a := A).
   set (rel0 := (mk_init _ _ _ _ _ _ _)).

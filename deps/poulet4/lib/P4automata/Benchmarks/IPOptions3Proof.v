@@ -15,7 +15,7 @@ Definition r_states :=
                         start_left
                         start_right).
 
-(* Definition r_states' := 
+(* Definition r_states' :=
   Eval vm_compute in (Reachability.reachable_step r_states).
 
 Definition r_len := Eval vm_compute in (length r_states, length r_states').
@@ -27,6 +27,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (IPOptionsRef63.T0, FirstOrderConfRelSimplified.Bits 8)
   (IPOptionsRef63.L0, FirstOrderConfRelSimplified.Bits 8)
@@ -61,8 +62,9 @@ RegisterEnvCtors
   (TimestampSpec3.Overflow, FirstOrderConfRelSimplified.Bits 4)
   (TimestampSpec3.Flag, FirstOrderConfRelSimplified.Bits 4)
   (TimestampSpec3.Timestamp, FirstOrderConfRelSimplified.Bits 32).
+*)
 
-  Lemma prebisim_incremental_sep:
+Lemma prebisim_incremental_sep:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
                         cs_st1 := {|
@@ -85,7 +87,7 @@ RegisterEnvCtors
                    q1 q2.
 Proof.
   idtac "running timestamp three bisimulation".
-  
+
   intros.
   set (a := A).
   set (rel0 := (mk_init _ _ _ _ _ _ _)).
@@ -96,14 +98,14 @@ Proof.
   assert (H8 : 8 = eight); [subst eight; reflexivity|].
   set (sixteen := (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight))))))))).
   assert (H16 : (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight)))))))) = sixteen); [subst sixteen; reflexivity|].
-  
+
 
   try rewrite H8;
   try rewrite H16;
 
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+  match goal with
+  | |- pre_bisimulation _ _ _ _ ?R _ _ =>
     hashcons_list R
   end.
 

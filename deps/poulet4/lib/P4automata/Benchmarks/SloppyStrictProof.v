@@ -16,6 +16,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (Sloppy.HdrEthernet, FirstOrderConfRelSimplified.Bits 112)
   (Sloppy.HdrIPv4, FirstOrderConfRelSimplified.Bits 128)
@@ -23,6 +24,7 @@ RegisterEnvCtors
   (Strict.HdrEthernet, FirstOrderConfRelSimplified.Bits 112)
   (Strict.HdrIPv4, FirstOrderConfRelSimplified.Bits 128)
   (Strict.HdrIPv6, FirstOrderConfRelSimplified.Bits 288).
+*)
 
   Definition not_equally_accepting (s: Reachability.state_pair A) : bool :=
     let '(s1, s2) := s in

@@ -5,7 +5,7 @@ Require Import Poulet4.P4automata.Benchmarks.SelfComparison.
 Declare ML Module "mirrorsolve".
 
 Module Positive.
-    
+
   Notation H := (ReadUndef.header + ReadUndef.header).
   Notation A := (Sum.sum ReadUndef.aut ReadUndef.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -21,11 +21,13 @@ Module Positive.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
     (ReadUndef.HdrEth, FirstOrderConfRelSimplified.Bits eth_size)
     (ReadUndef.HdrIP, FirstOrderConfRelSimplified.Bits ip_size)
     (ReadUndef.HdrVLAN, FirstOrderConfRelSimplified.Bits vlan_size)
     (ReadUndef.HdrUDP, FirstOrderConfRelSimplified.Bits udp_size).
+  *)
 
   Lemma prebisim_babyip:
     forall q1 q2,
@@ -62,7 +64,7 @@ Module Positive.
 End Positive.
 
 Module Negative.
-    
+
   Notation H := (ReadUndefIncorrect.header + ReadUndefIncorrect.header).
   Notation A := (Sum.sum ReadUndefIncorrect.aut ReadUndefIncorrect.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -78,11 +80,13 @@ Module Negative.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
     (ReadUndefIncorrect.HdrEth, FirstOrderConfRelSimplified.Bits eth_size)
     (ReadUndefIncorrect.HdrIP, FirstOrderConfRelSimplified.Bits ip_size)
     (ReadUndefIncorrect.HdrVLAN, FirstOrderConfRelSimplified.Bits vlan_size)
     (ReadUndefIncorrect.HdrUDP, FirstOrderConfRelSimplified.Bits udp_size).
+  *)
 
   Lemma prebisim_babyip:
     forall q1 q2,

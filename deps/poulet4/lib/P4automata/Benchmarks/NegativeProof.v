@@ -16,14 +16,16 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (ParseOne.Bit, FirstOrderConfRelSimplified.Bits 1)
   (ParseZero.Bit, FirstOrderConfRelSimplified.Bits 1).
+*)
 
 (* These parsers are different, this proof should fail *)
 Goal
   forall q1 q2,
-    interp_conf_rel' {| 
+    interp_conf_rel' {|
       cr_st := {|
         cs_st1 := {|
           st_state := inl (inl (ParseOne.Start));

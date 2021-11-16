@@ -23,6 +23,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (TimestampRefKeepSingle.Typ, FirstOrderConfRelSimplified.Bits 8)
   (TimestampRefKeepSingle.Len, FirstOrderConfRelSimplified.Bits 8)
@@ -44,6 +45,7 @@ RegisterEnvCtors
   (TimestampSpecSingle.Overflow, FirstOrderConfRelSimplified.Bits 4)
   (TimestampSpecSingle.Flag, FirstOrderConfRelSimplified.Bits 4)
   (TimestampSpecSingle.Timestamp, FirstOrderConfRelSimplified.Bits 32).
+*)
 
   Lemma prebisim_incremental_sep:
   forall q1 q2,
@@ -68,7 +70,7 @@ RegisterEnvCtors
                    q1 q2.
 Proof.
   idtac "running timestamp single bisimulation".
-  
+
   intros.
   set (a := A).
   (* vm_compute in a. *)
@@ -82,14 +84,14 @@ Proof.
   assert (H8 : 8 = eight); [subst eight; reflexivity|].
   set (sixteen := (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight))))))))).
   assert (H16 : (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight)))))))) = sixteen); [subst sixteen; reflexivity|].
-  
+
 
   try rewrite H8;
   try rewrite H16;
 
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+  match goal with
+  | |- pre_bisimulation _ _ _ _ ?R _ _ =>
     hashcons_list R
   end.
 

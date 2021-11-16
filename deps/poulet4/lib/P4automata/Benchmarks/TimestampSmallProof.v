@@ -19,6 +19,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (TimestampRefSmall.Len, FirstOrderConfRelSimplified.Bits 2)
   (TimestampRefSmall.Pref1, FirstOrderConfRelSimplified.Bits 8)
@@ -28,6 +29,7 @@ RegisterEnvCtors
   (TimestampSpecSmall.T1, FirstOrderConfRelSimplified.Bits 8)
   (TimestampSpecSmall.T2, FirstOrderConfRelSimplified.Bits 8)
   (TimestampSpecSmall.T3, FirstOrderConfRelSimplified.Bits 8).
+*)
 
   Lemma prebisim_incremental_sep:
   forall q1 q2,
@@ -52,7 +54,7 @@ RegisterEnvCtors
                    q1 q2.
 Proof.
   idtac "running small timestamp bisimulation".
-  
+
   intros.
   set (a := A).
   set (rel0 := (mk_init _ _ _ _ _ _ _)).

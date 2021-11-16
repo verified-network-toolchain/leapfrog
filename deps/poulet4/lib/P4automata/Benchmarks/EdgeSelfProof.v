@@ -14,13 +14,13 @@ Notation start_right := (Edge.ParseEth0).
 
 Notation r_len := 7.
 (* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
-  match fuel with 
-  | 0 => None 
-  | S x => 
-    let nxt := Reachability.reachable_step r in 
-    let nxt_len := length nxt in 
+  match fuel with
+  | 0 => None
+  | S x =>
+    let nxt := Reachability.reachable_step r in
+    let nxt_len := length nxt in
     if Nat.eq_dec (length nxt) (length r) then Some acc
-    else 
+    else
       reachable_states_len' nxt (S acc) x
   end.
 
@@ -28,10 +28,10 @@ Definition reachable_states_len : nat.
   refine (
   let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
             {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-  let r := reachable_states_len' [s] 0 1000 in 
+  let r := reachable_states_len' [s] 0 1000 in
   _).
   vm_compute in r.
-  match goal with 
+  match goal with
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
@@ -57,7 +57,7 @@ ClearEnvCtors.
 | HdrIPv4: header ipv4_size
 | HdrIPv6: header ipv6_size *)
 
-
+(*
 RegisterEnvCtors
   (HdrEth0, FirstOrderConfRelSimplified.Bits eth_size)
   (HdrEth1, FirstOrderConfRelSimplified.Bits eth_size)
@@ -67,6 +67,7 @@ RegisterEnvCtors
   (HdrIPVer, FirstOrderConfRelSimplified.Bits 4)
   (HdrIPv4, FirstOrderConfRelSimplified.Bits ipv4_size)
   (HdrIPv6, FirstOrderConfRelSimplified.Bits ipv4_size).
+*)
 
 Lemma prebisim_babyip:
   forall q1 q2,

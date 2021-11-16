@@ -18,11 +18,13 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (IncrementalBits.Pref, FirstOrderConfRelSimplified.Bits 1)
   (IncrementalBits.Suf, FirstOrderConfRelSimplified.Bits 1)
   (BigBits.Pref, FirstOrderConfRelSimplified.Bits 1)
   (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
+*)
 
 Lemma prebisim_incremental_sep:
   forall q1 q2,

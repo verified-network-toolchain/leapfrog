@@ -13,17 +13,17 @@ Notation start_left := (Enterprise.ParseEth).
 Notation start_right := (Enterprise.ParseEth).
 
 Notation r_len := 4.
-  
+
 Definition r_states : list (Reachability.state_pair A) :=
   Eval vm_compute in (Reachability.reachable_states
                         A
                         r_len
                         start_left
                         start_right).
-  
-               
 
-(* Definition r_states' := 
+
+
+(* Definition r_states' :=
   Eval vm_compute in (Reachability.reachable_step r_states).
 
 Definition r_len := Eval vm_compute in (length r_states, length r_states').
@@ -44,6 +44,7 @@ ClearEnvCtors.
 | HdrUDP: header udp_size
 | HdrICMP *)
 
+(*
 RegisterEnvCtors
   (Enterprise.HdrEth, FirstOrderConfRelSimplified.Bits eth_size)
   (Enterprise.HdrVLAN0, FirstOrderConfRelSimplified.Bits vlan_size)
@@ -53,6 +54,7 @@ RegisterEnvCtors
   (Enterprise.HdrTCP, FirstOrderConfRelSimplified.Bits tcp_size)
   (Enterprise.HdrUDP, FirstOrderConfRelSimplified.Bits udp_size)
   (Enterprise.HdrICMP, FirstOrderConfRelSimplified.Bits icmp_size).
+*)
 
 Lemma prebisim_babyip:
   forall q1 q2,
