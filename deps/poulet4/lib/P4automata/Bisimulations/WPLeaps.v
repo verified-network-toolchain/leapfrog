@@ -138,7 +138,7 @@ Section WPLeaps.
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ a)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ a)
                (mk_partition (Reachability.reachable_states a n s1 s2)).
 
   Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
@@ -176,8 +176,8 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec} a wp.
-Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
-Arguments topbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
-Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec} a wp top.
-Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec} a wp top.
+Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec H_finite} a wp.
+Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
+Arguments topbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
+Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.
+Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.

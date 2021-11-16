@@ -229,12 +229,9 @@ Section WPProofs.
       + inversion e; clear e; subst.
         autorewrite with interp_bit_expr.
         simpl.
-        unfold P4A.find.
-        cbn.
-        rewrite P4A.eq_dec_refl.
-        simpl.
-        apply JMeq_sym.
-        auto.
+        change (ConfRel.P4A.find) with P4A.find.
+        erewrite P4A.assign_find with (S:=S);
+          auto; typeclasses eauto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
@@ -247,8 +244,8 @@ Section WPProofs.
                                      (P4A.VBits size w) st1)) by reflexivity.
         replace (ConfRel.P4A.find H _ st1)
         with (P4A.find H (projT2 (existT H hsize h)) st1) by reflexivity.
-        rewrite P4A.find_not_first.
-        reflexivity.
+        erewrite P4A.find_not_first with (S:=S);
+          auto; [typeclasses eauto|].
         contradict n.
         replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
         replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.
@@ -318,12 +315,9 @@ Section WPProofs.
       + inversion e; clear e; subst.
         autorewrite with interp_bit_expr.
         simpl.
-        unfold P4A.find.
-        cbn.
-        rewrite P4A.eq_dec_refl.
-        simpl.
-        apply JMeq_sym.
-        auto.
+        change (ConfRel.P4A.find) with P4A.find.
+        erewrite P4A.assign_find with (S:=S);
+          auto; typeclasses eauto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
@@ -336,8 +330,8 @@ Section WPProofs.
                                      (P4A.VBits size w) st2)) by reflexivity.
         replace (ConfRel.P4A.find H _ st2)
         with (P4A.find H (projT2 (existT H hsize h)) st2) by reflexivity.
-        rewrite P4A.find_not_first.
-        reflexivity.
+        erewrite P4A.find_not_first with (S:=S);
+          auto; [typeclasses eauto|].
         contradict n.
         replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
         replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.
@@ -1173,7 +1167,7 @@ Section WPProofs.
       rewrite IHo1'.
       autorewrite with eval_op.
       unfold P4A.op_size.
-      set (st1' := @ConfRel.P4A.eval_op H equiv1 H'_eq_dec n1 st1
+      set (st1' := @ConfRel.P4A.eval_op H equiv1 H'_eq_dec H_finite n1 st1
           (@rewrite_size bool (Nat.min n1 (n1 + n2)) n1
              (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 o1)
              (@n_tuple_take_n bool (n1 + n2) n1 buf1')) o1).
@@ -1338,7 +1332,7 @@ Section WPProofs.
       rewrite IHo1'.
       autorewrite with eval_op.
       unfold P4A.op_size.
-      set (st2' := @ConfRel.P4A.eval_op H equiv1 H'_eq_dec n1 st2
+      set (st2' := @ConfRel.P4A.eval_op H equiv1 H'_eq_dec H_finite n1 st2
           (@rewrite_size bool (Nat.min n1 (n1 + n2)) n1
              (ConfRel.P4A.eval_op_obligations_obligation_1 H n1 n2 o1)
              (@n_tuple_take_n bool (n1 + n2) n1 buf2')) o1).

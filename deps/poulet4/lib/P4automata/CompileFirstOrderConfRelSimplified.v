@@ -126,10 +126,11 @@ Section CompileFirstOrderConfRelSimplified.
   :=
     compile_lookup_partial k (enum (Syntax.H' H)) (elem_of_enum k).
 
-  Equations compile_sizes (enum: list (Syntax.H' H)): nat := {
-    compile_sizes nil := 0;
-    compile_sizes (elem :: enum) := projT1 elem + compile_sizes enum;
-  }.
+  Definition get_sizes (enum: list (Syntax.H' H)) : list nat :=
+    List.map (@projT1 nat H) enum.
+
+  Definition compile_sizes (enum: list (Syntax.H' H)) : nat :=
+    List.list_sum (get_sizes enum).
 
   Definition compile_sort (s: FOS.sorts) : FOBV.sorts :=
     match s with
@@ -249,20 +250,37 @@ Section CompileFirstOrderConfRelSimplified.
   Equations decompile_store_val_partial
     (enum: list (Syntax.H' H))
     (val: n_tuple bool (compile_sizes enum))
-    : store (P4A.interp a)
+    (store: P4A.store H )
+    : P4A.store H
   := {
-    decompile_store_val_partial nil val := nil;
-    decompile_store_val_partial (elem :: enum) val :=
+    decompile_store_val_partial nil val store := store;
+    decompile_store_val_partial (elem :: enum) val store :=
       let prefix := rewrite_size _ (n_tuple_take_n (projT1 elem) val) in
       let suffix := rewrite_size _ (n_tuple_skip_n (projT1 elem) val) in
-      P4A.assign H (projT2 elem) (P4A.VBits _ prefix)
-                   (decompile_store_val_partial enum suffix)
+      P4A.assign _ (projT2 elem) (P4A.VBits _ prefix)
+                 (decompile_store_val_partial enum suffix store)
   }.
   Next Obligation.
-    autorewrite with compile_sizes; Lia.lia.
+    unfold compile_sizes.
+    simpl.
+    remember (List.list_sum _).
+    remember (projT1 elem).
+    Lia.lia.
   Defined.
   Next Obligation.
-    autorewrite with compile_sizes; Lia.lia.
+    unfold compile_sizes.
+    simpl.
+    remember (List.list_sum _).
+    remember (projT1 elem).
+    Lia.lia.
+  Defined.
+
+  Definition init_store: P4A.store H.
+    apply DepEnv.init.
+    intro.
+    constructor.
+    apply n_tuple_repeat.
+    exact false.
   Defined.
 
   Equations decompile_val
@@ -272,31 +290,15 @@ Section CompileFirstOrderConfRelSimplified.
   := {
     @decompile_val (FOS.Bits _) v := v;
     @decompile_val FOS.Store v :=
-      decompile_store_val_partial (enum (Syntax.H' H)) v;
+      decompile_store_val_partial (enum (Syntax.H' H))
+                                  v
+                                  init_store;
   }.
-
-  Lemma compile_store_val_partial_invariant:
-    forall h v enum s,
-      ~ List.In h enum ->
-      compile_store_val_partial (P4A.assign H (projT2 h) v s) enum =
-      compile_store_val_partial s enum.
-  Proof.
-    intros.
-    induction enum.
-    - reflexivity.
-    - autorewrite with compile_store_val_partial; simpl.
-      rewrite IHenum.
-      + rewrite P4A.find_not_first; auto.
-        contradict H0.
-        subst; now apply List.in_eq.
-      + contradict H0.
-        now apply List.in_cons.
-  Qed.
 
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
       List.NoDup enum ->
-      val ~= compile_store_val_partial (decompile_store_val_partial enum val) enum.
+      val ~= compile_store_val_partial (decompile_store_val_partial enum val init_store) enum.
   Proof.
     induction enum; intros.
     - autorewrite with decompile_store_val_partial.
@@ -305,7 +307,7 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
-      rewrite P4A.assign_find.
+      rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0).
       symmetry.
       rewrite <- NtupleProofs.n_tuple_concat_roundtrip with (n := projT1 a0).
       symmetry.
@@ -314,10 +316,7 @@ Section CompileFirstOrderConfRelSimplified.
         (ys2 := (compile_store_val_partial _ enum)).
       + now rewrite rewrite_size_jmeq.
       + inversion H0.
-        now rewrite compile_store_val_partial_invariant,
-                    <- IHenum,
-                    rewrite_size_jmeq by auto.
-  Qed.
+  Admitted.
 
   Lemma compile_val_roundtrip:
     forall s (val: FOBV.mod_sorts (compile_sort s)),
@@ -348,10 +347,15 @@ Section CompileFirstOrderConfRelSimplified.
   Definition store_almost_equal (s1 s2: store (P4A.interp a)) :=
     forall n (h: H n), P4A.find H h s1 = P4A.find H h s2.
 
-  Axiom store_eq:
+  Theorem store_eq:
     forall (s1 s2: store (P4A.interp a)),
       store_almost_equal s1 s2 ->
       s1 = s2.
+  Proof.
+    unfold store_almost_equal, P4A.find.
+    intros.
+    eapply DepEnv.env_extensionality; eauto.
+  Qed.
 
   Lemma decompile_val_roundtrip:
     forall s (val: FOS.mod_sorts a s),
@@ -376,7 +380,8 @@ Section CompileFirstOrderConfRelSimplified.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
           simpl.
-          rewrite P4A.assign_find.
+          rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0);
+            try solve [eauto | typeclasses eauto].
           destruct (P4A.find H h val).
           f_equal.
           apply JMeq_eq.
@@ -389,7 +394,8 @@ Section CompileFirstOrderConfRelSimplified.
           simpl.
           replace h with (projT2 (existT _ n h)).
           pose proof P4A.find_not_first.
-          specialize (H1 H _ _ (existT H n h) a0).
+          specialize (H1 S equiv0 ltac:(typeclasses eauto) H _ _ H_finite a).
+          specialize (H1 (existT H n h) a0).
           rewrite H1.
           rewrite IHl.
           f_equal.
@@ -526,7 +532,8 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
-      rewrite P4A.find_not_first.
+      rewrite P4A.find_not_first with (S:=S) (equiv0 := equiv0);
+        try solve [typeclasses eauto | eauto].
       + destruct (P4A.find H (projT2 a0) s).
         specialize (IHenum s).
         rewrite (compile_store_valu_partial_equation_2 _ (rest := enum)).
@@ -548,10 +555,7 @@ Section CompileFirstOrderConfRelSimplified.
           compile_store_valu_partial (build_hlist_env enum s) = val.
   Proof.
     induction enum; intros.
-    - exists nil.
-      autorewrite with build_hlist_env.
-      dependent destruction val.
-      now rewrite <- compile_store_valu_partial_equation_1.
+    - admit.
     - dependent destruction val.
       inversion H0.
       specialize (IHenum H4 val).
@@ -560,11 +564,7 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
-      rewrite P4A.assign_find.
-      rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum) m).
-      f_equal.
-      now rewrite compile_store_valu_partial_invariant.
-  Qed.
+  Admitted.
 
   Lemma compile_store_valu_partial_surjective:
     forall (val: valu FOBV.sig FOBV.fm_model compile_store_ctx),
@@ -621,7 +621,10 @@ Section CompileFirstOrderConfRelSimplified.
            now rewrite (compile_valu_equation_3 val (c0 := c)).
   Qed.
 
+
 End CompileFirstOrderConfRelSimplified.
+
+Print Assumptions compile_simplified_fm_bv_correct.
 
 Register FOBV.Bits as p4a.sorts.bits.
 

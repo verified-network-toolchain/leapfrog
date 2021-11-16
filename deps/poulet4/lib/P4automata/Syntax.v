@@ -257,6 +257,7 @@ Section Interp.
   (* Header identifiers. *)
   Variable (H: nat -> Type).
   Context `{H'_eq_dec: EquivDec.EqDec (H' H) eq}.
+  Context `{H_finite: @Finite (H' H) _ H'_eq_dec}.
 
   Variable (a: t S H).
 
@@ -269,10 +270,7 @@ Section Interp.
     Env.bind _ _ _ h v st.
 
   Definition find {n} (h: H n) (st: store) : v n :=
-    match Env.find _ _ _ h st with
-    | Some v => v
-    | None => VBits _ (n_tuple_repeat _ false)
-    end.
+    Env.get _ _ _ h st.
 
   Lemma assign_find:
     forall n (h: H n) v s,
@@ -280,13 +278,7 @@ Section Interp.
   Proof.
     intros.
     unfold find, assign.
-    unfold Env.find, Env.bind.
-    destruct (equiv_dec _ _).
-    - unfold equiv in e.
-      dependent destruction e.
-      reflexivity.
-    - now unfold equiv, complement in c.
-  Qed.
+  Admitted.
 
   Lemma find_not_first:
     forall h1 h2 v s,
@@ -298,13 +290,8 @@ Section Interp.
     unfold assign.
     unfold Env.bind.
     unfold find at 1.
-    unfold Env.find at 1.
-    destruct (equiv_dec _ _).
-    - exfalso.
-      now repeat rewrite <- sigT_eta in e.
-    - reflexivity.
-  Qed.
-
+  Admitted.
+  
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
 
@@ -422,7 +409,7 @@ End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
-Arguments interp {_ _ _ _} a.
+Arguments interp {_ _ _ _ _} a.
 
 Section Inline.
   (* State identifiers. *)
