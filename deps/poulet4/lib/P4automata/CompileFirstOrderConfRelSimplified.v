@@ -235,17 +235,104 @@ Section CompileFirstOrderConfRelSimplified.
       compile_store_val_partial s (enum (Syntax.H' H));
   }.
 
+  Lemma find_reindex_var:
+    forall n (h: H n) c (v0 : valu FOBV.sig FOBV.fm_model (compile_ctx c))
+      (v1 : var FOBV.sig compile_store_ctx (FOBV.Bits (projT1 (existT H n h))))
+      (v2 : valu FOBV.sig FOBV.fm_model
+              (compile_store_ctx_partial (enum (Syntax.H' H)))),
+    find FOBV.sig FOBV.fm_model v1 v2 =
+    find FOBV.sig FOBV.fm_model (reindex_var v1) (app_valu FOBV.sig v0 v2).
+  Proof.
+  Admitted.
+
+  Lemma find_weaken_var:
+    forall
+      n (h: H n) c v
+      (v1 : valu FOBV.sig FOBV.fm_model
+              (compile_store_ctx_partial (enum (Syntax.H' H))))
+      (v2 : var FOBV.sig (compile_ctx c) (FOBV.Bits (projT1 (existT H n h)))),
+    find FOBV.sig FOBV.fm_model v2 (compile_valu v) =
+    find FOBV.sig FOBV.fm_model (weaken_var compile_store_ctx v2)
+      (app_valu FOBV.sig (compile_valu v) v1).
+  Proof.
+  Admitted.
+
+  Transparent compile_store_valu_partial.
+
+  Lemma compile_store_val_correct':
+    forall (n : nat) (h : H n)
+      (m : mod_sorts (FOS.sig H) (FOS.fm_model a) FOS.Store) enum Hin,
+    List.NoDup enum ->
+    match P4A.find H h m with
+    | P4A.VBits _ v1 => v1
+    end =
+    find FOBV.sig FOBV.fm_model
+      (compile_lookup_partial (existT H n h) enum Hin)
+      (compile_store_valu_partial (build_hlist_env enum m))
+  .
+  Proof.
+    intros.
+    dependent induction enum.
+    - contradiction.
+    - autorewrite with build_hlist_env.
+      simpl.
+      unfold build_hlist_env_obligations_obligation_1.
+      autorewrite with compile_lookup_partial.
+      destruct Hin.
+      + subst; simpl.
+        unfold here_or_there.
+        destruct (equiv_dec _ _); [|congruence].
+        simpl.
+        unfold compile_lookup_partial_obligations_obligation_1.
+        simpl.
+        unfold equiv in e.
+        dependent destruction e.
+        cbn.
+        now rewrite (find_equation_1 FOBV.sig FOBV.fm_model (compile_store_ctx_partial enum) (FOBV.Bits n)).
+      + unfold here_or_there.
+        destruct (equiv_dec _ _); simpl.
+        unfold equiv in e.
+        inversion H0.
+        congruence.
+        rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_store_ctx_partial enum) (FOBV.Bits (projT1 a0)) (FOBV.Bits n)).
+        apply IHenum.
+        now inversion H0.
+  Qed.
+
+  Opaque compile_store_valu_partial.
+
   Lemma compile_store_val_correct:
     forall (n: nat) (h : H n) c (v0 : var (FOS.sig H) c FOS.Store) v,
-      compile_val (sort := FOS.Bits n)
-        match P4A.find H h (find (FOS.sig H) (FOS.fm_model a) v0 v)
-        with
-        | P4A.VBits _ v1 => v1
-        end =
+      match P4A.find H h (find (FOS.sig H) (FOS.fm_model a) v0 v)
+      with
+      | P4A.VBits _ v1 => v1
+      end =
       find FOBV.sig FOBV.fm_model
         (subscript v0 (compile_lookup (existT H n h))) (compile_valu v).
   Proof.
-  Admitted.
+    intros.
+    dependent induction v; dependent destruction v0.
+    - rewrite (compile_valu_equation_3 (c0 := c) m).
+      rewrite (subscript_equation_1 c).
+      replace (find FOBV.sig FOBV.fm_model _ _)
+      with (find FOBV.sig FOBV.fm_model (compile_lookup (existT H n h))
+                 (compile_store_valu_partial (build_hlist_env (enum (Syntax.H' H)) m))).
+      + autorewrite with find.
+        unfold compile_lookup.
+        apply compile_store_val_correct'.
+        apply NoDup_enum.
+      + erewrite find_reindex_var; now f_equal.
+    - autorewrite with find.
+      rewrite IHv; auto.
+      destruct s.
+      + simpl.
+        rewrite (subscript_equation_2 n0 (ctx1 := c) (n := n) v0 (compile_lookup (existT H n h))).
+        rewrite (compile_valu_equation_2 n0 (c0 := c) m).
+        now rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_ctx c) (FOBV.Bits n0) (FOBV.Bits n)).
+      + rewrite (subscript_equation_3 (ctx1 := c) v0).
+        rewrite (compile_valu_equation_3 (c0 := c) m v).
+        erewrite find_weaken_var; now f_equal.
+  Qed.
 
   Equations decompile_store_val_partial
     (enum: list (Syntax.H' H))
@@ -526,7 +613,8 @@ Section CompileFirstOrderConfRelSimplified.
       + dependent destruction t; [|easy].
         autorewrite with compile_tm.
         autorewrite with interp_tm.
-        apply compile_store_val_correct.
+        autorewrite with compile_val.
+        unfold compile_val_obligations_obligation_1.
   Qed.
 
   Lemma compile_store_valu_partial_invariant:
