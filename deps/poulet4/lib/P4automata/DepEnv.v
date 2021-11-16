@@ -43,9 +43,9 @@ Section DepEnv.
     - apply K'_finite.
     - intros.
       unfold get' in H.
-      assert (pf = elem_of_enum k) by apply proof_irrelevance.
-      subst pf.
-      eapply H.
+      erewrite HList.get_proof_irrelevance; symmetry.
+      erewrite HList.get_proof_irrelevance; symmetry.
+      apply H.
   Qed.
 
   Lemma env_extensionality:
@@ -58,5 +58,5 @@ Section DepEnv.
     intros [i k].
     eauto.
   Qed.
-  
+
 End DepEnv.

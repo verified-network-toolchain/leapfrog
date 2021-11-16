@@ -230,8 +230,7 @@ Section WPProofs.
         autorewrite with interp_bit_expr.
         simpl.
         change (ConfRel.P4A.find) with P4A.find.
-        erewrite P4A.assign_find with (S:=S);
-          auto; typeclasses eauto.
+        erewrite P4A.assign_find; auto; typeclasses eauto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
@@ -244,8 +243,7 @@ Section WPProofs.
                                      (P4A.VBits size w) st1)) by reflexivity.
         replace (ConfRel.P4A.find H _ st1)
         with (P4A.find H (projT2 (existT H hsize h)) st1) by reflexivity.
-        erewrite P4A.find_not_first with (S:=S);
-          auto; [typeclasses eauto|].
+        erewrite P4A.find_not_first; auto.
         contradict n.
         replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
         replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.
@@ -316,8 +314,7 @@ Section WPProofs.
         autorewrite with interp_bit_expr.
         simpl.
         change (ConfRel.P4A.find) with P4A.find.
-        erewrite P4A.assign_find with (S:=S);
-          auto; typeclasses eauto.
+        erewrite P4A.assign_find; auto.
       + destruct h as [[hsize h]].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
@@ -330,8 +327,7 @@ Section WPProofs.
                                      (P4A.VBits size w) st2)) by reflexivity.
         replace (ConfRel.P4A.find H _ st2)
         with (P4A.find H (projT2 (existT H hsize h)) st2) by reflexivity.
-        erewrite P4A.find_not_first with (S:=S);
-          auto; [typeclasses eauto|].
+        erewrite P4A.find_not_first; auto.
         contradict n.
         replace (existT (fun n0 : nat => H n0) hsize h) with (existT H hsize h) by reflexivity.
         replace (existT (fun n0 : nat => H n0) size hdr) with (existT H size hdr) by reflexivity.

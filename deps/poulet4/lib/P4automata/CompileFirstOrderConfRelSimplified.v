@@ -306,7 +306,7 @@ Section CompileFirstOrderConfRelSimplified.
     - reflexivity.
     - autorewrite with compile_store_val_partial; simpl.
       rewrite IHenum.
-      + rewrite P4A.find_not_first with (S := S) (equiv0 := equiv0); auto.
+      + rewrite P4A.find_not_first; auto.
         contradict H0.
         subst; now apply List.in_eq.
       + contradict H0.
@@ -325,7 +325,7 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
-      rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0); auto.
+      rewrite P4A.assign_find; auto.
       symmetry.
       rewrite <- NtupleProofs.n_tuple_concat_roundtrip with (n := projT1 a0).
       symmetry.
@@ -401,7 +401,7 @@ Section CompileFirstOrderConfRelSimplified.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
           simpl.
-          rewrite P4A.assign_find with (S:=S) (equiv0:=equiv0);
+          rewrite P4A.assign_find;
             try solve [eauto | typeclasses eauto].
           destruct (P4A.find H h val).
           f_equal.
@@ -415,8 +415,7 @@ Section CompileFirstOrderConfRelSimplified.
           simpl.
           replace h with (projT2 (existT _ n h)).
           pose proof P4A.find_not_first.
-          specialize (H1 S equiv0 ltac:(typeclasses eauto) H _ _ H_finite a).
-          specialize (H1 (existT H n h) a0).
+          specialize (H1 H equiv1 H'_eq_dec H_finite (existT H n h) a0).
           rewrite H1.
           rewrite IHl.
           f_equal.
@@ -553,7 +552,7 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
-      rewrite P4A.find_not_first with (S:=S) (equiv0 := equiv0);
+      rewrite P4A.find_not_first;
         try solve [typeclasses eauto | eauto].
       + destruct (P4A.find H (projT2 a0) s).
         specialize (IHenum s).
@@ -591,7 +590,7 @@ Section CompileFirstOrderConfRelSimplified.
       subst.
       rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum)).
       f_equal.
-      rewrite P4A.assign_find with (S := S) (equiv0 := equiv0); auto.
+      rewrite P4A.assign_find; auto.
       now apply compile_store_valu_partial_invariant.
   Qed.
 

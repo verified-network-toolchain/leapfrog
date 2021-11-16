@@ -95,7 +95,7 @@ Module HList.
       dependent destruction e.
       dependent destruction e'.
       reflexivity.
-    - intros. 
+    - intros.
       dependent destruction e.
       dependent destruction e'.
       pose proof (H0 a (or_introl eq_refl)) as H'.
@@ -118,7 +118,32 @@ Module HList.
         congruence.
       + apply H0.
   Qed.
-  
+
+  Lemma get_proof_irrelevance
+        {A B}
+        `{A_eq_dec: EquivDec.EqDec A eq}
+        {ks: list A} :
+    forall (e: t B ks) key pf1 pf2,
+      get key pf1 e = get key pf2 e.
+  Proof.
+    intros.
+    induction ks.
+    - contradiction.
+    - dependent destruction e.
+      autorewrite with get.
+      destruct (A_eq_dec _ _).
+      reflexivity.
+      simpl.
+      destruct pf1, pf2.
+      + unfold equiv, complement in c.
+        congruence.
+      + unfold equiv, complement in c.
+        congruence.
+      + unfold equiv, complement in c.
+        congruence.
+      + apply IHks.
+  Qed.
+
 End HList.
 
 Module HListNotations.
