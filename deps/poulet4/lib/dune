@@ -9,6 +9,8 @@
   (:standard
    \
    P4automata.Benchmarks.Benchmarking
+   P4automata.Benchmarks.TCAMSimpleProof
+   P4automata.Benchmarks.SimpleByteProof
    ; P4automata.Benchmarks.SimpleParsers
    P4automata.Benchmarks.NegativeProof
    P4automata.Benchmarks.SelfComparisonProof
