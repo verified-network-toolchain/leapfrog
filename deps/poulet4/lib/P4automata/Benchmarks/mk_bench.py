@@ -289,7 +289,7 @@ def format_tcam_state(pref: int, st: tcam_state):
   window_var = f"buf_{bits}"
   output += f"    st_op := extract({window_var});\n"
 
-  slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(16)]
+  slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(15, -1, -1)]
 
   output += f"    st_trans := transition select (| " + ", ".join([f"(EHdr {window_var}){x}" for x in slices]) + f"|) {{{{\n"
   

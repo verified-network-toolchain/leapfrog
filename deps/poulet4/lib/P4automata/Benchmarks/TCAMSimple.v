@@ -354,11 +354,11 @@ End Simple.
 
 
 Module Optimized.
-Inductive state := | State_0 | State_1 | State_1_suff_1 | State_1_suff_0 | State_0_suff_1 | State_0_suff_0.
+Inductive state := | State_1_suff_1 | State_0_suff_0 | State_1 | State_0 | State_1_suff_0 | State_0_suff_1.
 Scheme Equality for state.
 Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
 Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-  {| enum := [State_0; State_1; State_1_suff_1; State_1_suff_0; State_0_suff_1; State_0_suff_0] |}.
+  {| enum := [State_1_suff_1; State_0_suff_0; State_1; State_0; State_1_suff_0; State_0_suff_1] |}.
 Next Obligation.
 repeat constructor;
   repeat match goal with
@@ -470,7 +470,7 @@ Definition states (s: state) :=
   match s with
   | State_0 => {|
     st_op := extract(buf_112);
-    st_trans := transition select (| (EHdr buf_112)[0 -- 0], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[15 -- 15], (EHdr buf_112)[96 -- 96], (EHdr buf_112)[97 -- 97], (EHdr buf_112)[98 -- 98], (EHdr buf_112)[99 -- 99], (EHdr buf_112)[100 -- 100], (EHdr buf_112)[101 -- 101], (EHdr buf_112)[102 -- 102], (EHdr buf_112)[103 -- 103], (EHdr buf_112)[104 -- 104], (EHdr buf_112)[105 -- 105], (EHdr buf_112)[106 -- 106], (EHdr buf_112)[107 -- 107], (EHdr buf_112)[108 -- 108], (EHdr buf_112)[109 -- 109], (EHdr buf_112)[110 -- 110], (EHdr buf_112)[111 -- 111]|) {{
+    st_trans := transition select (| (EHdr buf_112)[15 -- 15], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[0 -- 0], (EHdr buf_112)[111 -- 111], (EHdr buf_112)[110 -- 110], (EHdr buf_112)[109 -- 109], (EHdr buf_112)[108 -- 108], (EHdr buf_112)[107 -- 107], (EHdr buf_112)[106 -- 106], (EHdr buf_112)[105 -- 105], (EHdr buf_112)[104 -- 104], (EHdr buf_112)[103 -- 103], (EHdr buf_112)[102 -- 102], (EHdr buf_112)[101 -- 101], (EHdr buf_112)[100 -- 100], (EHdr buf_112)[99 -- 99], (EHdr buf_112)[98 -- 98], (EHdr buf_112)[97 -- 97], (EHdr buf_112)[96 -- 96]|) {{
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0 |] ==> inl State_0_suff_0 ;;;
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0 |] ==> inl State_0_suff_1 ;;;
       reject
@@ -486,7 +486,7 @@ Definition states (s: state) :=
   |}
   | State_1 => {|
     st_op := extract(buf_112);
-    st_trans := transition select (| (EHdr buf_112)[0 -- 0], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[15 -- 15], (EHdr buf_112)[96 -- 96], (EHdr buf_112)[97 -- 97], (EHdr buf_112)[98 -- 98], (EHdr buf_112)[99 -- 99], (EHdr buf_112)[100 -- 100], (EHdr buf_112)[101 -- 101], (EHdr buf_112)[102 -- 102], (EHdr buf_112)[103 -- 103], (EHdr buf_112)[104 -- 104], (EHdr buf_112)[105 -- 105], (EHdr buf_112)[106 -- 106], (EHdr buf_112)[107 -- 107], (EHdr buf_112)[108 -- 108], (EHdr buf_112)[109 -- 109], (EHdr buf_112)[110 -- 110], (EHdr buf_112)[111 -- 111]|) {{
+    st_trans := transition select (| (EHdr buf_112)[15 -- 15], (EHdr buf_112)[14 -- 14], (EHdr buf_112)[13 -- 13], (EHdr buf_112)[12 -- 12], (EHdr buf_112)[11 -- 11], (EHdr buf_112)[10 -- 10], (EHdr buf_112)[9 -- 9], (EHdr buf_112)[8 -- 8], (EHdr buf_112)[7 -- 7], (EHdr buf_112)[6 -- 6], (EHdr buf_112)[5 -- 5], (EHdr buf_112)[4 -- 4], (EHdr buf_112)[3 -- 3], (EHdr buf_112)[2 -- 2], (EHdr buf_112)[1 -- 1], (EHdr buf_112)[0 -- 0], (EHdr buf_112)[111 -- 111], (EHdr buf_112)[110 -- 110], (EHdr buf_112)[109 -- 109], (EHdr buf_112)[108 -- 108], (EHdr buf_112)[107 -- 107], (EHdr buf_112)[106 -- 106], (EHdr buf_112)[105 -- 105], (EHdr buf_112)[104 -- 104], (EHdr buf_112)[103 -- 103], (EHdr buf_112)[102 -- 102], (EHdr buf_112)[101 -- 101], (EHdr buf_112)[100 -- 100], (EHdr buf_112)[99 -- 99], (EHdr buf_112)[98 -- 98], (EHdr buf_112)[97 -- 97], (EHdr buf_112)[96 -- 96]|) {{
       [| exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_1_suff_0 ;;;
       [| exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|1, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0, exact #b|0 |] ==> inl State_1_suff_1 ;;;
       reject
