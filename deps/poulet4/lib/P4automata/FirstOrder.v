@@ -517,14 +517,42 @@ Section FOL.
       interp_tm m c s v t =
       interp_tm m (app_ctx c' c) s (app_valu v' v) (reindex_tm t).
   Proof.
-  Admitted.
+    dependent induction t using tm_ind'; intros.
+    - autorewrite with reindex_tm.
+      autorewrite with interp_tm.
+      now rewrite find_app_right.
+    - autorewrite with reindex_tm.
+      autorewrite with interp_tm.
+      f_equal.
+      clear srt.
+      induction hl; auto.
+      autorewrite with reindex_tm.
+      autorewrite with interp_tm.
+      f_equal.
+      + apply H.
+      + apply IHhl, H.
+  Qed.
 
   Lemma interp_tm_weaken_tm:
     forall m c s (t: tm c s) (v: valu m c) c' (v': valu m c'),
       interp_tm m c s v t =
       interp_tm m (app_ctx c c') s (app_valu v v') (weaken_tm s c c' t).
   Proof.
-  Admitted.
+    dependent induction t using tm_ind'; intros.
+    - autorewrite with weaken_tm.
+      autorewrite with interp_tm.
+      now rewrite find_app_left.
+    - autorewrite with weaken_tm.
+      autorewrite with interp_tm.
+      f_equal.
+      clear srt.
+      induction hl; auto.
+      autorewrite with weaken_tm.
+      autorewrite with interp_tm.
+      f_equal.
+      + apply H.
+      + apply IHhl, H.
+  Qed.
 
   Equations tm_cons {c s' s}
     (t: tm c s)
@@ -543,7 +571,21 @@ Section FOL.
       interp_tm m c s v t =
       interp_tm m (CSnoc c s') s (VSnoc m s' c val v) (tm_cons t).
   Proof.
-  Admitted.
+    dependent induction t using tm_ind'; intros.
+    - autorewrite with tm_cons.
+      autorewrite with interp_tm.
+      reflexivity.
+    - autorewrite with tm_cons.
+      autorewrite with interp_tm.
+      f_equal.
+      clear srt.
+      induction hl; auto.
+      autorewrite with tm_cons.
+      autorewrite with interp_tm.
+      f_equal.
+      + apply H.
+      + apply IHhl, H.
+  Qed.
 
 End FOL.
 
