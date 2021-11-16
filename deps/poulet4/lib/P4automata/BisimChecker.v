@@ -267,7 +267,7 @@ Ltac verify_interp top top' :=
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
       [
-        typeclasses eauto | typeclasses eauto
+        once typeclasses eauto | once typeclasses eauto
       |];
 
       time "reduce goal" crunch_foterm;
@@ -312,7 +312,7 @@ Ltac close_bisim top' :=
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; 
       [
-        typeclasses eauto | typeclasses eauto
+        once typeclasses eauto | once typeclasses eauto
       |];
       
       crunch_foterm;
