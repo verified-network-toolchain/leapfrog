@@ -524,7 +524,7 @@ Module Optimized.
   |}
   | State_4 => {| 
     st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr buf_16)[15--11], (EHdr buf_16)[8--8] |) {{
+    st_trans := transition select (| (EHdr buf_16)[15--12], (EHdr buf_16)[8--8] |) {{
       [| exact #b|0|1|0|0, exact #b|1 |] ==> inl State_1 ;;;
       [| exact #b|0|1|1|0, exact #b|1 |] ==> inl State_2 ;;;
       [| *, exact #b|0 |] ==> inl State_4_body ;;;
