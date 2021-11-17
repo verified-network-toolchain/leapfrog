@@ -595,12 +595,15 @@ Definition states (s: state) :=
 
   | State_4_skip => {| 
     st_op := extract(buf_32);
-    st_trans := transition inl State_4_trailer
+    st_trans := transition select (| (EHdr buf_32)[23 -- 23] |) {{
+      [| exact #b|1 |] ==> inl State_4_trailer ;;;
+      reject
+    }}
   |}
 
   | State_4_trailer => {| 
     st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr buf_16)[15 -- 12], (EHdr buf_16)[11--8] |) {{
+    st_trans := transition select (| (EHdr buf_16)[3 -- 0], (EHdr buf_16)[7--4] |) {{
       [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits rem *) ;;;
       [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits rem *) ;;;
       [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits rem *) ;;;
