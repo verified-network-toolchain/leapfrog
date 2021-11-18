@@ -9,11 +9,11 @@ Declare ML Module "mirrorsolve".
 Notation H := (Plain.header + Optimized.header).
 Notation A := (Sum.sum Plain.aut Optimized.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := (Plain.ParseIPVer).
-Notation start_right := (Optimized.State_4_trailer).
+Notation start_left := (Plain.ParseEth0).
+Notation start_right := (Optimized.State_0).
 
-(* Notation r_len := 8. *)
-Notation r_len := 4.
+Notation r_len := 8.
+(* Notation r_len := 4. *)
 (* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
   match fuel with
   | 0 => None
