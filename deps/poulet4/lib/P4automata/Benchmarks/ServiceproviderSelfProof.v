@@ -6,11 +6,11 @@ Require Import Coq.Arith.PeanoNat.
 
 Declare ML Module "mirrorsolve".
 
-Notation H := (ServiceProvider.header + ServiceProvider.header).
-Notation A := (Sum.sum ServiceProvider.aut ServiceProvider.aut).
+Notation H := (Plain.header + Plain.header).
+Notation A := (Sum.sum Plain.aut Plain.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := (ServiceProvider.ParseEth).
-Notation start_right := (ServiceProvider.ParseEth).
+Notation start_left := (Plain.ParseEth).
+Notation start_right := (Plain.ParseEth).
 
 Notation r_len := 9.
 (* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=

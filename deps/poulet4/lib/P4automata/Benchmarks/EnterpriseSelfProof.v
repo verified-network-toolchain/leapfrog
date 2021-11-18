@@ -6,11 +6,11 @@ Require Import Coq.Arith.PeanoNat.
 
 Declare ML Module "mirrorsolve".
 
-Notation H := (Enterprise.header + Enterprise.header).
-Notation A := (Sum.sum Enterprise.aut Enterprise.aut).
+Notation H := (Simple.header + Simple.header).
+Notation A := (Sum.sum Simple.aut Simple.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := (Enterprise.ParseEth).
-Notation start_right := (Enterprise.ParseEth).
+Notation start_left := (Simple.ParseEth).
+Notation start_right := (Simple.ParseEth).
 
 Notation r_len := 4.
 
