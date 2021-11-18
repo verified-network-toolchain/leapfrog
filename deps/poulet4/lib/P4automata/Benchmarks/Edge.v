@@ -217,7 +217,7 @@ Module Plain.
       |}
     | ParseMPLS0 => 
       {| st_op := extract(HdrMPLS0);
-        st_trans := transition select (| (EHdr HdrMPLS0)[24--24] |)
+        st_trans := transition select (| (EHdr HdrMPLS0)[23--23] |)
                                 {{ [| hexact 0 |] ==> inl ParseMPLS1 ;;;
                                   [| hexact 1 |] ==> inl ParseIPVer ;;;
                                   reject
@@ -225,7 +225,7 @@ Module Plain.
       |}
     | ParseMPLS1 => 
       {| st_op := extract(HdrMPLS1);
-        st_trans := transition select (| (EHdr HdrMPLS1)[24--24] |)
+        st_trans := transition select (| (EHdr HdrMPLS1)[23--23] |)
                               {{ [| hexact 1 |] ==> inl ParseIPVer ;;;
                                 reject
                               }}
@@ -586,7 +586,7 @@ Definition states (s: state) :=
 
   | State_4 => {|
     st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr buf_16)[8 -- 8] |) {{
+    st_trans := transition select (| (EHdr buf_16)[7 -- 7] |) {{
       [| exact #b|0 |] ==> inl State_4_skip ;;;
       [| exact #b|1 |] ==> inl State_4_trailer ;;;
       reject
