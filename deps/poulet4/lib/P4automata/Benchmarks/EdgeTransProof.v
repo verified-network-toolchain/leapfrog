@@ -81,6 +81,18 @@ Proof.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
 
+  match goal with 
+  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
+    evar (foo: nat);
+    let bar := fresh "B" in 
+    assert (bar : foo = length R); [subst foo; trivial|]
+  end.
+  vm_compute in B.
+  match goal with 
+  | H: length _ = ?X |- _ => 
+    idtac "size of relation is:";
+    idtac X
+  end
   (* run_bisim top top' r_states. *)
   time "close phase" close_bisim top'.
 Time Admitted.
