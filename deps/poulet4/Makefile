@@ -60,7 +60,7 @@ selfcmp: build
 	xargs coqc lib/P4automata/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
 
 ipoptions: build
-	xargs coqc lib/P4automata/Benchmarks/IPOptionsProof.v < _CoqProject | grep "Tactic call\|remaining goals"
+	xargs coqc lib/P4automata/Benchmarks/IPOptions3Proof.v < _CoqProject | grep "Tactic call\|remaining goals"
 
 edgeself:
 	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
