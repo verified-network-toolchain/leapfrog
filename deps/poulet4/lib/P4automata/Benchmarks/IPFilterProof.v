@@ -10,28 +10,31 @@ Notation start_right := UDPInterleaved.ParseIP.
 
 Require Import Coq.Arith.PeanoNat.
 
-Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
+Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
   match fuel with 
   | 0 => None 
   | S x => 
     let nxt := Reachability.reachable_step r in 
     let nxt_len := length nxt in 
-    if Nat.eq_dec (length nxt) (length r) then Some nxt_len
+    if Nat.eq_dec (length nxt) (length r) then Some acc
     else 
-      reachable_states_len' nxt x
+      reachable_states_len' nxt (S acc) x
   end.
 
 Definition reachable_states_len : nat.
   refine (
   let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
             {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-  let r := reachable_states_len' [s] 1000 in 
+  let r := reachable_states_len' [s] 0 1000 in 
   _).
   vm_compute in r.
   match goal with 
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
+Print reachable_states_len.
+
+Eval vm_compute in reachable_states_len.
 
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
