@@ -5,7 +5,7 @@ Require Import Poulet4.P4automata.Benchmarks.IPFilter.
 Notation H := (UDPCombined.header + UDPInterleaved.header).
 Notation A := IPFilter.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := UDPCombined.Parse.
+Notation start_left := UDPCombined.ParsePref.
 Notation start_right := UDPInterleaved.ParseIP.
 
 Require Import Coq.Arith.PeanoNat.

@@ -63,16 +63,16 @@ ipoptions: build
 	xargs coqc lib/P4automata/Benchmarks/IPOptionsProof.v < _CoqProject | grep "Tactic call\|remaining goals"
 
 edgeself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>1 &
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
 
 datacenterself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>1 &
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
 
 enterpriseself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>1 &
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
 
 serviceproviderself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>1 &
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
