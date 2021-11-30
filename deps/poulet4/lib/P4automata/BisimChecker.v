@@ -336,6 +336,24 @@ Ltac run_bisim' top top' r_states :=
     idtac "skipping"; skip_bisim' H; clear H; try clear C
   end.
 
+
+Ltac print_rel_len :=
+  let foo := fresh "foo" in
+  let bar := fresh "bar" in 
+  match goal with 
+  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
+    set (foo := length R);
+    assert (bar : foo = length R); [subst foo; trivial|]
+  end;
+  vm_compute in bar;
+  match goal with 
+  | H: @eq nat _ ?X |- _ => 
+    idtac "size of relation is:";
+    idtac X
+  end;
+  clear foo;
+  clear bar.
+
 Ltac close_bisim top' :=
   apply PreBisimulationClose;
   match goal with
