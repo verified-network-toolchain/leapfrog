@@ -208,6 +208,24 @@ Module UDPCombined.
     intros n; solve_indexed_finiteness n [32; 64].
   Qed.
 
+  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
+    {| enum := [ existT _ _ HdrIP ; existT _ _ HdrPref ] |}.
+  Next Obligation.
+    repeat constructor;
+    unfold "~";
+    intros;
+    destruct H;
+    now inversion H || now inversion H0.
+  Qed.
+  Next Obligation.
+  dependent destruction X; subst;
+  repeat (
+    match goal with
+    | |- ?L \/ ?R => (now left; trivial) || right
+    end
+  ).
+  Qed.
+
   Definition states (s: state) :=
     match s with
     | ParsePref =>
