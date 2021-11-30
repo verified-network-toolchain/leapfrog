@@ -7,6 +7,8 @@ Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
 Require Poulet4.P4automata.WP.
 
+Require Import Coq.Classes.EquivDec.
+
 Section WPLeaps.
 
   (* State identifiers. *)
@@ -67,6 +69,21 @@ Section WPLeaps.
         R ⇝ (C :: T) q1 q2
   where "R ⇝ T" := (pre_bisimulation R T).
 
+  Lemma PreBisimulationExtend':
+    forall (R T: crel a) (C: conf_rel a) (W: crel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+    match H with
+    | right _ => True
+    | _ => False
+    end ->
+    W = wp C ->
+    (add_strengthen_crel C R) ⇝ (W ++ T) q1 q2 ->
+    R ⇝ (C :: T) q1 q2.
+  Proof.
+    intros.
+    eapply PreBisimulationExtend with (H0 := H0) (W := W); auto.
+  Admitted.
+
+  
   Fixpoint range (n: nat) :=
     match n with
     | 0 => []

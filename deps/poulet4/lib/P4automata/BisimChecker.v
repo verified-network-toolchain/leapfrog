@@ -181,14 +181,20 @@ Ltac hashcons_list xs :=
 
 Ltac extend_bisim r_states :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [ idtac |
     let t := fresh "t" in
     pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ trivial | subst t; reflexivity |];
+    eapply PreBisimulationExtend' with (H0 := right H) (W := t);
+    [
+      typeclasses eauto 1 | typeclasses eauto 1 | cbv; trivial | trivial | subst t; reflexivity |
+      let v := fresh "v" in 
+      set (v := add_strengthen_crel _ _); 
+      simpl in v;
+      subst v
+    ];
     vm_compute in t;
     subst t;
     match goal with 
@@ -202,7 +208,7 @@ Ltac extend_bisim r_states :=
 
 Ltac skip_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [idtac |
@@ -229,6 +235,31 @@ Ltac extend_bisim' HN r_states :=
       simpl (_ ++ _)
     end
   end.
+
+Ltac extend_bisim'' HN r_states :=
+  match goal with
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+    pose (t := WP.wp r_states C);
+    eapply PreBisimulationExtend' with (H0 := right HN) (W := t);
+    [
+      typeclasses eauto 1 | typeclasses eauto 1 | cbv; trivial | trivial | subst t; reflexivity |
+      let v := fresh "v" in 
+      set (v := add_strengthen_crel _ _); 
+      simpl in v;
+      subst v
+    ];
+    clear HN;
+    time "wp compute" vm_compute in t;
+    subst t;
+    match goal with 
+    | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
+      let r := fresh "R'" in 
+      set (r := R');
+      hashcons_list X;
+      simpl (_ ++ _)
+    end
+  end.
+
 
 Ltac skip_bisim' H :=
   apply PreBisimulationSkip with (H0:=left H);
@@ -292,6 +323,15 @@ Ltac run_bisim top top' r_states :=
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     idtac "extending"; extend_bisim' HN r_states; clear HN
+  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+    idtac "skipping"; skip_bisim' H; clear H; try clear C
+  end.
+
+Ltac run_bisim' top top' r_states :=
+  verify_interp top top';
+  match goal with
+  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
+    idtac "extending"; extend_bisim'' HN r_states; clear HN
   | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
     idtac "skipping"; skip_bisim' H; clear H; try clear C
   end.

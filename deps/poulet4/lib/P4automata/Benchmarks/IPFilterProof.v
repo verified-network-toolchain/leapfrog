@@ -32,7 +32,6 @@ Definition reachable_states_len : nat.
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
-Print reachable_states_len.
 
 Eval vm_compute in reachable_states_len.
 
@@ -79,10 +78,9 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
-
+  
   time "close phase" close_bisim top'.
 
 Time Admitted.
