@@ -477,13 +477,10 @@ Section ConfRel.
   Global Program Instance conf_rel_eqdec: EquivDec.EqDec conf_rel eq :=
     conf_rel_eq_dec.
 
-  Program Definition strengthen_rel (C: conf_rel) (C': conf_rel) (eq_st : C.(cr_st) = C'.(cr_st)) (eq_bctx : C.(cr_ctx) = C'.(cr_ctx)) : conf_rel := 
+  Definition strengthen_rel (C: conf_rel) (C': conf_rel) (eq_st : C.(cr_st) = C'.(cr_st)) (eq_bctx : C.(cr_ctx) = C'.(cr_ctx)) : conf_rel := 
     {|  cr_st := C.(cr_st); 
         cr_ctx := C.(cr_ctx); 
-        cr_rel := brand C.(cr_rel) (@eq_rect _ _ _ C'.(cr_rel) _ _) |}.
-  Next Obligation.
-  auto.
-  Qed.
+        cr_rel := brand C.(cr_rel) (@eq_rect _ _ _ C'.(cr_rel) _ (eq_sym eq_bctx)) |}.
 
   Definition interp_conf_state (c: conf_states) : relation conf :=
     fun c1 c2 =>
@@ -580,7 +577,7 @@ Section ConfRel.
     match CS with 
     | [] => [C]
     | C' :: CS' => 
-      match C.(cr_st) == C'.(cr_st), C.(cr_ctx) == C'.(cr_ctx) with 
+      match conf_states_eq_dec C.(cr_st) C'.(cr_st), bctx_eq_dec C.(cr_ctx) C'.(cr_ctx) with 
       | left HST, left HC => (strengthen_rel C C' HST HC) :: CS'
       | _, _ => C' :: add_strengthen_crel C CS'
       end

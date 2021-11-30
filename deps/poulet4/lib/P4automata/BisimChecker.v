@@ -189,10 +189,10 @@ Ltac extend_bisim r_states :=
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend' with (H0 := right H) (W := t);
     [
-      typeclasses eauto 1 | typeclasses eauto 1 | cbv; trivial | trivial | subst t; reflexivity |
+      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
       let v := fresh "v" in 
       set (v := add_strengthen_crel _ _); 
-      simpl in v;
+      vm_compute in v;
       subst v
     ];
     vm_compute in t;
@@ -242,10 +242,10 @@ Ltac extend_bisim'' HN r_states :=
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend' with (H0 := right HN) (W := t);
     [
-      typeclasses eauto 1 | typeclasses eauto 1 | cbv; trivial | trivial | subst t; reflexivity |
+      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
       let v := fresh "v" in 
       set (v := add_strengthen_crel _ _); 
-      simpl in v;
+      vm_compute in v;
       subst v
     ];
     clear HN;
