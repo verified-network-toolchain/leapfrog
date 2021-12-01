@@ -20,22 +20,26 @@ Fixpoint enum_tuples' {n: nat} k (t: n_tuple bool n) :=
   | S k => t :: enum_tuples' k (next_tuple n t)
   end.
 
-Definition enum_tuples (n: nat) : list (n_tuple bool n) :=
-  enum_tuples' (Nat.pow 2 n) (n_tuple_repeat n false).
-
-Lemma length_enum_tuples':
-  forall {n} k (t: n_tuple bool n),
-    length (enum_tuples' k t) = k.
-Proof.
-  induction k; simpl; eauto.
-Qed.
+Fixpoint enum_tuples (n: nat) : list (n_tuple bool n) :=
+  match n with
+  | 0 => tt :: nil
+  | S n =>
+    let shorter := enum_tuples n in
+    map (fun t => (t, false)) shorter ++
+    map (fun t => (t, true)) shorter
+  end.
 
 Lemma length_enum_tuples:
   forall n,
     length (enum_tuples n) = Nat.pow 2 n.
 Proof.
-  unfold enum_tuples.
-  eauto using length_enum_tuples'.
+  induction n.
+  - reflexivity.
+  - simpl.
+    rewrite app_length.
+    repeat rewrite map_length.
+    repeat rewrite IHn.
+    Lia.lia.
 Qed.
 
 Fixpoint code (n: nat) : n_tuple bool n -> nat :=
@@ -45,28 +49,66 @@ Fixpoint code (n: nat) : n_tuple bool n -> nat :=
     fun t =>
     let '(t, b) := t in
     match b with
-    | false => 2 * (code n t)
-    | true => S (2 * (code n t))
+    | false => code n t
+    | true => Nat.pow 2 n + code n t
     end
   end.
+
+Lemma code_bound:
+  forall n (t: n_tuple bool n),
+    code n t < Nat.pow 2 n.
+Proof.
+  induction n; intros; destruct t; simpl.
+  - Lia.lia.
+  - destruct b; specialize (IHn n0); Lia.lia.
+Qed.
 
 Lemma code_nth:
   forall n (x: n_tuple bool n),
     nth_error (enum_tuples n) (code n x) = Some x.
 Proof.
-  induction n.
-  - intros [].
-    reflexivity.
-  - unfold enum_tuples.
-    intros [x b].
-    cbn in *.
-    destruct b.
-Admitted.
+  induction n; intros.
+  - now destruct x.
+  - simpl enum_tuples.
+    destruct x.
+    specialize (IHn n0).
+    destruct b; simpl code.
+    + rewrite nth_error_app2;
+      rewrite <- length_enum_tuples, map_length; [|Lia.lia].
+      apply map_nth_error with (f := fun t => (t, true)).
+      fold (n_tuple bool n).
+      rewrite <- IHn; f_equal.
+      Lia.lia.
+    + rewrite nth_error_app1.
+      * now apply map_nth_error with (f := fun t => (t, false)).
+      * rewrite map_length.
+        rewrite length_enum_tuples.
+        apply code_bound.
+Qed.
 
 Global Program Instance BoolTupleFinite (n: nat): Finite (n_tuple bool n) :=
   {| enum := enum_tuples n |}.
 Next Obligation.
-Admitted.
+  induction n.
+  - simpl.
+    constructor.
+    + intro; contradiction.
+    + constructor.
+  - simpl.
+    apply NoDup_app.
+    + apply NoDup_map; auto.
+      intros; congruence.
+    + apply NoDup_map; auto.
+      intros; congruence.
+    + intros; intro.
+      rewrite in_map_iff in *.
+      destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      congruence.
+    + intros; intro.
+      rewrite in_map_iff in *.
+      destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      congruence.
+Qed.
 Next Obligation.
   eapply nth_error_In.
   eapply code_nth.
@@ -334,20 +376,13 @@ Proof.
     simpl in *.
     revert xs.
     rewrite <- (plus_zero_trans n).
-    reflexivity.
+    intros.
+    apply rewrite_size_jmeq.
   - destruct ys as [ys y]; simpl in *.
     remember (n_tuple_concat' xs ys) as zs.
     remember (zs, y) as zsy.
     change ((n_tuple bool (m + n)%nat * bool)%type) with (n_tuple bool (S m + n)) in zsy.
-    rewrite succ_add_trans.
-    clear Heqzsy Heqzs.
-    generalize (plus_comm_trans n m).
-    revert zs zsy.
-    change (S m + n) with (S (m + n)).
-    generalize (m + n).
-    intros.
-    subst.
-    auto.
+    apply rewrite_size_jmeq.
 Qed.
 
 Lemma t2l_concat:
@@ -358,4 +393,55 @@ Proof.
   replace (t2l (n_tuple_concat xs ys)) with (t2l (n_tuple_concat' xs ys))
     by (eapply t2l_proper; symmetry; eapply concat_concat').
   apply t2l_concat'.
+Qed.
+
+Lemma n_tuple_concat_roundtrip:
+  forall n m (t: n_tuple bool m),
+    JMeq (n_tuple_concat (n_tuple_take_n n t) (n_tuple_skip_n n t)) t.
+Proof.
+  intros.
+  unfold n_tuple_concat.
+  rewrite rewrite_size_jmeq.
+  apply NtupleProofs.t2l_eq.
+  rewrite NtupleProofs.t2l_concat'.
+  rewrite t2l_n_tuple_take_n, t2l_n_tuple_skip_n.
+  apply List.firstn_skipn.
+Qed.
+
+Lemma n_tuple_take_n_roundtrip:
+  forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    t ~= n_tuple_take_n n (n_tuple_concat t t')
+.
+Proof.
+  intros.
+  apply t2l_eq.
+  rewrite t2l_n_tuple_take_n.
+  rewrite t2l_concat.
+  rewrite firstn_app.
+  rewrite t2l_len.
+  replace (n - n) with 0 by Lia.lia.
+  rewrite firstn_O.
+  rewrite app_nil_r.
+  rewrite <- firstn_all at 1.
+  f_equal.
+  apply t2l_len.
+Qed.
+
+Lemma n_tuple_skip_n_roundtrip:
+  forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    t' ~= n_tuple_skip_n n (n_tuple_concat t t')
+.
+Proof.
+  intros.
+  apply t2l_eq.
+  rewrite t2l_n_tuple_skip_n.
+  rewrite t2l_concat.
+  rewrite skipn_app.
+  rewrite <- app_nil_l at 1.
+  rewrite <- skipn_all with (l := t2l t).
+  repeat f_equal.
+  apply t2l_len.
+  rewrite t2l_len.
+  replace (n - n) with 0 by Lia.lia.
+  now rewrite skipn_O.
 Qed.

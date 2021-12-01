@@ -67,6 +67,20 @@ Section Syntax.
   Solve All Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
 
+  Global Program Instance v_finite (n: nat): Finite (v n) :=
+    {| enum := List.map (VBits n) (enum (n_tuple bool n)) |}.
+  Next Obligation.
+    apply NoDup_map.
+    - intros x y Heq; inversion Heq; auto.
+    - eapply NtupleProofs.BoolTupleFinite.
+  Qed.
+  Next Obligation.
+    destruct x.
+    rewrite List.in_map_iff.
+    eexists; intuition eauto.
+    eapply NtupleProofs.BoolTupleFinite.
+  Qed.
+
   Inductive typ :=
   | TBits (n: nat)
   | TPair (t1 t2: typ).
@@ -241,6 +255,7 @@ Section Interp.
   (* Header identifiers. *)
   Variable (H: Type).
   Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
   Variable (sz: H -> nat).
   Variable (a: t S sz).
 
@@ -253,10 +268,85 @@ Section Interp.
     Env.bind _ _ h v st.
 
   Definition find (h: H) (st: store) : v (sz h) :=
-    match Env.find _ _ h st with
-    | Some v => v
-    | None => VBits _ (n_tuple_repeat _ false)
-    end.
+    Env.get _ _ h st.
+
+  Lemma assign_find:
+    forall (h: H) v s,
+      find h (assign h v s) = v.
+  Proof.
+    intros.
+    unfold find, assign.
+    unfold Env.bind, Env.get.
+    generalize (elem_of_enum h).
+    intros.
+    unfold store in s.
+    unfold Env.t in s.
+    induction (enum H).
+    contradiction.
+    dependent destruction s.
+    autorewrite with bind.
+    destruct (H_eq_dec _ _).
+    autorewrite with get.
+    destruct (H_eq_dec _ _).
+    unfold equiv in *.
+    dependent destruction e0.
+    now dependent destruction e.
+    simpl.
+    destruct i.
+    contradiction.
+    contradiction.
+    simpl.
+    destruct i.
+    unfold equiv, complement in c.
+    exfalso.
+    symmetry in e.
+    contradiction.
+    autorewrite with get.
+    destruct (H_eq_dec _ _).
+    contradiction.
+    simpl.
+    apply IHl.
+  Qed.
+
+  Lemma find_not_first:
+    forall h1 h2 v s,
+      h1 <> h2 ->
+      find h1 (assign h2 v s) =
+      find h1 s.
+  Proof.
+    intros.
+    unfold assign.
+    unfold Env.bind.
+    unfold find.
+    unfold Env.get.
+    generalize (elem_of_enum h1).
+    generalize (elem_of_enum h2).
+    intros.
+    unfold store in s.
+    unfold Env.t in s.
+    induction (enum H).
+    - contradiction.
+    - dependent destruction s.
+      autorewrite with get.
+      autorewrite with bind.
+      destruct (H_eq_dec _ _).
+      autorewrite with get.
+      destruct (H_eq_dec _ _).
+      exfalso.
+      unfold equiv, complement in *.
+      congruence.
+      congruence.
+      simpl.
+      autorewrite with get.
+      destruct (H_eq_dec _ _).
+      reflexivity.
+      simpl.
+      destruct i0.
+      congruence.
+      destruct i.
+      congruence.
+      apply IHl.
+  Qed.
 
   Definition slice {A} (l: list A) (hi lo: nat) :=
     List.skipn lo (List.firstn (1 + hi) l).
@@ -285,37 +375,29 @@ Section Interp.
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
         let '(VBits _ bs) := eval_expr _ st e in
-        VBits _ (n_slice bs hi lo);
+        VBits _ (n_tuple_slice hi lo bs);
       eval_expr n st (EConcat l r) :=
         let '(VBits _ bs_l) := eval_expr _ st l in
         let '(VBits _ bs_r) := eval_expr _ st r in
         VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
-  Equations extract {A} (n excess: nat) (l: n_tuple A (n + excess)) : n_tuple A n * n_tuple A excess := {
-    extract 0 _ l := (tt, l);
-    extract (Datatypes.S n) _ (l, a) :=
-      let '(l1, l2) := extract n _ l in ((l1, a), l2)
-  }.
-
-  Equations eval_op
-    (excess: nat)
-    (st: store)
-    (o: op sz)
-    (bits: n_tuple bool (op_size o + excess))
-    : store * n_tuple bool excess :=
+  Equations eval_op (st: store) (o: op sz) (bits: n_tuple bool (op_size o))  : store :=
     {
-      eval_op _ st (OpNil _) bits := (st, bits);
-      eval_op _ st (OpSeq o1 o2) bits :=
-        let '(st, buf') := eval_op (op_size o2 + excess)
-                                   st o1 (rewrite_size _ bits) in
-        eval_op excess st o2 (rewrite_size _ buf');
-      eval_op excess st (@OpExtract hdr) bits :=
-        let (h, buf) := extract _ excess bits in
-        (assign hdr (VBits _ h) st, buf);
-      eval_op _ st (OpAsgn hdr expr) bits :=
-        (assign hdr (eval_expr _ st expr) st, bits)
+      eval_op st (OpNil _) bits :=
+        st;
+      eval_op st (@OpExtract hdr) bits :=
+        assign hdr (VBits _ bits) st;
+      eval_op st (OpSeq o1 o2) bits :=
+        let bits' := n_tuple_take_n (op_size o1) bits in
+        let st := eval_op st o1 (rewrite_size _ bits') in
+        eval_op st o2 (rewrite_size _ (n_tuple_skip_n (op_size o1) bits));
+      eval_op st (OpAsgn hdr expr) bits :=
+        assign hdr (eval_expr _ st expr) st
     }.
+  Next Obligation.
+    Lia.lia.
+  Qed.
   Next Obligation.
     Lia.lia.
   Qed.
@@ -325,11 +407,10 @@ Section Interp.
     (bits: n_tuple bool (st_size (t_states a state)))
     (st: store)
     : store :=
-    fst (eval_op 0
-                 st
-                 (* Deal with conversion of n-tuple to (n+0)-tuple *)
-                 (a.(t_states) state).(st_op)
-                 (rewrite_size _ bits)).
+    eval_op st
+            (* Deal with conversion of n-tuple to (n+0)-tuple *)
+            (a.(t_states) state).(st_op)
+            (eq_rect _ _ bits _ (plus_O_n _)).
 
   Equations match_pat {T: typ} (st: store) (c: cond sz T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
@@ -384,7 +465,7 @@ End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
-Arguments interp {_ _ _ _ _} a.
+Arguments interp {_ _ _ _ _ _} a.
 
 Section Inline.
   (* State identifiers. *)
@@ -485,6 +566,7 @@ Section Properties.
              apply List.in_eq.
           -- now repeat apply List.in_cons.
   Qed.
+
 
   Lemma conf_state_follow_transition_syntactic
     (q: configuration (interp a))

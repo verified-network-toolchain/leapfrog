@@ -16,10 +16,12 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
+(*
 RegisterEnvCtors
   (TwoOnesChunk.Bits, FirstOrderConfRelSimplified.Bits 2)
   (TwoOnesBucket.Bits, FirstOrderConfRelSimplified.Bits 2)
   (TwoOnesBucket.Val, FirstOrderConfRelSimplified.Bits 1).
+*)
 
 Lemma prebisim_babyip:
   forall q1 q2,

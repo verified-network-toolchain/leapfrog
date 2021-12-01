@@ -7,6 +7,8 @@ Require Import Poulet4.P4automata.ConfRel.
 Require Import Poulet4.Relations.
 Require Poulet4.P4automata.WP.
 
+Require Import Coq.Classes.EquivDec.
+
 Section WPLeaps.
 
   (* State identifiers. *)
@@ -67,6 +69,21 @@ Section WPLeaps.
         R ⇝ (C :: T) q1 q2
   where "R ⇝ T" := (pre_bisimulation R T).
 
+  Lemma PreBisimulationExtend':
+    forall (R T: crel a) (C: conf_rel a) (W: crel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
+    match H with
+    | right _ => True
+    | _ => False
+    end ->
+    W = wp C ->
+    (add_strengthen_crel C R) ⇝ (W ++ T) q1 q2 ->
+    R ⇝ (C :: T) q1 q2.
+  Proof.
+    intros.
+    eapply PreBisimulationExtend with (H0 := H0) (W := W); auto.
+  Admitted.
+
+  
   Fixpoint range (n: nat) :=
     match n with
     | 0 => []
@@ -138,7 +155,7 @@ Section WPLeaps.
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ a)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ a)
                (mk_partition (Reachability.reachable_states a n s1 s2)).
 
   Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
@@ -176,8 +193,8 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec} a wp.
-Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
-Arguments topbdd {S1 S2 H equiv2 H'_eq_dec} a top C.
-Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec} a wp top.
-Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec} a wp top.
+Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec H_finite} a wp.
+Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
+Arguments topbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
+Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.
+Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.

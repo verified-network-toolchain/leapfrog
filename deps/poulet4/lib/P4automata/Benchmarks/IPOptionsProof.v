@@ -8,18 +8,18 @@ Ltac hashcons_list xs :=
   match xs with
   | ?x :: ?xs =>
     hashcons_list xs;
-    let v := fresh "v" in 
+    let v := fresh "v" in
     set (v := x)
-    
+
   | ?x :: nil =>
-    let v := fresh "v" in 
+    let v := fresh "v" in
     set (v := x)
   | nil =>
     idtac
   end.
 
 (* Module SelfComparison.
-    
+
   Notation H := (IPOptionsRef.header + IPOptionsRef.header).
   Notation A := (Sum.sum IPOptionsRef.aut IPOptionsRef.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -109,7 +109,7 @@ Ltac hashcons_list xs :=
 End SelfComparison. *)
 
 Module SelfComparison.
-    
+
   Notation H := (IPOptionsRef2.header + IPOptionsRef2.header).
   Notation A := (Sum.sum IPOptionsRef2.aut IPOptionsRef2.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -130,6 +130,7 @@ Module SelfComparison.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
     (IPOptionsRef5.Scratch8, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsRef5.Scratch16, FirstOrderConfRelSimplified.Bits 16)
@@ -147,16 +148,17 @@ Module SelfComparison.
     (  IPOptionsRef5.T2, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsRef5.L2, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsRef5.V2, FirstOrderConfRelSimplified.Bits 64).
+  *)
 
     Inductive mark : nat -> Type := M : forall (n: nat), mark n.
-    
-  Ltac measure_goals := match goal with 
-    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+
+  Ltac measure_goals := match goal with
+    | |- pre_bisimulation _ _ _ _ ?R _ _ =>
       let x := fresh "rem_goals" in
       pose proof (x := M (length R));
       vm_compute in x;
-      match goal with 
-      | H : mark ?n |- _ => 
+      match goal with
+      | H : mark ?n |- _ =>
         idtac "remaining goals: " n;
         clear H
       end
@@ -192,7 +194,7 @@ Module SelfComparison.
     subst rel0.
     clear H.
 
-    match goal with 
+    match goal with
     | |- pre_bisimulation _ _ _ _ ?G _ _ =>
       hashcons_list G
     end.
@@ -202,55 +204,55 @@ Module SelfComparison.
 
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     do 25 ((time "single step" run_bisim top top' r_states);
-    match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  => 
-      let r := fresh "r" in 
+    match goal with
+    | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     | _ => idtac
     end).
 
     idtac "150 steps...".
-    
+
 
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.

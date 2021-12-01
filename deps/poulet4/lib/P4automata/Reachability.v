@@ -186,6 +186,41 @@ Section ReachablePairs.
     - now apply advance_correct_passive with (b := b).
   Qed.
 
+  Lemma interp_state_template_definite:
+    forall q t,
+      interp_state_template (a := a) t q ->
+      conf_to_state_template q = t.
+  Proof.
+    intros.
+    now apply interp_state_template_dichotomy with (c := q).
+  Qed.
+
+  Lemma advance_correct':
+    forall prev1 prev2 succ1 c1 c2 bs,
+      length bs = reads_left (prev1, prev2) ->
+      interp_state_template prev1 c1 ->
+      interp_state_template prev2 c2 ->
+      interp_state_template succ1 (follow c1 bs) ->
+      List.In succ1 (advance (reads_left (prev1, prev2))
+                             prev1
+                             (st_state prev1)).
+  Proof.
+    intros.
+    rewrite <- H0.
+    rewrite
+      <- interp_state_template_definite with (t := prev1) (q := c1),
+      <- interp_state_template_definite with (t := succ1) (q := follow c1 bs)
+      by auto.
+    rewrite
+      <- interp_state_template_definite with (t := prev1) (q := c1),
+      <- interp_state_template_definite with (t := prev2) (q := c2)
+      in H0 by auto.
+    apply advance_correct; setoid_rewrite H0.
+    - intros.
+      now apply reads_left_upper_bound with (s := s).
+    - apply reads_left_lower_bound.
+  Qed.
+
   Definition reachable_pair_step' (r0: state_pair) : nat * state_pairs :=
     let '(t1, t2) := r0 in
     let s1 := t1.(st_state) in
@@ -193,6 +228,119 @@ Section ReachablePairs.
     let steps := reads_left r0 in
     (steps, List.list_prod (advance steps t1 s1)
                            (advance steps t2 s2)).
+
+  Lemma reachable_step_backwards:
+    forall st st' bs sts q1 q2,
+      reachable_pair_step' st' = (length bs, sts) ->
+      List.In st sts ->
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st; cs_st2 := snd st|}
+                        (follow q1 bs)
+                        (follow q2 bs) ->
+      interp_conf_state (a:=a)
+                        {|cs_st1 := fst st'; cs_st2 := snd st'|}
+                        q1
+                        q2.
+  Proof.
+    intros [st1 st2] [st1' st2'].
+    unfold reachable_pair_step'.
+    intros.
+    set (k := reads_left (st1', st2')) in *.
+    inversion H0.
+    subst sts.
+    clear H0.
+    apply List.in_prod_iff in H1.
+    unfold interp_conf_state; cbn; intuition.
+    - admit.
+    - admit.
+  Admitted.
+
+  Definition reaches (cur prev: state_template a * state_template a)
+    : list (nat * (state_template a * state_template a)) :=
+    let '(n, successors) := reachable_pair_step' prev in
+    if List.In_dec (state_pair_eq_dec) cur successors
+    then [(n, prev)]
+    else [].
+
+  Lemma reaches_prev:
+    forall cur prev prev' size,
+      List.In (size, prev') (reaches cur prev) ->
+      prev' = prev.
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (reachable_pair_step' _) in H0.
+    destruct (List.in_dec _ _) in H0.
+    - simpl in *; destruct H0.
+      + congruence.
+      + tauto.
+    - simpl in H0; tauto.
+  Qed.
+
+  Lemma reachable_step_size:
+    forall prev size s,
+      reachable_pair_step' prev = (size, s) ->
+      size = reads_left prev.
+  Proof.
+    unfold reachable_pair_step'.
+    intros.
+    destruct prev.
+    congruence.
+  Qed.
+
+  Lemma reaches_length:
+    forall size cur prev,
+      List.In (size, prev) (reaches cur prev) ->
+      size = reads_left prev.
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (reachable_pair_step' _) eqn:?.
+    destruct (List.in_dec _ _); simpl in *; [eauto with datatypes | tauto].
+    destruct H0; [|tauto].
+    inversion H0; subst.
+    eapply reachable_step_size; eauto.
+  Qed.
+
+  Lemma reaches_exists:
+    forall cur prev size l,
+      reachable_pair_step' prev = (size, l) ->
+      List.In cur l ->
+      List.In (size, prev) (reaches cur prev).
+  Proof.
+    unfold reaches.
+    intros.
+    destruct (reachable_pair_step' _).
+    inversion H0; subst.
+    destruct (List.in_dec _ _); [eauto with datatypes | tauto].
+  Qed.
+
+  Lemma follow_in_reaches:
+    forall bs prev succ c1 c2,
+      length bs = reads_left prev ->
+      interp_state_template (fst prev) c1 ->
+      interp_state_template (snd prev) c2 ->
+      interp_state_template (fst succ) (follow c1 bs) ->
+      interp_state_template (snd succ) (follow c2 bs) ->
+      List.In (length bs, prev) (reaches succ prev).
+  Proof.
+    intros.
+    unfold reaches.
+    unfold reachable_pair_step'.
+    destruct prev as (prev1, prev2).
+    destruct succ as (succ1, succ2).
+    simpl in H1, H2, H3, H4.
+    destruct (List.in_dec state_pair_eq_dec _ _).
+    - apply List.in_prod_iff in i; destruct i.
+      left; now f_equal.
+    - contradict n.
+      apply List.in_prod_iff.
+      split.
+      + apply advance_correct' with (c1 := c1) (c2 := c2) (bs := bs); auto.
+      + rewrite reads_left_commutative.
+        apply advance_correct' with (c1 := c2) (c2 := c1) (bs := bs); auto.
+        now rewrite reads_left_commutative.
+  Qed.
 
   Definition reachable_pair_step (r0: state_pair) : state_pairs :=
     snd (reachable_pair_step' r0).

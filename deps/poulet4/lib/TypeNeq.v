@@ -2,6 +2,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Arith.PeanoNat.
 Require Import Poulet4.FinType.
 
+Set Universe Polymorphism.
 Section TypeNeq.
   Context (A B: Type).
   Context `{Finite A}.

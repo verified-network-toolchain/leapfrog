@@ -157,6 +157,7 @@ Section ConfRel.
   Derive NoConfusion for bit_expr.
 
   Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+    (* if Nat.ltb hi lo then BELit [] else *)
     match be with
     | BELit l => BELit (P4A.slice l hi lo)
     | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
@@ -477,6 +478,11 @@ Section ConfRel.
   Global Program Instance conf_rel_eqdec: EquivDec.EqDec conf_rel eq :=
     conf_rel_eq_dec.
 
+  Definition strengthen_rel (C: conf_rel) (C': conf_rel) (eq_st : C.(cr_st) = C'.(cr_st)) (eq_bctx : C.(cr_ctx) = C'.(cr_ctx)) : conf_rel := 
+    {|  cr_st := C.(cr_st); 
+        cr_ctx := C.(cr_ctx); 
+        cr_rel := brand C.(cr_rel) (@eq_rect _ _ _ C'.(cr_rel) _ (eq_sym eq_bctx)) |}.
+
   Definition interp_conf_state (c: conf_states) : relation conf :=
     fun c1 c2 =>
       interp_state_template c.(cs_st1) c1 /\
@@ -567,6 +573,21 @@ Section ConfRel.
     repeat rewrite interp_crel_quantify.
     now setoid_rewrite nodup_In.
   Qed.
+
+  Fixpoint add_strengthen_crel (C: conf_rel) (CS: crel) : crel := 
+    match CS with 
+    | [] => [C]
+    | C' :: CS' => 
+      match conf_states_eq_dec C.(cr_st) C'.(cr_st), bctx_eq_dec C.(cr_ctx) C'.(cr_ctx) with 
+      | left HST, left HC => (strengthen_rel C C' HST HC) :: CS'
+      | _, _ => C' :: add_strengthen_crel C CS'
+      end
+    end.
+
+  Lemma add_strengthen_corr : 
+    forall C CR q1 q2 top, 
+    interp_crel top (add_strengthen_crel C CR) q1 q2 <-> interp_crel top (C :: CR) q1 q2.
+  Admitted.
 
   Record entailment :=
     { e_prem: crel;

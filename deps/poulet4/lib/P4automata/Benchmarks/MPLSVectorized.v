@@ -40,8 +40,7 @@ Module MPLSPlain.
   Qed.
 
   Inductive header : nat -> Type :=
-  | HdrMPLS0 : header 32
-  | HdrMPLS1 : header 32
+  | HdrMPLS : header 32
   | HdrUDP : header 32.
 
   Derive Signature for header.
@@ -49,22 +48,14 @@ Module MPLSPlain.
   Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
   refine (
     match x with
-    | HdrMPLS0 =>
+    | HdrMPLS =>
       match y with
-      | HdrMPLS0 => left eq_refl
-      | HdrMPLS1 => right _
-      | HdrUDP => right _
-      end
-    | HdrMPLS1 =>
-      match y with
-      | HdrMPLS0 => right _
-      | HdrMPLS1 => left eq_refl
+      | HdrMPLS => left eq_refl
       | HdrUDP => right _
       end
     | HdrUDP =>
       match y with
-      | HdrMPLS0 => right _
-      | HdrMPLS1 => right _
+      | HdrMPLS => right _
       | HdrUDP => left eq_refl
       end
     end
@@ -90,7 +81,7 @@ Module MPLSPlain.
   Qed.
 
   Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
-    {| enum := [ existT _ _ HdrMPLS0 ; existT _ _ HdrMPLS1; existT _ _ HdrUDP ] |}.
+    {| enum := [ existT _ _ HdrMPLS ; existT _ _ HdrUDP ] |}.
   Next Obligation.
     solve_header_finite.
   Qed.
@@ -107,9 +98,8 @@ Module MPLSPlain.
     match s with
     | ParseMPLS =>
       {| st_op :=
-          HdrMPLS1 <- EHdr HdrMPLS0 ;;
-          extract(HdrMPLS0) ;
-         st_trans := transition select (| (EHdr HdrMPLS0)[24 -- 24] |) {{
+          extract(HdrMPLS) ;
+         st_trans := transition select (| (EHdr HdrMPLS)[24 -- 24] |) {{
             [| exact #b|1 |] ==> inl ParseUDP ;;;
             [| exact #b|0 |] ==> inl ParseMPLS ;;;
               reject

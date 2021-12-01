@@ -14,13 +14,13 @@ Module PlainInline.
 
 
 Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
-  match fuel with 
-  | 0 => None 
-  | S x => 
-    let nxt := Reachability.reachable_step r in 
-    let nxt_len := length nxt in 
+  match fuel with
+  | 0 => None
+  | S x =>
+    let nxt := Reachability.reachable_step r in
+    let nxt_len := length nxt in
     if Nat.eq_dec (length nxt) (length r) then Some nxt_len
-    else 
+    else
       reachable_states_len' nxt x
   end.
 
@@ -28,10 +28,10 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
   refine (
   let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
             {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-  let r := reachable_states_len' [s] 1000 in 
+  let r := reachable_states_len' [s] 1000 in
   _).
   vm_compute in r.
-  match goal with 
+  match goal with
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
@@ -49,16 +49,15 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   Declare ML Module "mirrorsolve".
-
+(*
   ClearEnvCtors.
 
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
+    (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32). *)
 
   Lemma prebisim_mpls_unroll:
     forall q1 q2,
@@ -87,15 +86,19 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
+    (* match goal with
+    | |- pre_bisimulation _ ?wp _ _ (?a :: ?b :: ?c :: ?d :: ?e :: ?f :: ?g :: nil) _ _ =>
+      assert (pre_bisimulation A wp top [] (f :: a :: b :: c :: d :: e :: g :: nil) q1 q2 -> pre_bisimulation A wp top [] (a :: b :: c :: d :: e :: f :: g :: nil) q1 q2) by admit
+    end.
+    apply H0.
 
     run_bisim top top' r_states.
-    Locate "⇒".
-    (* Unset Printing Notations. *)
-    unfold "⇒" in v.
+    run_bisim top top' r_states.
+    run_bisim top top' r_states. *)
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
-End PlainUnroll.
+End PlainInline.
 
 
 Module PlainUnroll.
@@ -121,13 +124,14 @@ Module PlainUnroll.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
+  *)
 
   Lemma prebisim_mpls_unroll:
     forall q1 q2,
@@ -157,10 +161,6 @@ Module PlainUnroll.
     vm_compute in rel0.
     subst rel0.
 
-    run_bisim top top' r_states.
-    Locate "⇒".
-    (* Unset Printing Notations. *)
-    unfold "⇒" in v.
     time "build phase" repeat (time "single step" run_bisim top top' r_states).
     time "close phase" close_bisim top'.
   Time Admitted.
@@ -173,7 +173,7 @@ Module VectUnroll.
   Notation start_left := MPLSPlain.ParseMPLS.
   Notation start_right := MPLSInline.ParseMPLS.
 
-  
+
 
   Definition r_states :=
     Eval vm_compute in (Reachability.reachable_states
@@ -182,20 +182,21 @@ Module VectUnroll.
                           MPLSPlain.ParseMPLS
                           MPLSInline.ParseMPLS).
 
-  
+
 
   Definition top : Relations.rel conf := fun _ _ => True.
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
-    (MPLSPlain.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
-    (MPLSPlain.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
+    (MPLSPlain.HdrMPLS, FirstOrderConfRelSimplified.Bits 32)
     (MPLSPlain.HdrUDP, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
+  *)
 
   Lemma prebisim_mpls_inline:
     forall q1 q2,
@@ -247,6 +248,7 @@ Module UnrollInline.
 
   ClearEnvCtors.
 
+  (*
   RegisterEnvCtors
     (MPLSUnroll.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSUnroll.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
@@ -254,6 +256,7 @@ Module UnrollInline.
     (MPLSInline.HdrMPLS0, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrMPLS1, FirstOrderConfRelSimplified.Bits 32)
     (MPLSInline.HdrUDP, FirstOrderConfRelSimplified.Bits 32).
+  *)
 
   Lemma prebisim_mpls_inline:
     forall q1 q2,

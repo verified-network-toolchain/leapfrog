@@ -102,13 +102,13 @@ Section BisimChecker.
   Admitted.
   *)
 
-  Definition states_match {S H} {a: P4A.t S H} {S_eq_dec: EquivDec.EqDec S eq} {H_eq_dec: forall n, EquivDec.EqDec (H n) eq} (c1 c2: conf_rel a) : bool :=
+  Definition states_match (c1 c2: conf_rel (H_finite:=H_finite) a) : bool :=
     if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
     else false.
 
   Lemma filter_entails:
-    forall (a: P4A.t S H) i R C,
+    forall i R C,
       (forall q1 q2, interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
       <->
       (forall q1 q2, interp_crel a i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel a C q1 q2).
@@ -181,14 +181,20 @@ Ltac hashcons_list xs :=
 
 Ltac extend_bisim r_states :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [ idtac |
     let t := fresh "t" in
     pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right H) (W := t);
-    [ trivial | subst t; reflexivity |];
+    eapply PreBisimulationExtend' with (H0 := right H) (W := t);
+    [
+      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
+      let v := fresh "v" in 
+      set (v := add_strengthen_crel _ _); 
+      vm_compute in v;
+      subst v
+    ];
     vm_compute in t;
     subst t;
     match goal with 
@@ -202,7 +208,7 @@ Ltac extend_bisim r_states :=
 
 Ltac skip_bisim :=
   match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ =>
+  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
     let H := fresh "H" in
     assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
     [idtac |
@@ -230,6 +236,31 @@ Ltac extend_bisim' HN r_states :=
     end
   end.
 
+Ltac extend_bisim'' HN r_states :=
+  match goal with
+  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+    pose (t := WP.wp r_states C);
+    eapply PreBisimulationExtend' with (H0 := right HN) (W := t);
+    [
+      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
+      let v := fresh "v" in 
+      set (v := add_strengthen_crel _ _); 
+      vm_compute in v;
+      subst v
+    ];
+    clear HN;
+    time "wp compute" vm_compute in t;
+    subst t;
+    match goal with 
+    | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
+      let r := fresh "R'" in 
+      set (r := R');
+      hashcons_list X;
+      simpl (_ ++ _)
+    end
+  end.
+
+
 Ltac skip_bisim' H :=
   apply PreBisimulationSkip with (H0:=left H);
   [ exact I | ];
@@ -244,8 +275,11 @@ Ltac size_script :=
 
 Ltac crunch_foterm :=
   match goal with
-  | |- interp_fm _ ?g =>
+  | |- interp_fm ?v ?g =>
     let temp := fresh "temp" in set (temp := g);
+    vm_compute in temp;
+    subst temp;
+    let temp := fresh "temp1" in set (temp := v);
     vm_compute in temp;
     subst temp
   end.
@@ -261,6 +295,9 @@ Ltac verify_interp top top' :=
       eapply simplify_entailment_correct with (i := top');
       eapply compile_simplified_entailment_correct; simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+      
 
       time "reduce goal" crunch_foterm;
 
@@ -286,9 +323,36 @@ Ltac run_bisim top top' r_states :=
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     idtac "extending"; extend_bisim' HN r_states; clear HN
-  | H: interp_entailment _ _ _  |- _ =>
-    idtac "skipping"; skip_bisim' H; clear H
+  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+    idtac "skipping"; skip_bisim' H; clear H; try clear C
   end.
+
+Ltac run_bisim' top top' r_states :=
+  verify_interp top top';
+  match goal with
+  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
+    idtac "extending"; extend_bisim'' HN r_states; clear HN
+  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+    idtac "skipping"; skip_bisim' H; clear H; try clear C
+  end.
+
+
+Ltac print_rel_len :=
+  let foo := fresh "foo" in
+  let bar := fresh "bar" in 
+  match goal with 
+  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
+    set (foo := length R);
+    assert (bar : foo = length R); [subst foo; trivial|]
+  end;
+  vm_compute in bar;
+  match goal with 
+  | H: @eq nat _ ?X |- _ => 
+    idtac "size of relation is:";
+    idtac X
+  end;
+  clear foo;
+  clear bar.
 
 Ltac close_bisim top' :=
   apply PreBisimulationClose;
@@ -297,7 +361,14 @@ Ltac close_bisim top' :=
     let H := fresh "H" in
     assert (H: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
       eapply simplify_entailment_correct' with (i := top');
-      eapply compile_simplified_entailment_correct'; simpl; intros;
+      eapply compile_simplified_entailment_correct'; 
+
+      
+      simpl; intros;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; 
+      
+      
       crunch_foterm;
       match goal with
       | |- ?X => time "smt check pos" check_interp_pos X; admit

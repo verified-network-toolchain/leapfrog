@@ -9,10 +9,17 @@
   (:standard
    \
    P4automata.Benchmarks.Benchmarking
+   P4automata.Benchmarks.TCAMSimpleProof
+   P4automata.Benchmarks.SimpleByteProof
    ; P4automata.Benchmarks.SimpleParsers
    P4automata.Benchmarks.NegativeProof
    P4automata.Benchmarks.SelfComparisonProof
    P4automata.Benchmarks.EnterpriseSelfProof
+   P4automata.Benchmarks.DatacenterSelfProof
+   P4automata.Benchmarks.EdgeSelfProof
+   P4automata.Benchmarks.ServiceproviderSelfProof
+   P4automata.Benchmarks.ServiceProviderTransProof
+   P4automata.Benchmarks.EdgeTransProof
    P4automata.Benchmarks.SimpleBucketProof
    P4automata.Benchmarks.IPOptionsProof
    P4automata.Benchmarks.IPOptions2Proof
