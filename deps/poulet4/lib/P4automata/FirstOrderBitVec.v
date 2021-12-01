@@ -16,12 +16,12 @@ Section FirstOrderBitVec.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat).
