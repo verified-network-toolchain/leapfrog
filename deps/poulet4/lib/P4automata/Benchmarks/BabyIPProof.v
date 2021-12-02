@@ -16,14 +16,6 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
-(*
-RegisterEnvCtors
-  (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)
-  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20)
-  (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28)
-  (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40)
-  (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
-*)
 
 Lemma prebisim_babyip:
   forall q1 q2,

@@ -51,6 +51,7 @@
    ; P4automata.Benchmarks.SmallFilter
    P4automata.Benchmarks.SmallFilterProof
    P4automata.Benchmarks.SloppyStrictProof
+   P4automata.Benchmarks.Timestamp
    P4automata.Benchmarks.TimestampSmallProof
    P4automata.Benchmarks.TimestampSingleProof
    P4automata.Benchmarks.TimestampSingleZeroProof
