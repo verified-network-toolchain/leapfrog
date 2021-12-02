@@ -12,66 +12,42 @@ Require Import Poulet4.P4automata.Notations.
 Open Scope p4a.
 
 Module BabyIP1.
-  Inductive state :=
+  Inductive state : Type :=
   | Start
   | ParseUDP
   | ParseTCP.
 
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
-
   Global Instance state_finite: @Finite state _ state_eq_dec.
   Proof.
     solve_finiteness.
-  Qed.
+  Defined.
 
-  Inductive header : nat -> Type :=
-  | HdrIP: header 20
-  | HdrUDP: header 20
-  | HdrTCP: header 28.
+  Inductive header :=
+  | HdrIP
+  | HdrUDP
+  | HdrTCP.
 
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrIP HdrIP := left eq_refl ;
-    header_eqdec_ _ HdrTCP HdrTCP := left eq_refl ;
-    header_eqdec_ _ HdrUDP HdrUDP := left eq_refl ;
-    header_eqdec_ _ _ _ := ltac:(right; congruence) ;
-  }.
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
+  Definition sz (h: header) : nat :=
+    match h with
+    | HdrIP => 20
+    | HdrUDP => 20
+    | HdrTCP => 28
+    end.
 
-  Global Instance header_eqdec': EquivDec.EqDec (H' header) eq.
+  Scheme Equality for header.
+  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Global Instance header_finite: @Finite header _ header_eq_dec.
   Proof.
-    solve_eqdec'.
-  Qed.
-
-  Global Instance header_finite: forall n, @Finite (header n) _ _.
-  Proof.
-    intros n; solve_indexed_finiteness n [20; 28].
-  Qed.
-
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
-    {| enum := [ existT _ _ HdrIP ; existT _ _ HdrUDP; existT _ _ HdrTCP ] |}.
-  Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    destruct H;
-    now inversion H || now inversion H0.
-  Qed.
-  Next Obligation.
-  dependent destruction X; subst;
-  repeat (
-    match goal with
-    | |- ?L \/ ?R => (now left; trivial) || right
-    end
-  ).
-  Qed.
+    solve_finiteness.
+  Defined.
 
   Definition states (s: state) :=
     match s with
     | Start =>
       {| st_op := extract(HdrIP);
-         st_trans := transition select (| (EHdr HdrIP)[19 -- 16] |) {{
+         st_trans := transition select (| (@EHdr header sz HdrIP)[19 -- 16] |) {{
           [| exact #b|0|0|0|1 |] ==> inl ParseUDP ;;;
           [| exact #b|0|0|0|0 |] ==> inl ParseTCP ;;;
           reject
@@ -87,7 +63,7 @@ Module BabyIP1.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve All Obligations with (destruct s; cbv; Lia.lia).
+  Solve All Obligations with (destruct h || destruct s; cbv; Lia.lia).
 End BabyIP1.
 
 Module BabyIP2.
@@ -97,53 +73,32 @@ Module BabyIP2.
 
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
-
   Global Instance state_finite: @Finite state _ state_eq_dec.
   Proof.
     solve_finiteness.
-  Qed.
+  Defined.
 
-  Inductive header: nat -> Type :=
-  | HdrCombi: header 40
-  | HdrSeq: header 8.
-
-  Equations header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y} :=
-  {
-    header_eqdec_ _ HdrCombi HdrCombi := left eq_refl ;
-    header_eqdec_ _ HdrSeq HdrSeq := left eq_refl ;
-  }.
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
-
-  Global Instance header_eqdec': EquivDec.EqDec {n & header n} eq.
+  Inductive header :=
+  | HdrCombi: header
+  | HdrSeq: header.
+  Scheme Equality for header.
+  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Global Instance header_finite: @Finite header _ header_eq_dec.
   Proof.
-    solve_eqdec'.
-  Qed.
+    solve_finiteness.
+  Defined.
 
-  Global Instance header_finite: forall n, @Finite (header n) _ _.
-  Proof.
-    intros n; solve_indexed_finiteness n [40; 8].
-  Qed.
-
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
-    {| enum := [ existT _ _ HdrCombi ; existT _ _ HdrSeq ] |}.
-  Next Obligation.
-    repeat constructor;
-    unfold "~";
-    intros;
-    destruct H;
-    now inversion H || now inversion H0.
-  Qed.
-  Next Obligation.
-  dependent destruction X; subst.
-  - left; trivial.
-  - right. left. trivial.
-  Qed.
+  Definition sz (h: header) : nat :=
+    match h with
+    | HdrCombi => 40
+    | HdrSeq => 8
+    end.
 
   Definition states (s: state) :=
     match s with
     | Start =>
       {| st_op := extract(HdrCombi);
-         st_trans := transition select (| (EHdr HdrCombi)[19 -- 16] |) {{
+         st_trans := transition select (| (EHdr (sz := sz) HdrCombi)[19 -- 16] |) {{
           [| exact #b|0|0|0|1 |] ==> accept ;;;
           [| exact #b|0|0|0|0 |] ==> inl ParseSeq ;;;
             reject
@@ -156,8 +111,7 @@ Module BabyIP2.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s; cbv; Lia.lia).
-
+  Solve Obligations with (destruct h || destruct s; cbv; Lia.lia).
 End BabyIP2.
 
 Module BabyIP.

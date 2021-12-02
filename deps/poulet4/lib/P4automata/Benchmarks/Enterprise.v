@@ -24,156 +24,40 @@ Module Simple.
   Notation udp_size := 160.
   Notation arp_size := 64.
 
-  Inductive header: nat -> Type :=
-  | HdrEth: header eth_size
-  | HdrVLAN0: header vlan_size
-  | HdrVLAN1: header vlan_size
-  | HdrIPv4: header ipv4_size
-  | HdrIPv6: header ipv6_size
-  | HdrTCP: header tcp_size
-  | HdrUDP: header udp_size
-  | HdrICMP: header icmp_size
-  | HdrICMPv6: header icmp_size
-  | HdrARP: header arp_size
-  | HdrARPIP: header ipv4_size.
+  Inductive header :=
+  | HdrEth
+  | HdrVLAN0
+  | HdrVLAN1
+  | HdrIPv4
+  | HdrIPv6
+  | HdrTCP
+  | HdrUDP
+  | HdrICMP
+  | HdrICMPv6
+  | HdrARP
+  | HdrARPIP.
 
-  Derive Signature for header.
-  Definition h112_eq_dec (x y: header 112) : {x = y} + {x <> y}.
-  refine (
-    match x with
-    | HdrEth =>
-      match y with
-      | HdrEth => left eq_refl
-      end
-    end
-  ); unfold "<>"; intros H; inversion H.
-  Defined.
-  Definition h32_eq_dec (x y: header 32) : {x = y} + {x <> y}.
-  refine (
-    match x with
-    | HdrICMP =>
-      match y with
-      | HdrICMP => left eq_refl
-      | HdrICMPv6 => right _
-      end
-    | HdrICMPv6 =>
-      match y with
-      | HdrICMP => right _
-      | HdrICMPv6 => left eq_refl
-      end
-    end
-  ); unfold "<>"; intros H; inversion H.
-  Defined.
-  Definition h64_eq_dec (x y: header 64) : {x = y} + {x <> y}.
-  refine (
-    match x with
-    | HdrIPv4 =>
-      match y with
-      | HdrIPv4 => left eq_refl
-      | HdrIPv6 => right _
-      | HdrARP => right _
-      | HdrARPIP => right _
-      end
-    | HdrIPv6 =>
-      match y with
-      | HdrIPv4 => right _
-      | HdrIPv6 => left eq_refl
-      | HdrARP => right _
-      | HdrARPIP => right _
-      end
-    | HdrARP =>
-      match y with
-      | HdrIPv4 => right _
-      | HdrIPv6 => right _
-      | HdrARP => left eq_refl
-      | HdrARPIP => right _
-      end
-    | HdrARPIP =>
-      match y with
-      | HdrIPv4 => right _
-      | HdrIPv6 => right _
-      | HdrARP => right _
-      | HdrARPIP => left eq_refl
-      end
-    end
-  ); unfold "<>"; intros H; inversion H.
-  Defined.
-  Definition h160_eq_dec (x y: header 160) : {x = y} + {x <> y}.
-  refine (
-    match x with
-    | HdrVLAN0 =>
-      match y with
-      | HdrVLAN0 => left eq_refl
-      | HdrVLAN1 => right _
-      | HdrTCP => right _
-      | HdrUDP => right _
-      end
-    | HdrVLAN1 =>
-      match y with
-      | HdrVLAN0 => right _
-      | HdrVLAN1 => left eq_refl
-      | HdrTCP => right _
-      | HdrUDP => right _
-      end
-    | HdrTCP =>
-      match y with
-      | HdrVLAN0 => right _
-      | HdrVLAN1 => right _
-      | HdrTCP => left eq_refl
-      | HdrUDP => right _
-      end
-    | HdrUDP =>
-      match y with
-      | HdrVLAN0 => right _
-      | HdrVLAN1 => right _
-      | HdrTCP => right _
-      | HdrUDP => left eq_refl
-      end
-    end
-  ); unfold "<>"; intros H; inversion H.
-  Defined.
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y
-      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) _ h112_eq_dec) ::
-      (existT _ _ h32_eq_dec) ::
-      (existT _ _ h64_eq_dec) ::
-      (existT _ _ h160_eq_dec) ::
-        nil).
-  Defined.
+  Definition sz (h: header) : nat :=
+    match h with
+    | HdrEth => 112
+    | HdrVLAN0
+    | HdrVLAN1 => 160
+    | HdrIPv4 => 64
+    | HdrIPv6 => 64
+    | HdrTCP => 160
+    | HdrUDP => 160
+    | HdrICMP => 32
+    | HdrICMPv6 => 32
+    | HdrARP => 64
+    | HdrARPIP => 64
+    end.
 
-  Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.
-  Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.
-    solve_eqdec'.
+  Scheme Equality for header.
+  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Global Instance header_finite: @Finite header _ header_eq_dec.
+  Proof.
+    solve_finiteness.
   Defined.
-  Global Instance header_finite: forall n, @Finite (header n) _ _.
-    intros n; solve_indexed_finiteness n [112; 32 ; 64 ; 160 ].
-  Qed.
-
-  Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=
-    {| enum := [
-        existT _ _ HdrEth
-      ; existT _ _ HdrVLAN0
-      ; existT _ _ HdrVLAN1
-      ; existT _ _ HdrIPv4
-      ; existT _ _ HdrIPv6
-      ; existT _ _ HdrTCP
-      ; existT _ _ HdrUDP
-      ; existT _ _ HdrICMP
-      ; existT _ _ HdrICMPv6
-      ; existT _ _ HdrARP
-      ; existT _ _ HdrARPIP
-      ] |}.
-  Next Obligation.
-    solve_header_finite.
-  Qed.
-  Next Obligation.
-  dependent destruction X; subst;
-  repeat (
-    match goal with
-    | |- ?L \/ ?R => (now left; trivial) || right
-    end
-  ).
-  Qed.
 
   Inductive state: Type :=
   | ParseEth
@@ -190,23 +74,12 @@ Module Simple.
 
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
-  Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-    {| enum := [ParseEth; ParseVLAN0; ParseVLAN1; ParseIPv4; ParseIPv6; ParseTCP; ParseUDP; ParseICMP; ParseICMPv6; ParseARP; ParseARPIP] |}.
-  Next Obligation.
-    repeat constructor;
-      repeat match goal with
-              | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-              | |- ~ List.In _ [] => apply List.in_nil
-              | |- ~ List.In _ (_ :: _) => unfold not; intros
-              | H: List.In _ (_::_) |- _ => inversion H; clear H
-              | _ => discriminate
-              end.
-  Qed.
-  Next Obligation.
-    destruct x; intuition congruence.
-  Qed.
+  Global Instance state_finite: @Finite state _ state_eq_dec.
+  Proof.
+    solve_finiteness.
+  Defined.
 
-  Definition states (s: state) : P4A.state state header :=
+  Definition states (s: state) : P4A.state state sz :=
     match s with
     | ParseEth =>
       {| st_op := extract(HdrEth);
@@ -286,11 +159,11 @@ Module Simple.
       |}
     end.
 
-  Program Definition aut: Syntax.t state header :=
+  Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s; cbv; Lia.lia).
+  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
 End Simple.
-(* 
+(*
 Module Optimized.
 Inductive state := | State_1_suff_12 | State_7_suff_3 | State_4_suff_0 | State_1 | State_0_suff_0 | State_2_suff_3 | State_6_suff_0 | State_7 | State_8 | State_9 | State_6_suff_3 | State_1_suff_11 | State_5_suff_2 | State_1_suff_7 | State_0 | State_8_suff_1 | State_4_suff_3 | State_3_suff_0 | State_2_suff_1 | State_5_suff_0 | State_9_suff_1 | State_4_suff_2 | State_8_suff_0 | State_5_suff_1 | State_9_suff_0 | State_7_suff_2 | State_2 | State_7_suff_0 | State_8_suff_3 | State_8_suff_2 | State_1_suff_10 | State_9_suff_3 | State_10_suff_1 | State_6_suff_1 | State_4_suff_1 | State_10 | State_3 | State_2_suff_0 | State_5 | State_6 | State_9_suff_2 | State_1_suff_6 | State_3_suff_1 | State_2_suff_2 | State_1_suff_3 | State_4 | State_6_suff_2 | State_9_suff_6 | State_1_suff_5 | State_7_suff_1 | State_10_suff_0 | State_5_suff_3.
 Scheme Equality for state.
