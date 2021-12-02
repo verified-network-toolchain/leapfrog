@@ -44,13 +44,13 @@ Lemma prebisim_babyip:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
+                   (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
                    q1 q2.
 Proof.
   idtac "running babyip bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
+  set (rel0 := (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   vm_compute in rel0.
   subst rel0.
 
