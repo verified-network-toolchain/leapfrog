@@ -64,9 +64,9 @@ Section Sum.
          | inr s2 => Syntax.state_fmapSH sz inr inr _ (a2.(Syntax.t_states) s2)
          end |}.
   Next Obligation.
-    destruct a1, a2, s;
-      simpl;
-      erewrite Syntax.op_fmapH_nonempty; eauto.
+    destruct h; simpl.
+    - apply a1.
+    - apply a2.
   Qed.
   Next Obligation.
     destruct a1, a2, s;

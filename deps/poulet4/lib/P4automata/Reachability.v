@@ -23,11 +23,12 @@ Section ReachablePairs.
   Notation S := (S1 + S2)%type.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -103,7 +104,7 @@ Section ReachablePairs.
     | inl s =>
       let st := P4A.t_states a s in
       if Compare_dec.le_gt_dec (size a s) (t1.(st_buf_len) + steps)
-      then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states _ _ st)
+      then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states _ _ _ st)
       else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + steps |}]
     | inr b => [{| st_state := inr false; st_buf_len := 0 |}]
     end.

@@ -478,9 +478,9 @@ Section ConfRel.
   Global Program Instance conf_rel_eqdec: EquivDec.EqDec conf_rel eq :=
     conf_rel_eq_dec.
 
-  Definition strengthen_rel (C: conf_rel) (C': conf_rel) (eq_st : C.(cr_st) = C'.(cr_st)) (eq_bctx : C.(cr_ctx) = C'.(cr_ctx)) : conf_rel := 
-    {|  cr_st := C.(cr_st); 
-        cr_ctx := C.(cr_ctx); 
+  Definition strengthen_rel (C: conf_rel) (C': conf_rel) (eq_st : C.(cr_st) = C'.(cr_st)) (eq_bctx : C.(cr_ctx) = C'.(cr_ctx)) : conf_rel :=
+    {|  cr_st := C.(cr_st);
+        cr_ctx := C.(cr_ctx);
         cr_rel := brand C.(cr_rel) (@eq_rect _ _ _ C'.(cr_rel) _ (eq_sym eq_bctx)) |}.
 
   Definition interp_conf_state (c: conf_states) : relation conf :=
@@ -574,18 +574,18 @@ Section ConfRel.
     now setoid_rewrite nodup_In.
   Qed.
 
-  Fixpoint add_strengthen_crel (C: conf_rel) (CS: crel) : crel := 
-    match CS with 
+  Fixpoint add_strengthen_crel (C: conf_rel) (CS: crel) : crel :=
+    match CS with
     | [] => [C]
-    | C' :: CS' => 
-      match conf_states_eq_dec C.(cr_st) C'.(cr_st), bctx_eq_dec C.(cr_ctx) C'.(cr_ctx) with 
+    | C' :: CS' =>
+      match conf_states_eq_dec C.(cr_st) C'.(cr_st), bctx_eq_dec C.(cr_ctx) C'.(cr_ctx) with
       | left HST, left HC => (strengthen_rel C C' HST HC) :: CS'
       | _, _ => C' :: add_strengthen_crel C CS'
       end
     end.
 
-  Lemma add_strengthen_corr : 
-    forall C CR q1 q2 top, 
+  Lemma add_strengthen_corr :
+    forall C CR q1 q2 top,
     interp_crel top (add_strengthen_crel C CR) q1 q2 <-> interp_crel top (C :: CR) q1 q2.
   Admitted.
 
@@ -857,6 +857,6 @@ Section ConfRel.
       + apply H4.
   Qed.
 End ConfRel.
-Arguments interp_conf_rel {_} {_} {_} {_} {_} a phi.
-Arguments interp_crel {_} {_} {_} {_} {_} a i rel.
-Arguments interp_entailment {_ _ _ _ _} a i e.
+Arguments interp_conf_rel {_} {_} {_} {_} {_} {_} a phi.
+Arguments interp_crel {_} {_} {_} {_} {_} {_} a i rel.
+Arguments interp_entailment {_ _ _ _ _ _} a i e.

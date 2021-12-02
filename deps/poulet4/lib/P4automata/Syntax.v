@@ -119,8 +119,6 @@ Section Syntax.
     | @OpAsgn _ _ => 0
     end.
 
-  Definition nonempty (o: op) : Prop := op_size o > 0.
-
   Record state: Type :=
     { st_op: op;
       st_trans: transition }.
@@ -130,16 +128,11 @@ Section Syntax.
 
   Record t: Type :=
     { t_states: S -> state;
-      t_nonempty: forall s, nonempty (t_states s).(st_op);
+      t_nonempty: forall h, sz h > 0;
       t_has_extract: forall s, st_size (t_states s) > 0 }.
 
-  Program Definition bind (s: S) (st: state) (ex: st_size st > 0) (ok: nonempty st.(st_op)) (a: t) :=
+  Program Definition bind (s: S) (st: state) (ex: st_size st > 0) (ok: forall h, sz h > 0) (a: t) :=
     {| t_states := fun s' => if s == s' then st else a.(t_states) s' |}.
-  Next Obligation.
-    destruct (s == s0).
-    - auto.
-    - eapply a.(t_nonempty).
-  Qed.
   Next Obligation.
     destruct (s == s0).
     - auto.
@@ -233,14 +226,6 @@ Section Fmap.
       st_size (state_fmapSH s) = st_size s.
   Proof.
     unfold st_size.
-    now setoid_rewrite op_fmapH_size.
-  Qed.
-
-  Lemma op_fmapH_nonempty :
-    forall (o: op sz1),
-      nonempty (op_fmapH o) <-> nonempty o.
-  Proof.
-    unfold nonempty.
     now setoid_rewrite op_fmapH_size.
   Qed.
 
@@ -496,10 +481,7 @@ Section Inline.
     Lia.lia.
   Qed.
   Next Obligation.
-    pose proof auto.(t_nonempty) suff.
-    unfold nonempty in *.
-    simpl.
-    Lia.lia.
+    apply auto.(t_nonempty).
   Qed.
 
   (* Lemma inline_corr :

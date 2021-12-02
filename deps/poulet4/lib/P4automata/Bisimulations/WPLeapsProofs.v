@@ -29,12 +29,12 @@ Section WPLeapsProofs.
   Notation S := ((S1 + S2)%type).
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Variable (s1: S1).
   Variable (s2: S2).
@@ -86,8 +86,8 @@ Section WPLeapsProofs.
   Qed.
 
   Lemma not_equally_accepting_correct q1 q2:
-    not_equally_accepting S1 S2 H a (conf_to_state_template q1,
-                                     conf_to_state_template q2) = false ->
+    not_equally_accepting S1 S2 H sz a (conf_to_state_template q1,
+                                        conf_to_state_template q2) = false ->
     accepting q1 <-> accepting q2.
   Proof.
     unfold not_equally_accepting, accepting; simpl; intros.
@@ -98,14 +98,14 @@ Section WPLeapsProofs.
 
   Lemma mk_init_accepting:
     forall (q1 q2: conf),
-      ⟦mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2⟧ q1 q2 ->
+      ⟦mk_init _ _ _ _ _ (length (valid_state_pairs a)) s1 s2⟧ q1 q2 ->
       (accepting q1 <-> accepting q2).
   Proof.
     intros.
     apply not_equally_accepting_correct, Bool.not_true_iff_false; intro.
     apply interp_crel_nodup, interp_crel_quantify in H0; destruct H0.
-    specialize (H2 (mk_rel _ _ _ _ (conf_to_state_template q1,
-                                    conf_to_state_template q2))).
+    specialize (H2 (mk_rel _ _ _ _ _ (conf_to_state_template q1,
+                                      conf_to_state_template q2))).
     modus_ponens H2; [ apply in_map, filter_In; intuition |].
     unfold interp_conf_rel in H2; simpl interp_store_rel in H2.
     modus_ponens H2; [ vm_compute; intuition |].
@@ -140,7 +140,7 @@ Section WPLeapsProofs.
 
   Lemma wp_leaps_implies_bisim_leaps:
     forall q1 q2,
-      let init := mk_init _ _ _ _ (length (valid_state_pairs a)) s1 s2 in
+      let init := mk_init _ _ _ _ _ (length (valid_state_pairs a)) s1 s2 in
       pre_bisimulation a (WP.wp r) top [] init q1 q2 ->
       top q1 q2 ->
       bisimilar_with_leaps (P4A.interp a) q1 q2.
