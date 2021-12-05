@@ -12,9 +12,9 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := (Plain.ParseEth0).
 Notation start_right := (Optimized.State_0).
 
-Notation r_len := 8.
+
 (* Notation r_len := 2. *)
-(* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
+Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
   match fuel with
   | 0 => None
   | S x =>
@@ -36,7 +36,9 @@ Definition reachable_states_len : nat.
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
-Print reachable_states_len. *)
+(* Print reachable_states_len. *)
+
+Definition r_len := reachable_states_len.
 
 SetSMTSolver "cvc4".
 
@@ -81,18 +83,7 @@ Proof.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
-    evar (foo: nat);
-    let bar := fresh "B" in 
-    assert (bar : foo = length R); [subst foo; trivial|]
-  end.
-  vm_compute in B.
-  match goal with 
-  | H: length _ = ?X |- _ => 
-    idtac "size of relation is:";
-    idtac X
-  end
+  print_rel_len.
   (* run_bisim top top' r_states. *)
   time "close phase" close_bisim top'.
 Time Admitted.

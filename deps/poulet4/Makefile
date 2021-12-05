@@ -64,6 +64,8 @@ ipoptions: build
 
 edgeself:
 	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+edgetranslation:
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeTransProof.v < _CoqProject > edge_self_timing.out 2>&1 &
 
 datacenterself:
 	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &

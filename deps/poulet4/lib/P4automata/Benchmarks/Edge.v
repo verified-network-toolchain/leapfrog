@@ -72,11 +72,13 @@ Module Plain.
     solve_finiteness.
   Defined.
 
+  Notation EHdr' := (@EHdr header sz).
+
   Definition states (s: state) : P4A.state state sz :=
     match s with
     | ParseEth0 =>
       {| st_op := extract(HdrEth0);
-        st_trans := transition select (| (EHdr (sz := sz) HdrEth0)[111--96] |)
+        st_trans := transition select (| (EHdr' HdrEth0)[111--96] |)
                                 {{[| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|0|1|1|1 |] ==> inl ParseMPLS0 ;;;
                                   [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|1|0|0|0 |] ==> inl ParseMPLS0 ;;;
                                   [| exact #b|0|0|0|0|1|0|0|0|0|0|0|0|0|0|0|0 |] ==> inl IgnoreIPVer4 ;;;
@@ -85,7 +87,7 @@ Module Plain.
       |}
     | ParseMPLS0 =>
       {| st_op := extract(HdrMPLS0);
-        st_trans := transition select (| (EHdr HdrMPLS0)[23--23] |)
+        st_trans := transition select (| (EHdr' HdrMPLS0)[23--23] |)
                                 {{ [| hexact 0 |] ==> inl ParseMPLS1 ;;;
                                   [| hexact 1 |] ==> inl ParseIPVer ;;;
                                   reject
@@ -93,14 +95,14 @@ Module Plain.
       |}
     | ParseMPLS1 =>
       {| st_op := extract(HdrMPLS1);
-        st_trans := transition select (| (EHdr HdrMPLS1)[23--23] |)
+        st_trans := transition select (| (EHdr' HdrMPLS1)[23--23] |)
                               {{ [| hexact 1 |] ==> inl ParseIPVer ;;;
                                 reject
                               }}
       |}
     | ParseIPVer =>
       {| st_op := extract(HdrIPVer);
-        st_trans := transition select (| EHdr HdrIPVer |)
+        st_trans := transition select (| EHdr' HdrIPVer |)
                                 {{ [| exact #b|0|0|0|0 |] ==> inl ParseEoMPLS;;;
                                   [| exact #b|0|1|0|0 |] ==> inl ParseIPv4;;;
                                   [| exact #b|0|1|1|0 |] ==> inl ParseIPv6;;;
@@ -120,7 +122,7 @@ Module Plain.
         st_trans := transition (inl ParseEth1) |}
     | ParseIPv4 =>
       {| st_op := extract(HdrIPVer);
-        st_trans := transition select (| EHdr HdrIPVer |)
+        st_trans := transition select (| EHdr' HdrIPVer |)
                                 {{  [| exact #b|0|1|0|1 |] ==> inl ParseIPv4_5;;;
                                     [| exact #b|0|1|1|0 |] ==> inl ParseIPv4_6;;;
                                     [| exact #b|0|1|1|1 |] ==> inl ParseIPv4_7;;;
@@ -217,105 +219,107 @@ Definition sz (h: header) : nat :=
     solve_finiteness.
   Defined.
 
-Definition states (s: state) : P4A.state state sz :=
-  match s with
-  | State_0 => {|
-    st_op := extract(buf_112);
-    st_trans := transition select (| (EHdr (sz := sz) buf_112)[111 -- 96] |) {{
-      [| exact #b|0|0|0|0|1|0|0|0|0|0|0|0|0|0|0|0 |] ==> inl State_3 ;;;
-      [| exact #b|1|0|0|0|0|1|1|0|1|1|0|1|1|1|0|1 |] ==> inl State_0_suff_1 ;;;
-      [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|0|1|1|1 |] ==> inl State_0_suff_2 ;;;
-      [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|1|0|0|0 |] ==> inl State_0_suff_3 ;;;
-      accept
-    }}
-  |}
-  | State_0_suff_1 => {|
-    st_op := extract(buf_320);
-    st_trans := transition accept;
-  |}
-  | State_0_suff_2 => {|
-    st_op := extract(buf_16);
-    st_trans := transition inl State_4;
-  |}
-  | State_0_suff_3 => {|
-    st_op := extract(buf_16);
-    st_trans := transition inl State_4;
-  |}
-  | State_1 => {|
-    st_op := extract(buf_16);
-    st_trans := transition inl State_1_suff_0;
+  Notation EHdr' := (@EHdr header sz).
 
-  |}
-  | State_1_suff_0 => {|
-    st_op := extract(buf_128);
-    st_trans := transition accept;
-  |}
-  | State_2 => {|
-    st_op := extract(buf_16);
-    st_trans := transition inl State_2_suff_0;
-  |}
-  | State_2_suff_0 => {|
-    st_op := extract(buf_304);
-    st_trans := transition accept;
-  |}
-  | State_3 => {|
-    st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr (sz := sz) buf_16)[7--4]|) {{
-      [| exact #b|0|1|0|1 |] ==> inl State_3_suff_0 ;;;
-      [| exact #b|0|1|1|0 |] ==> inl State_3_suff_1 ;;;
-      [| exact #b|0|1|1|1 |] ==> inl State_3_suff_2 ;;;
-      [| exact #b|1|0|0|0 |] ==> inl State_3_suff_3 ;;;
-      reject
-    }}
-  |}
-  | State_3_suff_0 => {|
-    st_op := extract(buf_144);
-    st_trans := transition accept;
-  |}
-  | State_3_suff_1 => {|
-    st_op := extract(buf_176);
-    st_trans := transition accept;
-  |}
-  | State_3_suff_2 => {|
-    st_op := extract(buf_208);
-    st_trans := transition accept;
-  |}
-  | State_3_suff_3 => {|
-    st_op := extract(buf_240);
-    st_trans := transition accept;
-  |}
+  Definition states (s: state) : P4A.state state sz :=
+    match s with
+    | State_0 => {|
+      st_op := extract(buf_112);
+      st_trans := transition select (| (EHdr' buf_112)[111 -- 96] |) {{
+        [| exact #b|0|0|0|0|1|0|0|0|0|0|0|0|0|0|0|0 |] ==> inl State_3 ;;;
+        [| exact #b|1|0|0|0|0|1|1|0|1|1|0|1|1|1|0|1 |] ==> inl State_0_suff_1 ;;;
+        [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|0|1|1|1 |] ==> inl State_0_suff_2 ;;;
+        [| exact #b|1|0|0|0|1|0|0|0|0|1|0|0|1|0|0|0 |] ==> inl State_0_suff_3 ;;;
+        accept
+      }}
+    |}
+    | State_0_suff_1 => {|
+      st_op := extract(buf_320);
+      st_trans := transition accept;
+    |}
+    | State_0_suff_2 => {|
+      st_op := extract(buf_16);
+      st_trans := transition inl State_4;
+    |}
+    | State_0_suff_3 => {|
+      st_op := extract(buf_16);
+      st_trans := transition inl State_4;
+    |}
+    | State_1 => {|
+      st_op := extract(buf_16);
+      st_trans := transition inl State_1_suff_0;
 
-  | State_4 => {|
-    st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr (sz := sz) buf_16)[7 -- 7] |) {{
-      [| exact #b|0 |] ==> inl State_4_skip ;;;
-      [| exact #b|1 |] ==> inl State_4_trailer ;;;
-      reject
-    }}
-  |}
+    |}
+    | State_1_suff_0 => {|
+      st_op := extract(buf_128);
+      st_trans := transition accept;
+    |}
+    | State_2 => {|
+      st_op := extract(buf_16);
+      st_trans := transition inl State_2_suff_0;
+    |}
+    | State_2_suff_0 => {|
+      st_op := extract(buf_304);
+      st_trans := transition accept;
+    |}
+    | State_3 => {|
+      st_op := extract(buf_16);
+      st_trans := transition select (| (EHdr' buf_16)[7--4]|) {{
+        [| exact #b|0|1|0|1 |] ==> inl State_3_suff_0 ;;;
+        [| exact #b|0|1|1|0 |] ==> inl State_3_suff_1 ;;;
+        [| exact #b|0|1|1|1 |] ==> inl State_3_suff_2 ;;;
+        [| exact #b|1|0|0|0 |] ==> inl State_3_suff_3 ;;;
+        reject
+      }}
+    |}
+    | State_3_suff_0 => {|
+      st_op := extract(buf_144);
+      st_trans := transition accept;
+    |}
+    | State_3_suff_1 => {|
+      st_op := extract(buf_176);
+      st_trans := transition accept;
+    |}
+    | State_3_suff_2 => {|
+      st_op := extract(buf_208);
+      st_trans := transition accept;
+    |}
+    | State_3_suff_3 => {|
+      st_op := extract(buf_240);
+      st_trans := transition accept;
+    |}
 
-  | State_4_skip => {|
-    st_op := extract(buf_32);
-    st_trans := transition select (| (EHdr (sz := sz) buf_32)[23 -- 23] |) {{
-      [| exact #b|1 |] ==> inl State_4_trailer ;;;
-      reject
-    }}
-  |}
+    | State_4 => {|
+      st_op := extract(buf_16);
+      st_trans := transition select (| (EHdr' buf_16)[7 -- 7] |) {{
+        [| exact #b|0 |] ==> inl State_4_skip ;;;
+        [| exact #b|1 |] ==> inl State_4_trailer ;;;
+        reject
+      }}
+    |}
 
-  | State_4_trailer => {|
-    st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr (sz := sz) buf_16)[3 -- 0], (EHdr buf_16)[7--4] |) {{
-      [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits rem *) ;;;
-      [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits rem *) ;;;
-      [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits rem *) ;;;
-      [| exact #b|0|1|0|0, exact #b|0|1|1|0 |] ==> inl State_3_suff_1 (* State_3 but with 16 bits rem *) ;;;
-      [| exact #b|0|1|0|0, exact #b|0|1|1|1 |] ==> inl State_3_suff_2 (* State_3 but with 16 bits rem *) ;;;
-      [| exact #b|0|1|0|0, exact #b|1|0|0|0 |] ==> inl State_3_suff_3 (* State_3 but with 16 bits rem *) ;;;
-      reject
-    }}
-  |}
-end.
-Program Definition aut: Syntax.t state sz :=
-  {| t_states := states |}.
-Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+    | State_4_skip => {|
+      st_op := extract(buf_32);
+      st_trans := transition select (| (EHdr' buf_32)[23 -- 23] |) {{
+        [| exact #b|1 |] ==> inl State_4_trailer ;;;
+        reject
+      }}
+    |}
+
+    | State_4_trailer => {|
+      st_op := extract(buf_16);
+      st_trans := transition select (| (EHdr' buf_16)[3 -- 0], (EHdr' buf_16)[7--4] |) {{
+        [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits rem *) ;;;
+        [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits rem *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits rem *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|1|0 |] ==> inl State_3_suff_1 (* State_3 but with 16 bits rem *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|1|1 |] ==> inl State_3_suff_2 (* State_3 but with 16 bits rem *) ;;;
+        [| exact #b|0|1|0|0, exact #b|1|0|0|0 |] ==> inl State_3_suff_3 (* State_3 but with 16 bits rem *) ;;;
+        reject
+      }}
+    |}
+  end.
+  Program Definition aut: Syntax.t state sz :=
+    {| t_states := states |}.
+  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
 End Optimized.
