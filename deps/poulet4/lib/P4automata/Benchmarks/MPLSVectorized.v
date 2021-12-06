@@ -21,23 +21,13 @@ Module Plain.
   Inductive state :=
   | ParseMPLS
   | ParseUDP.
+
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
-  Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-    {| enum := [ParseMPLS; ParseUDP] |}.
-  Next Obligation.
-    repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
-  Qed.
-  Next Obligation.
-    destruct x; intuition congruence.
-  Qed.
+  Global Instance state_finite: @Finite state _ state_eq_dec.
+  Proof.
+    solve_finiteness.
+  Defined.
 
   Inductive header :=
   | HdrMPLS
@@ -50,10 +40,8 @@ Module Plain.
     end.
 
   Scheme Equality for header.
-
   Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-
-  Global Instance header_finite': @Finite header _ header_eqdec.
+  Global Instance header_finite: @Finite header _ header_eqdec.
   Proof.
     solve_finiteness.
   Defined.
@@ -74,8 +62,6 @@ Module Plain.
          st_trans := transition accept |}
     end.
 
-
-
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
   Solve Obligations with (destruct h || destruct s; cbv; Lia.lia).
@@ -87,31 +73,26 @@ Module Unrolled.
   | ParseMPLS
   | ParseUDP
   | Cleanup.
+
   Scheme Equality for state.
   Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
-  Global Program Instance state_finite: @Finite state _ state_eq_dec :=
-    {| enum := [ParseMPLS; ParseUDP; Cleanup] |}.
-  Next Obligation.
-    repeat constructor;
-      repeat match goal with
-             | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H
-             | |- ~ List.In _ [] => apply List.in_nil
-             | |- ~ List.In _ (_ :: _) => unfold not; intros
-             | H: List.In _ (_::_) |- _ => inversion H; clear H
-             | _ => discriminate
-             end.
-  Qed.
-  Next Obligation.
-    destruct x; intuition congruence.
-  Qed.
+  Global Instance state_finite: @Finite state _ state_eq_dec.
+  Proof.
+    solve_finiteness.
+  Defined.
 
   Inductive header :=
   | HdrMPLS0
-  | HdrMPLS1 
-  | Tmp 
+  | HdrMPLS1
+  | Tmp
   | HdrUDP .
 
   Scheme Equality for header.
+  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Global Instance header_finite: @Finite header _ header_eqdec.
+  Proof.
+    solve_finiteness.
+  Defined.
 
   Definition sz (h: header) : nat :=
     match h with
@@ -120,13 +101,6 @@ Module Unrolled.
     | Tmp => 32
     | HdrUDP => 64
     end.
-
-  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
-
-  Global Instance header_finite': @Finite header _ header_eqdec.
-  Proof.
-    solve_finiteness.
-  Defined.
 
   Notation EHdr' := (@EHdr header sz).
 
@@ -147,8 +121,8 @@ Module Unrolled.
       {| st_op := extract(HdrUDP) ;
          st_trans := transition accept |}
     | Cleanup =>
-      {| st_op := 
-        extract(Tmp) ;; 
+      {| st_op :=
+        extract(Tmp) ;;
         HdrUDP <- EConcat (EHdr' HdrMPLS1) (EHdr Tmp);
         st_trans := transition accept |}
     end.
