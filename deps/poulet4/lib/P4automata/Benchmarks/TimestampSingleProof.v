@@ -66,7 +66,7 @@ RegisterEnvCtors
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ A 2 start_left start_right)
+                   (mk_init _ _ _ _ A 2 start_left start_right)
                    q1 q2.
 Proof.
   idtac "running timestamp single bisimulation".
@@ -76,7 +76,7 @@ Proof.
   (* vm_compute in a. *)
   (* Set Ltac Profiling. *)
 
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
 

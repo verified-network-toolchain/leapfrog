@@ -83,14 +83,14 @@ Lemma prebisim_incremental_sep:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ A 9 start_left start_right)
+                   (mk_init _ _ _ _ A 9 start_left start_right)
                    q1 q2.
 Proof.
   idtac "running timestamp three bisimulation".
 
   intros.
   set (a := A).
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
 

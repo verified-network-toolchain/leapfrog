@@ -183,13 +183,13 @@ Module SelfComparison.
                     (wp r_states)
                     top
                     []
-                    (mk_init _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)
+                    (mk_init _ _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)
                     q1 q2.
   Proof.
     idtac "running ipoptions ref self-comparison bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)).
+    set (rel0 := (mk_init _ _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)).
     vm_compute in rel0.
     subst rel0.
     clear H.

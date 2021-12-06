@@ -75,13 +75,13 @@ Lemma prebisim_babyip:
                   (wp r_states)
                   top
                   []
-                  (mk_init _ _ _ A r_len start_left start_right)
+                  (mk_init _ _ _ _ A r_len start_left start_right)
                   q1 q2.
 Proof.
   idtac "running enterprise self-comparison bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
 

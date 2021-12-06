@@ -41,12 +41,12 @@ RegisterEnvCtors
                    cs_st2 := s2 |};
        cr_ctx := BCEmp;
        cr_rel := BRImpl
-                     (BROr (BREq (BESlice (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrEthernet)))) 111 96)
+                     (BROr (BREq (BESlice (BEHdr _ Left (P4A.HRVar (inl Sloppy.HdrEthernet))) 111 96)
                                    (BELit _ _ [true; false; false; false;
                                            false; true; true; false;
                                            false; false; false; false;
                                            false; false; false; false]))
-                           (BREq (BESlice (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrEthernet)))) 111 96)
+                           (BREq (BESlice (BEHdr _ Left (P4A.HRVar (inl Sloppy.HdrEthernet))) 111 96)
                                    (BELit _ _ [true; false; false; false;
                                            false; true; true; false;
                                            true; true; false; true;
@@ -58,7 +58,7 @@ RegisterEnvCtors
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init' (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ A)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ _ A)
                (mk_partition (Reachability.reachable_states A n s1 s2)).
 
 Lemma prebisim_sloppystrict:
@@ -119,22 +119,22 @@ Lemma prebisim_sloppystrict_stores:
                           ethertype, then they agree on the contents of the
                           IPv4 (resp. IPv6) header. *)
                    [BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢
-                       (BRAnd (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrEthernet))))
-                                    (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))))
-                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))) 111 96)
+                       (BRAnd (BREq (BEHdr _ Left (P4A.HRVar (inl Sloppy.HdrEthernet)))
+                                    (BEHdr _ Right (P4A.HRVar (inr Strict.HdrEthernet))))
+                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (inr Strict.HdrEthernet))) 111 96)
                                             (BELit _ _ [true; false; false; false;
                                                         false; true; true; false;
                                                         false; false; false; false;
                                                         false; false; false; false]))
-                                      (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrIPv4))))
-                                            (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrIPv4))))))
-                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrEthernet)))) 111 96)
+                                      (BREq (BEHdr _ Left (P4A.HRVar (inl Sloppy.HdrIPv4)))
+                                            (BEHdr _ Right (P4A.HRVar (inr Strict.HdrIPv4)))))
+                       (BRAnd (BRImpl (BREq (BESlice (BEHdr _ Right (P4A.HRVar (inr Strict.HdrEthernet))) 111 96)
                                             (BELit _ _ [true; false; false; false;
                                                         false; true; true; false;
                                                         true; true; false; true;
                                                         true; true; false; true]))
-                                      (BREq (BEHdr _ Left (P4A.HRVar (existT _ _ (inl Sloppy.HdrIPv6))))
-                                            (BEHdr _ Right (P4A.HRVar (existT _ _ (inr Strict.HdrIPv6))))))
+                                      (BREq (BEHdr _ Left (P4A.HRVar (inl Sloppy.HdrIPv6)))
+                                            (BEHdr _ Right (P4A.HRVar (inr Strict.HdrIPv6)))))
                         btrue)))]
                    q1 q2.
 Proof.
