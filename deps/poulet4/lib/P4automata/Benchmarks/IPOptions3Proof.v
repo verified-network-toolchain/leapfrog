@@ -8,61 +8,43 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := IPOptionsRef63.Parse0.
 Notation start_right := TimestampSpec3.Parse0.
 
+
+Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
+  match fuel with
+  | 0 => None
+  | S x =>
+    let nxt := Reachability.reachable_step r in
+    let nxt_len := length nxt in
+    if Nat.eq_dec (length nxt) (length r) then Some nxt_len
+    else
+      reachable_states_len' nxt x
+  end.
+
+Definition r_len : nat.
+refine (
+let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
+          {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
+let r := reachable_states_len' [s] 1000 in
+_).
+vm_compute in r.
+match goal with
+| _ := Some ?x |- _ => exact x
+end.
+Defined.
+
+
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
                         A
-                        9
+                        r_len
                         start_left
                         start_right).
 
-(* Definition r_states' :=
-  Eval vm_compute in (Reachability.reachable_step r_states).
-
-Definition r_len := Eval vm_compute in (length r_states, length r_states').
-
-Print r_len. *)
 
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
-
-(*
-RegisterEnvCtors
-  (IPOptionsRef63.T0, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L0, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V0, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.T1, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L1, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V1, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.T2, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L2, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V2, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.Scratch8, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.Scratch16, FirstOrderConfRelSimplified.Bits 16)
-  (IPOptionsRef63.Scratch24, FirstOrderConfRelSimplified.Bits 24)
-  (IPOptionsRef63.Scratch32, FirstOrderConfRelSimplified.Bits 32)
-  (IPOptionsRef63.Scratch40, FirstOrderConfRelSimplified.Bits 40)
-
-  (TimestampSpec3.T0, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L0, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V0, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.T1, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L1, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V1, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.T2, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L2, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V2, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.Scratch8, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.Scratch16, FirstOrderConfRelSimplified.Bits 16)
-  (TimestampSpec3.Scratch24, FirstOrderConfRelSimplified.Bits 24)
-  (TimestampSpec3.Scratch32, FirstOrderConfRelSimplified.Bits 32)
-  (TimestampSpec3.Scratch40, FirstOrderConfRelSimplified.Bits 40)
-  (TimestampSpec3.Pointer, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.Overflow, FirstOrderConfRelSimplified.Bits 4)
-  (TimestampSpec3.Flag, FirstOrderConfRelSimplified.Bits 4)
-  (TimestampSpec3.Timestamp, FirstOrderConfRelSimplified.Bits 32).
-*)
 
 Lemma prebisim_incremental_sep:
   forall q1 q2,
@@ -83,7 +65,7 @@ Lemma prebisim_incremental_sep:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ _ A 9 start_left start_right)
+                   (mk_init _ _ _ _ A r_len start_left start_right)
                    q1 q2.
 Proof.
   idtac "running timestamp three bisimulation".
@@ -92,27 +74,8 @@ Proof.
   set (a := A).
   set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
-  subst rel0.
 
-  set (eight := 8).
-  assert (H8 : 8 = eight); [subst eight; reflexivity|].
-  set (sixteen := (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight))))))))).
-  assert (H16 : (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight)))))))) = sixteen); [subst sixteen; reflexivity|].
-
-
-  try rewrite H8;
-  try rewrite H16;
-
-
-  match goal with
-  | |- pre_bisimulation _ _ _ _ ?R _ _ =>
-    hashcons_list R
-  end.
-
-  time "build phase" repeat (run_bisim top top' r_states;
-    try rewrite H8;
-    try rewrite H16
-  ).
+  time "build phase" repeat (run_bisim top top' r_states).
   time "close phase" close_bisim top'.
 
 Time Admitted.
