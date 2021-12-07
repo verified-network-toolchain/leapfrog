@@ -2,6 +2,8 @@ Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
 Require Import Poulet4.P4automata.Benchmarks.IPOptions.
 Require Import Poulet4.P4automata.Benchmarks.Timestamp.
 
+Require Import Coq.Arith.PeanoNat.
+
 Notation H := (IPOptionsRef63.header + TimestampSpec3.header).
 Notation A := (Sum.sum IPOptionsRef63.aut TimestampSpec3.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
