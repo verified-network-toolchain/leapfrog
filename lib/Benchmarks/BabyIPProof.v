@@ -16,14 +16,6 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
-(*
-RegisterEnvCtors
-  (BabyIP1.HdrIP, FirstOrderConfRelSimplified.Bits 20)
-  (BabyIP1.HdrUDP, FirstOrderConfRelSimplified.Bits 20)
-  (BabyIP1.HdrTCP, FirstOrderConfRelSimplified.Bits 28)
-  (BabyIP2.HdrCombi, FirstOrderConfRelSimplified.Bits 40)
-  (BabyIP2.HdrSeq, FirstOrderConfRelSimplified.Bits 8).
-*)
 
 Lemma prebisim_babyip:
   forall q1 q2,
@@ -44,13 +36,13 @@ Lemma prebisim_babyip:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
+                   (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
                    q1 q2.
 Proof.
   idtac "running babyip bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
+  set (rel0 := (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   vm_compute in rel0.
   subst rel0.
 

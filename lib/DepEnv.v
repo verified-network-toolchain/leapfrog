@@ -5,58 +5,38 @@ From Leapfrog Require Import FirstOrder.
 Import List.ListNotations.
 
 Section DepEnv.
-  Variable (I: Type).
-  Variable (K: I -> Type).
-  Definition K' := {n: I & K n}.
-  Context `{K'_eq_dec: EquivDec.EqDec K' eq}.
-  Context `{K'_finite: @Finite K' _ K'_eq_dec}.
-  Variable (V: I -> Type).
+  Variable (K: Type).
+  Context `{K_eq_dec: EquivDec.EqDec K eq}.
+  Context `{K_finite: @Finite K _ K_eq_dec}.
+  Variable (V: K -> Type).
 
-  Definition keylist : list K' :=
-    @enum _ _ _ K'_finite.
+  Definition K' := {k: K & V k}.
 
   Definition t: Type :=
-    HList.t (fun k => (V (projT1 k))) keylist.
+    HList.t V (enum K).
 
-  Definition get' (k: K') (e: t) : V (projT1 k) :=
+  Definition get (k: K) (e: t) : V k :=
     HList.get k (elem_of_enum k) e.
 
-  Definition get {i: I} (k: K i) : t -> V i :=
-    get' (existT K i k).
-
-  Definition bind' (k: K') (v: V (projT1 k)) (e: t) : t :=
+  Definition bind (k: K) (v: V k) (e: t) : t :=
     HList.bind k v (elem_of_enum k) e.
 
-  Definition bind {i: I} (k: K i) : V i -> t -> t :=
-    bind' (existT K i k).
+  Definition init (f: forall k, V k) : t :=
+    HList.mapl (fun k => f k) (enum K).
 
-  Definition init (f: forall i, V i) : t :=
-    HList.mapl (fun a => f (projT1 a)) keylist.
-
-  Lemma env_extensionality':
+  Lemma env_extensionality:
     forall e e': t,
-      (forall k, get' k e = get' k e') ->
+      (forall k, get k e = get k e') ->
       e = e'.
   Proof.
     intros.
     eapply HList.get_extensionality.
-    - apply K'_finite.
+    - apply K_finite.
     - intros.
-      unfold get' in H.
+      unfold get in H.
       erewrite HList.get_proof_irrelevance; symmetry.
       erewrite HList.get_proof_irrelevance; symmetry.
       apply H.
-  Qed.
-
-  Lemma env_extensionality:
-    forall e e': t,
-      (forall i (k: K i), get k e = get k e') ->
-      e = e'.
-  Proof.
-    intros.
-    eapply env_extensionality'.
-    intros [i k].
-    eauto.
   Qed.
 
 End DepEnv.

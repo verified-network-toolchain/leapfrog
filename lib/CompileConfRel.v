@@ -9,18 +9,19 @@ Import HListNotations.
 
 Section CompileConfRel.
   Set Implicit Arguments.
+
   (* State identifiers. *)
   Variable (S: Type).
   Context `{S_eq_dec: EquivDec.EqDec S eq}.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -30,8 +31,8 @@ Section CompileConfRel.
     | BCSnoc b size => CSnoc _ (compile_bctx b) (Bits size)
     end.
 
-  Definition be_sort {c} b1 b2 (e: bit_expr H c) : sorts :=
-    Bits (be_size b1 b2 e).
+  Definition be_sort {c} {b1 b2: nat} (e: bit_expr H c) : sorts :=
+    Bits (be_size sz b1 b2 e).
 
   Equations compile_var {c: bctx} (x: bvar c) : var (sig a) (compile_bctx c) (Bits (check_bvar x)) :=
     { compile_var (BVarTop c size) :=
@@ -56,7 +57,7 @@ Section CompileConfRel.
             (b1 b2: nat)
             (q: tm (sig a) (compile_bctx c) (ConfigPair b1 b2))
             (e: bit_expr H c)
-    : tm (sig a) (compile_bctx c) (be_sort b1 b2 e) :=
+    : tm (sig a) (compile_bctx c) (be_sort (b1 := b1) (b2 := b2) e) :=
     { compile_bit_expr q (BELit _ _ l) :=
         TFun (sig a) (BitsLit a (List.length l) (Ntuple.l2t l)) hnil;
       compile_bit_expr q (BEBuf _ _ Left) :=
@@ -64,13 +65,11 @@ Section CompileConfRel.
       compile_bit_expr q (BEBuf _ _ Right) :=
         TFun (sig a) (Buf2 _ b1 b2) (q ::: hnil);
       compile_bit_expr q (@BEHdr H _ Left (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit a _ (projT2 h)) hnil in
         let store := TFun (sig a) (Store1 a b1 b2) (q ::: hnil) in
-        TFun (sig a) (Lookup a (projT1 h)) (store ::: key ::: hnil);
+        TFun (sig a) (Lookup a h) (store ::: hnil);
       compile_bit_expr q (BEHdr _ Right (P4A.HRVar h)) :=
-        let key := TFun (sig a) (KeyLit a _ (projT2 h)) hnil in
         let store := TFun (sig a) (Store2 a b1 b2) (q ::: hnil) in
-        TFun (sig a) (Lookup a (projT1 h)) (store ::: key ::: hnil);
+        TFun (sig a) (Lookup a h) (store ::: hnil);
       compile_bit_expr q (BEVar _ b) :=
         TVar (compile_var b);
       compile_bit_expr q (BESlice e hi lo) :=
@@ -87,7 +86,7 @@ Section CompileConfRel.
     { compile_store_rel q BRTrue := FTrue;
       compile_store_rel q BRFalse := FFalse;
       compile_store_rel q (BREq e1 e2) :=
-        match eq_dec (be_size b1 b2 e1) (be_size b1 b2 e2) with
+        match eq_dec (be_size sz b1 b2 e1) (be_size sz b1 b2 e2) with
         | left Heq =>
           FEq (eq_rect _ (fun n => tm (sig a) _ (Bits n))
                        (compile_bit_expr q e1) _ Heq)

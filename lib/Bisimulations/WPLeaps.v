@@ -23,11 +23,12 @@ Section WPLeaps.
   Notation S := ((S1 + S2)%type).
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Variable (wp: conf_rel a ->
                 list (conf_rel a)).
@@ -83,46 +84,46 @@ Section WPLeaps.
     eapply PreBisimulationExtend with (H0 := H0) (W := W); auto.
   Admitted.
 
-  
+
   Fixpoint range (n: nat) :=
     match n with
     | 0 => []
     | Datatypes.S n => range n ++ [n]
     end.
 
-  Definition not_accept1 (a: P4A.t S H) (s: S) : crel a :=
+  Definition not_accept1 (a: P4A.t S sz) (s: S) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true; st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl s;    st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition not_accept2 (a: P4A.t S H) (s: S) : crel a :=
+  Definition not_accept2 (a: P4A.t S sz) (s: S) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := n |};
                                cs_st2 := {| st_state := inr true; st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition init_rel (a: P4A.t S H) : crel a :=
+  Definition init_rel (a: P4A.t S sz) : crel a :=
     List.concat (List.map (not_accept1 a) (enum S) ++
                           List.map (not_accept2 a) (enum S)).
 
-  Definition sum_not_accept1 (a: P4A.t (S1 + S2) H) (s: S1) : crel a :=
+  Definition sum_not_accept1 (a: P4A.t (S1 + S2) sz) (s: S1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (S1 + S2) H) (s: S2) : crel a :=
+  Definition sum_not_accept2 (a: P4A.t (S1 + S2) sz) (s: S2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (S1 + S2) H) : crel a :=
+  Definition sum_init_rel (a: P4A.t (S1 + S2) sz) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum S1)
                           ++ List.map (sum_not_accept2 a) (enum S2)).
   Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
@@ -155,7 +156,7 @@ Section WPLeaps.
     List.map mk_rel (List.filter not_equally_accepting r).
 
   Definition mk_init (n: nat) s1 s2 :=
-    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ a)
+    List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ _ a)
                (mk_partition (Reachability.reachable_states a n s1 s2)).
 
   Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
@@ -193,8 +194,8 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Arguments pre_bisimulation {S1 S2 H equiv2 H'_eq_dec H_finite} a wp.
-Arguments ctopbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
-Arguments topbdd {S1 S2 H equiv2 H'_eq_dec H_finite} a top C.
-Arguments safe_wp_1bit {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.
-Arguments wp_bdd {S1 S2 H equiv2 H'_eq_dec H_finite} a wp top.
+Arguments pre_bisimulation {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp.
+Arguments ctopbdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a top C.
+Arguments topbdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a top C.
+Arguments safe_wp_1bit {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp top.
+Arguments wp_bdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp top.

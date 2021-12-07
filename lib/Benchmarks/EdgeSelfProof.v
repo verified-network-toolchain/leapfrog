@@ -42,17 +42,17 @@ Lemma prebisim_babyip:
                   (wp r_states)
                   top
                   []
-                  (mk_init _ _ _ A r_len start_left start_right)
+                  (mk_init _ _ _ _ A r_len start_left start_right)
                   q1 q2.
 Proof.
   idtac "running edge self-comparison bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "build phase" repeat (time "single step" run_bisim top top' r_states; idtac "mem after step"; print_mem).
 
   (* run_bisim top top' r_states. *)
   time "close phase" close_bisim top'.

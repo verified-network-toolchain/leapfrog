@@ -48,13 +48,13 @@ Module Positive.
                     (wp r_states)
                     top
                     []
-                    (mk_init _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)
+                    (mk_init _ _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)
                     q1 q2.
   Proof.
     idtac "running self-comparison positive bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)).
+    set (rel0 := (mk_init _ _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)).
     vm_compute in rel0.
     subst rel0.
 
@@ -107,13 +107,13 @@ Module Negative.
                     (wp r_states)
                     top
                     []
-                    (mk_init _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)
+                    (mk_init _ _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)
                     q1 q2.
   Proof.
     idtac "running self-comparison negative bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)).
+    set (rel0 := (mk_init _ _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)).
     vm_compute in rel0.
     subst rel0.
 

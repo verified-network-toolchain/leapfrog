@@ -18,11 +18,12 @@ Section AutModel.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat)
@@ -33,8 +34,7 @@ Section AutModel.
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
-  | Lookup: forall n, H n -> funs [Store] (Bits n).
-  Arguments Lookup n k : clear implicits.
+  | Lookup: forall h, funs [Store] (Bits (sz h)).
 
   Inductive rels: arity sorts -> Type :=.
 
@@ -63,8 +63,8 @@ Section AutModel.
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
-      mod_fns (Lookup n k) (store ::: hnil) :=
-        match P4A.find H k store with
+      mod_fns (Lookup k) (store ::: hnil) :=
+        match P4A.find H sz k store with
         | P4A.VBits _ v => v
         end
     }.

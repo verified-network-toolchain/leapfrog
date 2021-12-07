@@ -22,11 +22,12 @@ Section WP.
   Notation S := (S1 + S2)%type.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
   Variable (reachable_states: list (state_template a * state_template a)).
 
   Fixpoint be_subst {c} (be: bit_expr H c) (e: bit_expr H c) (x: bit_expr H c) : bit_expr H c :=
@@ -60,11 +61,11 @@ Section WP.
     | _ => Read
     end.
 
-  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr H n) : bit_expr H c :=
+  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr sz n) : bit_expr H c :=
     match e with
-    | P4A.EHdr h => BEHdr c s (P4A.HRVar (existT _ _ h))
-    | P4A.ELit bs => BELit _ c (Ntuple.t2l bs)
-    | P4A.ESlice e hi lo => BESlice (expr_to_bit_expr s e) hi lo
+    | P4A.EHdr h => BEHdr c s (P4A.HRVar h)
+    | P4A.ELit _ bs => BELit _ c (Ntuple.t2l bs)
+    | P4A.ESlice _ e hi lo => BESlice (expr_to_bit_expr s e) hi lo
     | P4A.EConcat l r => BEConcat (expr_to_bit_expr s l) (expr_to_bit_expr s r)
     end.
 
@@ -73,25 +74,24 @@ Section WP.
     | P4A.VBits _ bs => BELit _ c (Ntuple.t2l bs)
     end.
 
-  Fixpoint wp_op' {c n} (s: side) (o: P4A.op H n) : nat * store_rel H c -> nat * store_rel H c :=
+  Fixpoint wp_op' {c} (s: side) (o: P4A.op sz) : nat * store_rel H c -> nat * store_rel H c :=
     fun '(buf_hi_idx, phi) =>
       match o with
       | P4A.OpNil _ => (buf_hi_idx, phi)
       | P4A.OpSeq o1 o2 =>
         wp_op' s o1 (wp_op' s o2 (buf_hi_idx, phi))
-      | P4A.OpExtract hdr =>
-        let width := projT1 hdr in
-        let new_idx := buf_hi_idx - width in
+      | P4A.OpExtract _ hdr =>
+        let new_idx := buf_hi_idx - sz hdr in
         let slice := beslice (BEBuf _ _ s) (buf_hi_idx - 1) new_idx in
         (new_idx, sr_subst phi slice (BEHdr _ s (P4A.HRVar hdr)))
       | P4A.OpAsgn lhs rhs =>
-        (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar (existT _ _ lhs))))
+        (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar lhs)))
       end.
 
-  Definition wp_op {c n} (s: side) (o: P4A.op H n) (phi: store_rel H c) : store_rel H c :=
+  Definition wp_op {c} (s: side) (o: P4A.op sz) (phi: store_rel H c) : store_rel H c :=
     snd (wp_op' s o (P4A.op_size o, phi)).
 
-  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond H ty) : store_rel H ctx :=
+  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond sz ty) : store_rel H ctx :=
     { pat_cond si (P4A.PExact val) (P4A.CExpr e) :=
         BREq (expr_to_bit_expr si e) (val_to_bit_expr val);
       pat_cond _ (P4A.PAny _) _ :=
@@ -103,7 +103,7 @@ Section WP.
     {ctx: bctx}
     {ty: Syntax.typ}
     (si: side)
-    (cond: Syntax.cond H ty)
+    (cond: Syntax.cond sz ty)
     (target: P4A.state_ref S)
     (cases: list (P4A.sel_case S ty))
     (default: P4A.state_ref S)
@@ -123,7 +123,7 @@ Section WP.
   Definition trans_cond
              {c: bctx}
              (s: side)
-             (t: P4A.transition S H)
+             (t: P4A.transition S sz)
              (st': P4A.state_ref S)
     : store_rel H c :=
     match t with

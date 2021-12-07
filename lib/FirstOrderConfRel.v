@@ -16,12 +16,12 @@ Section AutModel.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H'_eq_dec: EquivDec.EqDec (P4A.H' H) eq}.
-  Context `{H_finite: @Finite (Syntax.H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
 
-  Variable (a: P4A.t S H).
+  Variable (a: P4A.t S sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -29,7 +29,6 @@ Section AutModel.
   | Bits (n: nat)
   | State
   | Store
-  | Key (n: nat)
   | ConfigPair (n m: nat)
   | Natural.
 
@@ -38,14 +37,13 @@ Section AutModel.
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
-  | KeyLit: forall n, H n -> funs [] (Key n)
   | StateLit: forall (s: states (P4A.interp a) + bool), funs [] State
   | ConfPairLit: forall n m (c: conf' n * conf' m), funs [] (ConfigPair n m)
   | NatLit: forall n : nat, funs [] Natural
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
-  | Lookup: forall n, funs [Store; Key n] (Bits n)
-  | Update: forall n, funs [Store; Key n; Bits n] Store
+  | Lookup: forall k, funs [Store] (Bits (sz k))
+  | Update: forall k, funs [Store; Bits (sz k)] Store
   | State1: forall n m, funs [ConfigPair n m] State
   | Store1: forall n m, funs [ConfigPair n m] Store
   | State2: forall n m, funs [ConfigPair n m] State
@@ -68,19 +66,16 @@ Section AutModel.
     | Bits n => n_tuple bool n
     | State => states (P4A.interp a) + bool
     | Store => store (P4A.interp a)
-    | Key n => H n
     | ConfigPair n m => conf' n * conf' m
     | Natural => nat
     end.
 
-  Obligation Tactic := idtac.
   Equations mod_fns
              params ret
              (f: sig_funs sig params ret)
              (args: HList.t mod_sorts params)
     : mod_sorts ret :=
     { mod_fns (BitsLit n xs) hnil := xs;
-      mod_fns (KeyLit k) hnil := k;
       mod_fns (StateLit s) hnil := s;
       mod_fns (ConfPairLit c) hnil := c;
       mod_fns (NatLit n) hnil := n;
@@ -88,12 +83,12 @@ Section AutModel.
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
-      mod_fns (Lookup n) (store ::: key ::: hnil) :=
-        match P4A.find H key store with
+      mod_fns (Lookup k) (store ::: hnil) :=
+        match P4A.find H sz k store with
         | P4A.VBits _ v => v
         end;
-      mod_fns (Update n) (store ::: k ::: v ::: hnil) :=
-        P4A.assign _ k (P4A.VBits _ v) store;
+      mod_fns (Update k) (store ::: v ::: hnil) :=
+        P4A.assign H sz k (P4A.VBits _ v) store;
       mod_fns (State1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_state);
       mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store);
       mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state);

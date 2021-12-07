@@ -25,23 +25,14 @@ Section Syntax.
   Context `{S_finite: @Finite S _ S_eq_dec}.
 
   (* Typed header identifiers. *)
-  Variable (H: nat -> Type).
-  Definition H' := {n: nat & H n}.
-  Context `{H'_eq_dec: EquivDec.EqDec H' eq}.
-  Context `{H'_finite: @Finite H' _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
 
-  Global Instance H_eq_dec: forall n, EquivDec.EqDec (H n) eq.
-  Proof.
-    unfold EquivDec.EqDec; intros.
-    destruct (H'_eq_dec (existT _ n x) (existT _ n y)).
-    - apply Eqdep_dec.inj_pair2_eq_dec in e;
-        auto using PeanoNat.Nat.eq_dec.
-    - right; intro; apply c.
-      now rewrite H0.
-  Defined.
+  Variable (sz: H -> nat).
 
   Inductive hdr_ref: Type :=
-  | HRVar (var: H').
+  | HRVar (var: H).
   (*| HRField (hdr: hdr_ref) (field: string).*)
   Derive NoConfusion for hdr_ref.
   Global Program Instance hdr_ref_eq_dec : EquivDec.EqDec hdr_ref eq :=
@@ -54,7 +45,7 @@ Section Syntax.
     program_simpl; congruence.
 
   Inductive expr : nat -> Type :=
-  | EHdr {n} (h: H n): expr n
+  | EHdr (h: H): expr (sz h)
   | ELit {n} (bs: n_tuple bool n): expr n
   | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo)
   | EConcat {n m} (l: expr n) (r: expr m): expr (n + m).
@@ -114,42 +105,34 @@ Section Syntax.
   | TGoto (state: state_ref)
   | TSel {t} (c: cond t) (cases: list (sel_case t)) (default: state_ref).
 
-  Inductive op: nat -> Type :=
-  | OpNil: op 0
-  | OpSeq {n1 n2} (o1: op n1) (o2: op n2): op (n1 + n2)
-  | OpExtract (hdr: H'): op (projT1 hdr)
-  | OpAsgn {n} (lhs: H n) (rhs: expr n): op 0.
+  Inductive op :=
+  | OpNil: op
+  | OpSeq (o1 o2: op)
+  | OpExtract (hdr: H)
+  | OpAsgn (lhs: H) (rhs: expr (sz lhs)).
 
-  Definition op_size {n} (o: op n) := n.
-
-  Fixpoint nonempty {n} (o: op n) : Prop :=
+  Fixpoint op_size (o: op) :=
     match o with
-    | OpAsgn _ _
-    | OpNil => True
-    | OpSeq o1 o2 => nonempty o1 /\ nonempty o2
-    | OpExtract hdr => projT1 hdr > 0
+    | OpNil => 0
+    | OpSeq o1 o2 => op_size o1 + op_size o2
+    | OpExtract hdr => sz hdr
+    | @OpAsgn _ _ => 0
     end.
 
   Record state: Type :=
-    { st_size: nat;
-      st_op: op st_size;
+    { st_op: op;
       st_trans: transition }.
 
-  Definition state_size (st: state) : nat :=
-    st_size st.
+  Definition st_size (st: state) : nat :=
+    op_size (st_op st).
 
   Record t: Type :=
     { t_states: S -> state;
-      t_nonempty: forall s, nonempty (t_states s).(st_op);
-      t_has_extract: forall s, state_size (t_states s) > 0 }.
+      t_nonempty: forall h, sz h > 0;
+      t_has_extract: forall s, st_size (t_states s) > 0 }.
 
-  Program Definition bind (s: S) (st: state) (ex: state_size st > 0) (ok: nonempty st.(st_op)) (a: t) :=
+  Program Definition bind (s: S) (st: state) (ex: st_size st > 0) (ok: forall h, sz h > 0) (a: t) :=
     {| t_states := fun s' => if s == s' then st else a.(t_states) s' |}.
-  Next Obligation.
-    destruct (s == s0).
-    - auto.
-    - eapply a.(t_nonempty).
-  Qed.
   Next Obligation.
     destruct (s == s0).
     - auto.
@@ -157,7 +140,7 @@ Section Syntax.
   Qed.
 
   Definition size (a: t) (s: S) :=
-    state_size (a.(t_states) s).
+    st_size (a.(t_states) s).
 
   Lemma eq_dec_refl (A: Type) (eq_dec: forall x y : A, {x = y} + {x <> y}) :
     forall x,
@@ -176,25 +159,25 @@ End Syntax.
 Section Fmap.
   Set Implicit Arguments.
   Variables (S1 S2: Type).
-  Variables (H1 H2: nat -> Type).
+  Variables (H1 H2: Type).
+  Variable (sz1: H1 -> nat).
+  Variable (sz2: H2 -> nat).
   Variable (f: S1 -> S2).
-  Variable (g: forall n, H1 n -> H2 n).
+  Variable (g: H1 -> H2).
 
-  Definition sigma_fmapH (h: H' H1) : H' H2 :=
-    existT _ (projT1 h) (g (projT2 h)).
+  Hypothesis g_sound: forall h, sz1 h = sz2 (g h).
 
   Definition hdr_ref_fmapH (h: hdr_ref H1) : hdr_ref H2 :=
     match h with
-    | HRVar h => HRVar (sigma_fmapH h)
+    | HRVar h => HRVar (g h)
     end.
 
-  Fixpoint expr_fmapH {n} (e: expr H1 n) : expr H2 n :=
-    match e with
-    | EHdr _ h => EHdr _ (g h)
-    | ELit _ bs => ELit _ bs
-    | ESlice e hi lo => ESlice (expr_fmapH e) hi lo
-    | EConcat l r => EConcat (expr_fmapH l) (expr_fmapH r)
-    end.
+  Equations expr_fmapH {n: nat} (e: expr sz1 n) : expr sz2 n := {
+    expr_fmapH (EHdr _ h) := eq_rect_r _ (EHdr _ (g h)) (g_sound h);
+    expr_fmapH (ELit _ bs) := ELit _ bs;
+    expr_fmapH (ESlice e hi lo) := ESlice (expr_fmapH e) hi lo;
+    expr_fmapH (EConcat l r) := EConcat (expr_fmapH l) (expr_fmapH r)
+  }.
 
   Definition state_ref_fmapS (s: state_ref S1) : state_ref S2 :=
     match s with
@@ -206,44 +189,44 @@ Section Fmap.
     {| sc_pat := c.(sc_pat);
        sc_st := state_ref_fmapS c.(sc_st) |}.
 
-  Fixpoint cond_fmapH {t} (c: cond H1 t) : cond H2 t :=
+  Fixpoint cond_fmapH {t} (c: cond sz1 t) : cond sz2 t :=
     match c with
-    | @CExpr _ n e => CExpr (expr_fmapH e)
-    | @CPair _ t1 t2 c1 c2 => CPair (cond_fmapH c1) (cond_fmapH c2)
+    | CExpr e => CExpr (expr_fmapH e)
+    | CPair c1 c2 => CPair (cond_fmapH c1) (cond_fmapH c2)
     end.
 
-  Definition transition_fmapSH (t: transition S1 H1) : transition S2 H2 :=
+  Definition transition_fmapSH (t: transition S1 sz1) : transition S2 sz2 :=
     match t with
     | TGoto _ s => TGoto _ (state_ref_fmapS s)
     | TSel cond cases default =>
       TSel (cond_fmapH cond) (List.map sel_case_fmapS cases) (state_ref_fmapS default)
     end.
 
-  Fixpoint op_fmapH {n} (o: op H1 n) : op H2 n :=
-    match o with
-    | OpNil _ => OpNil _
-    | OpSeq o1 o2 => OpSeq (op_fmapH o1) (op_fmapH o2)
-    | OpExtract hdr => OpExtract (sigma_fmapH hdr)
-    | OpAsgn lhs rhs => OpAsgn (g lhs) (expr_fmapH rhs)
-    end.
+  Equations op_fmapH (o: op sz1) : op sz2 := {
+    op_fmapH OpNil := OpNil _;
+    op_fmapH (OpSeq o1 o2) := OpSeq (op_fmapH o1) (op_fmapH o2);
+    op_fmapH (OpExtract _ hdr) := OpExtract _ (g hdr);
+    op_fmapH (OpAsgn lhs rhs) :=
+      OpAsgn (g lhs) (eq_rect _ _ (expr_fmapH rhs) _ (g_sound lhs))
+  }.
 
-  Definition state_fmapSH (s: state S1 H1) : state S2 H2 :=
-    {| st_size := s.(st_size);
-       st_op := op_fmapH s.(st_op);
+  Definition state_fmapSH (s: state S1 sz1) : state S2 sz2 :=
+    {| st_op := op_fmapH s.(st_op);
        st_trans := transition_fmapSH s.(st_trans) |}.
+
+  Lemma op_fmapH_size :
+    forall o,
+      op_size (op_fmapH o) = op_size o.
+  Proof.
+    induction o; autorewrite with op_fmapH; simpl; congruence.
+  Qed.
 
   Lemma state_fmapSH_size :
     forall s,
-      state_size (state_fmapSH s) = state_size s.
+      st_size (state_fmapSH s) = st_size s.
   Proof.
-    tauto.
-  Qed.
-
-  Lemma op_fmapH_nonempty :
-    forall n (o: op H1 n),
-      nonempty (op_fmapH o) <-> nonempty o.
-  Proof.
-    induction o; simpl; intuition.
+    unfold st_size.
+    now setoid_rewrite op_fmapH_size.
   Qed.
 
 End Fmap.
@@ -255,43 +238,41 @@ Section Interp.
   Context `{S_eqdec: EquivDec.EqDec S eq}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H'_eq_dec: EquivDec.EqDec (H' H) eq}.
-  Context `{H_finite: @Finite (H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
+  Variable (sz: H -> nat).
+  Variable (a: t S sz).
 
-  Variable (a: t S H).
-
-  Definition store := Env.t nat H v.
+  Definition store := Env.t H (fun h => v (sz h)).
 
   Definition clamp_list (n: nat) (l: list bool) :=
     List.firstn n (l ++ (List.repeat false (List.length l - n))).
 
-  Definition assign {n} (h: H n) (v: v n) (st: store) : store :=
-    Env.bind _ _ _ h v st.
+  Definition assign (h: H) (v: v (sz h)) (st: store) : store :=
+    Env.bind _ _ h v st.
 
-  Definition find {n} (h: H n) (st: store) : v n :=
-    Env.get _ _ _ h st.
+  Definition find (h: H) (st: store) : v (sz h) :=
+    Env.get _ _ h st.
 
   Lemma assign_find:
-    forall n (h: H n) v s,
+    forall (h: H) v s,
       find h (assign h v s) = v.
   Proof.
     intros.
     unfold find, assign.
-    unfold Env.bind, Env.bind'.
-    unfold Env.get, Env.get'.
-    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H n h)).
+    unfold Env.bind, Env.get.
+    generalize (elem_of_enum h).
     intros.
     unfold store in s.
     unfold Env.t in s.
-    unfold Env.keylist in s.
-    induction (enum (Env.K' nat H)).
+    induction (enum H).
     contradiction.
     dependent destruction s.
     autorewrite with bind.
-    destruct (H'_eq_dec _ _).
+    destruct (H_eq_dec _ _).
     autorewrite with get.
-    destruct (H'_eq_dec _ _).
+    destruct (H_eq_dec _ _).
     unfold equiv in *.
     dependent destruction e0.
     now dependent destruction e.
@@ -306,7 +287,7 @@ Section Interp.
     symmetry in e.
     contradiction.
     autorewrite with get.
-    destruct (H'_eq_dec _ _).
+    destruct (H_eq_dec _ _).
     contradiction.
     simpl.
     apply IHl.
@@ -315,48 +296,39 @@ Section Interp.
   Lemma find_not_first:
     forall h1 h2 v s,
       h1 <> h2 ->
-      find (projT2 h1) (assign (projT2 h2) v s) =
-      find (projT2 h1) s.
+      find h1 (assign h2 v s) =
+      find h1 s.
   Proof.
     intros.
     unfold assign.
     unfold Env.bind.
-    unfold Env.bind'.
     unfold find.
     unfold Env.get.
-    unfold Env.get'.
-    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H (projT1 h1) (projT2 h1))).
-    generalize (@elem_of_enum (Env.K' nat H) equiv1 H'_eq_dec H_finite (@existT nat H (projT1 h2) (projT2 h2))).
+    generalize (elem_of_enum h1).
+    generalize (elem_of_enum h2).
     intros.
     unfold store in s.
     unfold Env.t in s.
-    unfold Env.keylist in s.
-    induction (enum (Env.K' nat H)).
+    induction (enum H).
     - contradiction.
     - dependent destruction s.
       autorewrite with get.
       autorewrite with bind.
-      destruct (H'_eq_dec _ _).
+      destruct (H_eq_dec _ _).
       autorewrite with get.
-      destruct (H'_eq_dec _ _).
+      destruct (H_eq_dec _ _).
       exfalso.
       unfold equiv, complement in *.
-      rewrite <- sigT_eta in e, e0.
       congruence.
-      simpl.
-      reflexivity.
+      congruence.
       simpl.
       autorewrite with get.
-      destruct (H'_eq_dec _ _).
+      destruct (H_eq_dec _ _).
       reflexivity.
       simpl.
-      destruct i, i0.
-      exfalso.
-      rewrite <- sigT_eta in e, e0.
+      destruct i0.
       congruence.
-      unfold equiv, complement in c.
-      congruence.
-      unfold equiv, complement in c.
+      destruct i.
       congruence.
       apply IHl.
   Qed.
@@ -375,7 +347,15 @@ Section Interp.
     reflexivity.
   Qed.
 
-  Equations eval_expr (n: nat) (st: store) (e: expr H n) : v n :=
+  Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
+  Proof.
+    pose proof (l2t (slice (t2l l) hi lo)).
+    rewrite slice_len in X.
+    rewrite t2l_len in X.
+    exact X.
+  Defined.
+
+  Equations eval_expr (n: nat) (st: store) (e: expr sz n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
@@ -387,45 +367,37 @@ Section Interp.
         VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
-  Program Definition extract {A} (excess n: nat) (l: n_tuple A (excess + n)) : n_tuple A n :=
-    rewrite_size _ (n_tuple_skip_n excess l).
-  Next Obligation.
-    Lia.lia.
-  Qed.
-
-  Equations eval_op {sz: nat} (st: store) (bits: n_tuple bool sz) (o: op H sz) : store :=
+  Equations eval_op (st: store) (o: op sz) (bits: n_tuple bool (op_size o))  : store :=
     {
-      eval_op st bits (OpNil _) :=
+      eval_op st (OpNil _) bits :=
         st;
-      eval_op st bits (OpExtract hdr) :=
-        assign (projT2 hdr) (VBits _ bits) st;
-      eval_op st bits (OpSeq o1 o2) :=
+      eval_op st (@OpExtract hdr) bits :=
+        assign hdr (VBits _ bits) st;
+      eval_op st (OpSeq o1 o2) bits :=
         let bits' := n_tuple_take_n (op_size o1) bits in
-        let st := eval_op st (rewrite_size _ bits') o1 in
-        eval_op st (rewrite_size _ (n_tuple_skip_n (op_size o1) bits)) o2;
-      eval_op st bits (OpAsgn hdr expr) :=
+        let st := eval_op st o1 (rewrite_size _ bits') in
+        eval_op st o2 (rewrite_size _ (n_tuple_skip_n (op_size o1) bits));
+      eval_op st (OpAsgn hdr expr) bits :=
         assign hdr (eval_expr _ st expr) st
     }.
   Next Obligation.
-    unfold op_size.
     Lia.lia.
   Qed.
   Next Obligation.
-    unfold op_size.
     Lia.lia.
   Qed.
 
-  Definition update
+  Program Definition update
     (state: S)
     (bits: n_tuple bool (st_size (t_states a state)))
     (st: store)
     : store :=
     eval_op st
             (* Deal with conversion of n-tuple to (n+0)-tuple *)
-            (eq_rect _ _ bits _ (plus_O_n _))
-            (a.(t_states) state).(st_op).
+            (a.(t_states) state).(st_op)
+            (eq_rect _ _ bits _ (plus_O_n _)).
 
-  Equations match_pat {T: typ} (st: store) (c: cond H T) (p: pat T) : bool := {
+  Equations match_pat {T: typ} (st: store) (c: cond sz T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
       if eval_expr _ st e == val then true else false;
     match_pat st (CExpr e) (PAny _) :=
@@ -437,7 +409,7 @@ Section Interp.
   Fixpoint eval_sel
     {T: typ}
     (st: store)
-    (c: cond H T)
+    (c: cond sz T)
     (cases: list (sel_case S T))
     (default: state_ref S)
     : state_ref S :=
@@ -449,7 +421,7 @@ Section Interp.
     | nil => default
     end.
 
-  Definition eval_trans (st: store) (t: transition S H) : state_ref S :=
+  Definition eval_trans (st: store) (t: transition S sz) : state_ref S :=
     match t with
     | TGoto _ state => state
     | TSel cond cases default =>
@@ -459,7 +431,7 @@ Section Interp.
   Definition transitions (s: S) (st: store) : state_ref S :=
     eval_trans st (a.(t_states) s).(st_trans).
 
-  Definition possible_next_states (st: state S H) : list (state_ref S) :=
+  Definition possible_next_states (st: state S sz) : list (state_ref S) :=
     match st.(st_trans) with
     | TGoto _ s' =>
       [s']
@@ -478,7 +450,7 @@ End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
-Arguments interp {_ _ _ _ _} a.
+Arguments interp {_ _ _ _ _ _} a.
 
 Section Inline.
   (* State identifiers. *)
@@ -486,9 +458,10 @@ Section Inline.
   Context `{S_eq_dec: EquivDec.EqDec S eq}.
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
+  Variable (H: Type).
+  Variable (sz: H -> nat).
 
-  Program Definition inline (pref: S) (suff: S) (auto: t S H) : t S H :=
+  Program Definition inline (pref: S) (suff: S) (auto: t S sz) : t S sz :=
     match auto.(t_states) pref with
     | Build_state op (TGoto _ (inl nxt)) =>
       if nxt == suff
@@ -503,16 +476,12 @@ Section Inline.
     end.
   Next Obligation.
     pose proof auto.(t_has_extract) suff.
-    unfold state_size in *.
+    unfold st_size in *.
     simpl in *.
     Lia.lia.
   Qed.
   Next Obligation.
-    pose proof auto.(t_nonempty) suff.
-    pose proof auto.(t_nonempty) pref.
-    rewrite <- Heq_anonymous in * |-.
-    simpl in *.
-    intuition.
+    apply auto.(t_nonempty).
   Qed.
 
   (* Lemma inline_corr :
@@ -536,12 +505,12 @@ Section Properties.
   Notation S := ((S1 + S2)%type).
 
   (* Header identifiers. *)
-  Variable (H: nat -> Type).
-  Context `{H_eq_dec: forall n, EquivDec.EqDec (H n) eq}.
-  Context `{H'_eq_dec: EquivDec.EqDec (H' H) eq}.
-  Context `{H_finite: @Finite (H' H) _ H'_eq_dec}.
+  Variable (H: Type).
+  Variable (sz: H -> nat).
+  Context `{H_eq_dec: EquivDec.EqDec H eq}.
+  Context `{H_finite: @Finite H _ H_eq_dec}.
 
-  Variable (a: t S H).
+  Variable (a: t S sz).
 
   Import P4A.
 
@@ -553,7 +522,7 @@ Section Properties.
     conf_state q = inl s ->
     1 + conf_buf_len q = size' (interp a) (conf_state q) ->
     List.In (conf_state (step q b))
-            (possible_next_states _ _ (t_states a s)).
+            (possible_next_states _ _ _ (t_states a s)).
   Proof.
     intros.
     rewrite conf_state_step_transition with (Heq := H1).
@@ -589,7 +558,7 @@ Section Properties.
     conf_state q = inl s ->
     length bs + conf_buf_len q = size' (interp a) (conf_state q) ->
     List.In (conf_state (follow q bs))
-            (possible_next_states _ _ (t_states a s)).
+            (possible_next_states _ _ _ (t_states a s)).
   Proof.
     revert q; induction bs; intros.
     - simpl in H1.

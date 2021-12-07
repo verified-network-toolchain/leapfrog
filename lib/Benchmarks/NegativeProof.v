@@ -43,11 +43,11 @@ Goal
                         (wp r_states)
                         top
                         []
-                        (mk_init _ _ _ A 200 ParseOne.Start ParseZero.Start)
+                        (mk_init _ _ _ _ A 200 ParseOne.Start ParseZero.Start)
                         q1 q2.
 Proof.
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
   time "build phase" repeat (time "single step" run_bisim top top' r_states).

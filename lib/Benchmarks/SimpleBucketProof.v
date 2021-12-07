@@ -42,13 +42,13 @@ Lemma prebisim_babyip:
                    (wp r_states)
                    top
                    []
-                   (mk_init _ _ _ A 10 TwoOnesChunk.Start TwoOnesBucket.Start)
+                   (mk_init _ _ _ _ A 10 TwoOnesChunk.Start TwoOnesBucket.Start)
                    q1 q2.
 Proof.
   idtac "running small bucket bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ A 10 TwoOnesChunk.Start TwoOnesBucket.Start)).
+  set (rel0 := (mk_init _ _ _ _ A 10 TwoOnesChunk.Start TwoOnesBucket.Start)).
   vm_compute in rel0.
   subst rel0.
 
