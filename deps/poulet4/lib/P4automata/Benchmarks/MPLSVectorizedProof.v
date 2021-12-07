@@ -73,7 +73,7 @@ Proof.
   set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "build phase" repeat (time "single step" run_bisim top top' r_states; idtac "mem after step"; print_mem).
   time "close phase" close_bisim top'.
 Time Admitted.
 
