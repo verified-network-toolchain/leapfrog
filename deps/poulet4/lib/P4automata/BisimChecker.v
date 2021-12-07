@@ -222,18 +222,20 @@ Ltac extend_bisim' HN r_states :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
-    apply PreBisimulationExtend with (H0 := right HN) (W := t);
+    time "apply extend" (apply PreBisimulationExtend with (H0 := right HN) (W := t));
     [ trivial | subst t; reflexivity |];
     clear HN;
     time "wp compute" vm_compute in t;
     subst t;
+    time "simplify append" (simpl (_ ++ _))
+    (* subst t;
     match goal with
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
-      set (r := R');
-      hashcons_list X;
-      simpl (_ ++ _)
-    end
+      time "set R'" (set (r := R'));
+      time "hashcons" (hashcons_list X);
+      time "simplify append" (simpl (_ ++ _))
+    end *)
   end.
 
 Ltac extend_bisim'' HN r_states :=
@@ -262,7 +264,7 @@ Ltac extend_bisim'' HN r_states :=
 
 
 Ltac skip_bisim' H :=
-  apply PreBisimulationSkip with (H0:=left H);
+  time "apply skip" (apply PreBisimulationSkip with (H0:=left H));
   [ exact I | ];
   clear H.
 
@@ -319,12 +321,12 @@ Ltac verify_interp top top' :=
   else idtac.
 
 Ltac run_bisim top top' r_states :=
-  verify_interp top top';
+  time "verify_interp" (verify_interp top top'); idtac "mem after verify admit"; print_mem;
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    idtac "extending"; extend_bisim' HN r_states; clear HN
+    time "extending" (extend_bisim' HN r_states; clear HN)
   | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-    idtac "skipping"; skip_bisim' H; clear H; try clear C
+    time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
 Ltac run_bisim' top top' r_states :=
