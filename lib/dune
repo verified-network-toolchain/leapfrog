@@ -1,12 +1,6 @@
-(menhir
-  (flags --no-stdlib --explain)
-  (modules parser))
-
-(ocamllex (modules lexer))
-
-(library
-  (public_name petr4)
-  (name petr4)
-  (libraries core_kernel bignum poulet4 ppx_deriving_yojson.runtime ppx_import yojson cstruct-sexp)
-  (preprocess
-    (staged_pps ppx_import ppx_jane -allow-unannotated-ignores ppx_deriving_yojson ppx_deriving.show)))
+(coq.theory
+ (name Leapfrog)
+ (package leapfrog)
+ (synopsis "Leapfrog: Certified Equivalence for Protocol Parsers")
+ (modules (:standard)))
+(include_subdirs qualified)

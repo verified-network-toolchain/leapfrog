@@ -12,48 +12,69 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-NAME=petr4
-WEB_EXAMPLES=examples/checker_tests/good/table-entries-lpm-bmv2.p4
-WEB_EXAMPLES+=examples/checker_tests/good/switch_ebpf.p4
-WEB_EXAMPLES+=examples/checker_tests/good/union-valid-bmv2.p4
-WEB_EXAMPLES+=stf-test/custom-stf-tests/register.p4
-
-.PHONY: all deps build claims clean test test-stf web
+.PHONY: all build install clean
 
 all: build
 
-build: deps
-	dune build @install && echo
+build: _CoqProject
+	dune build -p leapfrog
 
-deps:
-	$(MAKE) -C deps
-
-doc:
-	dune build @doc
-
-run:
-	dune exec -- $(NAME)
-
-install:
-	dune install
-
-claims:
-	@test/claims.py
-
-ci-test:
-	#dune exec -- bin/test.exe
-	cd test && dune exec -- ./test.exe test -q
-
-test-stf:
-	dune exec -- bin/test.exe
-
-test:
-	cd test && dune exec -- ./test.exe
+install: _CoqProject
+	dune install -p leapfrog
 
 clean:
-	dune clean
+	rm _CoqProject
+	dune clean -p leapfrog
 
-web:
-	mkdir -p html_build/p4
-	cp $(WEB_EXAMPLES) html_build/p4
-	cd web && dune build ./web.bc.js --profile release && cp ../_build/default/web/web.bc.js ../html_build/ && cd ..
+min-imports:
+	find lib/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
+
+benchmarks-small: smallfilter selfcmp
+
+benchmarks-medium: babyip mplsvectorized ipfilter ethernet sloppystrict
+
+benchmarks-all: benchmarks-small benchmarks-medium negative
+
+smallfilter: build
+	xargs coqc lib/P4automata/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
+
+ipfilter: build
+	xargs coqc lib/P4automata/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
+
+babyip: build
+	xargs coqc lib/P4automata/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
+
+mplsvectorized: build
+	xargs coqc lib/P4automata/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
+
+ethernet: build
+	xargs coqc lib/P4automata/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
+
+sloppystrict: build
+	xargs coqc lib/P4automata/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
+
+negative: build
+	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
+
+selfcmp: build
+	xargs coqc lib/P4automata/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
+
+ipoptions: build
+	xargs coqc lib/P4automata/Benchmarks/IPOptions3Proof.v < _CoqProject | grep "Tactic call\|remaining goals"
+
+edgeself:
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+
+datacenterself:
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
+
+enterpriseself:
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
+
+serviceproviderself:
+	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
+
+_CoqProject: _CoqProject.noplugins
+	cp _CoqProject.noplugins _CoqProject
+	echo >> _CoqProject
+	echo "-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve" >> _CoqProject
