@@ -1,6 +1,6 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Arith.PeanoNat.
-Require Import Poulet4.FinType.
+Require Import Leapfrog.FinType.
 
 Set Universe Polymorphism.
 Section TypeNeq.

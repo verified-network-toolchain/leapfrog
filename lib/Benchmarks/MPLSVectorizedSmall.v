@@ -2,10 +2,10 @@ Require Coq.Classes.EquivDec.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
-Require Import Poulet4.P4automata.Syntax.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.PreBisimulationSyntax.
+Require Import Leapfrog.Syntax.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.Sum.
+Require Import Leapfrog.PreBisimulationSyntax.
 
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;

@@ -1,14 +1,14 @@
-Require Export Poulet4.P4automata.ConfRel.
-Require Export Poulet4.P4automata.Bisimulations.WPLeaps.
+Require Export Leapfrog.ConfRel.
+Require Export Leapfrog.Bisimulations.WPLeaps.
 Export List.ListNotations.
-Require Export Poulet4.P4automata.BisimChecker.
-Require Export Poulet4.P4automata.P4automaton.
+Require Export Leapfrog.BisimChecker.
+Require Export Leapfrog.P4automaton.
 
-Require Export Poulet4.P4automata.FirstOrder.
-Require Export Poulet4.P4automata.FirstOrderConfRel.
+Require Export Leapfrog.FirstOrder.
+Require Export Leapfrog.FirstOrderConfRel.
 
-Require Export Poulet4.P4automata.CompileConfRel.
-Require Export Poulet4.P4automata.CompileConfRelSimplified.
-Require Export Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
-Require Export Poulet4.P4automata.WP.
+Require Export Leapfrog.CompileConfRel.
+Require Export Leapfrog.CompileConfRelSimplified.
+Require Export Leapfrog.CompileFirstOrderConfRelSimplified.
+Require Export Leapfrog.WP.
 

@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.SimpleParsers.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.SimpleParsers.
 
 Notation H := (TwoOnesChunk.header + TwoOnesBucket.header).
 Notation A := (Sum.sum TwoOnesChunk.aut TwoOnesBucket.aut).

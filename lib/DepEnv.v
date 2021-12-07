@@ -1,7 +1,7 @@
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.ProofIrrelevance.
-Require Import Poulet4.FinType.
-From Poulet4.P4automata Require Import FirstOrder.
+Require Import Leapfrog.FinType.
+From Leapfrog Require Import FirstOrder.
 Import List.ListNotations.
 
 Section DepEnv.

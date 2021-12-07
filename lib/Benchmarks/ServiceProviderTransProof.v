@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.ServiceProvider.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.ServiceProvider.
 
 Require Import Coq.Arith.PeanoNat.
 

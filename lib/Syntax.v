@@ -4,14 +4,14 @@ Require Coq.Logic.Eqdep_dec.
 Require Import Coq.Classes.EquivDec.
 Require Import Equations.Prop.EqDecInstances.
 Require Import Coq.Program.Program.
-Require Import Poulet4.HAList.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.Ntuple.
-Require Poulet4.P4automata.DepEnv.
-Require Poulet4.P4automata.P4automaton.
+Require Import Leapfrog.HAList.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.Ntuple.
+Require Leapfrog.DepEnv.
+Require Leapfrog.P4automaton.
 Module P4A := P4automaton.
 
-Module Env := Poulet4.P4automata.DepEnv.
+Module Env := Leapfrog.DepEnv.
 
 Open Scope list_scope.
 

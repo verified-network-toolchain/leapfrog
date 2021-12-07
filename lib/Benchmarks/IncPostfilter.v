@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.IPFilter.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.IPFilter.
 From Hammer Require Import Tactics.
 
 Notation i := (separated _ _ _ IPFilter.aut).

@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.BabyIP.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.BabyIP.
 
 Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.

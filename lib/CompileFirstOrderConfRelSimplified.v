@@ -2,16 +2,16 @@ From Equations Require Import Equations.
 
 Require Import Coq.Classes.EquivDec.
 
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.Ntuple.
-Require Import Poulet4.P4automata.FirstOrder.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.Ntuple.
+Require Import Leapfrog.FirstOrder.
 Require Import Coq.Logic.JMeq.
 Import HListNotations.
 
-Require Poulet4.P4automata.FirstOrderConfRelSimplified.
-Require Poulet4.P4automata.FirstOrderBitVec.
+Require Leapfrog.FirstOrderConfRelSimplified.
+Require Leapfrog.FirstOrderBitVec.
 
 Require Import Coq.Program.Equality.
 Module FOS := FirstOrderConfRelSimplified.

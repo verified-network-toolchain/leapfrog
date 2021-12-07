@@ -2,13 +2,13 @@ Require Import Coq.micromega.Lia.
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.Relations.
-Require Poulet4.P4automata.Bisimulations.SemanticCoinductive.
-Module BC := Poulet4.P4automata.Bisimulations.SemanticCoinductive.
-Require Import Poulet4.P4automata.Bisimulations.Algorithmic.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.Relations.
+Require Leapfrog.Bisimulations.SemanticCoinductive.
+Module BC := Leapfrog.Bisimulations.SemanticCoinductive.
+Require Import Leapfrog.Bisimulations.Algorithmic.
 
 Section AlgorithmicProofs.
   Variable (a: p4automaton).

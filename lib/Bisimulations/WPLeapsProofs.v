@@ -1,19 +1,25 @@
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.Relations.
-Require Import Poulet4.P4automata.WPProofs.
-Require Import Poulet4.P4automata.Bisimulations.Leaps.
-Require Import Poulet4.P4automata.Bisimulations.LeapsProofs.
-Require Import Poulet4.P4automata.Bisimulations.AlgorithmicLeaps.
-Require Import Poulet4.P4automata.Bisimulations.AlgorithmicLeapsProofs.
-Require Import Poulet4.P4automata.Bisimulations.WPLeaps.
-Require Import Poulet4.P4automata.Reachability.
-Require Import Poulet4.P4automata.Syntax.
-Require Import Poulet4.Utils.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.Relations.
+Require Import Leapfrog.WPProofs.
+Require Import Leapfrog.Bisimulations.Leaps.
+Require Import Leapfrog.Bisimulations.LeapsProofs.
+Require Import Leapfrog.Bisimulations.AlgorithmicLeaps.
+Require Import Leapfrog.Bisimulations.AlgorithmicLeapsProofs.
+Require Import Leapfrog.Bisimulations.WPLeaps.
+Require Import Leapfrog.Reachability.
+Require Import Leapfrog.Syntax.
+
+Ltac modus_ponens H :=
+  match type of H with
+  | ?P -> ?C =>
+    let Hnew := fresh H in assert (Hnew: P);
+    [ clear H | specialize (H Hnew); clear Hnew ]
+  end.
 
 Section WPLeapsProofs.
 

@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.SimpleSplit.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.SimpleSplit.
 Require Import ZArith List Bool.
 
 From Hammer Require Import Tactics.

@@ -1,2 +1,3 @@
 -Q _build/default/lib Leapfrog
 -Q _build/default/lib/Bisimulations Leapfrog.Bisimulations
+-Q _build/default/lib/Benchmarks Leapfrog.Benchmarks

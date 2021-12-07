@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.SimpleLoop.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.SimpleLoop.
 
 Lemma prebisim_loop_unroll:
   pre_bisimulation comb_aut

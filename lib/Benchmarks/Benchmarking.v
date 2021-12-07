@@ -3,11 +3,11 @@ Import List.ListNotations.
 Require Coq.Logic.Eqdep_dec.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
-Require Import Poulet4.HAList.
-Require Import Poulet4.FinType.
-Require Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.Syntax.
-Require Import Poulet4.P4automata.Sum.
+Require Import Leapfrog.HAList.
+Require Import Leapfrog.FinType.
+Require Leapfrog.P4automaton.
+Require Import Leapfrog.Syntax.
+Require Import Leapfrog.Sum.
 
 
 
@@ -70,10 +70,10 @@ Defined.
 
 End Size. 
 
-Require Import Poulet4.P4automata.Benchmarks.BabyIP.
-Require Import Poulet4.P4automata.Benchmarks.IPFilter.
-Require Import Poulet4.P4automata.Benchmarks.MPLSVectorized.
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.BabyIP.
+Require Import Leapfrog.Benchmarks.IPFilter.
+Require Import Leapfrog.Benchmarks.MPLSVectorized.
+Require Import Leapfrog.Benchmarks.ProofHeader.
 
 Section Benchmarks.
   (* Eval vm_compute in (size_auto BabyIP1.aut). (* Separate *)

@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.Timestamp.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.Timestamp.
 
 Notation H := (TimestampRefKeepSingle.header + TimestampSpecSingle.header).
 Notation A := (Sum.sum TimestampRefKeepSingle.aut TimestampSpecSingle.aut).

@@ -3,17 +3,17 @@ Require Import Coq.Arith.Compare_dec.
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.Relations.
-Require Poulet4.P4automata.Bisimulations.Upto.
-Require Poulet4.P4automata.Bisimulations.UptoProofs.
-Require Import Poulet4.P4automata.Bisimulations.Leaps.
-Require Poulet4.P4automata.Bisimulations.Semantic.
-Module BS := Poulet4.P4automata.Bisimulations.Semantic.
-Require Poulet4.P4automata.Bisimulations.SemanticCoinductive.
-Module BC := Poulet4.P4automata.Bisimulations.SemanticCoinductive.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.Relations.
+Require Leapfrog.Bisimulations.Upto.
+Require Leapfrog.Bisimulations.UptoProofs.
+Require Import Leapfrog.Bisimulations.Leaps.
+Require Leapfrog.Bisimulations.Semantic.
+Module BS := Leapfrog.Bisimulations.Semantic.
+Require Leapfrog.Bisimulations.SemanticCoinductive.
+Module BC := Leapfrog.Bisimulations.SemanticCoinductive.
 
 Section LeapsProofs.
   Variable (a: p4automaton).

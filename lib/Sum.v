@@ -3,9 +3,9 @@ Require Coq.Logic.Eqdep_dec.
 Require Import Coq.Classes.EquivDec.
 Import List.ListNotations.
 
-Require Import Poulet4.FinType.
-Require Import Poulet4.HAList.
-Require Poulet4.P4automata.Syntax.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.HAList.
+Require Leapfrog.Syntax.
 
 Open Scope list_scope.
 

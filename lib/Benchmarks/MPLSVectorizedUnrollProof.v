@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.MPLSVectorized.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.MPLSVectorized.
 
 Lemma prebisim_mpls_vect_unroll:
   pre_bisimulation MPLSVectUnroll.aut

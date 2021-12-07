@@ -1,6 +1,6 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.IPOptions.
-Require Import Poulet4.P4automata.Benchmarks.Timestamp.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.IPOptions.
+Require Import Leapfrog.Benchmarks.Timestamp.
 
 Notation H := (IPOptionsRef62.header + TimestampSpec2.header).
 Notation A := (Sum.sum IPOptionsRef62.aut TimestampSpec2.aut).

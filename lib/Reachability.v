@@ -3,10 +3,10 @@ Require Import Coq.Program.Program.
 Require Import Coq.micromega.Lia.
 Import List.ListNotations.
 
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.Syntax.
-Require Import Poulet4.P4automata.ConfRel.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.Syntax.
+Require Import Leapfrog.ConfRel.
 
 Set Implicit Arguments.
 Section ReachablePairs.

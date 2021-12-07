@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.SloppyStrict.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.SloppyStrict.
 
 Notation H := (Sloppy.header + Strict.header).
 Notation A := SloppyStrict.aut.

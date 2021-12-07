@@ -2,13 +2,13 @@ Require Import Coq.Lists.List.
 Require Import Coq.Program.Equality.
 From Equations Require Import Equations.
 
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.Ntuple.
-Require Import Poulet4.P4automata.NtupleProofs.
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.P4automata.WP.
-Require Import Poulet4.P4automata.Bisimulations.Leaps.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.Ntuple.
+Require Import Leapfrog.NtupleProofs.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.WP.
+Require Import Leapfrog.Bisimulations.Leaps.
 
 Section WPProofs.
   (* State identifiers. *)

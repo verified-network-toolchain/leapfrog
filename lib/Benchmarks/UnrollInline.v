@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Examples.ProofHeader.
-Require Import Poulet4.P4automata.Examples.MPLSVectorized.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.MPLSVectorized.
 From Hammer Require Import Tactics.
 
 Notation i := (separated _ _ _ MPLSUnrollInline.aut).

@@ -1,9 +1,9 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Equality.
 
-Require Import Poulet4.FinType.
-Require Import Poulet4.TypeNeq.
-Require Import Poulet4.P4automata.Ntuple.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.TypeNeq.
+Require Import Leapfrog.Ntuple.
 
 Definition next_tuple (n: nat) (t: n_tuple bool n) : n_tuple bool n.
   revert t.

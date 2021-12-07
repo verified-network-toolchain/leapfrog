@@ -2,12 +2,12 @@ Require Import Coq.micromega.Lia.
 Require Import Coq.Arith.Compare_dec.
 Import List.ListNotations.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.Relations.
-Require Poulet4.P4automata.Bisimulations.Semantic.
-Module BS := Poulet4.P4automata.Bisimulations.Semantic.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.Relations.
+Require Leapfrog.Bisimulations.Semantic.
+Module BS := Leapfrog.Bisimulations.Semantic.
 
 Section Leaps.
   Variable (a: p4automaton).

@@ -1,10 +1,10 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Classes.EquivDec.
-Require Import Poulet4.FinType.
-Require Poulet4.P4automata.Syntax.
-Require Poulet4.P4automata.Reachability.
-Module P4A := Poulet4.P4automata.Syntax.
-Require Import Poulet4.P4automata.ConfRel.
+Require Import Leapfrog.FinType.
+Require Leapfrog.Syntax.
+Require Leapfrog.Reachability.
+Module P4A := Leapfrog.Syntax.
+Require Import Leapfrog.ConfRel.
 Import ListNotations.
 
 Section WP.

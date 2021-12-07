@@ -4,12 +4,12 @@ Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
 Import ListNotations.
 
-Require Import Poulet4.Relations.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.Ntuple.
-Require Poulet4.P4automata.Syntax.
-Module P4A := Poulet4.P4automata.Syntax.
+Require Import Leapfrog.Relations.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.Ntuple.
+Require Leapfrog.Syntax.
+Module P4A := Leapfrog.Syntax.
 
 Open Scope list_scope.
 

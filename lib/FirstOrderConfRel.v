@@ -1,9 +1,9 @@
 Require Import Coq.Lists.List.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.P4automata.FirstOrder.
-Require Import Poulet4.P4automata.Ntuple.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FirstOrder.
+Require Import Leapfrog.Ntuple.
 
 Import ListNotations.
 Import HListNotations.

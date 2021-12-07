@@ -1,12 +1,12 @@
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.ConfRel.
-Require Import Poulet4.Relations.
-Require Poulet4.P4automata.Bisimulations.Leaps.
-Require Import Poulet4.P4automata.Bisimulations.AlgorithmicLeaps.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.Relations.
+Require Leapfrog.Bisimulations.Leaps.
+Require Import Leapfrog.Bisimulations.AlgorithmicLeaps.
 
 Section AlgorithmicLeaps.
   Variable (a: p4automaton).

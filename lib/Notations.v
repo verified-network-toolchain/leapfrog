@@ -1,4 +1,4 @@
-Require Import Poulet4.P4automata.Syntax.
+Require Import Leapfrog.Syntax.
 
 Declare Scope p4a_scope.
 Delimit Scope p4a_scope with p4a.

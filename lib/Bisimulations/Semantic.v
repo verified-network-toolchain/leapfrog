@@ -1,8 +1,8 @@
 Require Import Coq.Lists.List.
 
-Require Import Poulet4.P4automata.P4automaton.
-Require Import Poulet4.FinType.
-Require Import Poulet4.Relations.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.Relations.
 
 Section Semantic.
   Variable (a: p4automaton).

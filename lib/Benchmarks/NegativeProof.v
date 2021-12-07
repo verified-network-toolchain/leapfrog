@@ -1,5 +1,5 @@
-Require Import Poulet4.P4automata.Benchmarks.ProofHeader.
-Require Import Poulet4.P4automata.Benchmarks.SimpleParsers.
+Require Import Leapfrog.Benchmarks.ProofHeader.
+Require Import Leapfrog.Benchmarks.SimpleParsers.
 
 Notation A := OneZero.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).

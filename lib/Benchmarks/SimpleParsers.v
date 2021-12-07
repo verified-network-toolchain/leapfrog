@@ -2,12 +2,12 @@ Require Coq.Classes.EquivDec.
 Require Coq.Lists.List.
 Import List.ListNotations.
 Require Import Coq.Program.Program.
-Require Import Poulet4.P4automata.Syntax.
-Require Import Poulet4.FinType.
-Require Import Poulet4.P4automata.Sum.
-Require Import Poulet4.P4automata.Notations.
+Require Import Leapfrog.Syntax.
+Require Import Leapfrog.FinType.
+Require Import Leapfrog.Sum.
+Require Import Leapfrog.Notations.
 
-Require Import Poulet4.P4automata.BisimChecker.
+Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
