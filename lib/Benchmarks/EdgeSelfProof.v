@@ -23,6 +23,31 @@ Definition r_states : list (Reachability.state_pair A) :=
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
+Lemma interp_compile_simplify: 
+  forall prem concl, 
+    interp_fm
+    (compile_valu (a := A) (VEmp _ _))
+    (compile_fm
+      (FirstOrderConfRelSimplified.simplify_eq_zero_fm
+          (FirstOrderConfRelSimplified.simplify_concat_zero_fm
+            (compile_simplified_entailment
+                (simplify_entailment
+                  {|
+                    e_prem := prem;
+                    e_concl :=
+                      concl
+                  |}))))) 
+      -> interp_entailment A top ({| e_prem := prem; e_concl := concl |}).
+Proof.
+  intros.
+  eapply simplify_entailment_correct with (i := top');
+  eapply compile_simplified_entailment_correct; simpl; intros;
+  eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+  eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+  eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct.
+  auto.
+Qed.
+
 Lemma prebisim_babyip:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -52,7 +77,7 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states; idtac "mem after step"; print_mem).
+  time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify; idtac "mem after step"; print_mem).
 
   (* run_bisim top top' r_states. *)
   time "close phase" close_bisim top'.

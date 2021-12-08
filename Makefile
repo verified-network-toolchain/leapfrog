@@ -36,43 +36,43 @@ benchmarks-medium: babyip mplsvectorized ipfilter ethernet sloppystrict
 benchmarks-all: benchmarks-small benchmarks-medium negative
 
 smallfilter: build
-	xargs coqc lib/P4automata/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
 
 ipfilter: build
-	xargs coqc lib/P4automata/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
 
 babyip: build
-	xargs coqc lib/P4automata/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
 
 mplsvectorized: build
-	xargs coqc lib/P4automata/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject
 
 ethernet: build
-	xargs coqc lib/P4automata/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
 
 sloppystrict: build
-	xargs coqc lib/P4automata/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
 
 negative: build
-	xargs coqc lib/P4automata/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
 
 selfcmp: build
-	xargs coqc lib/P4automata/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
 
 ipoptions: build
-	xargs coqc lib/P4automata/Benchmarks/IPOptions3Proof.v < _CoqProject | grep "Tactic call\|remaining goals"
+	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject | grep "Tactic call\|remaining goals"
 
 edgeself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
 
 datacenterself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
 
 enterpriseself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
 
 serviceproviderself:
-	nohup /usr/bin/time -v xargs coqc lib/P4automata/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject

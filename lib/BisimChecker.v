@@ -320,6 +320,33 @@ Ltac verify_interp top top' :=
     end
   else idtac.
 
+Ltac verify_interp' top top' L :=
+  match goal with
+  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+    let H := fresh "H" in
+    assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
+    [
+      eapply L;
+
+      time "reduce goal" crunch_foterm;
+
+      match goal with
+      | |- ?X => time "smt check neg" check_interp_neg X
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    |]
+  end;
+  let n:= numgoals in
+  tryif ( guard n = 2) then
+    match goal with
+    | |- interp_fm _ _ => admit
+    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ _ =>
+      clear H;
+      let HN := fresh "HN" in
+      assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
+    end
+  else idtac.
+
 Ltac run_bisim top top' r_states :=
   time "verify_interp" (verify_interp top top'); idtac "mem after verify admit"; print_mem;
   match goal with
@@ -329,13 +356,13 @@ Ltac run_bisim top top' r_states :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
-Ltac run_bisim' top top' r_states :=
-  verify_interp top top';
+Ltac run_bisim' top top' r_states L :=
+  verify_interp' top top' L;
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    idtac "extending"; extend_bisim'' HN r_states; clear HN
+    time "extending" (extend_bisim' HN r_states; clear HN)
   | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-    idtac "skipping"; skip_bisim' H; clear H; try clear C
+    time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
 

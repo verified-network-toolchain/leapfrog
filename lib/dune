@@ -9,7 +9,7 @@
    Benchmarks.Benchmarking
    Benchmarks.TCAMSimpleProof
    Benchmarks.SimpleByteProof
-    Benchmarks.SimpleParsers
+   Benchmarks.SimpleParsers
    Benchmarks.NegativeProof
    Benchmarks.SelfComparisonProof
    Benchmarks.EnterpriseSelfProof
@@ -23,34 +23,35 @@
    Benchmarks.IPOptions2Proof
    Benchmarks.IPOptions3Proof
    Benchmarks.IPOptionsProofSmall
-    Benchmarks.BabyIP
+    ; Benchmarks.BabyIP
    Benchmarks.BabyIPProof
    Benchmarks.BabyIPProofSimplified
-    Benchmarks.Ethernet
+    ; Benchmarks.Ethernet
    Benchmarks.EthernetProof
-    Benchmarks.IPFilter
+    ; Benchmarks.IPFilter
    Benchmarks.IPFilterProof
-   Benchmarks.IncPostfilter
-   Benchmarks.LoopFooter
-    Benchmarks.MPLSVectorized
+   Benchmarks.IncPostfilter ; delete
+   Benchmarks.LoopFooter ; delete
+   ;  Benchmarks.MPLSVectorized
    Benchmarks.MPLSVectorizedProof
    Benchmarks.MPLSVectorizedSmall
    Benchmarks.MPLSVectorizedSmallProof
    Benchmarks.MPLSVectorizedSmallUnrollProof
    Benchmarks.MPLSVectorizedUnrollProof
-   Benchmarks.PlainInline
-   Benchmarks.PlainUnroll
-    Benchmarks.ProofHeader
-   Benchmarks.SeparateMerged
-   Benchmarks.SimpleLoop
+   Benchmarks.PlainInline ; delete
+   Benchmarks.PlainUnroll ; delete
+   ; Benchmarks.ProofHeader
+   Benchmarks.SeparateMerged ; delete
+   Benchmarks.SimpleLoop ; delete
    Benchmarks.SimpleLoopProof
-   Benchmarks.SimpleSplit
+   Benchmarks.SimpleSplit ; delete
    Benchmarks.SimpleSplitProof
-    Benchmarks.SmallFilter
+    ; Benchmarks.SmallFilter
    Benchmarks.SmallFilterProof
    Benchmarks.SloppyStrictProof
    Benchmarks.TimestampSmallProof
    Benchmarks.TimestampSingleProof
    Benchmarks.TimestampSingleZeroProof
-   Benchmarks.UnrollInline)))
+   Benchmarks.UnrollInline ; delete
+   )))
 (include_subdirs qualified)
