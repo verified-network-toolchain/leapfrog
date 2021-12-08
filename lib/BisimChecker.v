@@ -227,15 +227,13 @@ Ltac extend_bisim' HN r_states :=
     clear HN;
     time "wp compute" vm_compute in t;
     subst t;
-    time "simplify append" (simpl (_ ++ _))
-    (* subst t;
     match goal with
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
       time "set R'" (set (r := R'));
       time "hashcons" (hashcons_list X);
       time "simplify append" (simpl (_ ++ _))
-    end *)
+    end
   end.
 
 Ltac extend_bisim'' HN r_states :=
