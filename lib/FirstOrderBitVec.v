@@ -19,9 +19,9 @@ Section FirstOrderBitVec.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat).

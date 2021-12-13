@@ -29,7 +29,7 @@ Section Syntax.
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
 
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
   Inductive hdr_ref: Type :=
   | HRVar (var: Hdr).
@@ -45,7 +45,7 @@ Section Syntax.
     program_simpl; congruence.
 
   Inductive expr : nat -> Type :=
-  | EHdr (h: Hdr): expr (sz h)
+  | EHdr (h: Hdr): expr (Hdr_sz h)
   | ELit {n} (bs: n_tuple bool n): expr n
   | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo)
   | EConcat {n m} (l: expr n) (r: expr m): expr (n + m).
@@ -109,13 +109,13 @@ Section Syntax.
   | OpNil: op
   | OpSeq (o1 o2: op)
   | OpExtract (hdr: Hdr)
-  | OpAsgn (lhs: Hdr) (rhs: expr (sz lhs)).
+  | OpAsgn (lhs: Hdr) (rhs: expr (Hdr_sz lhs)).
 
   Fixpoint op_size (o: op) :=
     match o with
     | OpNil => 0
     | OpSeq o1 o2 => op_size o1 + op_size o2
-    | OpExtract hdr => sz hdr
+    | OpExtract hdr => Hdr_sz hdr
     | @OpAsgn _ _ => 0
     end.
 
@@ -128,10 +128,10 @@ Section Syntax.
 
   Record t: Type :=
     { t_states: St -> state;
-      t_nonempty: forall h, sz h > 0;
+      t_nonempty: forall h, Hdr_sz h > 0;
       t_has_extract: forall s, st_size (t_states s) > 0 }.
 
-  Program Definition bind (s: St) (st: state) (ex: st_size st > 0) (ok: forall h, sz h > 0) (a: t) :=
+  Program Definition bind (s: St) (st: state) (ex: st_size st > 0) (ok: forall h, Hdr_sz h > 0) (a: t) :=
     {| t_states := fun s' => if s == s' then st else a.(t_states) s' |}.
   Next Obligation.
     destruct (s == s0).
@@ -241,18 +241,18 @@ Section Interp.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
-  Variable (a: t St sz).
+  Variable (Hdr_sz: Hdr -> nat).
+  Variable (a: t St Hdr_sz).
 
-  Definition store := Env.t Hdr (fun h => v (sz h)).
+  Definition store := Env.t Hdr (fun h => v (Hdr_sz h)).
 
   Definition clamp_list (n: nat) (l: list bool) :=
     List.firstn n (l ++ (List.repeat false (List.length l - n))).
 
-  Definition assign (h: Hdr) (v: v (sz h)) (st: store) : store :=
+  Definition assign (h: Hdr) (v: v (Hdr_sz h)) (st: store) : store :=
     Env.bind _ _ h v st.
 
-  Definition find (h: Hdr) (st: store) : v (sz h) :=
+  Definition find (h: Hdr) (st: store) : v (Hdr_sz h) :=
     Env.get _ _ h st.
 
   Lemma assign_find:
@@ -355,7 +355,7 @@ Section Interp.
     exact X.
   Defined.
 
-  Equations eval_expr (n: nat) (st: store) (e: expr sz n) : v n :=
+  Equations eval_expr (n: nat) (st: store) (e: expr Hdr_sz n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
       eval_expr n st (ESlice e hi lo) :=
@@ -367,7 +367,7 @@ Section Interp.
         VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
-  Equations eval_op (st: store) (o: op sz) (bits: n_tuple bool (op_size o))  : store :=
+  Equations eval_op (st: store) (o: op Hdr_sz) (bits: n_tuple bool (op_size o))  : store :=
     {
       eval_op st (OpNil _) bits :=
         st;
@@ -397,7 +397,7 @@ Section Interp.
             (a.(t_states) state).(st_op)
             (eq_rect _ _ bits _ (plus_O_n _)).
 
-  Equations match_pat {T: typ} (st: store) (c: cond sz T) (p: pat T) : bool := {
+  Equations match_pat {T: typ} (st: store) (c: cond Hdr_sz T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
       if eval_expr _ st e == val then true else false;
     match_pat st (CExpr e) (PAny _) :=
@@ -409,7 +409,7 @@ Section Interp.
   Fixpoint eval_sel
     {T: typ}
     (st: store)
-    (c: cond sz T)
+    (c: cond Hdr_sz T)
     (cases: list (sel_case St T))
     (default: state_ref St)
     : state_ref St :=
@@ -421,7 +421,7 @@ Section Interp.
     | nil => default
     end.
 
-  Definition eval_trans (st: store) (t: transition St sz) : state_ref St :=
+  Definition eval_trans (st: store) (t: transition St Hdr_sz) : state_ref St :=
     match t with
     | TGoto _ state => state
     | TSel cond cases default =>
@@ -431,7 +431,7 @@ Section Interp.
   Definition transitions (s: St) (st: store) : state_ref St :=
     eval_trans st (a.(t_states) s).(st_trans).
 
-  Definition possible_next_states (st: state St sz) : list (state_ref St) :=
+  Definition possible_next_states (st: state St Hdr_sz) : list (state_ref St) :=
     match st.(st_trans) with
     | TGoto _ s' =>
       [s']
@@ -459,9 +459,9 @@ Section Inline.
 
   (* Header identifiers. *)
   Variable (Hdr: Type).
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Program Definition inline (pref: St) (suff: St) (auto: t St sz) : t St sz :=
+  Program Definition inline (pref: St) (suff: St) (auto: t St Hdr_sz) : t St Hdr_sz :=
     match auto.(t_states) pref with
     | Build_state op (TGoto _ (inl nxt)) =>
       if nxt == suff
@@ -506,11 +506,11 @@ Section Properties.
 
   (* Header identifiers. *)
   Variable (Hdr: Type).
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
 
-  Variable (a: t St sz).
+  Variable (a: t St Hdr_sz).
 
   Import P4A.
 

@@ -19,9 +19,9 @@ Section CompileConfRel.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -32,7 +32,7 @@ Section CompileConfRel.
     end.
 
   Definition be_sort {c} {b1 b2: nat} (e: bit_expr Hdr c) : sorts :=
-    Bits (be_size sz b1 b2 e).
+    Bits (be_size Hdr_sz b1 b2 e).
 
   Equations compile_var {c: bctx} (x: bvar c) : var (sig a) (compile_bctx c) (Bits (check_bvar x)) :=
     { compile_var (BVarTop c size) :=
@@ -86,7 +86,7 @@ Section CompileConfRel.
     { compile_store_rel q BRTrue := FTrue;
       compile_store_rel q BRFalse := FFalse;
       compile_store_rel q (BREq e1 e2) :=
-        match eq_dec (be_size sz b1 b2 e1) (be_size sz b1 b2 e2) with
+        match eq_dec (be_size Hdr_sz b1 b2 e1) (be_size Hdr_sz b1 b2 e2) with
         | left Heq =>
           FEq (eq_rect _ (fun n => tm (sig a) _ (Bits n))
                        (compile_bit_expr q e1) _ Heq)

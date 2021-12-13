@@ -26,9 +26,9 @@ Section WPLeaps.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Variable (wp: conf_rel a ->
                 list (conf_rel a)).
@@ -91,39 +91,39 @@ Section WPLeaps.
     | S n => range n ++ [n]
     end.
 
-  Definition not_accept1 (a: P4A.t St sz) (s: St) : crel a :=
+  Definition not_accept1 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true; st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl s;    st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition not_accept2 (a: P4A.t St sz) (s: St) : crel a :=
+  Definition not_accept2 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := n |};
                                cs_st2 := {| st_state := inr true; st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition init_rel (a: P4A.t St sz) : crel a :=
+  Definition init_rel (a: P4A.t St Hdr_sz) : crel a :=
     List.concat (List.map (not_accept1 a) (enum St) ++
                           List.map (not_accept2 a) (enum St)).
 
-  Definition sum_not_accept1 (a: P4A.t (St1 + St2) sz) (s: St1) : crel a :=
+  Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (St1 + St2) sz) (s: St2) : crel a :=
+  Definition sum_not_accept2 (a: P4A.t (St1 + St2) Hdr_sz) (s: St2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (St1 + St2) sz) : crel a :=
+  Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum St1)
                           ++ List.map (sum_not_accept2 a) (enum St2)).
   Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
@@ -194,8 +194,8 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Arguments pre_bisimulation {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite sz} a wp.
-Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite sz} a top C.
-Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite sz} a top C.
-Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite sz} a wp top.
-Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite sz} a wp top.
+Arguments pre_bisimulation {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp.
+Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
+Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
+Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.
+Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.

@@ -21,9 +21,9 @@ Section AutModel.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat)
@@ -34,7 +34,7 @@ Section AutModel.
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
   | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
-  | Lookup: forall h, funs [Store] (Bits (sz h)).
+  | Lookup: forall h, funs [Store] (Bits (Hdr_sz h)).
 
   Inductive rels: arity sorts -> Type :=.
 
@@ -64,7 +64,7 @@ Section AutModel.
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
       mod_fns (Lookup k) (store ::: hnil) :=
-        match P4A.find Hdr sz k store with
+        match P4A.find Hdr Hdr_sz k store with
         | P4A.VBits _ v => v
         end
     }.

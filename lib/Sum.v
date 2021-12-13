@@ -23,17 +23,17 @@ Section Sum.
 
   (* Header identifiers. *)
   Variable (Hdr1: Type).
-  Variable (sz1 : Hdr1 -> nat).
+  Variable (Hdr1_sz : Hdr1 -> nat).
   Context `{Hdr1_eq_dec: EquivDec.EqDec Hdr1 eq}.
   Context `{Hdr1_finite: @Finite Hdr1 _ Hdr1_eq_dec}.
 
   Variable (Hdr2: Type).
-  Variable (sz2 : Hdr2 -> nat).
+  Variable (Hdr2_sz : Hdr2 -> nat).
   Context `{Hdr2_eq_dec: EquivDec.EqDec Hdr2 eq}.
   Context `{Hdr2_finite: @Finite Hdr2 _ Hdr2_eq_dec}.
 
-  Variable (a1: Syntax.t St1 sz1).
-  Variable (a2: Syntax.t St2 sz2).
+  Variable (a1: Syntax.t St1 Hdr1_sz).
+  Variable (a2: Syntax.t St2 Hdr2_sz).
 
   Notation St := (St1 + St2)%type.
 
@@ -43,7 +43,7 @@ Section Sum.
   Global Instance St_finite: @Finite St _ St_eq_dec :=
     ltac:(typeclasses eauto).
 
-  Definition H : Type := Hdr1 + Hdr2.
+  Definition Hdr : Type := Hdr1 + Hdr2.
 
   Definition make_transparent {X: Type} (eq_dec: forall (x0 x1: X), {x0 = x1} + {x0 <> x1}) {l r} (opaque_eq: l = r) : l = r :=
     match eq_dec l r with
@@ -51,17 +51,17 @@ Section Sum.
     | _ => opaque_eq
     end.
 
-  Definition sz (h: H) : nat :=
+  Definition Hdr_sz (h: Hdr) : nat :=
     match h with
-    | inl h => sz1 h
-    | inr h => sz2 h
+    | inl h => Hdr1_sz h
+    | inr h => Hdr2_sz h
     end.
 
-  Program Definition sum : Syntax.t St sz :=
+  Program Definition sum : Syntax.t St Hdr_sz :=
     {| Syntax.t_states s :=
          match s with
-         | inl s1 => Syntax.state_fmapSH sz inl inl _ (a1.(Syntax.t_states) s1)
-         | inr s2 => Syntax.state_fmapSH sz inr inr _ (a2.(Syntax.t_states) s2)
+         | inl s1 => Syntax.state_fmapSH Hdr_sz inl inl _ (a1.(Syntax.t_states) s1)
+         | inr s2 => Syntax.state_fmapSH Hdr_sz inr inr _ (a2.(Syntax.t_states) s2)
          end |}.
   Next Obligation.
     destruct h; simpl.

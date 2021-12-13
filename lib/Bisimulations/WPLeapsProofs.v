@@ -38,9 +38,9 @@ Section WPLeapsProofs.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Variable (s1: St1).
   Variable (s2: St2).
@@ -92,7 +92,7 @@ Section WPLeapsProofs.
   Qed.
 
   Lemma not_equally_accepting_correct q1 q2:
-    not_equally_accepting St1 St2 Hdr sz a (conf_to_state_template q1,
+    not_equally_accepting St1 St2 Hdr Hdr_sz a (conf_to_state_template q1,
                                             conf_to_state_template q2) = false ->
     accepting q1 <-> accepting q2.
   Proof.

@@ -98,7 +98,7 @@ Module BabyIP2.
     match s with
     | Start =>
       {| st_op := extract(HdrCombi);
-         st_trans := transition select (| (EHdr (sz := sz) HdrCombi)[19 -- 16] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrCombi)[19 -- 16] |) {{
           [| exact #b|0|0|0|1 |] ==> accept ;;;
           [| exact #b|0|0|0|0 |] ==> inl ParseSeq ;;;
             reject

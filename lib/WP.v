@@ -25,9 +25,9 @@ Section WP.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
   Variable (reachable_states: list (state_template a * state_template a)).
 
   Fixpoint be_subst {c} (be: bit_expr Hdr c) (e: bit_expr Hdr c) (x: bit_expr Hdr c) : bit_expr Hdr c :=
@@ -61,7 +61,7 @@ Section WP.
     | _ => Read
     end.
 
-  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr sz n) : bit_expr Hdr c :=
+  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr Hdr_sz n) : bit_expr Hdr c :=
     match e with
     | P4A.EHdr h => BEHdr c s (P4A.HRVar h)
     | P4A.ELit _ bs => BELit _ c (Ntuple.t2l bs)
@@ -74,24 +74,24 @@ Section WP.
     | P4A.VBits _ bs => BELit _ c (Ntuple.t2l bs)
     end.
 
-  Fixpoint wp_op' {c} (s: side) (o: P4A.op sz) : nat * store_rel Hdr c -> nat * store_rel Hdr c :=
+  Fixpoint wp_op' {c} (s: side) (o: P4A.op Hdr_sz) : nat * store_rel Hdr c -> nat * store_rel Hdr c :=
     fun '(buf_hi_idx, phi) =>
       match o with
       | P4A.OpNil _ => (buf_hi_idx, phi)
       | P4A.OpSeq o1 o2 =>
         wp_op' s o1 (wp_op' s o2 (buf_hi_idx, phi))
       | P4A.OpExtract _ hdr =>
-        let new_idx := buf_hi_idx - sz hdr in
+        let new_idx := buf_hi_idx - Hdr_sz hdr in
         let slice := beslice (BEBuf _ _ s) (buf_hi_idx - 1) new_idx in
         (new_idx, sr_subst phi slice (BEHdr _ s (P4A.HRVar hdr)))
       | P4A.OpAsgn lhs rhs =>
         (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar lhs)))
       end.
 
-  Definition wp_op {c} (s: side) (o: P4A.op sz) (phi: store_rel Hdr c) : store_rel Hdr c :=
+  Definition wp_op {c} (s: side) (o: P4A.op Hdr_sz) (phi: store_rel Hdr c) : store_rel Hdr c :=
     snd (wp_op' s o (P4A.op_size o, phi)).
 
-  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond sz ty) : store_rel Hdr ctx :=
+  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond Hdr_sz ty) : store_rel Hdr ctx :=
     { pat_cond si (P4A.PExact val) (P4A.CExpr e) :=
         BREq (expr_to_bit_expr si e) (val_to_bit_expr val);
       pat_cond _ (P4A.PAny _) _ :=
@@ -103,7 +103,7 @@ Section WP.
     {ctx: bctx}
     {ty: Syntax.typ}
     (si: side)
-    (cond: Syntax.cond sz ty)
+    (cond: Syntax.cond Hdr_sz ty)
     (target: P4A.state_ref St)
     (cases: list (P4A.sel_case St ty))
     (default: P4A.state_ref St)
@@ -123,7 +123,7 @@ Section WP.
   Definition trans_cond
              {c: bctx}
              (s: side)
-             (t: P4A.transition St sz)
+             (t: P4A.transition St Hdr_sz)
              (st': P4A.state_ref St)
     : store_rel Hdr c :=
     match t with

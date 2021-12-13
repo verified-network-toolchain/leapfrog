@@ -38,26 +38,26 @@ Section BisimChecker.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> nat).
 
   Notation St := (St1 + St2)%type.
-  Variable (a: P4A.t St sz).
+  Variable (a: P4A.t St Hdr_sz).
 
-  Definition sum_not_accept1 (a: P4A.t (St1 + St2) sz) (s: St1) : crel a :=
+  Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (St1 + St2) sz) (s: St2) : crel a :=
+  Definition sum_not_accept2 (a: P4A.t (St1 + St2) Hdr_sz) (s: St2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (St1 + St2) sz) : crel a :=
+  Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum St1)
                           ++ List.map (sum_not_accept2 a) (enum St2)).
 
