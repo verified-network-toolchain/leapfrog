@@ -12,23 +12,23 @@ Set Implicit Arguments.
 Section ReachablePairs.
 
   (* State identifiers. *)
-  Variable (S1: Type).
-  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
-  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+  Variable (St1: Type).
+  Context `{St1_eq_dec: EquivDec.EqDec St1 eq}.
+  Context `{St1_finite: @Finite St1 _ St1_eq_dec}.
 
-  Variable (S2: Type).
-  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
-  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+  Variable (St2: Type).
+  Context `{St2_eq_dec: EquivDec.EqDec St2 eq}.
+  Context `{St2_finite: @Finite St2 _ St2_eq_dec}.
 
-  Notation S := (S1 + S2)%type.
+  Notation St := (St1 + St2)%type.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -88,18 +88,18 @@ Section ReachablePairs.
     destruct (st_state t1), (st_state t2); Lia.lia.
   Qed.
 
-  Lemma reads_left_upper_bound (q1 q2: conf) (s: S):
+  Lemma reads_left_upper_bound (q1 q2: conf) (s: St):
     conf_state q1 = inl s ->
     reads_left
         (conf_to_state_template q1,
          conf_to_state_template q2) <= configuration_room_left q1.
   Proof.
     intros; unfold reads_left, configuration_room_left; simpl.
-    rewrite H0; autorewrite with size'; simpl.
+    rewrite H; autorewrite with size'; simpl.
     destruct (conf_state q2); Lia.lia.
   Qed.
 
-  Definition advance (steps: nat) (t1: state_template a) (s: P4A.state_ref S) :=
+  Definition advance (steps: nat) (t1: state_template a) (s: P4A.state_ref St) :=
     match s with
     | inl s =>
       let st := P4A.t_states a s in
@@ -118,18 +118,18 @@ Section ReachablePairs.
         (st_state (conf_to_state_template q))).
   Proof.
     intros.
-    unfold configuration_room_left in H1.
-    unfold advance; simpl; rewrite H0 in *.
-    autorewrite with size' in H1; simpl in H1.
+    unfold configuration_room_left in H0.
+    unfold advance; simpl; rewrite H in *.
+    autorewrite with size' in H0; simpl in H0.
     destruct (Compare_dec.le_gt_dec _ _).
     - assert (P4A.size a s = conf_buf_len q + length bs) by Lia.lia.
       unfold conf_to_state_template.
       apply List.in_map_iff; eexists; split.
       + rewrite conf_buf_len_follow_transition; [reflexivity|].
-        rewrite H0; now autorewrite with size'.
+        rewrite H; now autorewrite with size'.
       + simpl.
         apply conf_state_follow_transition_syntactic; auto.
-        rewrite H0.
+        rewrite H.
         autorewrite with size'.
         simpl.
         lia.
@@ -137,10 +137,10 @@ Section ReachablePairs.
       unfold conf_to_state_template.
       f_equal.
       + rewrite conf_state_follow_fill; auto.
-        rewrite H0.
+        rewrite H.
         now autorewrite with size'.
       + rewrite conf_buf_len_follow_fill; auto.
-        rewrite H0.
+        rewrite H.
         now autorewrite with size'.
   Qed.
 
@@ -154,11 +154,11 @@ Section ReachablePairs.
   Proof.
     intros.
     destruct bs.
-    - simpl in H1.
+    - simpl in H0.
       Lia.lia.
     - autorewrite with follow.
       unfold advance; simpl.
-      rewrite H0.
+      rewrite H.
       unfold conf_to_state_template.
       rewrite follow_done.
       + left.
@@ -168,7 +168,7 @@ Section ReachablePairs.
         rewrite follow_done.
         reflexivity.
         eapply conf_state_step_done.
-        exact H0.
+        exact H.
       + now apply conf_state_step_done with (h := b).
   Qed.
 
@@ -207,7 +207,7 @@ Section ReachablePairs.
                              (st_state prev1)).
   Proof.
     intros.
-    rewrite <- H0.
+    rewrite <- H.
     rewrite
       <- interp_state_template_definite with (t := prev1) (q := c1),
       <- interp_state_template_definite with (t := succ1) (q := follow c1 bs)
@@ -215,8 +215,8 @@ Section ReachablePairs.
     rewrite
       <- interp_state_template_definite with (t := prev1) (q := c1),
       <- interp_state_template_definite with (t := prev2) (q := c2)
-      in H0 by auto.
-    apply advance_correct; setoid_rewrite H0.
+      in H by auto.
+    apply advance_correct; setoid_rewrite H.
     - intros.
       now apply reads_left_upper_bound with (s := s).
     - apply reads_left_lower_bound.
@@ -247,10 +247,10 @@ Section ReachablePairs.
     unfold reachable_pair_step'.
     intros.
     set (k := reads_left (st1', st2')) in *.
-    inversion H0.
+    inversion H.
     subst sts.
-    clear H0.
-    apply List.in_prod_iff in H1.
+    clear H.
+    apply List.in_prod_iff in H0.
     unfold interp_conf_state; cbn; intuition.
     - admit.
     - admit.
@@ -270,12 +270,12 @@ Section ReachablePairs.
   Proof.
     unfold reaches.
     intros.
-    destruct (reachable_pair_step' _) in H0.
-    destruct (List.in_dec _ _) in H0.
-    - simpl in *; destruct H0.
+    destruct (reachable_pair_step' _) in H.
+    destruct (List.in_dec _ _) in H.
+    - simpl in *; destruct H.
       + congruence.
       + tauto.
-    - simpl in H0; tauto.
+    - simpl in H; tauto.
   Qed.
 
   Lemma reachable_step_size:
@@ -298,8 +298,8 @@ Section ReachablePairs.
     intros.
     destruct (reachable_pair_step' _) eqn:?.
     destruct (List.in_dec _ _); simpl in *; [eauto with datatypes | tauto].
-    destruct H0; [|tauto].
-    inversion H0; subst.
+    destruct H; [|tauto].
+    inversion H; subst.
     eapply reachable_step_size; eauto.
   Qed.
 
@@ -312,7 +312,7 @@ Section ReachablePairs.
     unfold reaches.
     intros.
     destruct (reachable_pair_step' _).
-    inversion H0; subst.
+    inversion H; subst.
     destruct (List.in_dec _ _); [eauto with datatypes | tauto].
   Qed.
 
@@ -330,7 +330,7 @@ Section ReachablePairs.
     unfold reachable_pair_step'.
     destruct prev as (prev1, prev2).
     destruct succ as (succ1, succ2).
-    simpl in H1, H2, H3, H4.
+    simpl in H0, H1, H2, H3.
     destruct (List.in_dec state_pair_eq_dec _ _).
     - apply List.in_prod_iff in i; destruct i.
       left; now f_equal.
@@ -353,7 +353,7 @@ Section ReachablePairs.
   Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
     match fuel with
     | 0 => r
-    | Datatypes.S fuel => reachable_step (reachable_states' fuel r)
+    | S fuel => reachable_step (reachable_states' fuel r)
     end.
 
   Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
@@ -365,23 +365,23 @@ Section ReachablePairs.
       simpl.
       destruct (List.in_dec Heq a0 l1).
       + apply IHl1.
-        apply List.incl_cons_inv in H0.
+        apply List.incl_cons_inv in H.
         intuition.
-      + apply List.incl_cons_inv in H0.
+      + apply List.incl_cons_inv in H.
         apply List.incl_cons; try easy.
         intuition.
     - induction l1; try easy.
       apply List.incl_cons.
-      + apply H0.
+      + apply H.
         simpl.
         destruct (List.in_dec Heq a0 l1).
         * now apply List.nodup_In.
         * now left.
       + apply IHl1.
-        simpl in H0.
+        simpl in H.
         destruct (List.in_dec Heq a0 l1).
         * assumption.
-        * apply List.incl_cons_inv in H0.
+        * apply List.incl_cons_inv in H.
           intuition.
   Qed.
 
@@ -411,7 +411,7 @@ Section ReachablePairs.
   Proof.
     induction fuel; intros.
     - simpl in *.
-      now apply H0.
+      now apply H.
     - simpl in *.
       apply reachable_step_mono.
       unfold reachable_step in *.
@@ -426,7 +426,7 @@ Section ReachablePairs.
     induction f1; intros.
     - rewrite plus_O_n.
       reflexivity.
-    - replace (Datatypes.S f1 + f2) with (Datatypes.S (f1 + f2)) by lia.
+    - replace (S f1 + f2) with (S (f1 + f2)) by lia.
       simpl.
       now rewrite IHf1.
   Qed.
@@ -468,7 +468,7 @@ Section ReachablePairs.
   Proof.
     unfold chain.
     intros.
-    apply (H0 l0 (l3 ++ l2)).
+    apply (H l0 (l3 ++ l2)).
     repeat rewrite List.app_assoc.
     f_equal.
     now repeat rewrite <- List.app_assoc.
@@ -478,9 +478,9 @@ Section ReachablePairs.
     forall p, chain [p].
   Proof.
     unfold chain; intros.
-    apply (f_equal (@List.length state_pair)) in H0.
-    repeat rewrite List.app_length in H0.
-    simpl in H0.
+    apply (f_equal (@List.length state_pair)) in H.
+    repeat rewrite List.app_length in H.
+    simpl in H.
     lia.
   Qed.
 
@@ -492,20 +492,20 @@ Section ReachablePairs.
     unfold chain in *; intros.
     destruct l2.
     - simpl in *.
-      apply (f_equal (@List.rev state_pair)) in H2.
-      repeat rewrite List.rev_app_distr in H2.
-      simpl in H2.
-      inversion H2.
+      apply (f_equal (@List.rev state_pair)) in H1.
+      repeat rewrite List.rev_app_distr in H1.
+      simpl in H1.
+      inversion H1.
       now subst.
-    - apply (f_equal (@List.removelast state_pair)) in H2.
-      replace [p; p'] with ([p] ++ [p']) in H2 by easy.
-      rewrite List.app_assoc in H2.
-      rewrite List.removelast_last in H2.
-      rewrite List.app_assoc in H2.
-      rewrite List.removelast_app in H2 by easy.
-      apply (H0 l1 (List.removelast (s :: l2))).
-      rewrite <- List.app_assoc in H2.
-      exact H2.
+    - apply (f_equal (@List.removelast state_pair)) in H1.
+      replace [p; p'] with ([p] ++ [p']) in H1 by easy.
+      rewrite List.app_assoc in H1.
+      rewrite List.removelast_last in H1.
+      rewrite List.app_assoc in H1.
+      rewrite List.removelast_app in H1 by easy.
+      apply (H l1 (List.removelast (s :: l2))).
+      rewrite <- List.app_assoc in H1.
+      exact H1.
   Qed.
 
   Lemma nodup_trivial {X: Type} (x: X):
@@ -522,9 +522,9 @@ Section ReachablePairs.
   Proof.
     revert l2; induction l1; intros.
     - constructor.
-    - inversion_clear H0.
+    - inversion_clear H.
       constructor.
-      + contradict H1.
+      + contradict H0.
         apply List.in_app_iff.
         now left.
       + now eapply IHl1 with (l2 := l2).
@@ -539,21 +539,21 @@ Section ReachablePairs.
       List.NoDup (s :: lpost).
   Proof.
     revert p r; induction fuel; intros.
-    - simpl in H0.
+    - simpl in H.
       exists nil, nil, p.
       simpl; repeat split; auto.
       + apply chain_trivial.
       + apply nodup_trivial.
-    - simpl in H0.
-      unfold reachable_step in H0.
-      rewrite List.nodup_In, List.in_app_iff in H0.
-      destruct H0; [|now apply IHfuel].
+    - simpl in H.
+      unfold reachable_step in H.
+      rewrite List.nodup_In, List.in_app_iff in H.
+      destruct H; [|now apply IHfuel].
       rewrite <- List.flat_map_concat_map,
               List.in_flat_map_Exists,
-              List.Exists_exists in H0.
-      destruct H0 as [p' [? ?]].
-      apply IHfuel in H0.
-      destruct H0 as [lpre' [lpost' [s [? [? [? ?]]]]]].
+              List.Exists_exists in H.
+      destruct H as [p' [? ?]].
+      apply IHfuel in H.
+      destruct H as [lpre' [lpost' [s [? [? [? ?]]]]]].
       destruct (List.in_dec state_pair_eq_dec p ([s] ++ lpost')).
       + apply List.in_split in i.
         destruct i as [l1 [l2 ?]].
@@ -562,30 +562,30 @@ Section ReachablePairs.
         * exists nil, s.
           simpl in *.
           repeat split; auto.
-          -- now inversion_clear H5.
+          -- now inversion_clear H4.
           -- apply chain_trivial.
           -- apply nodup_trivial.
         * simpl in *.
           exists (l1 ++ [p]), s.
           repeat split; auto.
-          -- now inversion_clear H5.
-          -- rewrite H5 in H3.
+          -- now inversion_clear H4.
+          -- rewrite H4 in H2.
              apply chain_split_left with (l2 := l2).
-             inversion_clear H5.
+             inversion_clear H4.
              simpl.
              now rewrite <- List.app_assoc.
-          -- rewrite H5 in H4.
-             inversion_clear H5.
+          -- rewrite H4 in H3.
+             inversion_clear H4.
              eapply nodup_split_left with (l4 := l2).
              now rewrite <- List.app_comm_cons, <- List.app_assoc.
       + exists (lpre' ++ [p']), (lpost' ++ [p]), s.
         repeat split; auto.
         * rewrite List.app_comm_cons.
           now f_equal.
-        * rewrite List.app_comm_cons, H2.
+        * rewrite List.app_comm_cons, H1.
           rewrite <- List.app_assoc.
           apply chain_cons; auto.
-          now rewrite <- H2.
+          now rewrite <- H1.
         * rewrite List.app_comm_cons.
           apply NoDup_app; auto.
           -- apply nodup_trivial.
@@ -594,7 +594,7 @@ Section ReachablePairs.
              inversion_clear n; try contradiction.
              now subst.
           -- intros.
-             inversion_clear H5; try contradiction.
+             inversion_clear H4; try contradiction.
              now subst.
   Qed.
 
@@ -609,22 +609,22 @@ Section ReachablePairs.
     - simpl.
       destruct lpre.
       + simpl in H1.
-        inversion H1.
+        inversion H0.
         now subst.
-      + apply (f_equal (@List.length state_pair)) in H1.
-        rewrite List.app_length in H1.
-        simpl in H1.
+      + apply (f_equal (@List.length state_pair)) in H0.
+        rewrite List.app_length in H0.
+        simpl in H0.
         lia.
     - simpl.
       induction lpre using List.rev_ind.
-      + simpl in H1.
-        inversion H1.
-        apply (f_equal (@List.rev state_pair)) in H5.
-        simpl in H5.
-        rewrite List.rev_unit in H5.
+      + simpl in H0.
+        inversion H0.
+        apply (f_equal (@List.rev state_pair)) in H4.
+        simpl in H4.
+        rewrite List.rev_unit in H4.
         discriminate.
       + rewrite List.app_length; simpl.
-        replace (length lpost + 1) with (Datatypes.S (length lpost)) by lia; simpl.
+        replace (length lpost + 1) with (S (length lpost)) by lia; simpl.
         unfold reachable_step.
         rewrite List.nodup_In.
         rewrite List.in_app_iff.
@@ -632,24 +632,24 @@ Section ReachablePairs.
         rewrite <- List.flat_map_concat_map.
         rewrite List.in_flat_map_Exists.
         rewrite List.Exists_exists.
-        simpl in H1.
+        simpl in H0.
         exists x0.
         split.
         * eapply IHlpost with (s := s); auto.
           -- rewrite <- List.removelast_last with (a := x) at 1.
              rewrite <- List.removelast_last with (a := p).
              rewrite <- List.app_comm_cons.
-             rewrite H1.
+             rewrite H0.
              reflexivity.
           -- unfold chain in *; intros.
-             apply H2 with (l1 := l1) (l2 := l2 ++ [x]).
-             rewrite List.app_comm_cons, H3.
+             apply H1 with (l1 := l1) (l2 := l2 ++ [x]).
+             rewrite List.app_comm_cons, H2.
              now repeat rewrite <- List.app_assoc.
-        * rewrite H1 in H2.
-          rewrite <- List.app_assoc in H2.
-          simpl in H2.
-          unfold chain in H2.
-          apply H2 with (l1 := lpre) (l2 := nil).
+        * rewrite H0 in H1.
+          rewrite <- List.app_assoc in H1.
+          simpl in H1.
+          unfold chain in H1.
+          apply H1 with (l1 := lpre) (l2 := nil).
           reflexivity.
   Qed.
 
@@ -672,7 +672,7 @@ Section ReachablePairs.
     List.flat_map (fun s =>
       List.map (fun n => {| st_state := inl s; st_buf_len := n |})
                (List.seq 0 (size a s))
-      ) (List.map inl (enum S1) ++ List.map inr (enum S2)).
+      ) (List.map inl (enum St1) ++ List.map inr (enum St2)).
 
   Definition valid_state_template (t: state_template a) :=
     match st_state t with
@@ -718,23 +718,23 @@ Section ReachablePairs.
   Proof.
     unfold valid_state_template; intros.
     destruct (st_state t) eqn:?.
-    - simpl in H1.
+    - simpl in H0.
       destruct (Compare_dec.le_gt_dec _ _).
-      + rewrite List.in_map_iff in H1.
-        destruct H1 as [? [? ?]].
-        rewrite <- H1; simpl.
+      + rewrite List.in_map_iff in H0.
+        destruct H0 as [? [? ?]].
+        rewrite <- H0; simpl.
         destruct x; auto.
         apply a.
-      + destruct H1; try contradiction.
-        rewrite <- H1.
+      + destruct H0; try contradiction.
+        rewrite <- H0.
         simpl.
         rewrite Heqs.
         unfold P4A.t_states in g.
         simpl in H0.
         simpl.
         lia.
-   - destruct H1.
-     + now rewrite <- H1.
+   - destruct H0.
+     + now rewrite <- H0.
      + contradiction.
   Qed.
 
@@ -752,18 +752,18 @@ Section ReachablePairs.
         valid_state_pair p').
   Proof.
     unfold valid_state_pair in *; intros.
-    unfold reachable_pair_step in H1.
-    unfold reachable_pair_step' in H1.
+    unfold reachable_pair_step in H0.
+    unfold reachable_pair_step' in H0.
     destruct p, p'.
-    unfold snd in H1.
-    apply List.in_prod_iff in H1.
-    destruct H1.
-    simpl in H0; destruct H0.
+    unfold snd in H0.
+    apply List.in_prod_iff in H0.
+    destruct H0.
+    simpl in H; destruct H.
     simpl; split.
     - eapply valid_state_templates_closed with (t := s); auto.
-      exact H1.
+      exact H0.
     - eapply valid_state_templates_closed with (t := s0); auto.
-      exact H2.
+      exact H1.
   Qed.
 
   Lemma valid_state_pairs_accurate:
@@ -775,8 +775,8 @@ Section ReachablePairs.
     destruct p.
     unfold valid_state_pairs.
     apply List.in_prod_iff.
-    unfold valid_state_pair in H0.
-    simpl in H0.
+    unfold valid_state_pair in H.
+    simpl in H.
     split; now apply valid_state_templates_accurate.
   Qed.
 
@@ -791,14 +791,14 @@ Section ReachablePairs.
     induction l; intros.
     - contradiction.
     - assert (valid_state_pair a0).
-      + apply (valid_state_pairs_closed H0).
-        now apply H1 with (l1 := nil) (l2 := l).
-      + destruct H2.
+      + apply (valid_state_pairs_closed H).
+        now apply H0 with (l1 := nil) (l2 := l).
+      + destruct H1.
         * subst; auto.
         * apply IHl with (p := a0); auto.
           unfold chain in *.
           intros.
-          eapply H1 with (l1 := p :: l1) (l2 := l2).
+          eapply H0 with (l1 := p :: l1) (l2 := l2).
           simpl.
           now f_equal.
   Qed.
@@ -811,21 +811,21 @@ Section ReachablePairs.
   Proof.
     intros.
     intros ? ?.
-    apply reachability_sound in H1.
-    destruct H1 as [lpre [lpost [s [? [? [? ?]]]]]].
+    apply reachability_sound in H0.
+    destruct H0 as [lpre [lpost [s [? [? [? ?]]]]]].
     eapply reachability_complete with (s := s).
     - auto.
+    - exact H1.
     - exact H2.
-    - exact H3.
-    - apply List.NoDup_incl_length; [now inversion H4 |].
-      clear H2.
+    - apply List.NoDup_incl_length; [now inversion H3 |].
+      clear H1.
       induction lpost using List.rev_ind; intros; try easy.
       apply List.incl_app.
       + apply IHlpost.
         * now apply chain_split_left with (l2 := [x]).
         * now eapply nodup_split_left with (l2 := [x]).
       + unfold List.incl; intros.
-        destruct H2; [subst | easy].
+        destruct H1; [subst | easy].
         apply valid_state_pairs_accurate.
         apply chain_preserve_valid with (p := s) (l := lpost ++ [a1]); auto.
         rewrite List.in_app_iff; right.
@@ -839,12 +839,12 @@ Section ReachablePairs.
     List.In p2 (reachable_states' (length valid_state_pairs) r).
   Proof.
     intros.
-    apply reachable_states_bound with (fuel := Datatypes.S (length valid_state_pairs)); auto.
+    apply reachable_states_bound with (fuel := S (length valid_state_pairs)); auto.
     unfold reachable_states'.
     fold (reachable_states' (length valid_state_pairs) r).
-    revert H2; apply reachable_step_mono.
+    revert H1; apply reachable_step_mono.
     unfold List.incl; intros.
-    destruct H2; try contradiction; now subst.
+    destruct H1; try contradiction; now subst.
   Qed.
 
   Definition reachable_states n s1 s2 : state_pairs :=

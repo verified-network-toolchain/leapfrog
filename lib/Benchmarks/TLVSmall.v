@@ -80,13 +80,13 @@ Module TLVRefSmall.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (sz := sz) V1)[24--8]);
+          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (Hdr_sz := sz) V1)[24--8]);
          st_trans := transition (inl Parse2)
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (sz := sz) V1)[24--16]);
+          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (Hdr_sz := sz) V1)[24--16]);
          st_trans := transition (inl Parse2)
       |}
     | Parse13 =>
@@ -110,13 +110,13 @@ Module TLVRefSmall.
     | Parse21 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (sz := sz) V2)[24--8]);
+          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (Hdr_sz := sz) V2)[24--8]);
          st_trans := transition (inl Parse3)
       |}
     | Parse22 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (sz := sz) V2)[24--16]);
+          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (Hdr_sz := sz) V2)[24--16]);
          st_trans := transition (inl Parse3)
       |}
     | Parse23 =>
@@ -140,13 +140,13 @@ Module TLVRefSmall.
     | Parse31 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (sz := sz) V3)[24--8]);
+          V1 <- EConcat (m := 16) (EHdr Scratch8) ((EHdr (Hdr_sz := sz) V3)[24--8]);
          st_trans := transition accept
       |}
     | Parse32 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (sz := sz) V3)[24--16]);
+          V1 <- EConcat (m := 8) (EHdr Scratch16) ((EHdr (Hdr_sz := sz) V3)[24--16]);
          st_trans := transition accept
       |}
     | Parse33 =>

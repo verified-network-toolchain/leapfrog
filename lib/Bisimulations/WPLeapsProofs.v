@@ -24,26 +24,26 @@ Ltac modus_ponens H :=
 Section WPLeapsProofs.
 
   (* State identifiers. *)
-  Variable (S1: Type).
-  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
-  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+  Variable (St1: Type).
+  Context `{St1_eq_dec: EquivDec.EqDec St1 eq}.
+  Context `{St1_finite: @Finite St1 _ St1_eq_dec}.
 
-  Variable (S2: Type).
-  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
-  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+  Variable (St2: Type).
+  Context `{St2_eq_dec: EquivDec.EqDec St2 eq}.
+  Context `{St2_finite: @Finite St2 _ St2_eq_dec}.
 
-  Notation S := ((S1 + S2)%type).
+  Notation St := ((St1 + St2)%type).
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St Hdr_sz).
 
-  Variable (s1: S1).
-  Variable (s2: S2).
+  Variable (s1: St1).
+  Variable (s2: St2).
   Definition r := reachable_states a (length (valid_state_pairs a)) s1 s2.
 
   Notation conf := (configuration (P4A.interp a)).
@@ -68,16 +68,16 @@ Section WPLeapsProofs.
         q1 q2.
   Proof.
     intros.
-    induction H0.
+    induction H.
     - now apply AlgorithmicLeaps.PreBisimulationClose.
     - apply AlgorithmicLeaps.PreBisimulationSkip.
       + intros.
-        destruct H0; [|contradiction].
+        destruct H; [|contradiction].
         now apply i.
       + apply IHpre_bisimulation; eauto.
     - eapply AlgorithmicLeaps.PreBisimulationExtend.
       + intro.
-        destruct H0; [contradiction|].
+        destruct H; [contradiction|].
         apply n.
         unfold interp_entailment; simpl; intros.
         auto.
@@ -85,15 +85,15 @@ Section WPLeapsProofs.
         rewrite map_cons, map_app in IHpre_bisimulation.
         eauto.
       + intros.
-        rewrite H3 in H5.
-        eapply wp_safe; try assumption; [|apply H5].
-        apply interp_rels_bound in H5.
-        apply H5.
+        rewrite H2 in H4.
+        eapply wp_safe; try assumption; [|apply H4].
+        apply interp_rels_bound in H4.
+        apply H4.
   Qed.
 
   Lemma not_equally_accepting_correct q1 q2:
-    not_equally_accepting S1 S2 H sz a (conf_to_state_template q1,
-                                        conf_to_state_template q2) = false ->
+    not_equally_accepting St1 St2 Hdr Hdr_sz a (conf_to_state_template q1,
+                                            conf_to_state_template q2) = false ->
     accepting q1 <-> accepting q2.
   Proof.
     unfold not_equally_accepting, accepting; simpl; intros.
@@ -109,13 +109,13 @@ Section WPLeapsProofs.
   Proof.
     intros.
     apply not_equally_accepting_correct, Bool.not_true_iff_false; intro.
-    apply interp_crel_nodup, interp_crel_quantify in H0; destruct H0.
-    specialize (H2 (mk_rel _ _ _ _ _ (conf_to_state_template q1,
+    apply interp_crel_nodup, interp_crel_quantify in H; destruct H.
+    specialize (H1 (mk_rel _ _ _ _ _ (conf_to_state_template q1,
                                       conf_to_state_template q2))).
-    modus_ponens H2; [ apply in_map, filter_In; intuition |].
-    unfold interp_conf_rel in H2; simpl interp_store_rel in H2.
-    modus_ponens H2; [ vm_compute; intuition |].
-    simpl bval in H2; now specialize (H2 tt).
+    modus_ponens H1; [ apply in_map, filter_In; intuition |].
+    unfold interp_conf_rel in H1; simpl interp_store_rel in H1.
+    modus_ponens H1; [ vm_compute; intuition |].
+    simpl bval in H1; now specialize (H1 tt).
   Qed.
 
   Lemma top_closed q1 q2 bs:
@@ -126,19 +126,19 @@ Section WPLeapsProofs.
   Proof.
     unfold top, r, reachable_states; intros.
     eapply reachable_states_closed.
-    - intros; destruct H2; try contradiction; subst.
+    - intros; destruct H1; try contradiction; subst.
       unfold valid_state_pair, valid_state_template; simpl.
       split; apply Syntax.t_has_extract.
-    - exact H1.
+    - exact H0.
     - unfold reachable_step.
       apply nodup_In; simpl.
       rewrite app_nil_r, in_app_iff; left.
       unfold reachable_pair_step, reachable_pair_step'.
-      apply in_prod; rewrite <- H0; simpl.
-      + eapply advance_correct; try typeclasses eauto; rewrite H0.
+      apply in_prod; rewrite <- H; simpl.
+      + eapply advance_correct; try typeclasses eauto; rewrite H.
         * intros; apply reads_left_upper_bound with (s := s); auto.
         * apply reads_left_lower_bound.
-      + eapply advance_correct; try typeclasses eauto; rewrite H0;
+      + eapply advance_correct; try typeclasses eauto; rewrite H;
         setoid_rewrite reads_left_commutative.
         * intros; apply reads_left_upper_bound with (s := s); auto.
         * apply reads_left_lower_bound.
@@ -159,11 +159,11 @@ Section WPLeapsProofs.
       erewrite mk_init_accepting.
       + reflexivity.
       + unfold interp_crel; rewrite interp_rels_intersect_top.
-        exact H2.
+        exact H1.
     - simpl interp_rels at 1.
       unfold follow_closed; intros.
       apply top_closed.
-      + rewrite H2.
+      + rewrite H1.
         unfold leap_size, reads_left; simpl.
         unfold configuration_room_left; simpl.
         destruct (conf_state q0), (conf_state q3);

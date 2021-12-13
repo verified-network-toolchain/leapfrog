@@ -208,7 +208,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz)T0, EHdr (sz := sz)L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T0, EHdr (Hdr_sz := sz)L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -225,43 +225,43 @@ Module IPOptionsRef10.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V0)[64--8]) ;
+          V0 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V0)[64--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V0)[64--16]) ;
+          V0 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V0)[64--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V0)[64--24]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V0)[64--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V0)[64--32]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V0)[64--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V0)[64--40]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V0)[64--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V0)[64--48]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V0)[64--48]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse07 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V0)[64--56]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V0)[64--56]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse08 =>
@@ -274,7 +274,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz)T1, EHdr (sz := sz)L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T1, EHdr (Hdr_sz := sz)L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -291,43 +291,43 @@ Module IPOptionsRef10.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V1)[64--8]) ;
+          V1 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V1)[64--8]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V1)[64--16]) ;
+          V1 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V1)[64--16]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V1)[64--24]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V1)[64--24]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V1)[64--32]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V1)[64--32]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V1)[64--40]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V1)[64--40]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse16 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V1)[64--48]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V1)[64--48]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse17 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V1)[64--56]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V1)[64--56]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse18 =>
@@ -340,7 +340,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T2) ;;
           extract(L2) ;
-         st_trans := transition select (| EHdr (sz := sz)T2, EHdr (sz := sz)L2 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T2, EHdr (Hdr_sz := sz)L2 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse21 ;;;
@@ -357,43 +357,43 @@ Module IPOptionsRef10.
     | Parse21 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V2)[64--8]) ;
+          V1 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V2)[64--8]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse22 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V2 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V2)[64--16]) ;
+          V2 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V2)[64--16]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse23 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V2 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V2)[64--24]) ;
+          V2 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V2)[64--24]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse24 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V2 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V2)[64--32]) ;
+          V2 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V2)[64--32]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse25 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V2 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V2)[64--40]) ;
+          V2 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V2)[64--40]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse26 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V2 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V2)[64--48]) ;
+          V2 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V2)[64--48]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse27 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V2 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V2)[64--56]) ;
+          V2 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V2)[64--56]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse28 =>
@@ -406,7 +406,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T3) ;;
           extract(L3) ;
-         st_trans := transition select (| EHdr (sz := sz)T3, EHdr (sz := sz)L3 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T3, EHdr (Hdr_sz := sz)L3 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse31 ;;;
@@ -423,43 +423,43 @@ Module IPOptionsRef10.
     | Parse31 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V3 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V3)[64--8]) ;
+          V3 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V3)[64--8]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse32 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V3 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V3)[64--16]) ;
+          V3 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V3)[64--16]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse33 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V3 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V3)[64--24]) ;
+          V3 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V3)[64--24]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse34 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V3 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V3)[64--32]) ;
+          V3 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V3)[64--32]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse35 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V3 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V3)[64--40]) ;
+          V3 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V3)[64--40]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse36 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V3 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V3)[64--48]) ;
+          V3 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V3)[64--48]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse37 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V3 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V3)[64--56]) ;
+          V3 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V3)[64--56]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse38 =>
@@ -472,7 +472,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T4) ;;
           extract(L4) ;
-         st_trans := transition select (| EHdr (sz := sz)T4, EHdr (sz := sz)L4 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T4, EHdr (Hdr_sz := sz)L4 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse41 ;;;
@@ -489,43 +489,43 @@ Module IPOptionsRef10.
     | Parse41 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V4 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V4)[64--8]) ;
+          V4 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V4)[64--8]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse42 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V4 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V4)[64--16]) ;
+          V4 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V4)[64--16]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse43 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V4 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V4)[64--24]) ;
+          V4 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V4)[64--24]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse44 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V4 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V4)[64--32]) ;
+          V4 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V4)[64--32]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse45 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V4 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V4)[64--40]) ;
+          V4 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V4)[64--40]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse46 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V4 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V4)[64--48]) ;
+          V4 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V4)[64--48]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse47 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V4 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V4)[64--56]) ;
+          V4 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V4)[64--56]) ;
          st_trans := transition inl Parse5;
       |}
     | Parse48 =>
@@ -538,7 +538,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T5) ;;
           extract(L5) ;
-         st_trans := transition select (| EHdr (sz := sz)T5, EHdr (sz := sz)L5 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T5, EHdr (Hdr_sz := sz)L5 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse51 ;;;
@@ -555,43 +555,43 @@ Module IPOptionsRef10.
     | Parse51 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V5 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V5)[64--8]) ;
+          V5 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V5)[64--8]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse52 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V5 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V5)[64--16]) ;
+          V5 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V5)[64--16]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse53 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V5 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V5)[64--24]) ;
+          V5 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V5)[64--24]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse54 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V5 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V5)[64--32]) ;
+          V5 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V5)[64--32]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse55 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V5 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V5)[64--40]) ;
+          V5 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V5)[64--40]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse56 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V5 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V5)[64--48]) ;
+          V5 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V5)[64--48]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse57 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V5 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V5)[64--56]) ;
+          V5 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V5)[64--56]) ;
          st_trans := transition inl Parse6;
       |}
     | Parse58 =>
@@ -604,7 +604,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T6) ;;
           extract(L6) ;
-         st_trans := transition select (| EHdr (sz := sz)T6, EHdr (sz := sz)L6 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T6, EHdr (Hdr_sz := sz)L6 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse61 ;;;
@@ -621,43 +621,43 @@ Module IPOptionsRef10.
     | Parse61 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V6 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V6)[64--8]) ;
+          V6 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V6)[64--8]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse62 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V6 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V6)[64--16]) ;
+          V6 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V6)[64--16]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse63 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V6 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V6)[64--24]) ;
+          V6 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V6)[64--24]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse64 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V6 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V6)[64--32]) ;
+          V6 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V6)[64--32]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse65 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V6 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V6)[64--40]) ;
+          V6 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V6)[64--40]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse66 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V6 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V6)[64--48]) ;
+          V6 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V6)[64--48]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse67 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V6 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V6)[64--56]) ;
+          V6 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V6)[64--56]) ;
          st_trans := transition inl Parse7;
       |}
     | Parse68 =>
@@ -670,7 +670,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T7) ;;
           extract(L7) ;
-         st_trans := transition select (| EHdr (sz := sz)T7, EHdr (sz := sz)L7 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T7, EHdr (Hdr_sz := sz)L7 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse71 ;;;
@@ -687,43 +687,43 @@ Module IPOptionsRef10.
     | Parse71 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V7 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V7)[64--8]) ;
+          V7 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V7)[64--8]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse72 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V7 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V7)[64--16]) ;
+          V7 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V7)[64--16]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse73 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V7 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V7)[64--24]) ;
+          V7 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V7)[64--24]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse74 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V7 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V7)[64--32]) ;
+          V7 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V7)[64--32]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse75 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V7 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V7)[64--40]) ;
+          V7 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V7)[64--40]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse76 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V7 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V7)[64--48]) ;
+          V7 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V7)[64--48]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse77 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V7 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V7)[64--56]) ;
+          V7 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V7)[64--56]) ;
          st_trans := transition inl Parse8;
       |}
     | Parse78 =>
@@ -736,7 +736,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T8) ;;
           extract(L8) ;
-         st_trans := transition select (| EHdr (sz := sz)T8, EHdr (sz := sz)L8 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T8, EHdr (Hdr_sz := sz)L8 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse81 ;;;
@@ -753,43 +753,43 @@ Module IPOptionsRef10.
     | Parse81 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V8 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V8)[64--8]) ;
+          V8 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V8)[64--8]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse82 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V8 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V8)[64--16]) ;
+          V8 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V8)[64--16]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse83 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V8 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V8)[64--24]) ;
+          V8 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V8)[64--24]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse84 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V8 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V8)[64--32]) ;
+          V8 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V8)[64--32]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse85 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V8 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V8)[64--40]) ;
+          V8 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V8)[64--40]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse86 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V8 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V8)[64--48]) ;
+          V8 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V8)[64--48]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse87 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V8 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V8)[64--56]) ;
+          V8 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V8)[64--56]) ;
          st_trans := transition inl Parse9;
       |}
     | Parse88 =>
@@ -802,7 +802,7 @@ Module IPOptionsRef10.
       {| st_op :=
           extract(T9) ;;
           extract(L9) ;
-         st_trans := transition select (| EHdr (sz := sz)T9, EHdr (sz := sz)L9 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz)T9, EHdr (Hdr_sz := sz)L9 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse91 ;;;
@@ -819,43 +819,43 @@ Module IPOptionsRef10.
     | Parse91 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V9 <- EConcat (m := 56) (EHdr (sz := sz)Scratch8) ((EHdr (sz := sz)V9)[64--8]) ;
+          V9 <- EConcat (m := 56) (EHdr (Hdr_sz := sz)Scratch8) ((EHdr (Hdr_sz := sz)V9)[64--8]) ;
          st_trans := transition accept;
       |}
     | Parse92 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V9 <- EConcat (m := 48) (EHdr (sz := sz)Scratch16) ((EHdr (sz := sz)V9)[64--16]) ;
+          V9 <- EConcat (m := 48) (EHdr (Hdr_sz := sz)Scratch16) ((EHdr (Hdr_sz := sz)V9)[64--16]) ;
          st_trans := transition accept;
       |}
     | Parse93 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V9 <- EConcat (m := 40) (EHdr (sz := sz)Scratch24) ((EHdr (sz := sz)V9)[64--24]) ;
+          V9 <- EConcat (m := 40) (EHdr (Hdr_sz := sz)Scratch24) ((EHdr (Hdr_sz := sz)V9)[64--24]) ;
          st_trans := transition accept;
       |}
     | Parse94 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V9 <- EConcat (m := 32) (EHdr (sz := sz)Scratch32) ((EHdr (sz := sz)V9)[64--32]) ;
+          V9 <- EConcat (m := 32) (EHdr (Hdr_sz := sz)Scratch32) ((EHdr (Hdr_sz := sz)V9)[64--32]) ;
          st_trans := transition accept;
       |}
     | Parse95 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V9 <- EConcat (m := 24) (EHdr (sz := sz)Scratch40) ((EHdr (sz := sz)V9)[64--40]) ;
+          V9 <- EConcat (m := 24) (EHdr (Hdr_sz := sz)Scratch40) ((EHdr (Hdr_sz := sz)V9)[64--40]) ;
          st_trans := transition accept;
       |}
     | Parse96 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V9 <- EConcat (m := 16) (EHdr (sz := sz)Scratch48) ((EHdr (sz := sz)V9)[64--48]) ;
+          V9 <- EConcat (m := 16) (EHdr (Hdr_sz := sz)Scratch48) ((EHdr (Hdr_sz := sz)V9)[64--48]) ;
          st_trans := transition accept;
       |}
     | Parse97 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V9 <- EConcat (m := 8) (EHdr (sz := sz)Scratch56) ((EHdr (sz := sz)V9)[64--56]) ;
+          V9 <- EConcat (m := 8) (EHdr (Hdr_sz := sz)Scratch56) ((EHdr (Hdr_sz := sz)V9)[64--56]) ;
          st_trans := transition accept;
       |}
     | Parse98 =>
@@ -993,7 +993,7 @@ Module IPOptionsRef5.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -1010,43 +1010,43 @@ Module IPOptionsRef5.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[64--8]) ;
+          V0 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[64--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[64--16]) ;
+          V0 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[64--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[64--24]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[64--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[64--32]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[64--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[64--40]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[64--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V0)[64--48]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V0)[64--48]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse07 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V0)[64--56]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V0)[64--56]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse08 =>
@@ -1059,7 +1059,7 @@ Module IPOptionsRef5.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -1076,43 +1076,43 @@ Module IPOptionsRef5.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[64--8]) ;
+          V1 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[64--8]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[64--16]) ;
+          V1 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[64--16]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[64--24]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[64--24]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[64--32]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[64--32]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[64--40]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[64--40]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse16 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V1)[64--48]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V1)[64--48]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse17 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V1)[64--56]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V1)[64--56]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse18 =>
@@ -1125,7 +1125,7 @@ Module IPOptionsRef5.
       {| st_op :=
           extract(T2) ;;
           extract(L2) ;
-         st_trans := transition select (| EHdr (sz := sz) T2, EHdr (sz := sz) L2 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T2, EHdr (Hdr_sz := sz) L2 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse21 ;;;
@@ -1142,43 +1142,43 @@ Module IPOptionsRef5.
     | Parse21 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V2)[64--8]) ;
+          V1 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V2)[64--8]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse22 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V2 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V2)[64--16]) ;
+          V2 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V2)[64--16]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse23 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V2 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V2)[64--24]) ;
+          V2 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V2)[64--24]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse24 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V2 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V2)[64--32]) ;
+          V2 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V2)[64--32]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse25 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V2 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V2)[64--40]) ;
+          V2 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V2)[64--40]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse26 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V2 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V2)[64--48]) ;
+          V2 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V2)[64--48]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse27 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V2 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V2)[64--56]) ;
+          V2 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V2)[64--56]) ;
          st_trans := transition inl Parse3;
       |}
     | Parse28 =>
@@ -1191,7 +1191,7 @@ Module IPOptionsRef5.
       {| st_op :=
           extract(T3) ;;
           extract(L3) ;
-         st_trans := transition select (| EHdr (sz := sz) T3, EHdr (sz := sz) L3 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T3, EHdr (Hdr_sz := sz) L3 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse31 ;;;
@@ -1208,43 +1208,43 @@ Module IPOptionsRef5.
     | Parse31 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V3 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V3)[64--8]) ;
+          V3 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V3)[64--8]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse32 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V3 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V3)[64--16]) ;
+          V3 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V3)[64--16]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse33 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V3 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V3)[64--24]) ;
+          V3 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V3)[64--24]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse34 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V3 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V3)[64--32]) ;
+          V3 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V3)[64--32]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse35 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V3 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V3)[64--40]) ;
+          V3 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V3)[64--40]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse36 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V3 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V3)[64--48]) ;
+          V3 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V3)[64--48]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse37 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V3 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V3)[64--56]) ;
+          V3 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V3)[64--56]) ;
          st_trans := transition inl Parse4;
       |}
     | Parse38 =>
@@ -1257,7 +1257,7 @@ Module IPOptionsRef5.
       {| st_op :=
           extract(T4) ;;
           extract(L4) ;
-         st_trans := transition select (| EHdr (sz := sz) T4, EHdr (sz := sz) L4 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T4, EHdr (Hdr_sz := sz) L4 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse41 ;;;
@@ -1274,43 +1274,43 @@ Module IPOptionsRef5.
     | Parse41 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V4 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V4)[64--8]) ;
+          V4 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V4)[64--8]) ;
          st_trans := transition accept;
       |}
     | Parse42 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V4 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V4)[64--16]) ;
+          V4 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V4)[64--16]) ;
          st_trans := transition accept;
       |}
     | Parse43 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V4 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V4)[64--24]) ;
+          V4 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V4)[64--24]) ;
          st_trans := transition accept;
       |}
     | Parse44 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V4 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V4)[64--32]) ;
+          V4 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V4)[64--32]) ;
          st_trans := transition accept;
       |}
     | Parse45 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V4 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V4)[64--40]) ;
+          V4 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V4)[64--40]) ;
          st_trans := transition accept;
       |}
     | Parse46 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V4 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V4)[64--48]) ;
+          V4 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V4)[64--48]) ;
          st_trans := transition accept;
       |}
     | Parse47 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V4 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V4)[64--56]) ;
+          V4 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V4)[64--56]) ;
          st_trans := transition accept;
       |}
     | Parse48 =>
@@ -1407,7 +1407,7 @@ Module IPOptionsRef2.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -1424,43 +1424,43 @@ Module IPOptionsRef2.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[64--8]) ;
+          V0 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[64--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[64--16]) ;
+          V0 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[64--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[64--24]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[64--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[64--32]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[64--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[64--40]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[64--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V0)[64--48]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V0)[64--48]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse07 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V0)[64--56]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V0)[64--56]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse08 =>
@@ -1473,7 +1473,7 @@ Module IPOptionsRef2.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -1490,43 +1490,43 @@ Module IPOptionsRef2.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 56) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[64--8]) ;
+          V1 <- EConcat (m := 56) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[64--8]) ;
          st_trans := transition accept;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 48) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[64--16]) ;
+          V1 <- EConcat (m := 48) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[64--16]) ;
          st_trans := transition accept;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[64--24]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[64--24]) ;
          st_trans := transition accept;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[64--32]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[64--32]) ;
          st_trans := transition accept;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[64--40]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[64--40]) ;
          st_trans := transition accept;
       |}
     | Parse16 =>
       {| st_op :=
           extract(Scratch48) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch48) ((EHdr (sz := sz) V1)[64--48]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch48) ((EHdr (Hdr_sz := sz) V1)[64--48]) ;
          st_trans := transition accept;
       |}
     | Parse17 =>
       {| st_op :=
           extract(Scratch56) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch56) ((EHdr (sz := sz) V1)[64--56]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch56) ((EHdr (Hdr_sz := sz) V1)[64--56]) ;
          st_trans := transition accept;
       |}
     | Parse18 =>
@@ -1597,7 +1597,7 @@ Module IPOptions32.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -1609,13 +1609,13 @@ Module IPOptions32.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[24--8]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[24--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[24--16]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[24--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
@@ -1627,7 +1627,7 @@ Module IPOptions32.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -1639,13 +1639,13 @@ Module IPOptions32.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[24--8]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[24--8]) ;
          st_trans := transition accept;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[24--16]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[24--16]) ;
          st_trans := transition accept;
       |}
     | Parse13 =>
@@ -1718,7 +1718,7 @@ Module IPOptionsSpec32.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|1|0|0, exact #b|0|0|0|0|0|0|1|0 |] ==> inl Parse0S ;;;
@@ -1752,7 +1752,7 @@ Module IPOptionsSpec32.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|1|0|0, exact #b|0|0|0|0|0|0|1|0 |] ==> inl Parse1S ;;;
@@ -1860,7 +1860,7 @@ Module IPOptionsRef62.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -1875,31 +1875,31 @@ Module IPOptionsRef62.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[48--8]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[48--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[48--16]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[48--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[48--24]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[48--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[48--32]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[48--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[48--40]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[48--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
@@ -1912,7 +1912,7 @@ Module IPOptionsRef62.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -1927,31 +1927,31 @@ Module IPOptionsRef62.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[48--8]) ;
          st_trans := transition accept;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[48--16]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[48--16]) ;
          st_trans := transition accept;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[48--24]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[48--24]) ;
          st_trans := transition accept;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[48--32]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[48--32]) ;
          st_trans := transition accept;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[48--40]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[48--40]) ;
          st_trans := transition accept;
       |}
     | Parse16 =>
@@ -2049,7 +2049,7 @@ Module IPOptionsRef63.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse01 ;;;
@@ -2064,31 +2064,31 @@ Module IPOptionsRef63.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[48--8]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[48--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[48--16]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[48--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[48--24]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[48--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[48--32]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[48--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[48--40]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[48--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
@@ -2101,7 +2101,7 @@ Module IPOptionsRef63.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse11 ;;;
@@ -2116,31 +2116,31 @@ Module IPOptionsRef63.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[48--8]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[48--16]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[48--16]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[48--24]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[48--24]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[48--32]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[48--32]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[48--40]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[48--40]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse16 =>
@@ -2153,7 +2153,7 @@ Module IPOptionsRef63.
       {| st_op :=
           extract(T2) ;;
           extract(L2) ;
-         st_trans := transition select (| EHdr (sz := sz) T2, EHdr (sz := sz) L2 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T2, EHdr (Hdr_sz := sz) L2 |) {{
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| *, exact #b|0|0|0|0|0|0|0|1 |] ==> inl Parse21 ;;;
@@ -2168,31 +2168,31 @@ Module IPOptionsRef63.
     | Parse21 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V2)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V2)[48--8]) ;
          st_trans := transition accept;
       |}
     | Parse22 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V2 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V2)[48--16]) ;
+          V2 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V2)[48--16]) ;
          st_trans := transition accept;
       |}
     | Parse23 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V2 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V2)[48--24]) ;
+          V2 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V2)[48--24]) ;
          st_trans := transition accept;
       |}
     | Parse24 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V2 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V2)[48--32]) ;
+          V2 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V2)[48--32]) ;
          st_trans := transition accept;
       |}
     | Parse25 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V2 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V2)[48--40]) ;
+          V2 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V2)[48--40]) ;
          st_trans := transition accept;
       |}
     | Parse26 =>

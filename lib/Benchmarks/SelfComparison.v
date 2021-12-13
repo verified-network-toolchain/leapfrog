@@ -62,7 +62,7 @@ Module ReadUndef.
     match s with
     | ParseEth =>
       {| st_op := extract(HdrEth);
-         st_trans := transition select (| (EHdr (sz := sz) HdrEth)[0 -- 0] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrEth)[0 -- 0] |) {{
                                     [| exact #b|0 |] ==> inl DefaultVLAN ;;;
                                     [| exact #b|1 |] ==> inl ParseVLAN ;;;
                                     reject
@@ -83,7 +83,7 @@ Module ReadUndef.
       |}
     | ParseUDP =>
       {| st_op := extract(HdrUDP);
-         st_trans := transition select (| (EHdr (sz := sz) HdrVLAN)[3--0] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrVLAN)[3--0] |) {{
                                     [| exact #b|1|1|1|1 |] ==> reject ;;;
                                     accept
                                 }}
@@ -137,7 +137,7 @@ Module ReadUndefIncorrect.
     match s with
     | ParseEth =>
       {| st_op := extract(HdrEth);
-         st_trans := transition select (| (EHdr (sz := sz) HdrEth)[0 -- 0] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrEth)[0 -- 0] |) {{
                                     [| exact #b|0 |] ==> inl DefaultVLAN ;;;
                                     [| exact #b|1 |] ==> inl ParseVLAN ;;;
                                     reject
@@ -157,7 +157,7 @@ Module ReadUndefIncorrect.
       |}
     | ParseUDP =>
       {| st_op := extract(HdrUDP);
-         st_trans := transition select (| (EHdr (sz := sz) HdrVLAN)[3--0] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrVLAN)[3--0] |) {{
                                     [| exact #b|1|1|1|1 |] ==> reject ;;;
                                     accept
                                 }}

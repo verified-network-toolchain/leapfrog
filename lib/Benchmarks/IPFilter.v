@@ -55,7 +55,7 @@ Module UDPInterleaved.
     match s with
     | ParseIP =>
       {| st_op := extract(HdrIP);
-         st_trans := transition select (| (EHdr (sz := sz) HdrIP)[43 -- 40] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrIP)[43 -- 40] |) {{
            [| exact #b|0|0|0|1 |] ==> inl ParseUDP ;;;
            [| exact #b|0|0|0|0 |] ==> inl ParseTCP ;;;
             reject
@@ -110,7 +110,7 @@ Module UDPCombined.
       {| st_op :=
           extract(HdrIP) ;;
           extract(HdrPref) ;
-          st_trans := transition select (| (EHdr (sz := sz) HdrIP)[43 -- 40] |) {{
+          st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrIP)[43 -- 40] |) {{
             [| exact #b|0|0|0|1 |] ==> accept ;;;
             [| exact #b|0|0|0|0 |] ==> inl ParseSuf ;;;
              reject

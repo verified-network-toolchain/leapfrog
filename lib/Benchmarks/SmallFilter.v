@@ -144,7 +144,7 @@ Module OneBit.
     match s with
     | Parse =>
       {| st_op := extract(Pref);
-         st_trans := transition select (| (EHdr (sz := sz) Pref)[0 -- 0] |) {{
+         st_trans := transition select (| (EHdr (Hdr_sz := sz) Pref)[0 -- 0] |) {{
            [| exact #b|1 |] ==> accept ;;;
             @reject state
          }}

@@ -54,7 +54,7 @@ Module Sloppy.
     match s with
     | ParseEthernet =>
       {| st_op := extract(HdrEthernet) ;
-         st_trans := transition select (| ESlice _ (EHdr (sz := sz) HdrEthernet) 111 96 |) {{
+         st_trans := transition select (| ESlice _ (EHdr (Hdr_sz := sz) HdrEthernet) 111 96 |) {{
            [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
             inl ParseIPv4
          }}

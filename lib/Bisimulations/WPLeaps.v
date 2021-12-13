@@ -12,23 +12,23 @@ Require Import Coq.Classes.EquivDec.
 Section WPLeaps.
 
   (* State identifiers. *)
-  Variable (S1: Type).
-  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
-  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+  Variable (St1: Type).
+  Context `{St1_eq_dec: EquivDec.EqDec St1 eq}.
+  Context `{St1_finite: @Finite St1 _ St1_eq_dec}.
 
-  Variable (S2: Type).
-  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
-  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+  Variable (St2: Type).
+  Context `{St2_eq_dec: EquivDec.EqDec St2 eq}.
+  Context `{St2_finite: @Finite St2 _ St2_eq_dec}.
 
-  Notation S := ((S1 + S2)%type).
+  Notation St := ((St1 + St2)%type).
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St Hdr_sz).
 
   Variable (wp: conf_rel a ->
                 list (conf_rel a)).
@@ -81,51 +81,51 @@ Section WPLeaps.
     R ⇝ (C :: T) q1 q2.
   Proof.
     intros.
-    eapply PreBisimulationExtend with (H0 := H0) (W := W); auto.
+    eapply PreBisimulationExtend with (H := H) (W := W); auto.
   Admitted.
 
 
   Fixpoint range (n: nat) :=
     match n with
     | 0 => []
-    | Datatypes.S n => range n ++ [n]
+    | S n => range n ++ [n]
     end.
 
-  Definition not_accept1 (a: P4A.t S sz) (s: S) : crel a :=
+  Definition not_accept1 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true; st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl s;    st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition not_accept2 (a: P4A.t S sz) (s: S) : crel a :=
+  Definition not_accept2 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := n |};
                                cs_st2 := {| st_state := inr true; st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a s)).
 
-  Definition init_rel (a: P4A.t S sz) : crel a :=
-    List.concat (List.map (not_accept1 a) (enum S) ++
-                          List.map (not_accept2 a) (enum S)).
+  Definition init_rel (a: P4A.t St Hdr_sz) : crel a :=
+    List.concat (List.map (not_accept1 a) (enum St) ++
+                          List.map (not_accept2 a) (enum St)).
 
-  Definition sum_not_accept1 (a: P4A.t (S1 + S2) sz) (s: S1) : crel a :=
+  Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (S1 + S2) sz) (s: S2) : crel a :=
+  Definition sum_not_accept2 (a: P4A.t (St1 + St2) Hdr_sz) (s: St2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (S1 + S2) sz) : crel a :=
-    List.concat (List.map (sum_not_accept1 a) (enum S1)
-                          ++ List.map (sum_not_accept2 a) (enum S2)).
+  Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
+    List.concat (List.map (sum_not_accept1 a) (enum St1)
+                          ++ List.map (sum_not_accept2 a) (enum St2)).
   Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
     ({| cr_st :=
           {| cs_st1 := {| st_state := s1; st_buf_len := n1 |};
@@ -194,8 +194,8 @@ Section WPLeaps.
       ctopbdd (wp C).
 End WPLeaps.
 
-Arguments pre_bisimulation {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp.
-Arguments ctopbdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a top C.
-Arguments topbdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a top C.
-Arguments safe_wp_1bit {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp top.
-Arguments wp_bdd {S1 S2 H equiv2 H_eq_dec H_finite sz} a wp top.
+Arguments pre_bisimulation {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp.
+Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
+Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
+Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.
+Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.

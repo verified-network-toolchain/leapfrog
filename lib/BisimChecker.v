@@ -26,40 +26,40 @@ Notation "a ⇒ b" := (BRImpl a b) (at level 40).
 
 Section BisimChecker.
   Set Implicit Arguments.
-  Variable (S1: Type).
-  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
-  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+  Variable (St1: Type).
+  Context `{St1_eq_dec: EquivDec.EqDec St1 eq}.
+  Context `{St1_finite: @Finite St1 _ St1_eq_dec}.
 
-  Variable (S2: Type).
-  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
-  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+  Variable (St2: Type).
+  Context `{St2_eq_dec: EquivDec.EqDec St2 eq}.
+  Context `{St2_finite: @Finite St2 _ St2_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Notation S:=(S1 + S2)%type.
-  Variable (a: P4A.t S sz).
+  Notation St := (St1 + St2)%type.
+  Variable (a: P4A.t St Hdr_sz).
 
-  Definition sum_not_accept1 (a: P4A.t (S1 + S2) sz) (s: S1) : crel a :=
+  Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inl s))).
 
-  Definition sum_not_accept2 (a: P4A.t (S1 + S2) sz) (s: S2) : crel a :=
+  Definition sum_not_accept2 (a: P4A.t (St1 + St2) Hdr_sz) (s: St2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
              (range (P4A.size a (inr s))).
 
-  Definition sum_init_rel (a: P4A.t (S1 + S2) sz) : crel a :=
-    List.concat (List.map (sum_not_accept1 a) (enum S1)
-                          ++ List.map (sum_not_accept2 a) (enum S2)).
+  Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
+    List.concat (List.map (sum_not_accept1 a) (enum St1)
+                          ++ List.map (sum_not_accept2 a) (enum St2)).
 
   Definition reachable_pair_to_partition '((s1, s2): Reachability.state_pair a)
     : crel a :=
@@ -102,7 +102,7 @@ Section BisimChecker.
   Admitted.
   *)
 
-  Definition states_match (c1 c2: conf_rel (H_finite:=H_finite) a) : bool :=
+  Definition states_match (c1 c2: conf_rel (Hdr_finite:=Hdr_finite) a) : bool :=
     if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
     else false.
