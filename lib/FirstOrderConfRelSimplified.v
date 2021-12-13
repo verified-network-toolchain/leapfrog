@@ -85,8 +85,8 @@ Section AutModel.
   Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
     { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: x ::: hnil)) :=
         simplify_concat_zero x;
-      simplify_concat_zero (TFun sig (Concat (Datatypes.S n) m) (x ::: y ::: hnil)) :=
-        TFun sig (Concat (Datatypes.S n) m)
+      simplify_concat_zero (TFun sig (Concat (S n) m) (x ::: y ::: hnil)) :=
+        TFun sig (Concat (S n) m)
                  (simplify_concat_zero x :::
                   simplify_concat_zero y ::: hnil);
       simplify_concat_zero (TFun sig (Slice n hi lo) (x ::: hnil)) :=

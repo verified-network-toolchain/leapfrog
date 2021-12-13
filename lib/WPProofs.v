@@ -231,7 +231,7 @@ Section WPProofs.
         simpl.
         change (ConfRel.P4A.find) with P4A.find.
         erewrite P4A.assign_find; auto; typeclasses eauto.
-      + destruct h as [hsize h].
+      + destruct h as [hsize].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
         simpl.
@@ -303,7 +303,7 @@ Section WPProofs.
         simpl.
         change (ConfRel.P4A.find) with P4A.find.
         erewrite P4A.assign_find; auto.
-      + destruct h as [hsize h].
+      + destruct h as [hsize].
         autorewrite with interp_bit_expr in *.
         destruct a0; try easy.
         simpl.
@@ -964,7 +964,7 @@ Section WPProofs.
       intros m.
       change (match m with
               | 0 => 0
-              | Datatypes.S m' => Datatypes.S (Nat.min hi m')
+              | S m' => S (Nat.min hi m')
               end - lo)
         with (Nat.min (1 + hi) m - lo).
       intros.
@@ -1740,7 +1740,7 @@ Section WPProofs.
     intros.
     destruct (Compare_dec.le_lt_dec _ _).
     - simpl.
-      generalize (eq_rect (Datatypes.S (conf_buf_len q)) (n_tuple bool)
+      generalize (eq_rect (S (conf_buf_len q)) (n_tuple bool)
        (conf_buf q, a0) (size' (P4A.interp a) (conf_state q))
        (squeeze (conf_buf_sane q) l)).
       rewrite H.

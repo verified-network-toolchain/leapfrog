@@ -353,7 +353,7 @@ Section ReachablePairs.
   Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
     match fuel with
     | 0 => r
-    | Datatypes.S fuel => reachable_step (reachable_states' fuel r)
+    | S fuel => reachable_step (reachable_states' fuel r)
     end.
 
   Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
@@ -426,7 +426,7 @@ Section ReachablePairs.
     induction f1; intros.
     - rewrite plus_O_n.
       reflexivity.
-    - replace (Datatypes.S f1 + f2) with (Datatypes.S (f1 + f2)) by lia.
+    - replace (S f1 + f2) with (S (f1 + f2)) by lia.
       simpl.
       now rewrite IHf1.
   Qed.
@@ -624,7 +624,7 @@ Section ReachablePairs.
         rewrite List.rev_unit in H4.
         discriminate.
       + rewrite List.app_length; simpl.
-        replace (length lpost + 1) with (Datatypes.S (length lpost)) by lia; simpl.
+        replace (length lpost + 1) with (S (length lpost)) by lia; simpl.
         unfold reachable_step.
         rewrite List.nodup_In.
         rewrite List.in_app_iff.
@@ -839,7 +839,7 @@ Section ReachablePairs.
     List.In p2 (reachable_states' (length valid_state_pairs) r).
   Proof.
     intros.
-    apply reachable_states_bound with (fuel := Datatypes.S (length valid_state_pairs)); auto.
+    apply reachable_states_bound with (fuel := S (length valid_state_pairs)); auto.
     unfold reachable_states'.
     fold (reachable_states' (length valid_state_pairs) r).
     revert H1; apply reachable_step_mono.
