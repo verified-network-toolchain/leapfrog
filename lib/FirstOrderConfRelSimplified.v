@@ -13,17 +13,17 @@ Local Open Scope program_scope.
 Section AutModel.
   Set Implicit Arguments.
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat)
@@ -64,7 +64,7 @@ Section AutModel.
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
       mod_fns (Lookup k) (store ::: hnil) :=
-        match P4A.find H sz k store with
+        match P4A.find Hdr sz k store with
         | P4A.VBits _ v => v
         end
     }.
@@ -131,15 +131,15 @@ Section AutModel.
           autorewrite with mod_fns.
           destruct (interp_tm v t).
           rewrite concat_emp'.
-          apply H0.
+          apply H.
         * autorewrite with simplify_concat_zero.
           autorewrite with interp_tm; simpl.
           autorewrite with mod_fns.
-          f_equal; apply H0.
+          f_equal; apply H.
       + autorewrite with simplify_concat_zero.
         autorewrite with interp_tm; simpl.
         do 2 f_equal.
-        apply H0.
+        apply H.
       + now autorewrite with simplify_concat_zero.
   Qed.
 
@@ -165,7 +165,7 @@ Section AutModel.
     autorewrite with interp_fm;
     repeat erewrite <- simplify_concat_zero_corr;
     (try now split; intros; auto).
-    - split; unfold "~"; intros; apply H0; eapply IHf; auto.
+    - split; unfold "~"; intros; apply H; eapply IHf; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
@@ -206,7 +206,7 @@ Section AutModel.
         * repeat erewrite interp_zero_tm; split; intros; autorewrite with interp_fm; autorewrite with interp_fm; auto.
         * autorewrite with interp_fm; split; intros; auto.
       + autorewrite with interp_fm; split; intros; auto.
-    - split; unfold "~"; intros; apply H0; eapply IHf; auto.
+    - split; unfold "~"; intros; apply H; eapply IHf; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.
     - erewrite IHf1. erewrite IHf2. split; intros; auto.

@@ -11,17 +11,17 @@ Import HListNotations.
 Section AutModel.
   Set Implicit Arguments.
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -84,11 +84,11 @@ Section AutModel.
       mod_fns (Slice n hi lo) (xs ::: hnil) :=
         n_tuple_slice hi lo xs;
       mod_fns (Lookup k) (store ::: hnil) :=
-        match P4A.find H sz k store with
+        match P4A.find Hdr sz k store with
         | P4A.VBits _ v => v
         end;
       mod_fns (Update k) (store ::: v ::: hnil) :=
-        P4A.assign H sz k (P4A.VBits _ v) store;
+        P4A.assign Hdr sz k (P4A.VBits _ v) store;
       mod_fns (State1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_state);
       mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store);
       mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state);

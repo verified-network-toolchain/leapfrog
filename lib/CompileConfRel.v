@@ -11,17 +11,17 @@ Section CompileConfRel.
   Set Implicit Arguments.
 
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -31,7 +31,7 @@ Section CompileConfRel.
     | BCSnoc b size => CSnoc _ (compile_bctx b) (Bits size)
     end.
 
-  Definition be_sort {c} {b1 b2: nat} (e: bit_expr H c) : sorts :=
+  Definition be_sort {c} {b1 b2: nat} (e: bit_expr Hdr c) : sorts :=
     Bits (be_size sz b1 b2 e).
 
   Equations compile_var {c: bctx} (x: bvar c) : var (sig a) (compile_bctx c) (Bits (check_bvar x)) :=
@@ -56,7 +56,7 @@ Section CompileConfRel.
             {c: bctx}
             (b1 b2: nat)
             (q: tm (sig a) (compile_bctx c) (ConfigPair b1 b2))
-            (e: bit_expr H c)
+            (e: bit_expr Hdr c)
     : tm (sig a) (compile_bctx c) (be_sort (b1 := b1) (b2 := b2) e) :=
     { compile_bit_expr q (BELit _ _ l) :=
         TFun (sig a) (BitsLit a (List.length l) (Ntuple.l2t l)) hnil;
@@ -81,7 +81,7 @@ Section CompileConfRel.
             {c: bctx}
             {b1 b2: nat}
             (q: tm (sig a) (compile_bctx c) (ConfigPair b1 b2))
-            (r: store_rel H c)
+            (r: store_rel Hdr c)
             : fm (sig a) (compile_bctx c) :=
     { compile_store_rel q BRTrue := FTrue;
       compile_store_rel q BRFalse := FFalse;
@@ -158,7 +158,7 @@ Section CompileConfRel.
     TFun (sig a) (ConfPairLit (q1', q2')) hnil.
 
   Lemma compile_store_rel_correct:
-    forall c (r: store_rel H c) valu q1 q2,
+    forall c (r: store_rel Hdr c) valu q1 q2,
       interp_store_rel r valu q1.(conf_buf) q2.(conf_buf)
                        q1.(conf_store) q2.(conf_store) <->
       interp_fm (m := fm_model a) (compile_bval valu)
@@ -182,10 +182,12 @@ Section CompileConfRel.
     setoid_rewrite compile_store_rel_correct.
     fold (compile_bctx cr_ctx).
     intuition.
-    specialize (H0 (eq_sym H3) (eq_sym H4) (conj (eq_sym H1) (eq_sym H5))).
-    specialize (H0 (decompile_val valu)).
-    rewrite bval_roundtrip in H0.
-    auto.
+    specialize (H (eq_sym H2)).
+    specialize (H (eq_sym H3)).
+    specialize (H (conj (eq_sym H0) (eq_sym H4))).
+    specialize (H (decompile_val valu)).
+    rewrite bval_roundtrip in H.
+    eauto.
   Qed.
 
   Lemma compile_crel_correct:
@@ -197,7 +199,7 @@ Section CompileConfRel.
     unfold interp_crel, compile_crel.
     induction R.
     - simpl; intros.
-      apply H0.
+      apply H.
     - intros.
       cbn in *; autorewrite with interp_fm in *.
       rewrite compile_conf_rel_correct.
@@ -219,15 +221,15 @@ Section CompileConfRel.
     unfold compile_entailment.
     setoid_rewrite compile_conf_rel_correct.
     pose proof compile_crel_correct.
-    specialize (H1 (e_prem e) i ifm).
+    specialize (H0 (e_prem e) i ifm).
     split; intros.
     - autorewrite with interp_fm.
       intros.
-      apply H2.
-      now rewrite H1 by auto.
-    - specialize (H2 q1 q2).
-      autorewrite with interp_fm in H2.
-      apply H2.
+      apply H1.
+      now rewrite H0 by auto.
+    - specialize (H1 q1 q2).
+      autorewrite with interp_fm in H1.
+      apply H1.
       now apply compile_crel_correct with (i := i).
   Qed.
 

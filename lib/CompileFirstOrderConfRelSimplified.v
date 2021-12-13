@@ -20,20 +20,20 @@ Module FOBV := FirstOrderBitVec.
 Section CompileFirstOrderConfRelSimplified.
   Set Implicit Arguments.
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
 
   Equations compile_store_ctx_partial
-    (hdrs: list H)
+    (hdrs: list Hdr)
     : ctx FOBV.sig
   := {
     compile_store_ctx_partial nil := CEmp _;
@@ -42,10 +42,10 @@ Section CompileFirstOrderConfRelSimplified.
   }.
 
   Definition compile_store_ctx : ctx FOBV.sig :=
-    compile_store_ctx_partial (enum H).
+    compile_store_ctx_partial (enum Hdr).
 
   Equations compile_store_valu_partial
-    {hdrs: list H}
+    {hdrs: list Hdr}
     (hl: HList.t (fun h => (n_tuple bool (sz h))) hdrs)
     : valu FOBV.sig FOBV.fm_model (compile_store_ctx_partial hdrs)
       by struct hl
@@ -65,12 +65,12 @@ Section CompileFirstOrderConfRelSimplified.
   }.
 
   Equations build_hlist_env
-    (hdrs: list H)
-    (env: P4A.store H sz)
+    (hdrs: list Hdr)
+    (env: P4A.store Hdr sz)
     : (HList.t (fun h => (n_tuple bool (sz h))) hdrs) := {
       build_hlist_env nil _ := hnil;
       build_hlist_env (hdr :: hdrs) env :=
-        let v := match P4A.find H sz hdr env with
+        let v := match P4A.find Hdr sz hdr env with
                  | P4A.VBits _ v => v
                  end in
         (_ v) ::: build_hlist_env hdrs env
@@ -102,12 +102,12 @@ Section CompileFirstOrderConfRelSimplified.
     - right.
       destruct Hin.
       + contradiction.
-      + exact H1.
+      + exact H0.
   Defined.
 
   Equations compile_lookup_partial
-    (k: H)
-    (enum: list H)
+    (k: Hdr)
+    (enum: list Hdr)
     (elem_of_enum: List.In k enum)
     : var (FOBV.sig) (compile_store_ctx_partial enum)
           (FOBV.Bits (sz k)) := {
@@ -121,25 +121,25 @@ Section CompileFirstOrderConfRelSimplified.
       end
   }.
 
-  Definition compile_lookup (k: H)
+  Definition compile_lookup (k: Hdr)
     : var FOBV.sig compile_store_ctx (FOBV.Bits (sz k))
   :=
-    compile_lookup_partial k (enum H) (elem_of_enum k).
+    compile_lookup_partial k (enum Hdr) (elem_of_enum k).
 
-  Definition get_sizes (enum: list H) : list nat :=
+  Definition get_sizes (enum: list Hdr) : list nat :=
     List.map sz enum.
 
-  Definition compile_sizes (enum: list H) : nat :=
+  Definition compile_sizes (enum: list Hdr) : nat :=
     List.list_sum (get_sizes enum).
 
   Definition compile_sort (s: FOS.sorts) : FOBV.sorts :=
     match s with
     | FOS.Bits n => FOBV.Bits n
-    | FOS.Store => FOBV.Bits (compile_sizes (enum H))
+    | FOS.Store => FOBV.Bits (compile_sizes (enum Hdr))
     end.
 
   Equations compile_store_partial
-    (enum: list H)
+    (enum: list Hdr)
     : tm FOBV.sig (compile_store_ctx_partial enum)
                   (FOBV.Bits (compile_sizes enum)) := {
     compile_store_partial nil := TFun FOBV.sig (FOBV.BitsLit 0 tt) hnil;
@@ -152,7 +152,7 @@ Section CompileFirstOrderConfRelSimplified.
   Definition compile_store
     : tm (FOBV.sig) compile_store_ctx (compile_sort FOS.Store)
   :=
-    compile_store_partial (enum H).
+    compile_store_partial (enum Hdr).
 
   Equations subscript {c n}
     (v: var (FOS.sig sz) c FOS.Store)
@@ -216,12 +216,12 @@ Section CompileFirstOrderConfRelSimplified.
 
   Equations compile_store_val_partial
     (s: store (P4A.interp a))
-    (enum: list H)
+    (enum: list Hdr)
     : n_tuple bool (compile_sizes enum)
   := {
     compile_store_val_partial s nil := tt;
     compile_store_val_partial s (elem :: enum) :=
-      let '(P4A.VBits _ v) := P4A.find H sz elem s in
+      let '(P4A.VBits _ v) := P4A.find Hdr sz elem s in
       n_tuple_concat v (compile_store_val_partial s enum)
   }.
 
@@ -232,16 +232,16 @@ Section CompileFirstOrderConfRelSimplified.
   := {
     @compile_val (FOS.Bits _) v := _ v;
     @compile_val FOS.Store s :=
-      compile_store_val_partial s (enum H);
+      compile_store_val_partial s (enum Hdr);
   }.
 
   Transparent compile_store_valu_partial.
 
   Lemma compile_store_val_correct':
-    forall (h : H)
+    forall (h : Hdr)
       (m : mod_sorts (FOS.sig sz) (FOS.fm_model a) FOS.Store) enum Hin,
     List.NoDup enum ->
-    match P4A.find H sz h m with
+    match P4A.find Hdr sz h m with
     | P4A.VBits _ v1 => v1
     end =
     find FOBV.sig FOBV.fm_model
@@ -270,18 +270,18 @@ Section CompileFirstOrderConfRelSimplified.
       + unfold here_or_there.
         destruct (equiv_dec _ _); simpl.
         unfold equiv in e.
-        inversion H0.
+        inversion H.
         congruence.
         rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_store_ctx_partial enum) (FOBV.Bits (sz a0)) (FOBV.Bits (sz h))).
         apply IHenum.
-        now inversion H0.
+        now inversion H.
   Qed.
 
   Opaque compile_store_valu_partial.
 
   Lemma compile_store_val_correct:
-    forall (h : H) c (v0 : var (FOS.sig sz) c FOS.Store) v,
-      match P4A.find H sz h (find (FOS.sig sz) (FOS.fm_model a) v0 v)
+    forall (h : Hdr) c (v0 : var (FOS.sig sz) c FOS.Store) v,
+      match P4A.find Hdr sz h (find (FOS.sig sz) (FOS.fm_model a) v0 v)
       with
       | P4A.VBits _ v1 => v1
       end =
@@ -294,7 +294,7 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite (subscript_equation_1 c).
       replace (find FOBV.sig FOBV.fm_model _ _)
       with (find FOBV.sig FOBV.fm_model (compile_lookup h)
-                 (compile_store_valu_partial (build_hlist_env (enum H) m))).
+                 (compile_store_valu_partial (build_hlist_env (enum Hdr) m))).
       + autorewrite with find.
         unfold compile_lookup.
         apply compile_store_val_correct'.
@@ -313,16 +313,16 @@ Section CompileFirstOrderConfRelSimplified.
   Qed.
 
   Equations decompile_store_val_partial
-    (enum: list H)
+    (enum: list Hdr)
     (val: n_tuple bool (compile_sizes enum))
-    (store: P4A.store H sz)
-    : P4A.store H sz
+    (store: P4A.store Hdr sz)
+    : P4A.store Hdr sz
   := {
     decompile_store_val_partial nil val store := store;
     decompile_store_val_partial (elem :: enum) val store :=
       let prefix := rewrite_size _ (n_tuple_take_n (sz elem) val) in
       let suffix := rewrite_size _ (n_tuple_skip_n (sz elem) val) in
-      P4A.assign H sz elem (P4A.VBits _ prefix)
+      P4A.assign Hdr sz elem (P4A.VBits _ prefix)
                  (decompile_store_val_partial enum suffix store)
   }.
   Next Obligation.
@@ -340,7 +340,7 @@ Section CompileFirstOrderConfRelSimplified.
     Lia.lia.
   Defined.
 
-  Definition init_store: P4A.store H sz.
+  Definition init_store: P4A.store Hdr sz.
   Proof.
     apply DepEnv.init.
     intro.
@@ -356,13 +356,13 @@ Section CompileFirstOrderConfRelSimplified.
   := {
     @decompile_val (FOS.Bits _) v := v;
     @decompile_val FOS.Store v :=
-      decompile_store_val_partial (enum H) v init_store;
+      decompile_store_val_partial (enum Hdr) v init_store;
   }.
 
   Lemma compile_store_val_partial_invariant:
     forall h v enum s,
       ~ List.In h enum ->
-      compile_store_val_partial (P4A.assign H sz h v s) enum =
+      compile_store_val_partial (P4A.assign Hdr sz h v s) enum =
       compile_store_val_partial s enum.
   Proof.
     intros.
@@ -371,9 +371,9 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with compile_store_val_partial; simpl.
       rewrite IHenum.
       + rewrite P4A.find_not_first; auto.
-        contradict H0.
+        contradict H.
         subst; now apply List.in_eq.
-      + contradict H0.
+      + contradict H.
         now apply List.in_cons.
   Qed.
 
@@ -400,7 +400,7 @@ Section CompileFirstOrderConfRelSimplified.
       + rewrite compile_store_val_partial_invariant.
         rewrite <- IHenum.
         now rewrite rewrite_size_jmeq.
-        all: now inversion H0.
+        all: now inversion H.
   Qed.
 
   Lemma compile_val_roundtrip:
@@ -417,7 +417,7 @@ Section CompileFirstOrderConfRelSimplified.
   Qed.
 
   Definition store_almost_equal (s1 s2: store (P4A.interp a)) :=
-    forall (h: H), P4A.find H sz h s1 = P4A.find H sz h s2.
+    forall (h: Hdr), P4A.find Hdr sz h s1 = P4A.find Hdr sz h s2.
 
   Theorem store_eq:
     forall (s1 s2: store (P4A.interp a)),
@@ -442,8 +442,8 @@ Section CompileFirstOrderConfRelSimplified.
       unfold store_almost_equal; intros.
       autorewrite with compile_val.
       autorewrite with decompile_val.
-      pose proof (elem_of_enum (Finite := H_finite) h).
-      revert h H0; induction (enum H); intros.
+      pose proof (elem_of_enum (Finite := Hdr_finite) h).
+      revert h H; induction (enum Hdr); intros.
       + contradiction.
       + destruct (h == a0).
         * unfold equiv in e.
@@ -454,24 +454,24 @@ Section CompileFirstOrderConfRelSimplified.
           simpl.
           rewrite P4A.assign_find;
             try solve [eauto | typeclasses eauto].
-          destruct (P4A.find H sz a0 val).
+          destruct (P4A.find Hdr sz a0 val).
           f_equal.
           apply JMeq_eq.
           rewrite rewrite_size_jmeq.
           pose proof NtupleProofs.n_tuple_take_n_roundtrip.
-          now specialize (H1 (sz a0) n _ (compile_store_val_partial val l)).
+          now specialize (H0 (sz a0) n _ (compile_store_val_partial val l)).
         * unfold equiv, complement in c.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
           simpl.
           rewrite P4A.find_not_first by assumption.
-          rewrite IHl by (destruct H0; congruence).
+          rewrite IHl by (destruct H; congruence).
           do 2 f_equal.
-          destruct (P4A.find H sz a0 val).
+          destruct (P4A.find Hdr sz a0 val).
           apply JMeq_eq.
           rewrite rewrite_size_jmeq.
           pose proof NtupleProofs.n_tuple_skip_n_roundtrip.
-          now specialize (H1 (sz a0) n _ (compile_store_val_partial val l)).
+          now specialize (H0 (sz a0) n _ (compile_store_val_partial val l)).
   Qed.
 
   Lemma compile_store_val_partial_correct':
@@ -487,7 +487,7 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
-      destruct (P4A.find H sz a0 m).
+      destruct (P4A.find Hdr sz a0 m).
       rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum) n).
       rewrite (compile_store_partial_equation_2 a0 enum).
       autorewrite with interp_tm; simpl.
@@ -499,10 +499,10 @@ Section CompileFirstOrderConfRelSimplified.
 
   Lemma compile_store_val_partial_correct:
     forall m,
-      compile_store_val_partial m (enum H) =
+      compile_store_val_partial m (enum Hdr) =
       interp_tm
-          (compile_store_valu_partial (build_hlist_env (enum H) m))
-          (compile_store_partial (enum H)).
+          (compile_store_valu_partial (build_hlist_env (enum Hdr) m))
+          (compile_store_partial (enum Hdr)).
   Proof.
     apply compile_store_val_partial_correct'.
   Qed.
@@ -523,8 +523,8 @@ Section CompileFirstOrderConfRelSimplified.
         autorewrite with find.
         replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
         with (interp_tm
-                (compile_store_valu_partial (build_hlist_env (enum H) m))
-                (compile_store_partial (enum (Finite := H_finite) H))).
+                (compile_store_valu_partial (build_hlist_env (enum Hdr) m))
+                (compile_store_partial (enum (Finite := Hdr_finite) Hdr))).
         * autorewrite with compile_val.
           apply compile_store_val_partial_correct.
         * now rewrite interp_tm_reindex_tm with (sig := FOBV.sig) (v' := compile_valu val).
@@ -551,7 +551,7 @@ Section CompileFirstOrderConfRelSimplified.
           rewrite <- IHval.
           -- now autorewrite with interp_tm.
           -- now rewrite interp_tm_weaken_tm with
-               (v' := (compile_store_valu_partial (build_hlist_env (enum H) m))).
+               (v' := (compile_store_valu_partial (build_hlist_env (enum Hdr) m))).
   Qed.
 
   Lemma compile_simplified_tm_bv_correct:
@@ -574,8 +574,8 @@ Section CompileFirstOrderConfRelSimplified.
       end;
       auto.
       + unfold compile_val_obligations_obligation_1.
-        now rewrite <- H0, <- H1.
-      + now rewrite <- H0.
+        now rewrite <- H, <- H0.
+      + now rewrite <- H.
       + dependent destruction t; [|easy].
         autorewrite with compile_tm.
         autorewrite with interp_tm.
@@ -587,7 +587,7 @@ Section CompileFirstOrderConfRelSimplified.
   Lemma compile_store_valu_partial_invariant:
     forall h v enum s,
       ~ List.In h enum ->
-      compile_store_valu_partial (build_hlist_env enum (P4A.assign H sz h v s)) =
+      compile_store_valu_partial (build_hlist_env enum (P4A.assign Hdr sz h v s)) =
       compile_store_valu_partial (build_hlist_env enum s).
   Proof.
     induction enum; intros.
@@ -597,15 +597,15 @@ Section CompileFirstOrderConfRelSimplified.
       unfold build_hlist_env_obligations_obligation_1.
       rewrite P4A.find_not_first;
         try solve [typeclasses eauto | eauto].
-      + destruct (P4A.find H sz a0 s).
+      + destruct (P4A.find Hdr sz a0 s).
         specialize (IHenum s).
         rewrite (compile_store_valu_partial_equation_2 _ (rest := enum)).
         rewrite (compile_store_valu_partial_equation_2 _ (rest := enum)).
         f_equal.
         apply IHenum.
-        contradict H0.
+        contradict H.
         now apply List.in_cons.
-      + contradict H0.
+      + contradict H.
         subst.
         apply List.in_eq.
   Qed.
@@ -614,7 +614,7 @@ Section CompileFirstOrderConfRelSimplified.
     forall enum,
       List.NoDup enum ->
       forall (val: valu FOBV.sig FOBV.fm_model (compile_store_ctx_partial enum)),
-        exists s: P4A.store H sz,
+        exists s: P4A.store Hdr sz,
           compile_store_valu_partial (build_hlist_env enum s) = val.
   Proof.
     induction enum; intros.
@@ -623,10 +623,10 @@ Section CompileFirstOrderConfRelSimplified.
       dependent destruction val.
       reflexivity.
     - dependent destruction val.
-      inversion H0.
-      specialize (IHenum H4 val).
+      inversion H.
+      specialize (IHenum H3 val).
       destruct IHenum as [? ?].
-      exists (P4A.assign H sz a0 (P4A.VBits _ m) x0).
+      exists (P4A.assign Hdr sz a0 (P4A.VBits _ m) x0).
       autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
@@ -639,8 +639,8 @@ Section CompileFirstOrderConfRelSimplified.
 
   Lemma compile_store_valu_partial_surjective:
     forall (val: valu FOBV.sig FOBV.fm_model compile_store_ctx),
-      exists s: P4A.store H sz,
-        compile_store_valu_partial (build_hlist_env (enum H) s) = val.
+      exists s: P4A.store Hdr sz,
+        compile_store_valu_partial (build_hlist_env (enum Hdr) s) = val.
   Proof.
     intros.
     apply compile_store_valu_partial_surjective'.
@@ -672,22 +672,22 @@ Section CompileFirstOrderConfRelSimplified.
       + autorewrite with compile_fm.
         autorewrite with interp_fm.
         intuition.
-        -- specialize (H0 (decompile_val val (sort := FOS.Bits n))).
-           apply IHfm in H0.
-           apply H0.
-        -- specialize (H0 (compile_val val)).
+        -- specialize (H (decompile_val val (sort := FOS.Bits n))).
+           apply IHfm in H.
+           apply H.
+        -- specialize (H (compile_val val)).
            apply IHfm.
-           apply H0.
+           apply H.
       + autorewrite with compile_fm.
         rewrite quantify_correct.
         intuition.
         -- pose proof (compile_store_valu_partial_surjective valu).
-           destruct H1 as [s ?].
-           specialize (H0 s).
-           apply IHfm in H0.
-           rewrite (compile_valu_equation_3 s (c0 := c)) in H0.
-           now rewrite H1 in H0.
-        -- specialize (H0 (compile_store_valu_partial (build_hlist_env _ val))).
+           destruct H0 as [s ?].
+           specialize (H s).
+           apply IHfm in H.
+           rewrite (compile_valu_equation_3 s (c0 := c)) in H.
+           now rewrite H0 in H.
+        -- specialize (H (compile_store_valu_partial (build_hlist_env _ val))).
            apply IHfm.
            now rewrite (compile_valu_equation_3 val (c0 := c)).
   Qed.

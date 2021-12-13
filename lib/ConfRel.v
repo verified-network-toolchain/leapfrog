@@ -82,17 +82,17 @@ Section ConfRel.
   Set Implicit Arguments.
 
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -125,7 +125,7 @@ Section ConfRel.
     t1 = t2.
   Proof.
     unfold interp_state_template; intros.
-    destruct H0, H1.
+    destruct H, H0.
     destruct t1, t2; simpl in *.
     congruence.
   Qed.
@@ -147,7 +147,7 @@ Section ConfRel.
   Inductive bit_expr (c: bctx) :=
   | BELit (l: list bool)
   | BEBuf (a: side)
-  | BEHdr (a: side) (h: P4A.hdr_ref H)
+  | BEHdr (a: side) (h: P4A.hdr_ref Hdr)
   | BEVar (b: bvar c)
   | BESlice (e: bit_expr c) (hi lo: nat)
   | BEConcat (e1 e2: bit_expr c).
@@ -469,7 +469,7 @@ Section ConfRel.
   Next Obligation.
     intro Hs.
     inversion Hs.
-    apply Eqdep_dec.inj_pair2_eq_dec in H2.
+    apply Eqdep_dec.inj_pair2_eq_dec in H1.
     - contradiction.
     - apply bctx_eq_dec.
   Qed.
@@ -561,7 +561,7 @@ Section ConfRel.
     intros; induction R.
     - intuition.
     - rewrite interp_crel_cons, IHR; intuition.
-      destruct H4; subst; intuition.
+      destruct H3; subst; intuition.
   Qed.
 
   Lemma interp_crel_nodup:
@@ -755,13 +755,13 @@ Section ConfRel.
     - pose (q1 := {|
         conf_state := e.(e_concl).(cr_st).(cs_st1).(st_state);
         conf_store := store1;
-        conf_buf_sane := H1;
+        conf_buf_sane := H0;
         conf_buf := buf1;
       |}).
       pose (q2 := {|
         conf_state := e.(e_concl).(cr_st).(cs_st2).(st_state);
         conf_store := store2;
-        conf_buf_sane := H2;
+        conf_buf_sane := H1;
         conf_buf := buf2;
       |}).
       replace buf1 with (conf_buf q1) by reflexivity.
@@ -769,39 +769,39 @@ Section ConfRel.
       replace store1 with (conf_store q1) by reflexivity.
       replace store2 with (conf_store q2) by reflexivity.
       apply simplify_conf_rel_correct with (c1 := q1) (c2 := q2); subst q1 q2.
-      + apply H0; auto.
+      + apply H; auto.
         eapply simplify_crel_correct; try split.
         * now unfold interp_state_template; simpl.
         * now unfold interp_state_template; simpl.
         * unfold conf_to_state_template; simpl.
           now (destruct (e.(e_concl).(cr_st).(cs_st1));
                destruct (e.(e_concl).(cr_st).(cs_st2))).
-        * apply H4.
+        * apply H3.
       + now unfold interp_conf_state, interp_state_template; simpl.
     - apply simplify_conf_rel_correct; intros.
-      destruct H2 as [[? ?] [? ?]].
-      rewrite H3, H5 in H0.
-      apply H0; auto.
+      destruct H1 as [[? ?] [? ?]].
+      rewrite H2, H4 in H.
+      apply H; auto.
       * unfold state_template_sane.
-        rewrite H3, H2.
+        rewrite H2, H1.
         apply q1.
       * unfold state_template_sane.
-        rewrite H4, H5.
+        rewrite H3, H4.
         apply q2.
-      * clear H0.
+      * clear H.
         induction (e_prem e).
-        + cbn in H1.
-          unfold conf_to_state_template in H1.
-          rewrite <- H2, <- H3, <- H4, <- H5 in H1.
+        + cbn in H0.
+          unfold conf_to_state_template in H0.
+          rewrite <- H1, <- H2, <- H3, <- H4 in H0.
           destruct (cs_st1 (cr_st (e_concl e))).
           destruct (cs_st2 (cr_st (e_concl e))).
           now simpl in *.
-        + rewrite interp_crel_cons in H1.
+        + rewrite interp_crel_cons in H0.
           apply IHc.
           intuition.
       * eapply simplify_crel_correct; auto.
         + now unfold interp_conf_state, interp_state_template.
-        + exact H1.
+        + exact H0.
   Qed.
 
   Lemma simplify_entailment_correct' (e: entailment):
@@ -819,13 +819,13 @@ Section ConfRel.
       pose (q1 := {|
         conf_state := e.(e_concl).(cr_st).(cs_st1).(st_state);
         conf_store := store1;
-        conf_buf_sane := H1;
+        conf_buf_sane := H0;
         conf_buf := buf1;
       |}).
       pose (q2 := {|
         conf_state := e.(e_concl).(cr_st).(cs_st2).(st_state);
         conf_store := store2;
-        conf_buf_sane := H2;
+        conf_buf_sane := H1;
         conf_buf := buf2;
       |}).
       replace buf1 with (conf_buf q1) in * by reflexivity.
@@ -833,28 +833,28 @@ Section ConfRel.
       replace store1 with (conf_store q1) in * by reflexivity.
       replace store2 with (conf_store q2) in * by reflexivity.
       pose proof (simplify_crel_correct i e.(e_prem)).
-      specialize (H5 e.(e_concl).(cr_st) q1 q2).
-      apply H5; try easy.
-      apply H0; try easy.
+      specialize (H4 e.(e_concl).(cr_st) q1 q2).
+      apply H4; try easy.
+      apply H; try easy.
       subst q1 q2.
       now destruct e, e_concl0, cr_st0, cs_st3, cs_st4; simpl in *.
     - intros.
-      unfold interp_simplified_entailment' in H0.
+      unfold interp_simplified_entailment' in H.
       unfold interp_entailment'; intros.
-      rewrite simplify_conf_rel_correct' in H2.
+      rewrite simplify_conf_rel_correct' in H1.
       rewrite simplify_crel_correct; intuition.
       replace (simplify_crel (e_prem e) (cr_st (e_concl e))) with (se_prems (simplify_entailment e)) by reflexivity.
-      unfold interp_conf_state, interp_state_template in H3.
-      destruct H3 as [[? ?] [? ?]].
+      unfold interp_conf_state, interp_state_template in H2.
+      destruct H2 as [[? ?] [? ?]].
       destruct q1, q2; simpl in *.
       unfold conf_to_state_template in *; simpl in *.
-      rewrite H3, H6 in H0.
-      apply H0.
+      rewrite H2, H5 in H.
+      apply H.
       + unfold state_template_sane; congruence.
       + unfold state_template_sane; congruence.
       + destruct e, e_concl, cr_st, cs_st1, cs_st2; simpl in *.
         congruence.
-      + apply H4.
+      + apply H3.
   Qed.
 End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} {_} {_} a phi.

@@ -11,26 +11,26 @@ Section WP.
   Set Implicit Arguments.
 
   (* State identifiers. *)
-  Variable (S1: Type).
-  Context `{S1_eq_dec: EquivDec.EqDec S1 eq}.
-  Context `{S1_finite: @Finite S1 _ S1_eq_dec}.
+  Variable (St1: Type).
+  Context `{St1_eq_dec: EquivDec.EqDec St1 eq}.
+  Context `{St1_finite: @Finite St1 _ St1_eq_dec}.
 
-  Variable (S2: Type).
-  Context `{S2_eq_dec: EquivDec.EqDec S2 eq}.
-  Context `{S2_finite: @Finite S2 _ S2_eq_dec}.
+  Variable (St2: Type).
+  Context `{St2_eq_dec: EquivDec.EqDec St2 eq}.
+  Context `{St2_finite: @Finite St2 _ St2_eq_dec}.
 
-  Notation S := (S1 + S2)%type.
+  Notation St := (St1 + St2)%type.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St sz).
   Variable (reachable_states: list (state_template a * state_template a)).
 
-  Fixpoint be_subst {c} (be: bit_expr H c) (e: bit_expr H c) (x: bit_expr H c) : bit_expr H c :=
+  Fixpoint be_subst {c} (be: bit_expr Hdr c) (e: bit_expr Hdr c) (x: bit_expr Hdr c) : bit_expr Hdr c :=
     match be with
     | BELit _ _ l => BELit _ _ l
     | BEBuf _ _ _
@@ -41,7 +41,7 @@ Section WP.
     | BEConcat e1 e2 => beconcat (be_subst e1 e x) (be_subst e2 e x)
     end.
 
-  Fixpoint sr_subst {c} (sr: store_rel H c) (e: bit_expr H c) (x: bit_expr H c) : store_rel H c :=
+  Fixpoint sr_subst {c} (sr: store_rel Hdr c) (e: bit_expr Hdr c) (x: bit_expr Hdr c) : store_rel Hdr c :=
   match sr with
   | BRTrue _ _
   | BRFalse _ _ => sr
@@ -61,7 +61,7 @@ Section WP.
     | _ => Read
     end.
 
-  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr sz n) : bit_expr H c :=
+  Fixpoint expr_to_bit_expr {c n} (s: side) (e: P4A.expr sz n) : bit_expr Hdr c :=
     match e with
     | P4A.EHdr h => BEHdr c s (P4A.HRVar h)
     | P4A.ELit _ bs => BELit _ c (Ntuple.t2l bs)
@@ -69,12 +69,12 @@ Section WP.
     | P4A.EConcat l r => BEConcat (expr_to_bit_expr s l) (expr_to_bit_expr s r)
     end.
 
-  Definition val_to_bit_expr {c n} (value: P4A.v n) : bit_expr H c :=
+  Definition val_to_bit_expr {c n} (value: P4A.v n) : bit_expr Hdr c :=
     match value with
     | P4A.VBits _ bs => BELit _ c (Ntuple.t2l bs)
     end.
 
-  Fixpoint wp_op' {c} (s: side) (o: P4A.op sz) : nat * store_rel H c -> nat * store_rel H c :=
+  Fixpoint wp_op' {c} (s: side) (o: P4A.op sz) : nat * store_rel Hdr c -> nat * store_rel Hdr c :=
     fun '(buf_hi_idx, phi) =>
       match o with
       | P4A.OpNil _ => (buf_hi_idx, phi)
@@ -88,10 +88,10 @@ Section WP.
         (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar lhs)))
       end.
 
-  Definition wp_op {c} (s: side) (o: P4A.op sz) (phi: store_rel H c) : store_rel H c :=
+  Definition wp_op {c} (s: side) (o: P4A.op sz) (phi: store_rel Hdr c) : store_rel Hdr c :=
     snd (wp_op' s o (P4A.op_size o, phi)).
 
-  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond sz ty) : store_rel H ctx :=
+  Equations pat_cond {ctx: bctx} {ty: P4A.typ} (si: side) (p: P4A.pat ty) (c: P4A.cond sz ty) : store_rel Hdr ctx :=
     { pat_cond si (P4A.PExact val) (P4A.CExpr e) :=
         BREq (expr_to_bit_expr si e) (val_to_bit_expr val);
       pat_cond _ (P4A.PAny _) _ :=
@@ -104,10 +104,10 @@ Section WP.
     {ty: Syntax.typ}
     (si: side)
     (cond: Syntax.cond sz ty)
-    (target: P4A.state_ref S)
-    (cases: list (P4A.sel_case S ty))
-    (default: P4A.state_ref S)
-    : store_rel H ctx
+    (target: P4A.state_ref St)
+    (cases: list (P4A.sel_case St ty))
+    (default: P4A.state_ref St)
+    : store_rel Hdr ctx
   :=
     match cases with
     | nil =>
@@ -123,9 +123,9 @@ Section WP.
   Definition trans_cond
              {c: bctx}
              (s: side)
-             (t: P4A.transition S sz)
-             (st': P4A.state_ref S)
-    : store_rel H c :=
+             (t: P4A.transition St sz)
+             (st': P4A.state_ref St)
+    : store_rel Hdr c :=
     match t with
     | P4A.TGoto _ r =>
       if r == st'
@@ -139,7 +139,7 @@ Section WP.
              {c}
              (si: side)
              (prev cur: state_template a)
-    : store_rel H c :=
+    : store_rel Hdr c :=
     match prev.(st_state) with
     | inl cand =>
       let st := a.(P4A.t_states) cand in
@@ -156,8 +156,8 @@ Section WP.
              (b: bvar c)
              (prev cur: state_template a)
              (k: lkind)
-             (phi: store_rel H c)
-    : store_rel H c :=
+             (phi: store_rel Hdr c)
+    : store_rel Hdr c :=
     let phi' :=
     match k with
     | Read =>
