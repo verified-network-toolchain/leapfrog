@@ -19,3 +19,4 @@ _CoqProject
 *.coq.conf
 *.coq.d
 *.glob
+.lia.cache
