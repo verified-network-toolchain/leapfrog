@@ -222,19 +222,18 @@ Ltac extend_bisim' HN r_states :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
-    time "apply extend" (apply PreBisimulationExtend with (H0 := right HN) (W := t));
+    time "apply extend" (apply PreBisimulationExtend with (H := right HN) (W := t));
     [ trivial | subst t; reflexivity |];
     clear HN;
     time "wp compute" vm_compute in t;
     subst t;
-    time "simplify append" (simpl (_ ++ _))
-    (* match goal with
+    match goal with
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
       time "set R'" (set (r := R'));
       time "hashcons" (hashcons_list X);
       time "simplify append" (simpl (_ ++ _))
-    end *)
+    end
   end.
 
 Ltac extend_bisim'' HN r_states :=
@@ -262,10 +261,10 @@ Ltac extend_bisim'' HN r_states :=
   end.
 
 
-Ltac skip_bisim' H :=
-  time "apply skip" (apply PreBisimulationSkip with (H0:=left H));
+Ltac skip_bisim' H0 :=
+  time "apply skip" (apply PreBisimulationSkip with (H:=left H0));
   [ exact I | ];
-  clear H.
+  clear H0.
 
 Ltac size_script :=
   unfold Syntax.interp;
