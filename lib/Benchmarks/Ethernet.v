@@ -101,7 +101,7 @@ Module Combined.
     match s with
     | Parse =>
       {| st_op := extract(HdrVar);
-        st_trans := transition select (| (EHdr (sz := sz) HdrVar)[176 -- 160] |) {{
+        st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrVar)[176 -- 160] |) {{
           [| exact #b|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0 |] ==> accept ;;;
             @reject state
         }}

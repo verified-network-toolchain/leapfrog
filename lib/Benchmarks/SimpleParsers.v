@@ -183,7 +183,7 @@ Module TwoOnesBucket.
     | Start =>
       {| st_op :=
           extract(Val) ;;
-          Bits <- EConcat (m := 1) (EHdr Val) ((EHdr (sz := sz) Bits)[1--1]) ;
+          Bits <- EConcat (m := 1) (EHdr Val) ((EHdr (Hdr_sz := sz) Bits)[1--1]) ;
          st_trans := transition select (| EHdr Val |) {{
            [| exact #b|1 |] ==> inl Next ;;;
             @reject state
@@ -192,7 +192,7 @@ Module TwoOnesBucket.
     | Next =>
       {| st_op :=
           extract(Val) ;;
-          Bits <- EConcat (m := 1) (ESlice _ (EHdr (sz := sz) Bits) 0 0) (EHdr Val) ;
+          Bits <- EConcat (m := 1) (ESlice _ (EHdr (Hdr_sz := sz) Bits) 0 0) (EHdr Val) ;
          st_trans := transition select (| EHdr Val |) {{
            [| exact #b|1 |] ==> accept ;;;
             @reject state

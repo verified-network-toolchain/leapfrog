@@ -83,31 +83,31 @@ Module TimestampRefKeepSingle.
     | ParseValue1 =>
       {| st_op :=
           extract(Scratch8) ;;
-          Value <- EConcat (m := 40) (EHdr Scratch8) ((EHdr (sz := sz) Value)[48--8])  ;
+          Value <- EConcat (m := 40) (EHdr Scratch8) ((@EHdr _ sz Value)[48--8])  ;
         st_trans := transition accept
       |}
     | ParseValue2 =>
       {| st_op :=
           extract(Scratch16) ;;
-          Value <- EConcat (m := 32) (EHdr Scratch16) ((EHdr (sz := sz) Value)[48--16])  ;
+          Value <- EConcat (m := 32) (EHdr Scratch16) ((@EHdr _ sz Value)[48--16])  ;
         st_trans := transition accept
       |}
     | ParseValue3 =>
       {| st_op :=
           extract(Scratch24) ;;
-          Value <- EConcat (m := 24) (EHdr Scratch24) ((EHdr (sz := sz) Value)[48--24])  ;
+          Value <- EConcat (m := 24) (EHdr Scratch24) ((@EHdr _ sz Value)[48--24])  ;
         st_trans := transition accept
       |}
     | ParseValue4 =>
       {| st_op :=
           extract(Scratch32) ;;
-          Value <- EConcat (m := 16) (EHdr Scratch32) ((EHdr (sz := sz) Value)[48--32])  ;
+          Value <- EConcat (m := 16) (EHdr Scratch32) ((@EHdr _ sz Value)[48--32])  ;
         st_trans := transition accept
       |}
     | ParseValue5 =>
       {| st_op :=
           extract(Scratch40) ;;
-          Value <- EConcat (m := 8) (EHdr Scratch40) ((EHdr (sz := sz) Value)[48--40])  ;
+          Value <- EConcat (m := 8) (EHdr Scratch40) ((@EHdr _ sz Value)[48--40])  ;
         st_trans := transition accept
       |}
     | ParseValue6 =>
@@ -188,31 +188,31 @@ Module TimestampRefZeroSingle.
     | ParseValue1 =>
       {| st_op :=
           extract(Scratch8) ;;
-          Value <- EConcat (n := 8) (EHdr (sz := sz) Scratch8) (ELit _ (Ntuple.n_tuple_repeat 40 false))  ;
+          Value <- EConcat (n := 8) (EHdr (Hdr_sz := sz) Scratch8) (ELit _ (Ntuple.n_tuple_repeat 40 false))  ;
         st_trans := transition accept
       |}
     | ParseValue2 =>
       {| st_op :=
           extract(Scratch16) ;;
-          Value <- EConcat (n := 16) (EHdr (sz := sz) Scratch16) (ELit _ (Ntuple.n_tuple_repeat 32 false))  ;
+          Value <- EConcat (n := 16) (EHdr (Hdr_sz := sz) Scratch16) (ELit _ (Ntuple.n_tuple_repeat 32 false))  ;
         st_trans := transition accept
       |}
     | ParseValue3 =>
       {| st_op :=
           extract(Scratch24) ;;
-          Value <- EConcat (n := 24) (EHdr (sz := sz) Scratch24) (ELit _ (Ntuple.n_tuple_repeat 24 false))  ;
+          Value <- EConcat (n := 24) (EHdr (Hdr_sz := sz) Scratch24) (ELit _ (Ntuple.n_tuple_repeat 24 false))  ;
         st_trans := transition accept
       |}
     | ParseValue4 =>
       {| st_op :=
           extract(Scratch32) ;;
-          Value <- EConcat (n := 32) (EHdr (sz := sz) Scratch32) (ELit _ (Ntuple.n_tuple_repeat 16 false))  ;
+          Value <- EConcat (n := 32) (EHdr (Hdr_sz := sz) Scratch32) (ELit _ (Ntuple.n_tuple_repeat 16 false))  ;
         st_trans := transition accept
       |}
     | ParseValue5 =>
       {| st_op :=
           extract(Scratch40) ;;
-          Value <- EConcat (n := 40) (EHdr (sz := sz) Scratch40) (ELit _ (Ntuple.n_tuple_repeat 8 false))  ;
+          Value <- EConcat (n := 40) (EHdr (Hdr_sz := sz) Scratch40) (ELit _ (Ntuple.n_tuple_repeat 8 false))  ;
         st_trans := transition accept
       |}
     | ParseValue6 =>
@@ -397,13 +397,13 @@ Module TimestampRefSmall.
     | Parse1 =>
       {| st_op :=
           extract(Pref1) ;;
-          Timestamps <- EConcat (m := 16) (EHdr Pref1) ((EHdr (sz := sz) Timestamps)[24--8])  ;
+          Timestamps <- EConcat (m := 16) (EHdr Pref1) ((EHdr (Hdr_sz := sz) Timestamps)[24--8])  ;
          st_trans := transition accept
       |}
     | Parse2 =>
       {| st_op :=
           extract(Pref2) ;;
-          Timestamps <- EConcat (m := 8) (EHdr Pref2) ((EHdr (sz := sz) Timestamps)[24--16]) ;
+          Timestamps <- EConcat (m := 8) (EHdr Pref2) ((EHdr (Hdr_sz := sz) Timestamps)[24--16]) ;
          st_trans := transition accept
       |}
     | Parse3 =>
@@ -573,7 +573,7 @@ Module TimestampSpec2.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|1|0|0|0|1|0|0, exact #b|0|0|0|0|0|1|1|0 |] ==> inl Parse0S;;;
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
@@ -589,31 +589,31 @@ Module TimestampSpec2.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[48--8]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[48--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[48--16]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[48--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[48--24]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[48--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[48--32]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[48--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[48--40]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[48--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
@@ -635,7 +635,7 @@ Module TimestampSpec2.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|1|0|0|0|1|0|0, exact #b|0|0|0|0|0|1|1|0 |] ==> inl Parse1S;;;
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
@@ -651,31 +651,31 @@ Module TimestampSpec2.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[48--8]) ;
          st_trans := transition accept;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[48--16]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[48--16]) ;
          st_trans := transition accept;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[48--24]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[48--24]) ;
          st_trans := transition accept;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[48--32]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[48--32]) ;
          st_trans := transition accept;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[48--40]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[48--40]) ;
          st_trans := transition accept;
       |}
     | Parse16 =>
@@ -797,7 +797,7 @@ Module TimestampSpec3.
       {| st_op :=
           extract(T0) ;;
           extract(L0) ;
-         st_trans := transition select (| EHdr (sz := sz) T0, EHdr (sz := sz) L0 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T0, EHdr (Hdr_sz := sz) L0 |) {{
            [| exact #b|0|1|0|0|0|1|0|0, exact #b|0|0|0|0|0|1|1|0 |] ==> inl Parse0S;;;
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
@@ -813,31 +813,31 @@ Module TimestampSpec3.
     | Parse01 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V0 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V0)[48--8]) ;
+          V0 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V0)[48--8]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse02 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V0 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V0)[48--16]) ;
+          V0 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V0)[48--16]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse03 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V0 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V0)[48--24]) ;
+          V0 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V0)[48--24]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse04 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V0 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V0)[48--32]) ;
+          V0 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V0)[48--32]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse05 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V0 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V0)[48--40]) ;
+          V0 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V0)[48--40]) ;
          st_trans := transition inl Parse1;
       |}
     | Parse06 =>
@@ -859,7 +859,7 @@ Module TimestampSpec3.
       {| st_op :=
           extract(T1) ;;
           extract(L1) ;
-         st_trans := transition select (| EHdr (sz := sz) T1, EHdr (sz := sz) L1 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T1, EHdr (Hdr_sz := sz) L1 |) {{
            [| exact #b|0|1|0|0|0|1|0|0, exact #b|0|0|0|0|0|1|1|0 |] ==> inl Parse1S;;;
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
@@ -875,31 +875,31 @@ Module TimestampSpec3.
     | Parse11 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V1)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V1)[48--8]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse12 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V1 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V1)[48--16]) ;
+          V1 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V1)[48--16]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse13 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V1 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V1)[48--24]) ;
+          V1 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V1)[48--24]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse14 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V1 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V1)[48--32]) ;
+          V1 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V1)[48--32]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse15 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V1 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V1)[48--40]) ;
+          V1 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V1)[48--40]) ;
          st_trans := transition inl Parse2;
       |}
     | Parse16 =>
@@ -920,7 +920,7 @@ Module TimestampSpec3.
       {| st_op :=
           extract(T2) ;;
           extract(L2) ;
-         st_trans := transition select (| EHdr (sz := sz) T2, EHdr (sz := sz) L2 |) {{
+         st_trans := transition select (| EHdr (Hdr_sz := sz) T2, EHdr (Hdr_sz := sz) L2 |) {{
            [| exact #b|0|1|0|0|0|1|0|0, exact #b|0|0|0|0|0|1|1|0 |] ==> inl Parse2S;;;
            [| exact #b|0|0|0|0|0|0|0|0, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
            [| exact #b|0|0|0|0|0|0|0|1, exact #b|0|0|0|0|0|0|0|0 |] ==> accept ;;;
@@ -936,31 +936,31 @@ Module TimestampSpec3.
     | Parse21 =>
       {| st_op :=
           extract(Scratch8) ;;
-          V1 <- EConcat (m := 40) (EHdr (sz := sz) Scratch8) ((EHdr (sz := sz) V2)[48--8]) ;
+          V1 <- EConcat (m := 40) (EHdr (Hdr_sz := sz) Scratch8) ((EHdr (Hdr_sz := sz) V2)[48--8]) ;
          st_trans := transition accept;
       |}
     | Parse22 =>
       {| st_op :=
           extract(Scratch16) ;;
-          V2 <- EConcat (m := 32) (EHdr (sz := sz) Scratch16) ((EHdr (sz := sz) V2)[48--16]) ;
+          V2 <- EConcat (m := 32) (EHdr (Hdr_sz := sz) Scratch16) ((EHdr (Hdr_sz := sz) V2)[48--16]) ;
          st_trans := transition accept;
       |}
     | Parse23 =>
       {| st_op :=
           extract(Scratch24) ;;
-          V2 <- EConcat (m := 24) (EHdr (sz := sz) Scratch24) ((EHdr (sz := sz) V2)[48--24]) ;
+          V2 <- EConcat (m := 24) (EHdr (Hdr_sz := sz) Scratch24) ((EHdr (Hdr_sz := sz) V2)[48--24]) ;
          st_trans := transition accept;
       |}
     | Parse24 =>
       {| st_op :=
           extract(Scratch32) ;;
-          V2 <- EConcat (m := 16) (EHdr (sz := sz) Scratch32) ((EHdr (sz := sz) V2)[48--32]) ;
+          V2 <- EConcat (m := 16) (EHdr (Hdr_sz := sz) Scratch32) ((EHdr (Hdr_sz := sz) V2)[48--32]) ;
          st_trans := transition accept;
       |}
     | Parse25 =>
       {| st_op :=
           extract(Scratch40) ;;
-          V2 <- EConcat (m := 8) (EHdr (sz := sz) Scratch40) ((EHdr (sz := sz) V2)[48--40]) ;
+          V2 <- EConcat (m := 8) (EHdr (Hdr_sz := sz) Scratch40) ((EHdr (Hdr_sz := sz) V2)[48--40]) ;
          st_trans := transition accept;
       |}
     | Parse26 =>

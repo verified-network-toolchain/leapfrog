@@ -13,28 +13,28 @@ Import HListNotations.
 Section CompileConfRelSimplified.
   Set Implicit Arguments.
   (* State identifiers. *)
-  Variable (S: Type).
-  Context `{S_eq_dec: EquivDec.EqDec S eq}.
-  Context `{S_finite: @Finite S _ S_eq_dec}.
+  Variable (St: Type).
+  Context `{St_eq_dec: EquivDec.EqDec St eq}.
+  Context `{St_finite: @Finite St _ St_eq_dec}.
 
   (* Header identifiers. *)
-  Variable (H: Type).
-  Context `{H_eq_dec: EquivDec.EqDec H eq}.
-  Context `{H_finite: @Finite H _ H_eq_dec}.
-  Variable (sz: H -> nat).
+  Variable (Hdr: Type).
+  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
+  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
+  Variable (Hdr_sz: Hdr -> nat).
 
-  Variable (a: P4A.t S sz).
+  Variable (a: P4A.t St Hdr_sz).
 
-  Fixpoint compile_bctx (b: bctx): ctx (sig sz) :=
+  Fixpoint compile_bctx (b: bctx): ctx (sig Hdr_sz) :=
     match b with
     | BCEmp => CEmp _
     | BCSnoc b size => CSnoc _ (compile_bctx b) (Bits size)
     end.
 
-  Definition be_sort {c} b1 b2 (e: bit_expr H c) : sorts :=
-    Bits (be_size sz b1 b2 e).
+  Definition be_sort {c} b1 b2 (e: bit_expr Hdr c) : sorts :=
+    Bits (be_size Hdr_sz b1 b2 e).
 
-  Equations compile_var {c: bctx} (x: bvar c) : var (sig sz) (compile_bctx c) (Bits (check_bvar x)) :=
+  Equations compile_var {c: bctx} (x: bvar c) : var (sig Hdr_sz) (compile_bctx c) (Bits (check_bvar x)) :=
     { compile_var (BVarTop c size) :=
         VHere _ (compile_bctx c) (Bits (check_bvar (BVarTop c size)));
       compile_var (BVarRest y) :=
@@ -70,26 +70,26 @@ Section CompileConfRelSimplified.
   Qed.
 
   Definition outer_ctx b1 b2 :=
-    CSnoc (sig sz) (
-      CSnoc (sig sz) (
-        CSnoc (sig sz) (
-          CSnoc (sig sz) (CEmp (sig sz)) Store
+    CSnoc (sig Hdr_sz) (
+      CSnoc (sig Hdr_sz) (
+        CSnoc (sig Hdr_sz) (
+          CSnoc (sig Hdr_sz) (CEmp (sig Hdr_sz)) Store
         ) Store
       ) (Bits b2)
     ) (Bits b1).
 
-  Definition var_buf1 b1 b2 : var (sig sz) (outer_ctx b1 b2) (Bits b1) :=
-    VHere (sig sz) _ _.
+  Definition var_buf1 b1 b2 : var (sig Hdr_sz) (outer_ctx b1 b2) (Bits b1) :=
+    VHere (sig Hdr_sz) _ _.
 
-  Definition var_buf2 b1 b2 : var (sig sz) (outer_ctx b1 b2) (Bits b2) :=
-    VThere (sig sz) _ _ _ (VHere (sig sz) _ _).
+  Definition var_buf2 b1 b2 : var (sig Hdr_sz) (outer_ctx b1 b2) (Bits b2) :=
+    VThere (sig Hdr_sz) _ _ _ (VHere (sig Hdr_sz) _ _).
 
-  Definition var_store1 b1 b2 : var (sig sz) (outer_ctx b1 b2) Store :=
-    VThere (sig sz) _ _ _ (VThere (sig sz) _ _ _ (VHere (sig sz) _ _)).
+  Definition var_store1 b1 b2 : var (sig Hdr_sz) (outer_ctx b1 b2) Store :=
+    VThere (sig Hdr_sz) _ _ _ (VThere (sig Hdr_sz) _ _ _ (VHere (sig Hdr_sz) _ _)).
 
-  Definition var_store2 b1 b2 : var (sig sz) (outer_ctx b1 b2) Store :=
-    VThere (sig sz) _ _ _ (VThere (sig sz) _ _ _ (
-    VThere (sig sz) _ _ _ (VHere (sig sz) _ _))).
+  Definition var_store2 b1 b2 : var (sig Hdr_sz) (outer_ctx b1 b2) Store :=
+    VThere (sig Hdr_sz) _ _ _ (VThere (sig Hdr_sz) _ _ _ (
+    VThere (sig Hdr_sz) _ _ _ (VHere (sig Hdr_sz) _ _))).
 
   Definition outer_valu {b1 b2} buf1 buf2 store1 store2 :=
     VSnoc _ (fm_model a) (Bits b1) _ buf1 (
@@ -101,42 +101,42 @@ Section CompileConfRelSimplified.
   Equations compile_bit_expr
             {c: bctx}
             (b1 b2: nat)
-            (e: bit_expr H c)
-    : tm (sig sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) (be_sort b1 b2 e) :=
+            (e: bit_expr Hdr c)
+    : tm (sig Hdr_sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) (be_sort b1 b2 e) :=
     { compile_bit_expr b1 b2 (BELit _ _ l) :=
-        TFun (sig sz) (BitsLit _ (List.length l) (Ntuple.l2t l)) hnil;
+        TFun (sig Hdr_sz) (BitsLit _ (List.length l) (Ntuple.l2t l)) hnil;
       compile_bit_expr b1 b2 (BEBuf _ _ Left) :=
         TVar (weaken_var _ (var_buf1 b1 b2));
       compile_bit_expr b1 b2 (BEBuf _ _ Right) :=
         TVar (weaken_var _ (var_buf2 b1 b2));
       compile_bit_expr b1 b2 (BEHdr _ Left (P4A.HRVar h)) :=
-        TFun (sig sz) (Lookup _ h)
+        TFun (sig Hdr_sz) (Lookup _ h)
              (TVar (weaken_var _ (var_store1 b1 b2)) ::: hnil);
       compile_bit_expr b1 b2 (BEHdr _ Right (P4A.HRVar h)) :=
-        TFun (sig sz) (Lookup _ h)
+        TFun (sig Hdr_sz) (Lookup _ h)
              (TVar (weaken_var _ (var_store2 b1 b2)) ::: hnil);
       compile_bit_expr b1 b2 (BEVar _ b) :=
         TVar (reindex_var (compile_var b));
       compile_bit_expr b1 b2 (BESlice e hi lo) :=
-        TFun (sig sz) (Slice _ _ hi lo)
+        TFun (sig Hdr_sz) (Slice _ _ hi lo)
              (compile_bit_expr b1 b2 e ::: hnil);
       compile_bit_expr b1 b2 (BEConcat e1 e2) :=
       simplify_concat_zero (
-        TFun (sig sz) (Concat _ _ _)
+        TFun (sig Hdr_sz) (Concat _ _ _)
              (compile_bit_expr b1 b2 e1 :::
               compile_bit_expr b1 b2 e2 ::: hnil)) }.
 
   Equations compile_store_rel
             {c: bctx}
             (b1 b2: nat)
-            (r: store_rel H c)
-            : fm (sig sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) :=
+            (r: store_rel Hdr c)
+            : fm (sig Hdr_sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) :=
     { compile_store_rel b1 b2 BRTrue := FTrue;
       compile_store_rel b1 b2 BRFalse := FFalse;
       compile_store_rel b1 b2 (BREq e1 e2) :=
-        match eq_dec (be_size sz b1 b2 e1) (be_size sz b1 b2 e2) with
+        match eq_dec (be_size Hdr_sz b1 b2 e1) (be_size Hdr_sz b1 b2 e2) with
         | left Heq =>
-          FEq (eq_rect _ (fun n => tm (sig sz) _ (Bits n))
+          FEq (eq_rect _ (fun n => tm (sig Hdr_sz) _ (Bits n))
                        (simplify_concat_zero (compile_bit_expr b1 b2 e1)) _ Heq)
               (simplify_concat_zero (compile_bit_expr b1 b2 e2))
         | right _ => FFalse
@@ -154,25 +154,25 @@ Section CompileConfRelSimplified.
 
   Definition compile_simplified_conf_rel
     (b1 b2: nat)
-    (r: simplified_conf_rel H)
-    : fm (sig sz) (outer_ctx b1 b2)
+    (r: simplified_conf_rel Hdr)
+    : fm (sig Hdr_sz) (outer_ctx b1 b2)
   :=
-    let sr: fm (sig sz) _ :=
+    let sr: fm (sig Hdr_sz) _ :=
         compile_store_rel b1 b2 (projT2 r)
     in
     quantify _ sr.
 
   Definition compile_simplified_crel
     (b1 b2: nat)
-    (R: simplified_crel H)
-    : fm (sig sz) (outer_ctx b1 b2) :=
+    (R: simplified_crel Hdr)
+    : fm (sig Hdr_sz) (outer_ctx b1 b2) :=
     List.fold_right (fun r f =>
       FAnd _ (compile_simplified_conf_rel b1 b2 r) f
     ) FTrue R.
 
   Definition compile_simplified_entailment
     (se: simplified_entailment a)
-    : fm (sig sz) (CEmp _) :=
+    : fm (sig Hdr_sz) (CEmp _) :=
     quantify_all _
       (FImpl (compile_simplified_crel
                se.(se_st).(cs_st1).(st_buf_len)
@@ -185,7 +185,7 @@ Section CompileConfRelSimplified.
 
   Definition compile_simplified_entailment'
     (se: simplified_entailment a)
-    : fm (sig sz) (CEmp _) :=
+    : fm (sig Hdr_sz) (CEmp _) :=
 
     quantify_all _
       (FImpl (compile_simplified_conf_rel
@@ -200,7 +200,7 @@ Section CompileConfRelSimplified.
   Lemma compile_bvar_correct:
     forall c bval (b: bvar c),
       interp_bvar bval b =
-      find (sig sz) (fm_model a) (compile_var b) (compile_bval bval).
+      find (sig Hdr_sz) (fm_model a) (compile_var b) (compile_bval bval).
   Proof.
     induction c; intros.
     - dependent destruction b.
@@ -211,7 +211,7 @@ Section CompileConfRelSimplified.
   Qed.
 
   Lemma compile_bit_expr_correct:
-    forall c (e: bit_expr H c) bval b1 b2 buf1 buf2 store1 store2,
+    forall c (e: bit_expr Hdr c) bval b1 b2 buf1 buf2 store1 store2,
       interp_bit_expr e bval buf1 buf2 store1 store2 =
       let valu := outer_valu buf1 buf2 store1 store2 in
       interp_tm (m := fm_model a) (app_valu _ valu (compile_bval bval))
@@ -236,7 +236,7 @@ Section CompileConfRelSimplified.
   Qed.
 
   Lemma compile_store_rel_correct:
-    forall c (r: store_rel H c) bval b1 b2 buf1 buf2 store1 store2,
+    forall c (r: store_rel Hdr c) bval b1 b2 buf1 buf2 store1 store2,
       interp_store_rel r bval buf1 buf2 store1 store2 <->
       let valu := outer_valu buf1 buf2 store1 store2 in
       interp_fm (m := fm_model a) (app_valu _ valu (compile_bval bval))
@@ -305,8 +305,8 @@ Section CompileConfRelSimplified.
     intuition.
     unfold outer_ctx in valu.
     repeat dependent destruction valu.
-    simpl in m0, m1, m2, m3.
-    now apply H4.
+    simpl in *.
+    eauto.
   Qed.
 
   Lemma compile_simplified_entailment_correct':
@@ -327,8 +327,8 @@ Section CompileConfRelSimplified.
     intuition.
     unfold outer_ctx in valu.
     repeat dependent destruction valu.
-    simpl in m0, m1, m2, m3.
-    now apply H4.
+    simpl in *.
+    eauto.
   Qed.
 
   Opaque interp_fm.
