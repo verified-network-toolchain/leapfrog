@@ -4,7 +4,7 @@ Export List.ListNotations.
 Require Export Leapfrog.BisimChecker.
 Require Export Leapfrog.P4automaton.
 
-Require Export Leapfrog.FirstOrder.
+Require Export MirrorSolve.FirstOrder.
 Require Export Leapfrog.FirstOrderConfRel.
 
 Require Export Leapfrog.CompileConfRel.

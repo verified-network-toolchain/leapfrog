@@ -4,7 +4,7 @@ Require Import Leapfrog.ConfRel.
 Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
 Require Import Leapfrog.FirstOrderConfRel.
 Require Import Leapfrog.CompileConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
@@ -227,13 +227,14 @@ Ltac extend_bisim' HN r_states :=
     clear HN;
     time "wp compute" vm_compute in t;
     subst t;
-    match goal with
+    time "simplify append" (simpl (_ ++ _))
+    (* match goal with
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
       time "set R'" (set (r := R'));
       time "hashcons" (hashcons_list X);
       time "simplify append" (simpl (_ ++ _))
-    end
+    end *)
   end.
 
 Ltac extend_bisim'' HN r_states :=
@@ -346,7 +347,7 @@ Ltac verify_interp' top top' L :=
   else idtac.
 
 Ltac run_bisim top top' r_states :=
-  time "verify_interp" (verify_interp top top'); idtac "mem after verify admit"; print_mem;
+  time "verify_interp" (verify_interp top top');
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     time "extending" (extend_bisim' HN r_states; clear HN)
