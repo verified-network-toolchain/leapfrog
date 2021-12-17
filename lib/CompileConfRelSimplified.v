@@ -6,7 +6,8 @@ Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.FirstOrderConfRelSimplified.
 Require Import Leapfrog.Ntuple.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
+Require Import MirrorSolve.HLists.
 Import HListNotations.
 
 Section CompileConfRelSimplified.

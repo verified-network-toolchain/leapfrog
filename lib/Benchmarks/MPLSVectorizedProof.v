@@ -98,8 +98,8 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify; idtac "mem after step"; print_mem).
-  (* time "build phase" repeat (time "single step" run_bisim top top' r_states; idtac "mem after step"; print_mem). *)
+  (* time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify). *)
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim top'.
 Time Admitted.
 

@@ -4,7 +4,8 @@ Require Import Leapfrog.FinType.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.FirstOrderConfRel.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
+Require Import MirrorSolve.HLists.
 Import HListNotations.
 
 Section CompileConfRel.

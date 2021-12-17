@@ -1,7 +1,7 @@
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Logic.ProofIrrelevance.
 Require Import Leapfrog.FinType.
-From Leapfrog Require Import FirstOrder.
+From MirrorSolve Require Import HLists.
 Import List.ListNotations.
 
 Section DepEnv.

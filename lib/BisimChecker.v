@@ -4,7 +4,7 @@ Require Import Leapfrog.ConfRel.
 Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
 Require Import Leapfrog.FirstOrderConfRel.
 Require Import Leapfrog.CompileConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
@@ -222,7 +222,7 @@ Ltac extend_bisim' HN r_states :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
-    time "apply extend" (apply PreBisimulationExtend with (H0 := right HN) (W := t));
+    time "apply extend" (apply PreBisimulationExtend with (H := right HN) (W := t));
     [ trivial | subst t; reflexivity |];
     clear HN;
     time "wp compute" vm_compute in t;
@@ -261,10 +261,10 @@ Ltac extend_bisim'' HN r_states :=
   end.
 
 
-Ltac skip_bisim' H :=
-  time "apply skip" (apply PreBisimulationSkip with (H0:=left H));
+Ltac skip_bisim' H0 :=
+  time "apply skip" (apply PreBisimulationSkip with (H:=left H0));
   [ exact I | ];
-  clear H.
+  clear H0.
 
 Ltac size_script :=
   unfold Syntax.interp;
@@ -346,7 +346,7 @@ Ltac verify_interp' top top' L :=
   else idtac.
 
 Ltac run_bisim top top' r_states :=
-  time "verify_interp" (verify_interp top top'); idtac "mem after verify admit"; print_mem;
+  time "verify_interp" (verify_interp top top');
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
     time "extending" (extend_bisim' HN r_states; clear HN)

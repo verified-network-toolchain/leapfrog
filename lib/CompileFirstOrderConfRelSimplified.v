@@ -6,7 +6,8 @@ Require Import Leapfrog.FinType.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.Ntuple.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
+Require Import MirrorSolve.HLists.
 Require Import Coq.Logic.JMeq.
 Import HListNotations.
 
@@ -693,8 +694,6 @@ Section CompileFirstOrderConfRelSimplified.
   Qed.
 
 End CompileFirstOrderConfRelSimplified.
-
-Print Assumptions compile_simplified_fm_bv_correct.
 
 Register FOBV.Bits as p4a.sorts.bits.
 

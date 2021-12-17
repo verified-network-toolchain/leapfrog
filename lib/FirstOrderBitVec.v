@@ -2,7 +2,8 @@ Require Import Coq.Lists.List.
 Require Import Leapfrog.FinType.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.P4automaton.
-Require Import Leapfrog.FirstOrder.
+Require Import MirrorSolve.FirstOrder.
+Require Import MirrorSolve.HLists.
 Require Import Leapfrog.Ntuple.
 
 Import ListNotations.
@@ -38,8 +39,10 @@ Section FirstOrderBitVec.
        sig_funs := funs;
        sig_rels := rels |}.
 
-  Definition fm ctx := FirstOrder.fm sig ctx.
-  Definition tm ctx := FirstOrder.tm sig ctx.
+  (* Locate FirstOrder.fm. *)
+
+  Definition fm ctx := fm sig ctx.
+  Definition tm ctx := tm sig ctx.
 
   Definition mod_sorts (s: sig_sorts sig) : Type :=
     match s with
