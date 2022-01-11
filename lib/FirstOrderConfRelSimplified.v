@@ -11,6 +11,8 @@ Import ListNotations.
 Import HListNotations.
 Local Open Scope program_scope.
 
+Set Universe Polymorphism.
+
 Section AutModel.
   Set Implicit Arguments.
   (* State identifiers. *)

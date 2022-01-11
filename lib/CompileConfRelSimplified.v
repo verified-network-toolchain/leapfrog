@@ -10,6 +10,8 @@ Require Import MirrorSolve.FirstOrder.
 Require Import MirrorSolve.HLists.
 Import HListNotations.
 
+Set Universe Polymorphism.
+
 Section CompileConfRelSimplified.
   Set Implicit Arguments.
   (* State identifiers. *)
