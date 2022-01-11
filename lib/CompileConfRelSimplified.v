@@ -254,7 +254,7 @@ Section CompileConfRelSimplified.
     rewrite <- interp_tm_rect.
     repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
     repeat rewrite compile_bit_expr_correct; simpl.
-    tauto.
+    intuition.
   Qed.
 
   Lemma compile_simplified_conf_rel_correct:
