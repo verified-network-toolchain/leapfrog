@@ -594,4 +594,23 @@ Definition lang_equiv
     accepted c2 input
 .
 
+Definition lang_equiv_state
+  {a1 a2: p4automaton}
+  (q1: states a1)
+  (q2: states a2)
+:=
+  forall s1 s2,
+    lang_equiv
+      {| conf_state := inl q1;
+         conf_buf_len := 0;
+         conf_buf := tt;
+         conf_store := s1;
+         conf_buf_sane := cap a1 q1; |}
+      {| conf_state := inl q2;
+         conf_buf_len := 0;
+         conf_buf := tt;
+         conf_store := s2;
+         conf_buf_sane := cap a2 q2; |}
+.
+
 Definition rel a1 a2 := configuration a1 -> configuration a2 -> Prop.
