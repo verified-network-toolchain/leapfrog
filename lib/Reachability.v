@@ -8,6 +8,8 @@ Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.Syntax.
 Require Import Leapfrog.ConfRel.
 
+Require Import Leapfrog.Utils.FunctionalFP.
+
 Set Implicit Arguments.
 Section ReachablePairs.
 
@@ -49,6 +51,19 @@ Section ReachablePairs.
   Next Obligation.
     intuition.
   Qed.
+
+  Definition state_pair_eqb (l: state_pair) (r: state_pair) : bool := 
+    if l == r then true else false.
+
+  Lemma state_pair_eqb_tru : 
+    forall l r, l = r <-> state_pair_eqb l r = true.
+  Proof.
+    unfold state_pair_eqb.
+    intros.
+    destruct (equiv_dec l r); [unfold "===" in e; split; auto|].
+    split; intros H; exfalso; congruence.
+  Qed.
+
 
   Definition state_pairs : Type :=
     list state_pair.
@@ -350,11 +365,13 @@ Section ReachablePairs.
     let r' := (List.concat (List.map reachable_pair_step r)) in
     List.nodup state_pair_eq_dec (r' ++ r).
 
-  Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
-    match fuel with
+  Definition reachable_states' := iter _ reachable_step.
+    (* match fuel with
     | 0 => r
     | S fuel => reachable_step (reachable_states' fuel r)
-    end.
+    end. *)
+
+  
 
   Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
     forall (l1 l2: list X),
@@ -832,7 +849,7 @@ Section ReachablePairs.
         apply List.in_eq.
   Qed.
 
-  Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
+  Lemma reachable_states_closed' (r: list state_pair) (p1 p2: state_pair):
     (forall p, List.In p r -> valid_state_pair p) ->
     List.In p1 (reachable_states' (length valid_state_pairs) r) ->
     List.In p2 (reachable_step [p1]) ->
@@ -847,10 +864,38 @@ Section ReachablePairs.
     destruct H1; try contradiction; now subst.
   Qed.
 
-  Definition reachable_states n s1 s2 : state_pairs :=
+
+  Scheme Equality for list.
+
+  Definition reachable_states'' := iter' _ reachable_step (list_beq state_pair_eqb).
+
+  Lemma reachable_equal : 
+    forall n s, reachable_states' n s = reachable_states'' n s.
+  Proof.
+    unfold reachable_states', reachable_states''.
+    intros.
+    eapply iter_iter'.
+    intros.
+    split; 
+    (eapply internal_list_dec_bl || eapply internal_list_dec_lb); 
+    eapply state_pair_eqb_tru.
+  Qed.
+
+  Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
+    (forall p, List.In p r -> valid_state_pair p) ->
+    List.In p1 (reachable_states'' (length valid_state_pairs) r) ->
+    List.In p2 (reachable_step [p1]) ->
+    List.In p2 (reachable_states'' (length valid_state_pairs) r).
+  Proof.
+    intros.
+    erewrite <- reachable_equal in *.
+    eapply reachable_states_closed'; eauto.
+  Qed.
+
+  Definition reachable_states s1 s2 : state_pairs :=
     let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
               {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-    reachable_states' n [s].
+    reachable_states'' (length valid_state_pairs) [s].
 
   Definition reachable_pair rs (q1 q2: conf) : Prop :=
     List.Exists (fun '(t1, t2) =>
@@ -859,3 +904,4 @@ Section ReachablePairs.
                 rs.
 
 End ReachablePairs.
+
