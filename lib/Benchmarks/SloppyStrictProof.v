@@ -7,7 +7,6 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
                         SloppyStrict.aut
-                        200
                         Sloppy.ParseEthernet
                         Strict.ParseEthernet).
 
@@ -57,9 +56,9 @@ RegisterEnvCtors
   Definition mk_partition (r: Reachability.state_pairs A) : crel A :=
     List.map mk_rel (List.filter not_equally_accepting r).
 
-  Definition mk_init' (n: nat) s1 s2 :=
+  Definition mk_init' s1 s2 :=
     List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ _ A)
-               (mk_partition (Reachability.reachable_states A n s1 s2)).
+               (mk_partition (Reachability.reachable_states A s1 s2)).
 
 Lemma prebisim_sloppystrict:
   forall q1 q2,
@@ -80,13 +79,13 @@ Lemma prebisim_sloppystrict:
                    (wp r_states)
                    top
                    []
-                   (mk_init' 200 Sloppy.ParseEthernet Strict.ParseEthernet)
+                   (mk_init' Sloppy.ParseEthernet Strict.ParseEthernet)
                    q1 q2.
 Proof.
   idtac "running sloppystrict bisimulation (language equivalence)".
 
   intros.
-  set (rel0 := (mk_init' 200 Sloppy.ParseEthernet Strict.ParseEthernet)).
+  set (rel0 := (mk_init' Sloppy.ParseEthernet Strict.ParseEthernet)).
   vm_compute in rel0.
   subst rel0.
 

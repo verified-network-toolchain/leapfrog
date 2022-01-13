@@ -867,7 +867,15 @@ Section ReachablePairs.
 
   Scheme Equality for list.
 
-  Definition reachable_states'' := iter' _ reachable_step (list_beq state_pair_eqb).
+  Definition length_eqb (l: state_pairs) (r: state_pairs) := Nat.eqb (length l) (length r).
+
+  Definition reachable_states'' := iter' _ reachable_step length_eqb.
+
+  Lemma reachable_step_length :
+    forall x,
+      length_eqb (reachable_step x) x = true <-> reachable_step x = x.
+  Proof.
+  Admitted.
 
   Lemma reachable_equal : 
     forall n s, reachable_states' n s = reachable_states'' n s.
@@ -875,10 +883,7 @@ Section ReachablePairs.
     unfold reachable_states', reachable_states''.
     intros.
     eapply iter_iter'.
-    intros.
-    split; 
-    (eapply internal_list_dec_bl || eapply internal_list_dec_lb); 
-    eapply state_pair_eqb_tru.
+    exact reachable_step_length.
   Qed.
 
   Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
@@ -892,10 +897,23 @@ Section ReachablePairs.
     eapply reachable_states_closed'; eauto.
   Qed.
 
-  Definition reachable_states s1 s2 : state_pairs :=
+  Definition build_state_pairs s1 s2 : state_pairs := 
     let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
               {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-    reachable_states'' (length valid_state_pairs) [s].
+    [s].
+
+  Definition reachable_states_fp := fp state_pairs.
+  Definition reachable_states_wit s1 s2 : state_pairs -> Type := 
+    fp_wit _ reachable_step (build_state_pairs s1 s2).
+
+  Definition reachable_states s1 s2 : state_pairs :=
+    reachable_states'' (length valid_state_pairs) (build_state_pairs s1 s2).
+
+  Lemma reachable_states_wit_conv : 
+    forall s1 s2 ss,
+      reachable_states_wit s1 s2 ss ->
+      reachable_states s1 s2 = ss.
+  Admitted.
 
   Definition reachable_pair rs (q1 q2: conf) : Prop :=
     List.Exists (fun '(t1, t2) =>
