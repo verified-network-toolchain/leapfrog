@@ -69,7 +69,7 @@ Proof.
   subst rel0.
   
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
 
   print_rel_len.
   (* run_bisim top top' r_states. *)
