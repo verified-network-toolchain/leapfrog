@@ -11,20 +11,10 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left :=  Plain.ParseMPLS.
 Notation start_right := Unrolled.ParseMPLS.
 
-(* Eval vm_compute in (length (Reachability.valid_state_templates A)). *)
-
-
-
 Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
   econstructor.
   unfold Reachability.reachable_states_wit.
-  match goal with 
-  | |- fp_wit _ _ _ ?R => set (baz := R)
-  end.
   solve_fp_wit.
-  subst baz.
-  eapply FPDone.
-  exact eq_refl.
 Defined.
                 
 Definition top : Relations.rel conf := fun _ _ => True.
@@ -62,10 +52,7 @@ Proof.
   rewrite Hr.
   clear Hr.
   
-  set (foo := (List.nodup (conf_rel_eq_dec (a:=A))
-  (mk_partition Plain.state Unrolled.state
-     (Sum.Hdr Plain.header Unrolled.header)
-     (Sum.Hdr_sz Plain.sz Unrolled.sz) A _))).
+  set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
   vm_compute in foo.
   subst foo.
 

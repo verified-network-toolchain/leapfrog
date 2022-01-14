@@ -70,19 +70,25 @@ Section ExactFP.
 End ExactFP.
 
 Ltac solve_fp_wit := 
+  let init_v := fresh "v" in
+  match goal with 
+  | |- fp_wit _ _ _ ?x =>
+    set (init_v := x)
+  end;
   repeat (
     match goal with 
-    | |- fp_wit _ _ _ _ => 
-      eapply FPDone;
-      simpl;
-      trivial
     | |- fp_wit _ _ ?X _ => 
       econstructor;
-      set (foo := X);
-      vm_compute in foo;
-      subst foo
+      let iter_v := fresh "v'" in 
+      set (iter_v := X);
+      vm_compute in iter_v;
+      subst iter_v
     end
-  ).
+  );
+  subst init_v;
+  eapply FPDone;
+  exact eq_refl.
+  
 
 Definition collatz (n: nat) := 
   match n with
@@ -91,16 +97,7 @@ Definition collatz (n: nat) :=
     if Nat.even n then Nat.div n 2 else 3 * n + 1
   end.
 
-Definition collatz_10 : fp _ collatz.
-  evar (n: nat).
-  assert (fp_wit _ collatz 10 n).
+Definition collatz_10 : {n & fp_wit _ collatz 10 n}.
+  econstructor.
   solve_fp_wit.
-  subst n.
-  eapply FPDone.
-  compute.
-  trivial.
-  subst n.
-  simpl collatz in X.
-  eapply wit_conv.
-  exact X.
 Defined.

@@ -871,11 +871,36 @@ Section ReachablePairs.
 
   Definition reachable_states'' := iter' _ reachable_step length_eqb.
 
+  Require Import Coq.Lists.List.
+  Lemma length_nodup : 
+    forall (A: Type) eq (xs ys: list A),
+      length (List.nodup eq (xs ++ ys)) = length ys ->
+      List.nodup eq (xs ++ ys) = ys.
+  Proof.
+    intros.
+    induction ys.
+    - erewrite app_nil_r in *.
+      simpl in H.
+      destruct (nodup eq xs).
+      + exact eq_refl.
+      + inversion H.
+    - admit.
+  Admitted.
+
+  Require Import Coq.Arith.PeanoNat.
   Lemma reachable_step_length :
     forall x,
       length_eqb (reachable_step x) x = true <-> reachable_step x = x.
   Proof.
-  Admitted.
+    intros.
+    unfold length_eqb.
+    erewrite Nat.eqb_eq.
+    split; intros.
+    - unfold reachable_step in *.
+      erewrite length_nodup; auto.
+    - rewrite H.
+      exact eq_refl.
+  Qed.
 
   Lemma reachable_equal : 
     forall n s, reachable_states' n s = reachable_states'' n s.
