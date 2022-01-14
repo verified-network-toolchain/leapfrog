@@ -849,7 +849,7 @@ Section ReachablePairs.
         apply List.in_eq.
   Qed.
 
-  Lemma reachable_states_closed' (r: list state_pair) (p1 p2: state_pair):
+  Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
     (forall p, List.In p r -> valid_state_pair p) ->
     List.In p1 (reachable_states' (length valid_state_pairs) r) ->
     List.In p2 (reachable_step [p1]) ->
@@ -865,63 +865,6 @@ Section ReachablePairs.
   Qed.
 
 
-  Scheme Equality for list.
-
-  Definition length_eqb (l: state_pairs) (r: state_pairs) := Nat.eqb (length l) (length r).
-
-  Definition reachable_states'' := iter' _ reachable_step length_eqb.
-
-  Require Import Coq.Lists.List.
-  Lemma length_nodup : 
-    forall (A: Type) eq (xs ys: list A),
-      length (List.nodup eq (xs ++ ys)) = length ys ->
-      List.nodup eq (xs ++ ys) = ys.
-  Proof.
-    intros.
-    induction ys.
-    - erewrite app_nil_r in *.
-      simpl in H.
-      destruct (nodup eq xs).
-      + exact eq_refl.
-      + inversion H.
-    - admit.
-  Admitted.
-
-  Require Import Coq.Arith.PeanoNat.
-  Lemma reachable_step_length :
-    forall x,
-      length_eqb (reachable_step x) x = true <-> reachable_step x = x.
-  Proof.
-    intros.
-    unfold length_eqb.
-    erewrite Nat.eqb_eq.
-    split; intros.
-    - unfold reachable_step in *.
-      erewrite length_nodup; auto.
-    - rewrite H.
-      exact eq_refl.
-  Qed.
-
-  Lemma reachable_equal : 
-    forall n s, reachable_states' n s = reachable_states'' n s.
-  Proof.
-    unfold reachable_states', reachable_states''.
-    intros.
-    eapply iter_iter'.
-    exact reachable_step_length.
-  Qed.
-
-  Lemma reachable_states_closed (r: list state_pair) (p1 p2: state_pair):
-    (forall p, List.In p r -> valid_state_pair p) ->
-    List.In p1 (reachable_states'' (length valid_state_pairs) r) ->
-    List.In p2 (reachable_step [p1]) ->
-    List.In p2 (reachable_states'' (length valid_state_pairs) r).
-  Proof.
-    intros.
-    erewrite <- reachable_equal in *.
-    eapply reachable_states_closed'; eauto.
-  Qed.
-
   Definition build_state_pairs s1 s2 : state_pairs := 
     let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
               {| st_state := inl (inr s2); st_buf_len := 0 |}) in
@@ -932,12 +875,31 @@ Section ReachablePairs.
     fp_wit _ reachable_step (build_state_pairs s1 s2).
 
   Definition reachable_states s1 s2 : state_pairs :=
-    reachable_states'' (length valid_state_pairs) (build_state_pairs s1 s2).
+    reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2).
 
   Lemma reachable_states_wit_conv : 
     forall s1 s2 ss,
       reachable_states_wit s1 s2 ss ->
       reachable_states s1 s2 = ss.
+  Proof.
+    intros.
+    unfold reachable_states.
+    unfold reachable_states_wit in *.
+    induction X.
+    - unfold reachable_states'.
+      induction (length valid_state_pairs).
+      + exact eq_refl.
+      + unfold iter.
+        fold (iter state_pairs reachable_step n).
+        rewrite IHn.
+        auto.
+    - unfold reachable_states' in *.
+      induction (length valid_state_pairs).
+      + unfold reachable_states' in IHX.
+        unfold iter in *.
+        subst y. (* huh... *)
+        admit.
+      + admit.
   Admitted.
 
   Definition reachable_pair rs (q1 q2: conf) : Prop :=
