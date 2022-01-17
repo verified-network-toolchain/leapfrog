@@ -904,6 +904,8 @@ Section ReachablePairs.
 
     - intros. unfold reachable_step.
       eapply List.NoDup_nodup.
+    - intros. unfold reachable_step.
+      eapply List.NoDup_nodup.
 
     - intros.
       (* pose proof reachable_states_bound (S (length valid_state_pairs)). *)

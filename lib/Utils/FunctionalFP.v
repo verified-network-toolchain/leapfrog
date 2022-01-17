@@ -132,18 +132,20 @@ Section ListFP.
 
   Variable (f_mono: 
     forall xs, 
-    exists ys,
-    f xs = ys ++ xs
+    List.NoDup xs -> 
+      exists ys,
+      f xs = ys ++ xs
   ).
 
   Lemma f_incl_fp:
     (forall xs, List.NoDup (f xs)) ->
     forall xs,
+      NoDup xs ->
       List.incl (f xs) xs -> 
       f xs = xs.
   Proof.
     intros.
-    specialize (f_mono xs).
+    specialize (f_mono xs H0).
     specialize (H xs).
     destruct f_mono as [pref Hpref].
     clear f_mono.
@@ -152,31 +154,31 @@ Section ListFP.
       erewrite <- Hpref.
       trivial.
     - exfalso.
-      erewrite <- H2 in *.
+      erewrite <- H3 in *.
       inversion Hpref.
     - simpl in Hpref.
-      erewrite H1.
+      erewrite H2.
       trivial.
     - assert (t = x).
-      + erewrite Hpref in H1.
-        inversion H1.
+      + erewrite Hpref in H2.
+        inversion H2.
         exact eq_refl.
       + subst t.
-        unfold incl in H0.
+        unfold incl in H1.
         assert (In x xs) by (
-          eapply H0;
-          erewrite <- H1;
+          eapply H1;
+          erewrite <- H2;
           left;
           exact eq_refl
         ).
         assert (l = pref ++ xs) by (
-          erewrite Hpref in H1;
-          inversion H1;
+          erewrite Hpref in H2;
+          inversion H2;
           exact eq_refl
         ).
         subst.
         exfalso.
-        eapply H2.
+        eapply H3.
         eapply in_or_app.
         right; trivial.
   Qed.
