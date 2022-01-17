@@ -6,10 +6,10 @@ Section ExactFP.
   Definition fp := {x | f x = x}.
 
   Inductive fp_wit : A -> A -> Type := 
-  | FPDone : forall x, 
-    f x = x -> fp_wit x x
-  | FPIter : forall x y,
-    fp_wit (f x) y -> fp_wit x y.
+    | FPDone : forall x, 
+      f x = x -> fp_wit x x
+    | FPIter : forall x y,
+      fp_wit (f x) y -> fp_wit x y.
 
   (* extract the final fp out from a construction of its fp-ness *)
   Fixpoint wit_conv {x y} (wit: fp_wit x y) : fp := 
@@ -36,7 +36,44 @@ Section ExactFP.
       trivial.
     - eauto.
   Qed.
-      
+
+  Inductive func_iter : A -> A -> Type := 
+    | FIZ : forall x, func_iter x x
+    | FIS : forall x y, 
+      func_iter (f x) y ->
+      func_iter x y.
+  
+  
+  Lemma func_iter_extend : forall x y z, 
+    func_iter x y -> 
+    func_iter y z -> 
+    func_iter x z.
+  Proof.
+    intros.
+    generalize X0.
+    generalize z.
+    clear X0.
+    clear z.
+    induction X.
+    - intros. trivial.
+    - intros.
+      constructor.
+      eauto.
+  Qed.
+
+  Lemma func_iter_conv:
+    forall x y (fi: func_iter x y),
+      f y = y ->
+      fp_wit x y.
+  Proof.
+    intros x y fi ?.
+
+    induction fi; [constructor; trivial|].
+    eapply FPIter.
+    eauto.
+  Qed.
+
+
 End ExactFP.
 
 Ltac solve_fp_wit := 

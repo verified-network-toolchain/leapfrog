@@ -882,12 +882,31 @@ Section ReachablePairs.
       reachable_step fp = fp.
   Admitted.
 
+  Lemma reachable_lsvp_func_iter:
+    forall s1 s2,
+      func_iter _ reachable_step (build_state_pairs s1 s2) (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
+  Proof.
+    intros.
+    induction (length valid_state_pairs); [constructor|].
+    unfold reachable_states'.
+    fold reachable_states'.
+
+    eapply func_iter_extend.
+    - exact IHn.
+    - constructor.
+      constructor.
+  Qed.
+    
+
   Lemma reachable_lsvp_fp_wit:
     forall s1 s2,
       reachable_states_wit s1 s2 (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
   Proof.
     intros.
-  Admitted.
+    eapply func_iter_conv.
+    - eapply reachable_lsvp_func_iter.
+    - eapply reachable_lvsp_fixedpoint.
+  Qed.
 
   Lemma reachable_states_wit_conv : 
     forall s1 s2 ss,
