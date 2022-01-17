@@ -42,6 +42,23 @@ Section ExactFP.
     | FIS : forall x y, 
       func_iter (f x) y ->
       func_iter x y.
+
+  Variable (P: A -> Prop).
+  Variable (a: A).
+  Variable (Pbase: P a).
+  Variable (Prec: 
+    forall x, P x -> P (f x)
+  ).
+
+  Lemma func_iter_rec' : 
+    forall a', 
+      func_iter a a' -> 
+      P a'.
+  Proof.
+    intros.
+    induction X; [trivial|].
+    eauto.
+  Qed.
   
   
   Lemma func_iter_extend : forall x y z, 
@@ -73,8 +90,97 @@ Section ExactFP.
     eauto.
   Qed.
 
+  Fixpoint func_iter_depth {x y} (fi: func_iter x y) : nat := 
+    match fi with 
+    | FIZ _ => 0
+    | FIS _ _ fi' => S (func_iter_depth fi')
+    end.
+
+  Fixpoint iter (fuel: nat) x := 
+    match fuel with 
+    | 0 => x 
+    | S n => iter n (f x)
+    end.
+
+  Lemma func_iter_depth_fuel n: 
+    forall x y (fi: func_iter x y),
+      func_iter_depth fi = n -> 
+      iter n x = y.
+  Proof.
+    induction n; intros.
+    - destruct fi eqn:?.
+      * exact eq_refl.
+      * simpl in H.
+        inversion H. 
+    - unfold iter. fold iter.
+      destruct fi eqn:?.
+      * inversion H.
+      * eapply IHn.
+        unfold func_iter_depth in H.
+        fold (func_iter_depth f0) in H.
+        assert (func_iter_depth f0 = n) by (inversion H; exact eq_refl).
+        exact H0.
+  Qed.
 
 End ExactFP.
+
+Section ListFP.
+  Variable (T: Type).
+  Variable (f: list T -> list T).
+
+  Require Import Coq.Lists.List.
+
+  Variable (f_mono: 
+    forall xs, 
+    exists ys,
+    f xs = ys ++ xs
+  ).
+
+  Lemma f_incl_fp:
+    (forall xs, List.NoDup (f xs)) ->
+    forall xs,
+      List.incl (f xs) xs -> 
+      f xs = xs.
+  Proof.
+    intros.
+    specialize (f_mono xs).
+    specialize (H xs).
+    destruct f_mono as [pref Hpref].
+    clear f_mono.
+    inversion H; destruct pref.
+    - simpl in Hpref.
+      erewrite <- Hpref.
+      trivial.
+    - exfalso.
+      erewrite <- H2 in *.
+      inversion Hpref.
+    - simpl in Hpref.
+      erewrite H1.
+      trivial.
+    - assert (t = x).
+      + erewrite Hpref in H1.
+        inversion H1.
+        exact eq_refl.
+      + subst t.
+        unfold incl in H0.
+        assert (In x xs) by (
+          eapply H0;
+          erewrite <- H1;
+          left;
+          exact eq_refl
+        ).
+        assert (l = pref ++ xs) by (
+          erewrite Hpref in H1;
+          inversion H1;
+          exact eq_refl
+        ).
+        subst.
+        exfalso.
+        eapply H2.
+        eapply in_or_app.
+        right; trivial.
+  Qed.
+End ListFP.
 
 Ltac solve_fp_wit := 
   let init_v := fresh "v" in
@@ -107,4 +213,9 @@ Definition collatz (n: nat) :=
 Definition collatz_10 : {n & fp_wit _ collatz 10 n}.
   econstructor.
   solve_fp_wit.
+Defined.
+
+Definition collatz_10_16 : 
+  func_iter _ collatz 10 16.
+  repeat constructor.
 Defined.

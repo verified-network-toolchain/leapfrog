@@ -862,11 +862,12 @@ Section ReachablePairs.
     destruct H1; try contradiction; now subst.
   Qed.
 
+  Definition build_state_pair s1 s2 : state_pair := 
+    ({| st_state := inl (inl s1); st_buf_len := 0 |},
+      {| st_state := inl (inr s2); st_buf_len := 0 |}).
 
   Definition build_state_pairs s1 s2 : state_pairs := 
-    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
-              {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-    [s].
+    [build_state_pair s1 s2].
 
   Definition reachable_states_fp := fp state_pairs reachable_step.
   Definition reachable_states_wit s1 s2 : state_pairs -> Type := 
@@ -875,11 +876,49 @@ Section ReachablePairs.
   Definition reachable_states s1 s2 : state_pairs :=
     reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2).
 
+  Lemma reachable_iter_nodup:
+    forall s1 s2 y, 
+      func_iter _ reachable_step (build_state_pairs s1 s2) y -> 
+      List.NoDup y.
+  Proof.
+    intros.
+    eapply func_iter_rec' with (f := reachable_step) (a := build_state_pairs s1 s2); trivial.
+    - eapply nodup_trivial.
+    - intros.
+      unfold reachable_step.
+      eapply List.NoDup_nodup.
+  Qed.
 
   Lemma reachable_lvsp_fixedpoint:
     forall s1 s2, 
+      valid_state_pair (build_state_pair s1 s2) ->
       let fp := reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2) in 
       reachable_step fp = fp.
+  Proof.
+    intros.
+    subst fp.
+    eapply f_incl_fp.
+    -
+      intros.
+      admit.
+
+    - intros. unfold reachable_step.
+      eapply List.NoDup_nodup.
+
+    - intros.
+      (* pose proof reachable_states_bound (S (length valid_state_pairs)). *)
+      assert (
+        (reachable_states' (S (length valid_state_pairs)) (build_state_pairs s1 s2)) = 
+        (reachable_step (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)))
+      ) by exact eq_refl.
+      erewrite <- H0.
+      eapply reachable_states_bound.
+      simpl.
+      intros.
+      inversion H1.
+      + subst p.
+        trivial.
+      + contradiction.
   Admitted.
 
   Lemma reachable_lsvp_func_iter:
@@ -900,21 +939,24 @@ Section ReachablePairs.
 
   Lemma reachable_lsvp_fp_wit:
     forall s1 s2,
+      valid_state_pair (build_state_pair s1 s2) ->
       reachable_states_wit s1 s2 (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
   Proof.
     intros.
     eapply func_iter_conv.
     - eapply reachable_lsvp_func_iter.
     - eapply reachable_lvsp_fixedpoint.
+      trivial.
   Qed.
 
   Lemma reachable_states_wit_conv : 
     forall s1 s2 ss,
+      valid_state_pair (build_state_pair s1 s2) ->
       reachable_states_wit s1 s2 ss ->
       reachable_states s1 s2 = ss.
   Proof.
     intros.
-    pose proof (reachable_lsvp_fp_wit s1 s2).
+    pose proof (reachable_lsvp_fp_wit H).
     unfold reachable_states.
 
     eapply fp_wit_converges.

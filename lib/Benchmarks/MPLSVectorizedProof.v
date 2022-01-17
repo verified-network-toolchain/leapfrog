@@ -16,6 +16,12 @@ Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_s
   unfold Reachability.reachable_states_wit.
   solve_fp_wit.
 Defined.
+
+Lemma init_states_wf:
+  Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+Proof.
+  vm_compute; Lia.lia.
+Qed.
                 
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
@@ -46,7 +52,7 @@ Lemma prebisim_mpls_unroll:
 Proof.
   intros.
 
-  pose proof (Reachability.reachable_states_wit_conv (projT2 r_states)) as Hr.
+  pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
 
   unfold mk_init.
   rewrite Hr.
