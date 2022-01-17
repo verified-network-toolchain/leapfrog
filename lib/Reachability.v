@@ -870,7 +870,7 @@ Section ReachablePairs.
               {| st_state := inl (inr s2); st_buf_len := 0 |}) in
     [s].
 
-  Definition reachable_states_fp := fp state_pairs.
+  Definition reachable_states_fp := fp state_pairs reachable_step.
   Definition reachable_states_wit s1 s2 : state_pairs -> Type := 
     fp_wit _ reachable_step (build_state_pairs s1 s2).
 
