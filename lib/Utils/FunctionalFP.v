@@ -17,7 +17,26 @@ Section ExactFP.
     | FPDone _ pf => exist _ _ pf
     | FPIter _ _ wit' => wit_conv wit'
     end.
-  
+
+  Lemma fp_wit_converges: 
+    forall x y z,
+      fp_wit x y -> 
+      fp_wit x z -> 
+      y = z.
+  Proof.
+    intros.
+    induction X; induction X0; trivial.
+    - erewrite <- e.
+      eapply IHX0.
+      erewrite e.
+      trivial.
+    - eapply IHX.
+      erewrite e.
+      constructor.
+      trivial.
+    - eauto.
+  Qed.
+      
 End ExactFP.
 
 Ltac solve_fp_wit := 

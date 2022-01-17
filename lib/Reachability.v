@@ -365,13 +365,11 @@ Section ReachablePairs.
     let r' := (List.concat (List.map reachable_pair_step r)) in
     List.nodup state_pair_eq_dec (r' ++ r).
 
-  Definition reachable_states' := iter _ reachable_step.
-    (* match fuel with
+  Fixpoint reachable_states' fuel r :=
+    match fuel with
     | 0 => r
     | S fuel => reachable_step (reachable_states' fuel r)
-    end. *)
-
-  
+    end.
 
   Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
     forall (l1 l2: list X),
@@ -877,30 +875,34 @@ Section ReachablePairs.
   Definition reachable_states s1 s2 : state_pairs :=
     reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2).
 
+
+  Lemma reachable_lvsp_fixedpoint:
+    forall s1 s2, 
+      let fp := reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2) in 
+      reachable_step fp = fp.
+  Admitted.
+
+  Lemma reachable_lsvp_fp_wit:
+    forall s1 s2,
+      reachable_states_wit s1 s2 (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
+  Proof.
+    intros.
+  Admitted.
+
   Lemma reachable_states_wit_conv : 
     forall s1 s2 ss,
       reachable_states_wit s1 s2 ss ->
       reachable_states s1 s2 = ss.
   Proof.
     intros.
+    pose proof (reachable_lsvp_fp_wit s1 s2).
     unfold reachable_states.
-    unfold reachable_states_wit in *.
-    induction X.
-    - unfold reachable_states'.
-      induction (length valid_state_pairs).
-      + exact eq_refl.
-      + unfold iter.
-        fold (iter state_pairs reachable_step n).
-        rewrite IHn.
-        auto.
-    - unfold reachable_states' in *.
-      induction (length valid_state_pairs).
-      + unfold reachable_states' in IHX.
-        unfold iter in *.
-        subst y. (* huh... *)
-        admit.
-      + admit.
-  Admitted.
+
+    eapply fp_wit_converges.
+    - exact X0.
+    - exact X.
+  Qed.
+
 
   Definition reachable_pair rs (q1 q2: conf) : Prop :=
     List.Exists (fun '(t1, t2) =>
