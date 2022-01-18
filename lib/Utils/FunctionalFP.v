@@ -43,24 +43,6 @@ Section ExactFP.
       func_iter (f x) y ->
       func_iter x y.
 
-  Variable (P: A -> Prop).
-  Variable (a: A).
-  Variable (Pbase: P a).
-  Variable (Prec: 
-    forall x, P x -> P (f x)
-  ).
-
-  Lemma func_iter_rec' : 
-    forall a', 
-      func_iter a a' -> 
-      P a'.
-  Proof.
-    intros.
-    induction X; [trivial|].
-    eauto.
-  Qed.
-  
-  
   Lemma func_iter_extend : forall x y z, 
     func_iter x y -> 
     func_iter y z -> 
@@ -123,6 +105,28 @@ Section ExactFP.
   Qed.
 
 End ExactFP.
+
+Section ExactFPRec.
+  Variable (A: Type).
+  Variable (f: A -> A).
+  Variable (P: A -> Prop).
+  Variable (a: A).
+  Variable (Pbase: P a).
+  Variable (Prec: 
+    forall x, P x -> P (f x)
+  ).
+
+  Lemma func_iter_rec' : 
+    forall a', 
+      func_iter _ f a a' -> 
+      P a'.
+  Proof.
+    intros.
+    induction X; [trivial|].
+    eauto.
+  Qed.
+End ExactFPRec.
+  
 
 Section ListFP.
   Variable (T: Type).
