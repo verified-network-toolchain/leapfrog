@@ -889,6 +889,42 @@ Section ReachablePairs.
       eapply List.NoDup_nodup.
   Qed.
 
+  Lemma nodup_cons:
+    forall A (x: A) xs eq,
+      List.nodup eq (x :: xs) = 
+      (if List.in_dec eq x xs then [] else [x]) ++ List.nodup eq xs.
+  Proof.
+    intros.
+    unfold List.nodup.
+    destruct (List.in_dec eq x xs) eqn:?.
+    - exact eq_refl.
+    - erewrite <- List.app_comm_cons.
+      simpl.
+      exact eq_refl.
+  Qed.
+
+  Lemma reachable_mono:
+    forall ss,
+    List.NoDup ss -> 
+      exists ss', reachable_step ss = ss' ++ ss.
+  Proof.
+    intros.
+    unfold reachable_step.
+    induction (List.concat (List.map reachable_pair_step ss)).
+    - exists [].
+      simpl.
+      eapply List.nodup_fixed_point.
+      trivial.
+    - erewrite <- List.app_comm_cons.
+      erewrite nodup_cons.
+      destruct IHl.
+      erewrite H0.
+      exists ((if List.in_dec state_pair_eq_dec a0 (l ++ ss) then [] else [a0]) ++
+      x).
+      erewrite List.app_assoc.
+      exact eq_refl.
+  Qed.
+
   Lemma reachable_lvsp_fixedpoint:
     forall s1 s2, 
       valid_state_pair (build_state_pair s1 s2) ->
@@ -900,7 +936,8 @@ Section ReachablePairs.
     eapply f_incl_fp.
     -
       intros.
-      admit.
+      eapply reachable_mono.
+      trivial.
 
     - intros. unfold reachable_step.
       eapply List.NoDup_nodup.
@@ -921,7 +958,7 @@ Section ReachablePairs.
       + subst p.
         trivial.
       + contradiction.
-  Admitted.
+  Qed.
 
   Lemma reachable_lsvp_func_iter:
     forall s1 s2,
