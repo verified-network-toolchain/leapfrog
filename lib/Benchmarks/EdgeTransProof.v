@@ -17,14 +17,14 @@ Notation start_right := (Optimized.State_0).
 Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
   econstructor.
   unfold Reachability.reachable_states_wit.
-  match goal with 
-  | |- fp_wit _ _ _ ?R => set (baz := R)
-  end.
   solve_fp_wit.
-  subst baz.
-  eapply FPDone.
-  exact eq_refl.
 Defined.
+
+Lemma init_states_wf:
+  Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+Proof.
+  vm_compute; Lia.lia.
+Qed.
 
 
 SetSMTSolver "cvc4".
@@ -58,7 +58,7 @@ Proof.
 
   intros.
 
-  pose proof (Reachability.reachable_states_wit_conv (projT2 r_states)) as Hr.
+  pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
 
   unfold mk_init.
   rewrite Hr.
@@ -68,7 +68,6 @@ Proof.
   vm_compute in rel0.
   subst rel0.
   
-
   time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
 
   print_rel_len.

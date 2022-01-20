@@ -29,23 +29,18 @@ clean:
 min-imports:
 	find lib/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
 
-benchmarks-small: smallfilter selfcmp
+benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
 
-benchmarks-medium: babyip mplsvectorized ipfilter ethernet sloppystrict
-
-benchmarks-all: benchmarks-small benchmarks-medium negative
-
-smallfilter: build
-	xargs coqc lib/Benchmarks/SmallFilterProof.v < _CoqProject | grep "Tactic call"
+benchmarks-large: ipoptions3 edgeself edgetrans datacenter serviceprovider enterprise
 
 ipfilter: build
 	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
 
-babyip: build
-	xargs coqc lib/Benchmarks/BabyIPProof.v < _CoqProject | grep "Tactic call"
+mpls: build
+	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
 
-mplsvectorized: build
-	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject
+selfcomparison: build
+	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
 
 ethernet: build
 	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
@@ -53,17 +48,14 @@ ethernet: build
 sloppystrict: build
 	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
 
-negative: build
-	xargs coqc lib/Benchmarks/NegativeProof.v < _CoqProject | grep "Tactic call"
-
-selfcmp: build
-	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
-
-ipoptions: build
-	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject | grep "Tactic call\|remaining goals"
+ipoptions3: build
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject > ipoptions_timing.out 2>&1 &
 
 edgeself:
 	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+
+edgetrans:
+	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject > edge_trans_timing.out 2>&1 &
 
 datacenterself:
 	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &

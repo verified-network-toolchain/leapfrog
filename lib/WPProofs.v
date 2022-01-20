@@ -2960,4 +2960,4 @@ Section WPProofs.
 
 End WPProofs.
 
-Print Assumptions wp_safe.
+(* Print Assumptions wp_safe. *)

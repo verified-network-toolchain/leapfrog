@@ -209,6 +209,8 @@ Ltac solve_fp_wit :=
   exact eq_refl.
   
 
+(* Several examples of functional fixed points with the collatz function *)
+
 Definition collatz (n: nat) := 
   match n with
   | 1 => 1
