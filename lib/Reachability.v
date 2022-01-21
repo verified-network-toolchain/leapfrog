@@ -8,6 +8,8 @@ Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.Syntax.
 Require Import Leapfrog.ConfRel.
 
+Require Import Leapfrog.Utils.FunctionalFP.
+
 Set Implicit Arguments.
 Section ReachablePairs.
 
@@ -49,6 +51,19 @@ Section ReachablePairs.
   Next Obligation.
     intuition.
   Qed.
+
+  Definition state_pair_eqb (l: state_pair) (r: state_pair) : bool := 
+    if l == r then true else false.
+
+  Lemma state_pair_eqb_tru : 
+    forall l r, l = r <-> state_pair_eqb l r = true.
+  Proof.
+    unfold state_pair_eqb.
+    intros.
+    destruct (equiv_dec l r); [unfold "===" in e; split; auto|].
+    split; intros H; exfalso; congruence.
+  Qed.
+
 
   Definition state_pairs : Type :=
     list state_pair.
@@ -350,7 +365,7 @@ Section ReachablePairs.
     let r' := (List.concat (List.map reachable_pair_step r)) in
     List.nodup state_pair_eq_dec (r' ++ r).
 
-  Fixpoint reachable_states' (fuel: nat) (r: state_pairs) :=
+  Fixpoint reachable_states' fuel r :=
     match fuel with
     | 0 => r
     | S fuel => reachable_step (reachable_states' fuel r)
@@ -847,10 +862,147 @@ Section ReachablePairs.
     destruct H1; try contradiction; now subst.
   Qed.
 
-  Definition reachable_states n s1 s2 : state_pairs :=
-    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
-              {| st_state := inl (inr s2); st_buf_len := 0 |}) in
-    reachable_states' n [s].
+  Definition build_state_pair s1 s2 : state_pair := 
+    ({| st_state := inl (inl s1); st_buf_len := 0 |},
+      {| st_state := inl (inr s2); st_buf_len := 0 |}).
+
+  Definition build_state_pairs s1 s2 : state_pairs := 
+    [build_state_pair s1 s2].
+
+  Definition reachable_states_fp := fp state_pairs reachable_step.
+  Definition reachable_states_wit s1 s2 : state_pairs -> Type := 
+    fp_wit _ reachable_step (build_state_pairs s1 s2).
+
+  Definition reachable_states s1 s2 : state_pairs :=
+    reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2).
+
+  Lemma reachable_iter_nodup:
+    forall s1 s2 y, 
+      func_iter _ reachable_step (build_state_pairs s1 s2) y -> 
+      List.NoDup y.
+  Proof.
+    intros.
+    eapply func_iter_rec' with (f := reachable_step) (a := build_state_pairs s1 s2); trivial.
+    - eapply nodup_trivial.
+    - intros.
+      unfold reachable_step.
+      eapply List.NoDup_nodup.
+  Qed.
+
+  Lemma nodup_cons:
+    forall A (x: A) xs eq,
+      List.nodup eq (x :: xs) = 
+      (if List.in_dec eq x xs then [] else [x]) ++ List.nodup eq xs.
+  Proof.
+    intros.
+    unfold List.nodup.
+    destruct (List.in_dec eq x xs) eqn:?.
+    - exact eq_refl.
+    - erewrite <- List.app_comm_cons.
+      simpl.
+      exact eq_refl.
+  Qed.
+
+  Lemma reachable_mono:
+    forall ss,
+    List.NoDup ss -> 
+      exists ss', reachable_step ss = ss' ++ ss.
+  Proof.
+    intros.
+    unfold reachable_step.
+    induction (List.concat (List.map reachable_pair_step ss)).
+    - exists [].
+      simpl.
+      eapply List.nodup_fixed_point.
+      trivial.
+    - erewrite <- List.app_comm_cons.
+      erewrite nodup_cons.
+      destruct IHl.
+      erewrite H0.
+      exists ((if List.in_dec state_pair_eq_dec a0 (l ++ ss) then [] else [a0]) ++
+      x).
+      erewrite List.app_assoc.
+      exact eq_refl.
+  Qed.
+
+  Lemma reachable_lvsp_fixedpoint:
+    forall s1 s2, 
+      valid_state_pair (build_state_pair s1 s2) ->
+      let fp := reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2) in 
+      reachable_step fp = fp.
+  Proof.
+    intros.
+    subst fp.
+    eapply f_incl_fp.
+    -
+      intros.
+      eapply reachable_mono.
+      trivial.
+
+    - intros. unfold reachable_step.
+      eapply List.NoDup_nodup.
+    - intros. unfold reachable_step.
+      eapply List.NoDup_nodup.
+
+    - intros.
+      (* pose proof reachable_states_bound (S (length valid_state_pairs)). *)
+      assert (
+        (reachable_states' (S (length valid_state_pairs)) (build_state_pairs s1 s2)) = 
+        (reachable_step (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)))
+      ) by exact eq_refl.
+      erewrite <- H0.
+      eapply reachable_states_bound.
+      simpl.
+      intros.
+      inversion H1.
+      + subst p.
+        trivial.
+      + contradiction.
+  Qed.
+
+  Lemma reachable_lsvp_func_iter:
+    forall s1 s2,
+      func_iter _ reachable_step (build_state_pairs s1 s2) (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
+  Proof.
+    intros.
+    induction (length valid_state_pairs); [constructor|].
+    unfold reachable_states'.
+    fold reachable_states'.
+
+    eapply func_iter_extend.
+    - exact IHn.
+    - constructor.
+      constructor.
+  Qed.
+    
+
+  Lemma reachable_lsvp_fp_wit:
+    forall s1 s2,
+      valid_state_pair (build_state_pair s1 s2) ->
+      reachable_states_wit s1 s2 (reachable_states' (length valid_state_pairs) (build_state_pairs s1 s2)).
+  Proof.
+    intros.
+    eapply func_iter_conv.
+    - eapply reachable_lsvp_func_iter.
+    - eapply reachable_lvsp_fixedpoint.
+      trivial.
+  Qed.
+
+  Lemma reachable_states_wit_conv : 
+    forall s1 s2 ss,
+      valid_state_pair (build_state_pair s1 s2) ->
+      reachable_states_wit s1 s2 ss ->
+      reachable_states s1 s2 = ss.
+  Proof.
+    intros.
+    pose proof (reachable_lsvp_fp_wit H).
+    unfold reachable_states.
+
+    eapply fp_wit_converges.
+    - exact X0.
+    - exact X.
+  Qed.
+
 
   Definition reachable_pair rs (q1 q2: conf) : Prop :=
     List.Exists (fun '(t1, t2) =>
@@ -859,3 +1011,4 @@ Section ReachablePairs.
                 rs.
 
 End ReachablePairs.
+

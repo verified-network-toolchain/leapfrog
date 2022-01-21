@@ -5,6 +5,7 @@ Require Import Coq.Arith.PeanoNat.
 
 
 Declare ML Module "mirrorsolve".
+SetSMTSolver "cvc4".
 
 Notation H := (Simple.header + Simple.header).
 Notation A := (Sum.sum Simple.aut Simple.aut).
@@ -12,15 +13,17 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := (Simple.ParseEth).
 Notation start_right := (Simple.ParseEth).
 
-Notation r_len := 4.
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
-Definition r_states : list (Reachability.state_pair A) :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        r_len
-                        start_left
-                        start_right).
-
+Lemma init_states_wf:
+  Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+Proof.
+  vm_compute; Lia.lia.
+Qed.
 
 Lemma prebisim_babyip:
   forall q1 q2,
@@ -38,20 +41,26 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                   |} q1 q2 ->
   pre_bisimulation A
-                  (wp r_states)
+                  (wp (projT1 r_states))
                   top
                   []
-                  (mk_init _ _ _ _ A r_len start_left start_right)
+                  (mk_init _ _ _ _ A start_left start_right)
                   q1 q2.
 Proof.
   idtac "running enterprise self-comparison bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
-  vm_compute in rel0.
-  subst rel0.
+  pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
+  unfold mk_init.
+  rewrite Hr.
+  clear Hr.
+  
+  set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
+  vm_compute in foo.
+  subst foo.
+
+  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
 
   (* run_bisim top top' r_states. *)
   time "close phase" close_bisim top'.

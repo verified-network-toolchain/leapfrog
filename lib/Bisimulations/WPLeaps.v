@@ -155,9 +155,9 @@ Section WPLeaps.
   Definition mk_partition (r: Reachability.state_pairs a) : crel a :=
     List.map mk_rel (List.filter not_equally_accepting r).
 
-  Definition mk_init (n: nat) s1 s2 :=
+  Definition mk_init s1 s2 :=
     List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ _ a)
-               (mk_partition (Reachability.reachable_states a n s1 s2)).
+               (mk_partition (Reachability.reachable_states a s1 s2)).
 
   Definition lift_l {X Y A} (f: X -> A) (x: X + Y) : A + Y :=
     match x with

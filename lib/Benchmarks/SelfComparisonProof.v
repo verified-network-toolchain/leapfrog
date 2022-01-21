@@ -4,40 +4,42 @@ Require Import Leapfrog.Benchmarks.SelfComparison.
 
 Declare ML Module "mirrorsolve".
 
+SetSMTSolver "cvc4".
+
 Module Positive.
 
   Notation H := (ReadUndef.header + ReadUndef.header).
   Notation A := (Sum.sum ReadUndef.aut ReadUndef.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
-  Definition r_states :=
-    Eval vm_compute in (Reachability.reachable_states
-                          A
-                          10
-                          ReadUndef.ParseEth
-                          ReadUndef.ParseEth).
+  Notation start_left := (ReadUndef.ParseEth).
+  Notation start_right := (ReadUndef.ParseEth).
+
+  Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+    econstructor.
+    unfold Reachability.reachable_states_wit.
+    solve_fp_wit.
+  Defined.
+
+  Lemma init_states_wf:
+    Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+  Proof.
+    vm_compute; Lia.lia.
+  Qed.
 
   Definition top : Relations.rel conf := fun _ _ => True.
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
-  (*
-  RegisterEnvCtors
-    (ReadUndef.HdrEth, FirstOrderConfRelSimplified.Bits eth_size)
-    (ReadUndef.HdrIP, FirstOrderConfRelSimplified.Bits ip_size)
-    (ReadUndef.HdrVLAN, FirstOrderConfRelSimplified.Bits vlan_size)
-    (ReadUndef.HdrUDP, FirstOrderConfRelSimplified.Bits udp_size).
-  *)
-
   Lemma prebisim_babyip:
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
                           cs_st1 := {|
-                            st_state := inl (inl (ReadUndef.ParseEth));
+                            st_state := inl (inl (start_left));
                             st_buf_len := 0;
                           |};
                           cs_st2 := {|
-                            st_state := inl (inr (ReadUndef.ParseEth));
+                            st_state := inl (inr (start_right));
                             st_buf_len := 0;
                           |};
                         |};
@@ -45,20 +47,27 @@ Module Positive.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
+                    (wp (projT1 r_states))
                     top
                     []
-                    (mk_init _ _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)
+                    (mk_init _ _ _ _ A start_left start_right)
                     q1 q2.
   Proof.
     idtac "running self-comparison positive bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ _ A 10 ReadUndef.ParseEth ReadUndef.ParseEth)).
-    vm_compute in rel0.
-    subst rel0.
 
-    time "build phase" repeat (time "single step" run_bisim top top' r_states).
+    pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
+
+    unfold mk_init.
+    rewrite Hr.
+    clear Hr.
+    
+    set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
+    vm_compute in foo.
+    subst foo.
+
+    time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
     time "close phase" close_bisim top'.
   Time Admitted.
 End Positive.
@@ -68,35 +77,35 @@ Module Negative.
   Notation H := (ReadUndefIncorrect.header + ReadUndefIncorrect.header).
   Notation A := (Sum.sum ReadUndefIncorrect.aut ReadUndefIncorrect.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
-  Definition r_states :=
-    Eval vm_compute in (Reachability.reachable_states
-                          A
-                          10
-                          ReadUndefIncorrect.ParseEth
-                          ReadUndefIncorrect.ParseEth).
+  Notation start_left := (ReadUndefIncorrect.ParseEth).
+  Notation start_right := (ReadUndefIncorrect.ParseEth).
+
+  Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+    econstructor.
+    unfold Reachability.reachable_states_wit.
+    solve_fp_wit.
+  Defined.
+
+  Lemma init_states_wf:
+    Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+  Proof.
+    vm_compute; Lia.lia.
+  Qed.
 
   Definition top : Relations.rel conf := fun _ _ => True.
   Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
-  (*
-  RegisterEnvCtors
-    (ReadUndefIncorrect.HdrEth, FirstOrderConfRelSimplified.Bits eth_size)
-    (ReadUndefIncorrect.HdrIP, FirstOrderConfRelSimplified.Bits ip_size)
-    (ReadUndefIncorrect.HdrVLAN, FirstOrderConfRelSimplified.Bits vlan_size)
-    (ReadUndefIncorrect.HdrUDP, FirstOrderConfRelSimplified.Bits udp_size).
-  *)
-
   Lemma prebisim_babyip:
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
                           cs_st1 := {|
-                            st_state := inl (inl (ReadUndefIncorrect.ParseEth));
+                            st_state := inl (inl start_left);
                             st_buf_len := 0;
                           |};
                           cs_st2 := {|
-                            st_state := inl (inr (ReadUndefIncorrect.ParseEth));
+                            st_state := inl (inr start_right);
                             st_buf_len := 0;
                           |};
                         |};
@@ -104,20 +113,27 @@ Module Negative.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
+                    (wp (projT1 r_states))
                     top
                     []
-                    (mk_init _ _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)
+                    (mk_init _ _ _ _ A start_left start_right)
                     q1 q2.
   Proof.
     idtac "running self-comparison negative bisimulation".
 
-    intros.
-    set (rel0 := (mk_init _ _ _ _ A 10 ReadUndefIncorrect.ParseEth ReadUndefIncorrect.ParseEth)).
-    vm_compute in rel0.
-    subst rel0.
+    intros. 
 
-    time "build phase" repeat (time "single step" run_bisim top top' r_states).
+    pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
+
+    unfold mk_init.
+    rewrite Hr.
+    clear Hr.
+    
+    set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
+    vm_compute in foo.
+    subst foo.
+
+    time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
     Fail time "close phase" close_bisim top'.
   Time Admitted.
 End Negative.
