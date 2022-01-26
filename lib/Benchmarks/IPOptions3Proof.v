@@ -10,43 +10,25 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := IPOptionsRef63.Parse0.
 Notation start_right := TimestampSpec3.Parse0.
 
-
-Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
-  match fuel with
-  | 0 => None
-  | S x =>
-    let nxt := Reachability.reachable_step r in
-    let nxt_len := length nxt in
-    if Nat.eq_dec (length nxt) (length r) then Some nxt_len
-    else
-      reachable_states_len' nxt x
-  end.
-
-Definition r_len : nat.
-refine (
-let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
-          {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-let r := reachable_states_len' [s] 1000 in
-_).
-vm_compute in r.
-match goal with
-| _ := Some ?x |- _ => exact x
-end.
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
 Defined.
 
-
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        r_len
-                        start_left
-                        start_right).
+Lemma init_states_wf:
+  Reachability.valid_state_pair (Reachability.build_state_pair A start_left start_right).
+Proof.
+  vm_compute; Lia.lia.
+Qed.
 
 
 Definition top : Relations.rel conf := fun _ _ => True.
 Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
+
+SetSMTSolver "cvc4".
 
 Lemma prebisim_incremental_sep:
   forall q1 q2,
@@ -64,20 +46,29 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
+                   (wp (projT1 r_states))
                    top
                    []
-                   (mk_init _ _ _ _ A r_len start_left start_right)
+                   (mk_init _ _ _ _ A start_left start_right)
                    q1 q2.
 Proof.
   idtac "running timestamp three bisimulation".
 
   intros.
-  set (a := A).
-  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
-  vm_compute in rel0.
 
-  time "build phase" repeat (run_bisim top top' r_states).
+  pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
+
+  unfold mk_init.
+  rewrite Hr.
+  clear Hr.
+  
+  set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
+  vm_compute in foo.
+  subst foo.
+
+  idtac "put the init_rel together".
+
+  time "build phase" repeat (run_bisim top top' (projT1 r_states)).
   time "close phase" close_bisim top'.
 
 Time Admitted.

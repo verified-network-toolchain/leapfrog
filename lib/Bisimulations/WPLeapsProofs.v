@@ -44,7 +44,7 @@ Section WPLeapsProofs.
 
   Variable (s1: St1).
   Variable (s2: St2).
-  Definition r := reachable_states a (length (valid_state_pairs a)) s1 s2.
+  Definition r := reachable_states a s1 s2.
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -104,7 +104,7 @@ Section WPLeapsProofs.
 
   Lemma mk_init_accepting:
     forall (q1 q2: conf),
-      ⟦mk_init _ _ _ _ _ (length (valid_state_pairs a)) s1 s2⟧ q1 q2 ->
+      ⟦mk_init _ _ _ _ _ s1 s2⟧ q1 q2 ->
       (accepting q1 <-> accepting q2).
   Proof.
     intros.
@@ -146,7 +146,7 @@ Section WPLeapsProofs.
 
   Lemma wp_leaps_implies_bisim_leaps:
     forall q1 q2,
-      let init := mk_init _ _ _ _ _ (length (valid_state_pairs a)) s1 s2 in
+      let init := mk_init _ _ _ _ _ s1 s2 in
       pre_bisimulation a (WP.wp r) top [] init q1 q2 ->
       top q1 q2 ->
       bisimilar_with_leaps (P4A.interp a) q1 q2.

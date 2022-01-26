@@ -9,7 +9,6 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Definition r_states :=
   Eval vm_compute in (Reachability.reachable_states
                         IncrementalSeparate.aut
-                        200
                         IncrementalBits.Start
                         BigBits.Parse).
 
@@ -103,13 +102,13 @@ Lemma prebisim_incremental_sep:
                    (wp r_states)
                    SmallFilterProof.top
                    []
-                   (mk_init _ _ _ _ A 200 IncrementalBits.Start BigBits.Parse)
+                   (mk_init _ _ _ _ A IncrementalBits.Start BigBits.Parse)
                    q1 q2.
 Proof.
   idtac "running smallfilter bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
 

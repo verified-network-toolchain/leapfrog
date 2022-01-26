@@ -12,3 +12,4 @@ Require Export Leapfrog.CompileConfRelSimplified.
 Require Export Leapfrog.CompileFirstOrderConfRelSimplified.
 Require Export Leapfrog.WP.
 
+Require Export Leapfrog.Utils.FunctionalFP.
