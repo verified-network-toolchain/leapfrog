@@ -5,6 +5,8 @@ Require Import Leapfrog.FinType.
 Require Import Leapfrog.TypeNeq.
 Require Import Leapfrog.Ntuple.
 
+Set Universe Polymorphism.
+
 Definition next_tuple (n: nat) (t: n_tuple bool n) : n_tuple bool n.
   revert t.
   induction n; simpl; intros t; destruct t.
@@ -76,9 +78,10 @@ Proof.
     + rewrite nth_error_app2;
       rewrite <- length_enum_tuples, map_length; [|Lia.lia].
       apply map_nth_error with (f := fun t => (t, true)).
-      fold (n_tuple bool n).
-      rewrite <- IHn; f_equal.
-      Lia.lia.
+      generalize (length (enum_tuples n)).
+      intro n1.
+      replace (n1 + code n n0 - n1) with (code n n0) by Lia.lia.
+      exact IHn.
     + rewrite nth_error_app1.
       * now apply map_nth_error with (f := fun t => (t, false)).
       * rewrite map_length.
@@ -130,7 +133,7 @@ Qed.
 Lemma n_tuple_diff_neq:
   forall n m,
     n <> m ->
-    n_tuple bool n <> n_tuple bool m.
+    not (@eq Type (n_tuple bool n) (n_tuple bool m)).
 Proof.
   intros.
   eapply TypeNeq.card_neq.
@@ -157,7 +160,7 @@ Qed.
 
 Lemma n_tuple_inj:
   forall n m,
-    n_tuple bool n = n_tuple bool m ->
+    @eq Type (n_tuple bool n) (n_tuple bool m) ->
     n = m.
 Proof.
   intros.
@@ -212,7 +215,9 @@ Lemma eq_t2l:
 Proof.
   intros.
   inversion H.
-  assert (n = m) by auto using n_tuple_inj.
+  assert (n = m).
+  eapply n_tuple_inj.
+  apply H1.
   subst m.
   rewrite H.
   reflexivity.

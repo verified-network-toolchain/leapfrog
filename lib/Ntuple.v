@@ -8,6 +8,8 @@ From Equations Require Import Equations.
 
 Import ListNotations.
 
+Set Universe Polymorphism.
+
 Fixpoint n_tuple A (n: nat): Type :=
   match n with
   | 0 => unit
@@ -223,8 +225,8 @@ Lemma concat_cons:
 Proof.
   intros.
   unfold n_tuple_concat.
-  generalize (n_tuple_concat_obligation_1 (1 + n) m).
-  generalize (n_tuple_concat_obligation_1 n m).
+  generalize (n_tuple_concat_obligation_1 bool (1 + n) m).
+  generalize (n_tuple_concat_obligation_1 bool n m).
   intros e e0.
   rewrite e, e0.
   replace (rewrite_size eq_refl _) with (n_tuple_concat' xs ys).
@@ -236,89 +238,103 @@ Proof.
     now rewrite rewrite_size_jmeq.
 Qed.
 
-Lemma l2t_app:
-  forall A (xs ys: list A),
-    JMeq (l2t (xs ++ ys)) (n_tuple_concat (l2t xs) (l2t ys)).
-Proof.
-  induction xs; cbn; intros.
-  - apply JMeq_sym.
-    apply concat_emp.
-  - pose proof (IHxs ys).
-    assert (JMeq (n_tuple_cons (l2t (xs ++ ys)) a)
-                 (n_tuple_cons (n_tuple_concat (l2t xs) (l2t ys)) a)).
-    {
-      generalize dependent (l2t (xs ++ ys)).
-      rewrite app_length.
+Section ConvProofs.
+  Set Universe Polymorphism.
+  Variable (A: Type).
+
+  Lemma l2t_app:
+    forall (xs ys: list A),
+      JMeq (l2t (xs ++ ys)) (n_tuple_concat (l2t xs) (l2t ys)).
+  Proof.
+    induction xs; cbn; intros.
+    - apply JMeq_sym.
+      apply concat_emp.
+    - pose proof (IHxs ys).
+      assert (JMeq (n_tuple_cons (l2t (xs ++ ys)) a)
+                   (n_tuple_cons (n_tuple_concat (l2t xs) (l2t ys)) a)).
+      {
+        generalize dependent (l2t (xs ++ ys)).
+        rewrite app_length.
+        intros.
+        rewrite H.
+        reflexivity.
+      }
+      eapply JMeq_trans; [now apply H0|].
+      apply concat_cons.
+  Qed.
+
+  Lemma l2t_snoc:
+    forall (l: list A) (x: A),
+      JMeq (l2t (l ++ [x])) (l2t l, x).
+  Proof.
+  Admitted.
+
+  Lemma l2t_t2l:
+    forall n (t: n_tuple A n),
+      JMeq (l2t (t2l t)) t.
+  Proof.
+    induction n; intros; destruct t.
+    - reflexivity.
+    - cbn.
+      pose proof (l2t_app (t2l n0) [a]).
+      eapply JMeq_trans.
+      eapply H.
+      cbn.
+      assert (JMeq
+                (n_tuple_concat (l2t (t2l n0)) ((tt, a): n_tuple _ 1))
+                (l2t (t2l n0), a)).
+      {
+        generalize (l2t (t2l n0)).
+        generalize (length (t2l n0)).
+        unfold n_tuple_concat.
+        intro n1.
+        generalize (n_tuple_concat_obligation_1 A n1 1).
+        intros.
+        cbn in *.
+        apply rewrite_size_jmeq.
+      }
+      eapply JMeq_trans.
+      eapply H0.
+      eapply JMeq_sym.
+      specialize (IHn n0).
+      revert IHn.
+      generalize dependent (l2t (t2l n0)).
+      rewrite t2l_len.
       intros.
-      rewrite H.
+      rewrite IHn.
       reflexivity.
-    }
-    eapply JMeq_trans; [now apply H0|].
-    apply concat_cons.
-Qed.
+  Qed.
 
-Lemma l2t_snoc:
-  forall A (l: list A) (x: A),
-    JMeq (l2t (l ++ [x])) (l2t l, x).
-Proof.
-Admitted.
+  Lemma t2l_cons:
+    forall n (t: n_tuple A n) x,
+      t2l (n_tuple_cons t x) = x :: t2l t.
+  Proof.
+    induction n.
+    - reflexivity.
+    - intros.
+      destruct t.
+      simpl.
+      replace (x :: t2l n0 ++ [a])
+        with ((x :: t2l n0) ++ [a])
+        by eauto with datatypes.
+      rewrite <- IHn.
+      remember (n_tuple_cons n0 x) as g.
+      simpl in *.
+      now destruct g.
+  Qed.
 
-Lemma l2t_t2l:
-  forall A n (t: n_tuple A n),
-    JMeq (l2t (t2l t)) t.
-Proof.
-  induction n; intros; destruct t.
-  - reflexivity.
-  - cbn.
-    rewrite l2t_app.
-    cbn.
-    assert (JMeq
-              (n_tuple_concat (l2t (t2l n0)) ((tt, a): n_tuple _ 1))
-              (l2t (t2l n0), a)).
-    {
-      generalize (l2t (t2l n0)).
-      generalize (length (t2l n0)).
-      unfold n_tuple_concat.
-      unfold eq_rect_r.
-      intro n1.
-      generalize (eq_sym (n_tuple_concat_obligation_1 n1 1)).
-      intros.
-      cbn in *.
-      apply rewrite_size_jmeq.
-    }
-    rewrite H.
-    rewrite IHn.
-    reflexivity.
-Qed.
+  Lemma t2l_l2t:
+    forall (l: list A),
+      Ntuple.t2l (l2t l) = l.
+  Proof.
+    induction l.
+    - reflexivity.
+    - simpl (l2t _ ).
+      replace (a :: l) with (a :: t2l (l2t l)) by (rewrite IHl; auto).
+      apply t2l_cons.
+  Qed.
 
-Lemma t2l_cons:
-  forall A n (t: n_tuple A n) x,
-    t2l (n_tuple_cons t x) = x :: t2l t.
-Proof.
-  induction n.
-  - reflexivity.
-  - intros.
-    destruct t.
-    simpl.
-    replace (x :: t2l n0 ++ [a])
-      with ((x :: t2l n0) ++ [a])
-      by eauto with datatypes.
-    rewrite <- IHn.
-    remember (n_tuple_cons n0 x) as g.
-    simpl in *.
-    now destruct g.
-Qed.
-
-Lemma t2l_l2t:
-  forall A (l: list A),
-    Ntuple.t2l (l2t l) = l.
-Proof.
-  induction l.
-  - reflexivity.
-  - simpl (l2t _ ).
-    replace (a :: l) with (a :: t2l (l2t l)) by congruence.
-    apply t2l_cons.
-Qed.
+End ConvProofs.
 
 Lemma t2l_n_tuple_take_n:
   forall n m (t: n_tuple bool n),
@@ -331,7 +347,7 @@ Proof.
   intros.
   subst.
   rewrite rewrite_size_eq.
-  rewrite t2l_l2t.
+  rewrite (t2l_l2t bool).
   reflexivity.
 Qed.
 
