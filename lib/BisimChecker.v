@@ -218,9 +218,9 @@ Ltac skip_bisim :=
     ]
   end.
 
-Ltac extend_bisim' HN r_states :=
+Ltac extend_bisim' HN :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?r_states _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
     time "apply extend" (apply PreBisimulationExtend with (H := right HN) (W := t));
     [ trivial | subst t; reflexivity |];
@@ -236,9 +236,10 @@ Ltac extend_bisim' HN r_states :=
     end
   end.
 
-Ltac extend_bisim'' HN r_states :=
+
+Ltac extend_bisim'' HN :=
   match goal with
-  | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?r_states _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
     eapply PreBisimulationExtend' with (H0 := right HN) (W := t);
     [
@@ -286,18 +287,21 @@ Ltac crunch_foterm :=
 
 Declare ML Module "mirrorsolve".
 
-Ltac verify_interp top top' :=
+Ltac verify_interp :=
   match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
+  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
     let H := fresh "H" in
-    assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
+    assert (H: interp_entailment a (fun q1 q2 =>
+        top' _ _ _ _ _ r_states
+            (conf_to_state_template q1)
+            (conf_to_state_template q2)
+      ) ({| e_prem := R; e_concl := C |}));
     [
-      eapply simplify_entailment_correct with (i := top');
+      eapply simplify_entailment_correct;
       eapply compile_simplified_entailment_correct; simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
-
 
       time "reduce goal" crunch_foterm;
 
@@ -311,10 +315,10 @@ Ltac verify_interp top top' :=
   tryif ( guard n = 2) then
     match goal with
     | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ _ =>
+    | H : interp_entailment _ _ _ |- pre_bisimulation ?a ?r_states _ ?R (?C :: _) _ _ =>
       clear H;
       let HN := fresh "HN" in
-      assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
+      assert (HN: ~ (interp_entailment a (top _ _ _ _ _ r_states) ({| e_prem := R; e_concl := C |}))) by admit
     end
   else idtac.
 
@@ -345,11 +349,11 @@ Ltac verify_interp' top top' L :=
     end
   else idtac.
 
-Ltac run_bisim top top' r_states :=
-  time "verify_interp" (verify_interp top top');
+Ltac run_bisim :=
+  time "verify_interp" verify_interp;
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    time "extending" (extend_bisim' HN r_states; clear HN)
+    time "extending" (extend_bisim' HN; clear HN)
   | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
@@ -381,36 +385,44 @@ Ltac print_rel_len :=
   clear foo;
   clear bar.
 
-Ltac close_bisim top' :=
-  apply PreBisimulationClose;
+Ltac close_bisim :=
   match goal with
-  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
-    let H0 := fresh "H0" in
-    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
-      eapply simplify_entailment_correct' with (i := top');
-      eapply compile_simplified_entailment_correct';
+  | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
+    apply PreBisimulationClose;
+    match goal with
+    | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ _ ?P ?q1 ?q2 =>
+      let H0 := fresh "H0" in
+      assert (H0: interp_entailment' (fun q1 q2 =>
+        top' _ _ _ _ _ r_states
+            (conf_to_state_template q1)
+            (conf_to_state_template q2)
+      ) {| e_prem := P; e_concl := C |}) by (
+        eapply simplify_entailment_correct';
+        eapply compile_simplified_entailment_correct';
 
-      simpl; intros;
-      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+        simpl; intros;
+        eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+        eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
 
-      crunch_foterm;
-      match goal with
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    );
-    apply H0; auto;
-    unfold top, conf_to_state_template;
-    destruct q1, q2;
-    vm_compute in H;
-    repeat match goal with
-           | H: _ /\ _ |- _ =>
-             idtac H;
-             destruct H
-           end;
-    subst;
-    simpl; tauto
+        crunch_foterm;
+        match goal with
+        | |- ?X => time "smt check pos" check_interp_pos X; admit
+        end
+      );
+      apply H0; auto;
+      unfold top', conf_to_state_template;
+      destruct q1, q2;
+      vm_compute in H;
+      repeat match goal with
+             | H: _ /\ _ |- _ =>
+               idtac H;
+               destruct H
+             end;
+      subst;
+      simpl; tauto
+    end
   end.
+
 
 (* solves a header finiteness goal of the form:
 List.NoDup

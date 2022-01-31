@@ -30,9 +30,6 @@ Ltac hashcons_list xs :=
                           IPOptionsRef.Parse0
                           IPOptionsRef.Parse0).
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
-
   ClearEnvCtors.
 
   RegisterEnvCtors
@@ -90,21 +87,21 @@ Ltac hashcons_list xs :=
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    (mk_init _ _ _ A 10 IPOptionsRef.Parse0 IPOptionsRef.Parse0)
-                    q1 q2.
+                     (projT1 r_states)
+                     (wp (a := A))
+                     []
+                     (mk_init _ _ _ A IPOptionsRef.Parse0 IPOptionsRef.Parse0)
+                     q1 q2.
   Proof.
     idtac "running ipoptions ref self-comparison bisimulation".
 
     intros.
-    set (rel0 := (mk_init _ _ _ A 10 IPOptionsRef.Parse0 IPOptionsRef.Parse0)).
+    set (rel0 := (mk_init _ _ _ A IPOptionsRef.Parse0 IPOptionsRef.Parse0)).
     vm_compute in rel0.
     subst rel0.
 
-    time "build phase" repeat (time "single step" run_bisim top top' r_states).
-    time "close phase" close_bisim top'.
+    time "build phase" repeat (time "single step" run_bisim).
+    time "close phase" close_bisim.
   Time Admitted.
 End SelfComparison. *)
 
@@ -124,9 +121,6 @@ Module SelfComparison.
   (* Definition r_with_len := Eval vm_compute in (length r_states, r_states).
 
   Print r_with_len. *)
-
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
@@ -180,8 +174,8 @@ Module SelfComparison.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
-                    top
+                    (projT1 r_states)
+                    (wp (a := A))
                     []
                     (mk_init _ _ _ _ A 5 IPOptionsRef2.Parse0 IPOptionsRef2.Parse0)
                     q1 q2.
@@ -203,7 +197,7 @@ Module SelfComparison.
 
 
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -211,7 +205,7 @@ Module SelfComparison.
     | _ => idtac
     end).
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -219,7 +213,7 @@ Module SelfComparison.
     | _ => idtac
     end).
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -227,7 +221,7 @@ Module SelfComparison.
     | _ => idtac
     end).
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -235,7 +229,7 @@ Module SelfComparison.
     | _ => idtac
     end).
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -243,7 +237,7 @@ Module SelfComparison.
     | _ => idtac
     end).
 
-    do 25 ((time "single step" run_bisim top top' r_states);
+    do 25 ((time "single step" run_bisim);
     match goal with
     | |- pre_bisimulation _ _ _ (?N :: _) _ _ _  =>
       let r := fresh "r" in
@@ -254,8 +248,8 @@ Module SelfComparison.
     idtac "150 steps...".
 
 
-    time "build phase" repeat (time "single step" run_bisim top top' r_states).
-    time "close phase" close_bisim top'.
+    time "build phase" repeat (time "single step" run_bisim).
+    time "close phase" close_bisim.
   Time Admitted.
 End SelfComparison.
 

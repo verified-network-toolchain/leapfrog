@@ -22,13 +22,6 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
-
-Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
@@ -49,8 +42,8 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp (projT1 r_states))
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (mk_init _ _ _ _ A start_left start_right)
                    q1 q2.
@@ -64,14 +57,14 @@ Proof.
   unfold mk_init.
   rewrite Hr.
   clear Hr.
-  
+
   set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
   vm_compute in foo.
   subst foo.
 
   idtac "put the init_rel together".
 
-  time "build phase" repeat (run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (run_bisim).
+  time "close phase" close_bisim.
 
 Time Admitted.

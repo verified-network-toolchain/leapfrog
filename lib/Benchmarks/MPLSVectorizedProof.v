@@ -23,12 +23,6 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
-Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
 Declare ML Module "mirrorsolve".
 
 Lemma prebisim_mpls_unroll:
@@ -47,11 +41,11 @@ Lemma prebisim_mpls_unroll:
                       cr_rel := btrue;
                     |} q1 q2 ->
   pre_bisimulation A
-                    (wp (projT1 r_states))
-                    top
-                    []
-                    (mk_init _ _ _ _ A start_left start_right)
-                    q1 q2.
+                   (projT1 r_states)
+                   (wp (a := A))
+                   []
+                   (mk_init _ _ _ _ A start_left start_right)
+                   q1 q2.
 Proof.
   intros.
 
@@ -65,8 +59,7 @@ Proof.
   vm_compute in foo.
   subst foo.
 
-  (* time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify). *)
-  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.
 

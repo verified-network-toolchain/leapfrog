@@ -25,12 +25,6 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
-Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
 Lemma prebisim_babyip:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -47,11 +41,11 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                   |} q1 q2 ->
   pre_bisimulation A
-                  (wp (projT1 r_states))
-                  top
-                  []
-                  (mk_init _ _ _ _ A start_left start_right)
-                  q1 q2.
+                   (projT1 r_states)
+                   (wp (a := A))
+                   []
+                   (mk_init _ _ _ _ A start_left start_right)
+                   q1 q2.
 Proof.
   idtac "running enterprise self-comparison bisimulation".
 
@@ -61,13 +55,11 @@ Proof.
   unfold mk_init.
   rewrite Hr.
   clear Hr.
-  
+
   set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
   vm_compute in foo.
   subst foo.
 
-  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-
-  (* run_bisim top top' r_states. *)
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.

@@ -10,38 +10,11 @@ Notation start_right := Optimized.State_0.
 
 Require Import Coq.Arith.PeanoNat.
 
-Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
-  match fuel with
-  | 0 => None
-  | S x =>
-    let nxt := Reachability.reachable_step r in
-    let nxt_len := length nxt in
-    if Nat.eq_dec (length nxt) (length r) then Some nxt_len
-    else
-      reachable_states_len' nxt x
-  end.
-
-Definition reachable_states_len : nat.
-  refine (
-  let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
-            {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-  let r := reachable_states_len' [s] 1000 in
-  _).
-  vm_compute in r.
-  match goal with
-  | _ := Some ?x |- _ => exact x
-  end.
-  Defined.
-
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        reachable_states_len
-                        start_left
-                        start_right).
-
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
 Declare ML Module "mirrorsolve".
 
@@ -63,8 +36,8 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (mk_init _ _ _ _ A reachable_states_len start_left start_right)
                    q1 q2.
@@ -76,10 +49,6 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-
-
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-
-  time "close phase" close_bisim top'.
-
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.

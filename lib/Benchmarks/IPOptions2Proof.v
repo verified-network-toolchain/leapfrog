@@ -10,12 +10,11 @@ Notation start_right := TimestampSpec2.Parse0.
 
 Notation r_state_depth := 5.
 
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        r_state_depth
-                        start_left
-                        start_right).
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
 (* Definition r_states' :=
   Eval vm_compute in (Reachability.reachable_step r_states).
@@ -23,9 +22,6 @@ Definition r_states :=
 Definition r_len := Eval vm_compute in (length r_states, length r_states').
 
 Print r_len. *)
-
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
 Declare ML Module "mirrorsolve".
 
@@ -76,8 +72,8 @@ RegisterEnvCtors
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (mk_init _ _ _ _ A r_state_depth start_left start_right)
                    q1 q2.
@@ -105,10 +101,10 @@ Proof.
     hashcons_list R
   end.
 
-  time "build phase" repeat (run_bisim top top' r_states;
+  time "build phase" repeat (run_bisim;
     try rewrite H8;
     try rewrite H16
   ).
-  time "close phase" close_bisim top'.
+  time "close phase" close_bisim.
 
 Time Admitted.

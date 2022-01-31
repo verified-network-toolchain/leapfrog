@@ -12,13 +12,6 @@ Definition r_states :=
                         IncrementalBits.Start
                         BigBits.Parse).
 
-Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
-
-Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) r_states.
-
-
 Declare ML Module "mirrorsolve".
 
 (*
@@ -103,8 +96,8 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
-                   SmallFilterProof.top
+                   r_states
+                   (wp (a := A))
                    []
                    (mk_init _ _ _ _ A IncrementalBits.Start BigBits.Parse)
                    q1 q2.
@@ -116,7 +109,9 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  (* This is broken now... *)
-  time "build phase" repeat (time "single step" run_bisim SmallFilterProof.top top' r_states).
-  Fail time "close phase" close_bisim top'.
+  (* This is broken now because of the imports above. *)
+  (*
+  time "build phase" repeat (time "single step" run_bisim).
+  Fail time "close phase" close_bisim.
+  *)
 Abort.

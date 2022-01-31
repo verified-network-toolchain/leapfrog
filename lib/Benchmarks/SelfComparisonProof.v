@@ -26,12 +26,6 @@ Module Positive.
     vm_compute; Lia.lia.
   Qed.
 
-  Definition top : Relations.rel conf :=
-    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-  Definition top' : Relations.rel (state_template A) :=
-    fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
   ClearEnvCtors.
 
   Lemma prebisim_babyip:
@@ -50,11 +44,11 @@ Module Positive.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp (projT1 r_states))
-                    top
-                    []
-                    (mk_init _ _ _ _ A start_left start_right)
-                    q1 q2.
+                     (projT1 r_states)
+                     (wp (a := A))
+                     []
+                     (mk_init _ _ _ _ A start_left start_right)
+                     q1 q2.
   Proof.
     idtac "running self-comparison positive bisimulation".
 
@@ -70,8 +64,8 @@ Module Positive.
     vm_compute in foo.
     subst foo.
 
-    time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-    time "close phase" close_bisim top'.
+    time "build phase" repeat (time "single step" run_bisim).
+    time "close phase" close_bisim.
   Time Admitted.
 End Positive.
 
@@ -95,12 +89,6 @@ Module Negative.
     vm_compute; Lia.lia.
   Qed.
 
-  Definition top : Relations.rel conf :=
-    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-  Definition top' : Relations.rel (state_template A) :=
-    fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
   ClearEnvCtors.
 
   Lemma prebisim_babyip:
@@ -119,11 +107,11 @@ Module Negative.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp (projT1 r_states))
-                    top
-                    []
-                    (mk_init _ _ _ _ A start_left start_right)
-                    q1 q2.
+                     (projT1 r_states)
+                     (wp (a := A))
+                     []
+                     (mk_init _ _ _ _ A start_left start_right)
+                     q1 q2.
   Proof.
     idtac "running self-comparison negative bisimulation".
 
@@ -139,7 +127,7 @@ Module Negative.
     vm_compute in foo.
     subst foo.
 
-    time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-    Fail time "close phase" close_bisim top'.
+    time "build phase" repeat (time "single step" run_bisim).
+    Fail time "close phase" close_bisim.
   Time Admitted.
 End Negative.

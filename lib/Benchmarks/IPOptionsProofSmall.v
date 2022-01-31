@@ -5,26 +5,22 @@ Require Import Leapfrog.Benchmarks.IPOptions.
 Declare ML Module "mirrorsolve".
 
 Module SelfComparison.
-    
+
   Notation H := (IPOptions32.header + IPOptions32.header).
   Notation A := (Sum.sum IPOptions32.aut IPOptions32.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
 
-  Definition r_states :=
-    Eval vm_compute in (Reachability.reachable_states
-                          A
-                          5
-                          IPOptions32.Parse0
-                          IPOptions32.Parse0).
+  Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit IPOptions32.Parse0 IPOptions32.Parse0 r}.
+    econstructor.
+    unfold Reachability.reachable_states_wit.
+    solve_fp_wit.
+  Defined.
 
-  
+
 
   (* Definition r_len := Eval vm_compute in (length r_states). *)
 
   (* Print r_len. *)
-
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
@@ -38,8 +34,8 @@ Module SelfComparison.
     (  IPOptions32.L1, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptions32.V1, FirstOrderConfRelSimplified.Bits 24).
 
-  
-    
+
+
   Lemma prebisim_babyip:
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
@@ -56,11 +52,11 @@ Module SelfComparison.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    (mk_init _ _ _ A 5 IPOptions32.Parse0 IPOptions32.Parse0)
-                    q1 q2.
+                     (projT1 r_states)
+                     (wp (a := A))
+                     []
+                     (mk_init _ _ _ A 5 IPOptions32.Parse0 IPOptions32.Parse0)
+                     q1 q2.
   Proof.
     idtac "running ipoptions ref self-comparison bisimulation".
 
@@ -68,7 +64,7 @@ Module SelfComparison.
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-    
+
     (* set (seven := 7).
     assert (H7 : 7 = seven); [subst seven; reflexivity|]. *)
     set (eight := 8).
@@ -86,27 +82,27 @@ Module SelfComparison.
     try rewrite H16.
     (* try rewrite H16'. *)
 
-    match goal with 
-    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+    match goal with
+    | |- pre_bisimulation _ _ _ _ ?R _ _ =>
       hashcons_list R
     end.
 
     Set Ltac Profiling.
 
-    time "build phase" repeat (run_bisim top top' r_states;
+    time "build phase" repeat (run_bisim;
 
     try rewrite H8;
     try rewrite H16;
-    
-    try match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  => 
-      let rs := fresh "rs" in 
+
+    try match goal with
+    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  =>
+      let rs := fresh "rs" in
       set (rs := N' :: T);
-      let r := fresh "r" in 
+      let r := fresh "r" in
       set (r := N)
-      
-    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  => 
-      let r := fresh "r" in 
+
+    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     end).
 
@@ -114,7 +110,7 @@ Module SelfComparison.
     Show Ltac Profile.
     Reset Ltac Profile.
 
-    time "close phase" close_bisim top'.
+    time "close phase" close_bisim.
 
     Show Ltac Profile.
     Reset Ltac Profile.
@@ -124,7 +120,7 @@ Module SelfComparison.
 End SelfComparison.
 
 Module SpecCompare.
-    
+
   Notation H := (IPOptions32.header + IPOptionsSpec32.header).
   Notation A := (Sum.sum IPOptions32.aut IPOptionsSpec32.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -137,14 +133,11 @@ Module SpecCompare.
                           IPOptions32.Parse0
                           IPOptionsSpec32.Parse0).
 
-  
+
 
   (* Definition r_len := Eval vm_compute in (length r_states).
 
   Print r_len. *)
-
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 
   ClearEnvCtors.
 
@@ -164,7 +157,7 @@ Module SpecCompare.
     (  IPOptionsSpec32.L0, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsSpec32.V, FirstOrderConfRelSimplified.Bits 16).
 
-  
+
 
   Lemma prebisim_babyip:
     forall q1 q2,
@@ -182,11 +175,11 @@ Module SpecCompare.
                         cr_rel := btrue;
                     |} q1 q2 ->
     pre_bisimulation A
-                    (wp r_states)
-                    top
-                    []
-                    (mk_init _ _ _ A 5 IPOptions32.Parse0 IPOptionsSpec32.Parse0)
-                    q1 q2.
+                     (projT1 r_states)
+                     (wp (a := A))
+                     []
+                     (mk_init _ _ _ A 5 IPOptions32.Parse0 IPOptionsSpec32.Parse0)
+                     q1 q2.
   Proof.
     idtac "running ipoptions small specialized bisimulation".
 
@@ -194,7 +187,7 @@ Module SpecCompare.
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-    
+
     (* set (seven := 7).
     assert (H7 : 7 = seven); [subst seven; reflexivity|]. *)
     set (eight := 8).
@@ -212,27 +205,27 @@ Module SpecCompare.
     try rewrite H16.
     (* try rewrite H16'. *)
 
-    match goal with 
-    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+    match goal with
+    | |- pre_bisimulation _ _ _ _ ?R _ _ =>
       hashcons_list R
     end.
 
     Set Ltac Profiling.
 
-    time "build phase" repeat (run_bisim top top' r_states;
+    time "build phase" repeat (run_bisim;
 
     try rewrite H8;
     try rewrite H16;
-    
-    try match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  => 
-      let rs := fresh "rs" in 
+
+    try match goal with
+    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  =>
+      let rs := fresh "rs" in
       set (rs := N' :: T);
-      let r := fresh "r" in 
+      let r := fresh "r" in
       set (r := N)
-      
-    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  => 
-      let r := fresh "r" in 
+
+    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     end).
 
@@ -240,7 +233,7 @@ Module SpecCompare.
     Show Ltac Profile.
     Reset Ltac Profile.
 
-    time "close phase" close_bisim top'.
+    time "close phase" close_bisim.
 
     Show Ltac Profile.
     Reset Ltac Profile.

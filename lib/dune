@@ -9,7 +9,6 @@
    Benchmarks.Benchmarking
    Benchmarks.TCAMSimpleProof
    Benchmarks.SimpleByteProof
-   Benchmarks.SimpleParsers
    Benchmarks.NegativeProof
    Benchmarks.SelfComparisonProof
    Benchmarks.EnterpriseSelfProof

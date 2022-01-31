@@ -4,18 +4,12 @@ Require Import Leapfrog.Benchmarks.BabyIP.
 Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        BabyIP.aut
-                        200
-                        BabyIP1.Start
-                        BabyIP2.Start).
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
-
-Declare ML Module "mirrorsolve".
-
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit BabyIP1.Start BabyIP2.Start r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
 Lemma prebisim_babyip:
   forall q1 q2,
@@ -33,19 +27,19 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
-                   top
+                   (projT1 r_states)
+                   (wp (a :=A))
                    []
-                   (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
+                   (mk_init _ _ _ _ BabyIP.aut BabyIP1.Start BabyIP2.Start)
                    q1 q2.
 Proof.
   idtac "running babyip bisimulation".
 
   intros.
-  set (rel0 := (mk_init _ _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
+  set (rel0 := (mk_init _ _ _ _ BabyIP.aut BabyIP1.Start BabyIP2.Start)).
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.

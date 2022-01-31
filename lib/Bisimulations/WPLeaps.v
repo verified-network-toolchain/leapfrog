@@ -30,13 +30,18 @@ Section WPLeaps.
 
   Variable (a: P4A.t St Hdr_sz).
 
-  Variable (wp: conf_rel a ->
+  Variable (r_states: list (Reachability.state_pair a)).
+  Variable (wp: list (Reachability.state_pair a) ->
+                conf_rel a ->
                 list (conf_rel a)).
 
   Notation conf := (configuration (P4A.interp a)).
 
-  Variable (top: rel conf).
-  Variable (top_closed: forall x y b, top x y -> top (step x b) (step y b)).
+  Definition top q1 q2 :=
+    List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' q1 q2 :=
+    List.In (q1, q2) r_states.
 
   Notation "⟦ x ⟧" := (interp_crel a top x).
   Notation "⦇ x ⦈" := (interp_conf_rel a x).
@@ -65,7 +70,7 @@ Section WPLeaps.
         | right _ => True
         | _ => False
         end ->
-        W = wp C ->
+        W = wp r_states C ->
         (C :: R) ⇝ (W ++ T) q1 q2 ->
         R ⇝ (C :: T) q1 q2
   where "R ⇝ T" := (pre_bisimulation R T).
@@ -76,14 +81,13 @@ Section WPLeaps.
     | right _ => True
     | _ => False
     end ->
-    W = wp C ->
+    W = wp r_states C ->
     (add_strengthen_crel C R) ⇝ (W ++ T) q1 q2 ->
     R ⇝ (C :: T) q1 q2.
   Proof.
     intros.
     eapply PreBisimulationExtend with (H := H) (W := W); auto.
   Admitted.
-
 
   Fixpoint range (n: nat) :=
     match n with
@@ -184,18 +188,18 @@ Section WPLeaps.
   Definition safe_wp_1bit : Prop :=
     forall C (q1 q2: conf),
       top q1 q2 ->
-      ⟦wp C⟧ q1 q2 ->
+      ⟦wp r_states C⟧ q1 q2 ->
       forall bit,
         ⦇C⦈ (δ q1 bit) (δ q2 bit).
 
   Definition wp_bdd :=
     forall C,
       topbdd ⦇C⦈ ->
-      ctopbdd (wp C).
+      ctopbdd (wp r_states C).
 End WPLeaps.
 
-Arguments pre_bisimulation {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp.
-Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
-Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a top C.
-Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.
-Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz} a wp top.
+Arguments pre_bisimulation {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
+Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
+Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
+Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
+Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
