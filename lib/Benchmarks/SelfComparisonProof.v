@@ -26,8 +26,11 @@ Module Positive.
     vm_compute; Lia.lia.
   Qed.
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) (projT1 r_states).
 
   ClearEnvCtors.
 
@@ -62,7 +65,7 @@ Module Positive.
     unfold mk_init.
     rewrite Hr.
     clear Hr.
-    
+
     set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
     vm_compute in foo.
     subst foo.
@@ -92,8 +95,11 @@ Module Negative.
     vm_compute; Lia.lia.
   Qed.
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) (projT1 r_states).
 
   ClearEnvCtors.
 
@@ -121,14 +127,14 @@ Module Negative.
   Proof.
     idtac "running self-comparison negative bisimulation".
 
-    intros. 
+    intros.
 
     pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
 
     unfold mk_init.
     rewrite Hr.
     clear Hr.
-    
+
     set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _ _ _ _ _ _))).
     vm_compute in foo.
     subst foo.
