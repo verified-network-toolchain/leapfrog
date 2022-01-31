@@ -19,8 +19,11 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition top : Relations.rel conf :=
+  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
+
+Definition top' : Relations.rel (state_template A) :=
+  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
 
 Declare ML Module "mirrorsolve".
 
@@ -90,7 +93,7 @@ Proof.
   unfold mk_init'.
   rewrite Hr.
   clear Hr.
-  
+
   set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _))).
   vm_compute in foo.
   subst foo.

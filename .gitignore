@@ -20,3 +20,4 @@ _CoqProject
 *.coq.d
 *.glob
 .lia.cache
+.*.aux

@@ -385,23 +385,31 @@ Ltac close_bisim top' :=
   apply PreBisimulationClose;
   match goal with
   | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
-    let H := fresh "H" in
-    assert (H: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
+    let H0 := fresh "H0" in
+    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
       eapply simplify_entailment_correct' with (i := top');
       eapply compile_simplified_entailment_correct';
-
 
       simpl; intros;
       eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
       eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
-
 
       crunch_foterm;
       match goal with
       | |- ?X => time "smt check pos" check_interp_pos X; admit
       end
     );
-    apply H; [cbv; trivial | auto]
+    apply H0; auto;
+    unfold top, conf_to_state_template;
+    destruct q1, q2;
+    vm_compute in H;
+    repeat match goal with
+           | H: _ /\ _ |- _ =>
+             idtac H;
+             destruct H
+           end;
+    subst;
+    simpl; tauto
   end.
 
 (* solves a header finiteness goal of the form:

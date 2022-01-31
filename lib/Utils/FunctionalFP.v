@@ -204,6 +204,13 @@ Ltac solve_fp_wit :=
       subst iter_v
     end
   );
+  match goal with
+  | |- fp_wit _ _ ?X _ =>
+    let iter_v := fresh "v'" in
+    set (iter_v := X);
+    vm_compute in iter_v;
+    subst iter_v
+  end;
   subst init_v;
   eapply FPDone;
   exact eq_refl.
