@@ -60,18 +60,4 @@ Proof.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim top'.
-
-  destruct q1.
-  destruct q2.
-  vm_compute in H.
-  repeat match goal with
-         | H: _ /\ _ |- _ =>
-           idtac H;
-           destruct H
-         end.
-  subst conf_state.
-  subst conf_buf_len.
-  subst conf_state0.
-  subst conf_buf_len0.
-  tauto.
 Time Admitted.
