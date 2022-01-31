@@ -44,7 +44,7 @@ Section WPLeapsProofs.
 
   Variable (s1: St1).
   Variable (s2: St2).
-  Definition r := reachable_states a s1 s2.
+  Notation r := (reachable_states a s1 s2).
 
   Notation conf := (configuration (P4A.interp a)).
 
