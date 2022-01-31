@@ -25,6 +25,12 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
+Definition top : Relations.rel conf :=
+  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
+
+Definition top' : Relations.rel (state_template A) :=
+  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
+
 Lemma prebisim_babyip:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
