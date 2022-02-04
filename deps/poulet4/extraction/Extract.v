@@ -18,7 +18,6 @@ Extract Inductive N => "Bigint.t" [ "(Bigint.of_zarith_bigint Z.zero)" "" ]
 
 Require Poulet4.SimplExpr.
 Require Poulet4.GenLoc.
-Require Poulet4.Ccompiler.CComp.
 
 Extract Constant SyntaxUtil.dummy_ident => "(fun () -> failwith ""unrealized dummy_ident reached"")".
 Extract Constant SimplExpr.to_digit => "(fun x -> Char.chr 20)".
@@ -30,12 +29,10 @@ Extract Inlined Constant BinNat.N.eqb => "Bigint.(=)".
 Extract Inlined Constant BinNat.N.add => "Bigint.(+)".
 Extract Inlined Constant Nat.add => "(+)".
 (* TODO: figure out what is the correct reference of PrintClight *)
-Extract Constant CComp.print_Clight => "PrintClight.print_if".
 
 Require Poulet4.Syntax.
 Require Poulet4.Typed.
 
 
 Separate Extraction Poulet4.Syntax
-         Poulet4.Typed Poulet4.SimplExpr
-         Poulet4.GenLoc Poulet4.Ccompiler.CComp.
+         Poulet4.Typed Poulet4.SimplExpr.
