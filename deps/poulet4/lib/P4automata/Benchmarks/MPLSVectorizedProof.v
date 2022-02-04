@@ -45,8 +45,11 @@ Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (fuel: nat) :=
                           MPLSPlain.ParseMPLS
                           MPLSInline.ParseMPLS).
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   Declare ML Module "mirrorsolve".
 (*
@@ -117,8 +120,11 @@ Module PlainUnroll.
                           MPLSPlain.ParseMPLS
                           MPLSUnroll.ParseMPLS0).
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   Declare ML Module "mirrorsolve".
 
@@ -184,8 +190,11 @@ Module VectUnroll.
 
 
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   ClearEnvCtors.
 
@@ -243,8 +252,11 @@ Module UnrollInline.
                           MPLSUnroll.ParseMPLS0
                           MPLSInline.ParseMPLS).
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   ClearEnvCtors.
 

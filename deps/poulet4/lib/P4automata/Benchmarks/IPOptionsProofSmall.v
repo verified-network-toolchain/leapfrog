@@ -5,7 +5,7 @@ Require Import Poulet4.P4automata.Benchmarks.IPOptions.
 Declare ML Module "mirrorsolve".
 
 Module SelfComparison.
-    
+
   Notation H := (IPOptions32.header + IPOptions32.header).
   Notation A := (Sum.sum IPOptions32.aut IPOptions32.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -17,14 +17,17 @@ Module SelfComparison.
                           IPOptions32.Parse0
                           IPOptions32.Parse0).
 
-  
+
 
   (* Definition r_len := Eval vm_compute in (length r_states). *)
 
   (* Print r_len. *)
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   ClearEnvCtors.
 
@@ -38,8 +41,8 @@ Module SelfComparison.
     (  IPOptions32.L1, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptions32.V1, FirstOrderConfRelSimplified.Bits 24).
 
-  
-    
+
+
   Lemma prebisim_babyip:
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
@@ -68,7 +71,7 @@ Module SelfComparison.
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-    
+
     (* set (seven := 7).
     assert (H7 : 7 = seven); [subst seven; reflexivity|]. *)
     set (eight := 8).
@@ -86,8 +89,8 @@ Module SelfComparison.
     try rewrite H16.
     (* try rewrite H16'. *)
 
-    match goal with 
-    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+    match goal with
+    | |- pre_bisimulation _ _ _ _ ?R _ _ =>
       hashcons_list R
     end.
 
@@ -97,16 +100,16 @@ Module SelfComparison.
 
     try rewrite H8;
     try rewrite H16;
-    
-    try match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  => 
-      let rs := fresh "rs" in 
+
+    try match goal with
+    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  =>
+      let rs := fresh "rs" in
       set (rs := N' :: T);
-      let r := fresh "r" in 
+      let r := fresh "r" in
       set (r := N)
-      
-    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  => 
-      let r := fresh "r" in 
+
+    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     end).
 
@@ -124,7 +127,7 @@ Module SelfComparison.
 End SelfComparison.
 
 Module SpecCompare.
-    
+
   Notation H := (IPOptions32.header + IPOptionsSpec32.header).
   Notation A := (Sum.sum IPOptions32.aut IPOptionsSpec32.aut).
   Notation conf := (P4automaton.configuration (P4A.interp A)).
@@ -137,14 +140,17 @@ Module SpecCompare.
                           IPOptions32.Parse0
                           IPOptionsSpec32.Parse0).
 
-  
+
 
   (* Definition r_len := Eval vm_compute in (length r_states).
 
   Print r_len. *)
 
-  Definition top : Relations.rel conf := fun _ _ => True.
-  Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+  Definition top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+  Definition top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states.
 
   ClearEnvCtors.
 
@@ -164,7 +170,7 @@ Module SpecCompare.
     (  IPOptionsSpec32.L0, FirstOrderConfRelSimplified.Bits 8)
     (  IPOptionsSpec32.V, FirstOrderConfRelSimplified.Bits 16).
 
-  
+
 
   Lemma prebisim_babyip:
     forall q1 q2,
@@ -194,7 +200,7 @@ Module SpecCompare.
     set (rel0 := (mk_init _ _ _ _ _ _ _)).
     vm_compute in rel0.
     subst rel0.
-    
+
     (* set (seven := 7).
     assert (H7 : 7 = seven); [subst seven; reflexivity|]. *)
     set (eight := 8).
@@ -212,8 +218,8 @@ Module SpecCompare.
     try rewrite H16.
     (* try rewrite H16'. *)
 
-    match goal with 
-    | |- pre_bisimulation _ _ _ _ ?R _ _ => 
+    match goal with
+    | |- pre_bisimulation _ _ _ _ ?R _ _ =>
       hashcons_list R
     end.
 
@@ -223,16 +229,16 @@ Module SpecCompare.
 
     try rewrite H8;
     try rewrite H16;
-    
-    try match goal with 
-    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  => 
-      let rs := fresh "rs" in 
+
+    try match goal with
+    | |- pre_bisimulation _ _ _ (?N :: ?N' :: ?T) _ _ _  =>
+      let rs := fresh "rs" in
       set (rs := N' :: T);
-      let r := fresh "r" in 
+      let r := fresh "r" in
       set (r := N)
-      
-    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  => 
-      let r := fresh "r" in 
+
+    | |- pre_bisimulation _ _ _ (?N :: nil) _ _ _  =>
+      let r := fresh "r" in
       set (r := N)
     end).
 

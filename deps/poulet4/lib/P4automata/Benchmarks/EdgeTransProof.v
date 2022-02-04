@@ -47,8 +47,11 @@ Definition r_states : list (Reachability.state_pair A) :=
                         start_left
                         start_right).
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition top : Relations.rel conf :=
+  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+Definition top' : Relations.rel (state_template A) :=
+  fun q1 q2 => List.In (q1, q2) r_states.
 
 Lemma prebisim_babyip:
   forall q1 q2,
@@ -81,15 +84,15 @@ Proof.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
 
-  match goal with 
-  | |- pre_bisimulation _ _ _ ?R _ _ _ => 
+  match goal with
+  | |- pre_bisimulation _ _ _ ?R _ _ _ =>
     evar (foo: nat);
-    let bar := fresh "B" in 
+    let bar := fresh "B" in
     assert (bar : foo = length R); [subst foo; trivial|]
   end.
   vm_compute in B.
-  match goal with 
-  | H: length _ = ?X |- _ => 
+  match goal with
+  | H: length _ = ?X |- _ =>
     idtac "size of relation is:";
     idtac X
   end

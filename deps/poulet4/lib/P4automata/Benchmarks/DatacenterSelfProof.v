@@ -16,13 +16,13 @@ SetSMTSolver "cvc4".
 
 Notation r_len := 10.
 (* Fixpoint reachable_states_len' (r: Reachability.state_pairs A) (acc: nat) (fuel: nat) :=
-  match fuel with 
-  | 0 => None 
-  | S x => 
-    let nxt := Reachability.reachable_step r in 
-    let nxt_len := length nxt in 
+  match fuel with
+  | 0 => None
+  | S x =>
+    let nxt := Reachability.reachable_step r in
+    let nxt_len := length nxt in
     if Nat.eq_dec (length nxt) (length r) then Some acc
-    else 
+    else
       reachable_states_len' nxt (S acc) x
   end.
 
@@ -30,10 +30,10 @@ Definition reachable_states_len : nat.
   refine (
   let s := ({| st_state := inl (inl start_left); st_buf_len := 0 |},
             {| st_state := inl (inr start_right); st_buf_len := 0 |}) in
-  let r := reachable_states_len' [s] 0 1000 in 
+  let r := reachable_states_len' [s] 0 1000 in
   _).
   vm_compute in r.
-  match goal with 
+  match goal with
   | _ := Some ?x |- _ => exact x
   end.
   Defined.
@@ -45,8 +45,11 @@ Definition r_states : list (Reachability.state_pair A) :=
                         start_left
                         start_right).
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition top : Relations.rel conf :=
+  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+
+Definition top' : Relations.rel (state_template A) :=
+  fun q1 q2 => List.In (q1, q2) r_states.
 
 (* ClearEnvCtors. *)
 
@@ -63,7 +66,7 @@ Definition top' : Relations.rel (state_template A) := fun _ _ => True.
 | HdrNVGRE: header nv_gre_size
 | HdrVXLAN: header vxlan_size *)
 
-(* 
+(*
 RegisterEnvCtors
   (HdrEth0, FirstOrderConfRelSimplified.Bits eth_size)
   (HdrEth1, FirstOrderConfRelSimplified.Bits eth_size)
