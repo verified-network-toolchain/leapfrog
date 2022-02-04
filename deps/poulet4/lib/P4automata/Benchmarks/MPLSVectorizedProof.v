@@ -308,6 +308,13 @@ Module UnrollInline.
                           200
                           MPLSUnroll.ParseMPLS1
                           MPLSInline.ParseMPLS).
+
+  Definition _top : Relations.rel conf :=
+    fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states'.
+
+  Definition _top' : Relations.rel (state_template A) :=
+    fun q1 q2 => List.In (q1, q2) r_states'.
+
   Goal
     forall q1 q2,
       interp_conf_rel' {| cr_st := {|
@@ -324,8 +331,8 @@ Module UnrollInline.
                         cr_rel := btrue;
                      |} q1 q2 ->
     pre_bisimulation A
-                     (wp r_states)
-                     top
+                     (wp r_states')
+                     _top
                      (mk_init _ _ _ A 200 MPLSUnroll.ParseMPLS1 MPLSInline.ParseMPLS)
                      [BCEmp, ⟨ inr false, 0 ⟩ ⟨ inr true, 0 ⟩ ⊢ bfalse;
                       BCEmp, ⟨ inr true, 0 ⟩ ⟨ inr false, 0 ⟩ ⊢ bfalse]
@@ -338,7 +345,7 @@ Module UnrollInline.
     vm_compute in rel0.
     subst rel0.
 
-    time "build phase" repeat (time "single step" run_bisim top top' r_states').
-    time "close phase" close_bisim top'.
+    time "build phase" repeat (time "single step" run_bisim _top _top' r_states').
+    time "close phase" close_bisim _top'.
   Time Admitted.
 End UnrollInline.
