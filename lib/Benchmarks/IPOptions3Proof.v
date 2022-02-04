@@ -7,8 +7,8 @@ Require Import Coq.Arith.PeanoNat.
 Notation H := (IPOptionsRef63.header + TimestampSpec3.header).
 Notation A := (Sum.sum IPOptionsRef63.aut TimestampSpec3.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left := IPOptionsRef63.Parse0.
-Notation start_right := TimestampSpec3.Parse0.
+Notation start_left := IPOptionsRef63.Parse1.
+Notation start_right := TimestampSpec3.Parse1.
 
 Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
   econstructor.
