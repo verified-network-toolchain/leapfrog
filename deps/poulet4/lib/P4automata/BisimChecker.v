@@ -9,6 +9,7 @@ Require Import Poulet4.P4automata.FirstOrderConfRel.
 Require Import Poulet4.P4automata.CompileConfRel.
 Require Import Poulet4.P4automata.CompileConfRelSimplified.
 Require Import Poulet4.P4automata.CompileFirstOrderConfRelSimplified.
+Require Import Poulet4.P4automata.Reachability.
 
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
@@ -116,7 +117,7 @@ Section BisimChecker.
   Admitted.
 
   Definition state_temp_prod_eqdec : forall (x y: state_template a * state_template a), {x = y} + {x <> y} :=
-    fun x y => EquivDec.prod_eqdec _ _ x y. 
+    fun x y => EquivDec.prod_eqdec _ _ x y.
 
 End BisimChecker.
 
@@ -303,24 +304,24 @@ Ltac run_bisim top top' r_states :=
   Fixpoint in_checker {A} (A_eq: forall (x y: A), ({x = y} + {x <> y})%type) (x: A) (xs : list A) : bool :=
     match xs with
     | nil => false
-    | x' :: xs' => 
+    | x' :: xs' =>
       if A_eq x' x then true else in_checker A_eq x xs'
     end.
-  
-  Lemma in_checker_conv : 
-    forall A A_eq x xs, 
+
+  Lemma in_checker_conv :
+    forall A A_eq x xs,
       (@in_checker A A_eq x xs = true) -> List.In x xs.
   Proof.
     intros.
     induction xs; [inversion H|].
-    
+
     simpl in_checker in H.
     destruct (A_eq _ _).
     - econstructor; assumption.
     - eapply or_intror.
       eapply IHxs.
       assumption.
-  Qed. 
+  Qed.
 
 
 Ltac close_bisim top' :=
@@ -354,7 +355,7 @@ Ltac close_bisim top' :=
     simpl; tauto
   end.
 
-Ltac close_bisim' top' := 
+Ltac close_bisim' top top' conv :=
   eapply PreBisimulationClose;
   match goal with
   | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
@@ -372,24 +373,27 @@ Ltac close_bisim' top' :=
       | |- ?X => time "smt check pos" check_interp_pos X; admit
       end
     );
-    eapply H0; 
+    eapply H0;
     destruct q1, q2;
     vm_compute in H;
-    repeat match goal with 
+    repeat match goal with
     | H: _ /\ _ |- _ => destruct H
     end;
-    [
-      apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
-      unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
-    
-      repeat match goal with 
-      | H: _ = _ |- _ => erewrite <- H
-      end;
-      exact eq_refl
-                    |
-      split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
-    ]
-  end.
+    [ | split; [ vm_compute; (repeat split || assumption) | (intros; exact I)] ]
+  end;
+  unfold top;
+  rewrite conv;
+  unfold conf_to_state_template;
+  simpl P4automaton.conf_state;
+  simpl P4automaton.conf_buf_len;
+  match goal with
+  | |- List.In _ ?r_states =>
+    unfold r_states
+  end;
+  apply reachable_states_triv;
+  left;
+  subst;
+  reflexivity.
 
 (* solves a header finiteness goal of the form:
 List.NoDup
