@@ -7,6 +7,7 @@ Delimit Scope p4a_cases_scope with p4ac.
 Declare Scope p4a_bits_scope.
 Delimit Scope p4a_bits_scope with p4abits.
 
+
 Notation "e1 ;; e2" := (OpSeq e1%p4a e2%p4a)%p4a
   (at level 100, right associativity) : p4a_scope.
 
@@ -28,6 +29,11 @@ Notation "0" := (false) : p4a_bits_scope.
 Notation "#b | x | .. | z" :=
   (let bs := (cons x%p4abits .. (cons z%p4abits nil) ..) in
     VBits (length bs) (Ntuple.l2t bs)
+  ) (at level 60) : p4a_scope.
+
+Notation "#be | x | .. | z" :=
+  (let bs := (cons x%p4abits .. (cons z%p4abits nil) ..) in
+    ELit (length bs) (Ntuple.l2t bs)
   ) (at level 60) : p4a_scope.
 
 Notation "'transition' 'select' e {{ c1 ;;; c2 ;;; .. ;;; cn ;;; default }}" := (

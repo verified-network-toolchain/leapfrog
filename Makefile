@@ -31,7 +31,7 @@ min-imports:
 
 benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
 
-benchmarks-large: ipoptions3 edgeself edgetrans datacenter serviceprovider enterprise
+benchmarks-large: ipoptions3 edgeself edgetrans datacenterself serviceproviderself enterpriseself
 
 ipfilter: build
 	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
