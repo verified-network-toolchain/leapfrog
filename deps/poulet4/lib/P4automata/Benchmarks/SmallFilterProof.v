@@ -29,6 +29,7 @@ RegisterEnvCtors
   (BigBits.Suf, FirstOrderConfRelSimplified.Bits 1).
 *)
 
+
 Lemma prebisim_incremental_sep:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -59,5 +60,5 @@ Proof.
   subst rel0.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim top'.
+  time "close phase" close_bisim' top'.
 Time Admitted.

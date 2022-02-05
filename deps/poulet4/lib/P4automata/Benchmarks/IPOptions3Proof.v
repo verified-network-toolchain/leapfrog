@@ -67,6 +67,8 @@ RegisterEnvCtors
   (TimestampSpec3.Timestamp, FirstOrderConfRelSimplified.Bits 32).
 *)
 
+SetSMTSolver "cvc4".
+
 Lemma prebisim_incremental_sep:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -91,31 +93,13 @@ Lemma prebisim_incremental_sep:
 Proof.
   idtac "running timestamp three bisimulation".
 
-  intros.
-  set (a := A).
-  set (rel0 := (mk_init _ _ _ _ _ _ _)).
-  vm_compute in rel0.
-  subst rel0.
-
-  set (eight := 8).
-  assert (H8 : 8 = eight); [subst eight; reflexivity|].
-  set (sixteen := (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight))))))))).
-  assert (H16 : (Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S( Datatypes.S eight)))))))) = sixteen); [subst sixteen; reflexivity|].
-
-
-  try rewrite H8;
-  try rewrite H16;
-
 
   match goal with
   | |- pre_bisimulation _ _ _ _ ?R _ _ =>
     hashcons_list R
   end.
 
-  time "build phase" repeat (run_bisim top top' r_states;
-    try rewrite H8;
-    try rewrite H16
-  ).
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (run_bisim top top' r_states).
+  time "close phase" close_bisim' top'.
 
 Time Admitted.
