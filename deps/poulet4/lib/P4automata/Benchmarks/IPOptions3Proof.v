@@ -8,19 +8,14 @@ Notation conf := (P4automaton.configuration (P4A.interp A)).
 Notation start_left := IPOptionsRef63.Parse0.
 Notation start_right := TimestampSpec3.Parse0.
 
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        9
-                        start_left
-                        start_right).
 
-(* Definition r_states' :=
-  Eval vm_compute in (Reachability.reachable_step r_states).
+Definition r_states' := (Reachability.reachable_states
+                          A
+                          9
+                          start_left
+                          start_right).
 
-Definition r_len := Eval vm_compute in (length r_states, length r_states').
-
-Print r_len. *)
+Definition r_states := Eval vm_compute in r_states'.
 
 Definition top : Relations.rel conf :=
   fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
@@ -28,44 +23,31 @@ Definition top : Relations.rel conf :=
 Definition top' : Relations.rel (state_template A) :=
   fun q1 q2 => List.In (q1, q2) r_states.
 
+Definition top'' : Relations.rel conf :=
+  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states'.
+
+Definition top''' : Relations.rel (state_template A) :=
+  fun q1 q2 => List.In (q1, q2) r_states'.
+
+Lemma r_states_conv:
+  r_states = r_states'.
+Proof.
+  exact eq_refl.
+Qed.
+
+Lemma top_conv:
+  forall q1 q2, top q1 q2 <-> top'' q1 q2.
+Proof.
+  intros; unfold top, top''; erewrite r_states_conv; eapply iff_refl.
+Qed.
+
+Lemma top'_conv:
+  forall q1 q2, top' q1 q2 <-> top''' q1 q2.
+Proof.
+  intros; unfold top', top'''; erewrite r_states_conv; eapply iff_refl.
+Qed.
+
 Declare ML Module "mirrorsolve".
-
-(*
-RegisterEnvCtors
-  (IPOptionsRef63.T0, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L0, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V0, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.T1, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L1, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V1, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.T2, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.L2, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.V2, FirstOrderConfRelSimplified.Bits 48)
-  (IPOptionsRef63.Scratch8, FirstOrderConfRelSimplified.Bits 8)
-  (IPOptionsRef63.Scratch16, FirstOrderConfRelSimplified.Bits 16)
-  (IPOptionsRef63.Scratch24, FirstOrderConfRelSimplified.Bits 24)
-  (IPOptionsRef63.Scratch32, FirstOrderConfRelSimplified.Bits 32)
-  (IPOptionsRef63.Scratch40, FirstOrderConfRelSimplified.Bits 40)
-
-  (TimestampSpec3.T0, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L0, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V0, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.T1, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L1, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V1, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.T2, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.L2, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.V2, FirstOrderConfRelSimplified.Bits 48)
-  (TimestampSpec3.Scratch8, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.Scratch16, FirstOrderConfRelSimplified.Bits 16)
-  (TimestampSpec3.Scratch24, FirstOrderConfRelSimplified.Bits 24)
-  (TimestampSpec3.Scratch32, FirstOrderConfRelSimplified.Bits 32)
-  (TimestampSpec3.Scratch40, FirstOrderConfRelSimplified.Bits 40)
-  (TimestampSpec3.Pointer, FirstOrderConfRelSimplified.Bits 8)
-  (TimestampSpec3.Overflow, FirstOrderConfRelSimplified.Bits 4)
-  (TimestampSpec3.Flag, FirstOrderConfRelSimplified.Bits 4)
-  (TimestampSpec3.Timestamp, FirstOrderConfRelSimplified.Bits 32).
-*)
 
 SetSMTSolver "cvc4".
 
@@ -93,14 +75,52 @@ Lemma prebisim_incremental_sep:
 Proof.
   idtac "running timestamp three bisimulation".
   intros.
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
+  vm_compute in rel0.
+  subst rel0.
 
+  time "build phase" repeat (time "single step" run_bisim top top' r_states).
 
+  eapply PreBisimulationClose;
   match goal with
-  | |- pre_bisimulation _ _ _ _ ?R _ _ =>
-    hashcons_list R
-  end.
+  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
+    let H0 := fresh "H0" in
+    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
+      eapply simplify_entailment_correct' with (i := top');
+      eapply compile_simplified_entailment_correct';
 
-  time "build phase" repeat (run_bisim top top' r_states).
-  time "close phase" close_bisim' top'.
+      simpl; intros;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+
+      crunch_foterm;
+      match goal with
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    );
+    eapply H0;
+    destruct q1, q2;
+    vm_compute in H;
+    repeat match goal with
+    | H: _ /\ _ |- _ => destruct H
+    end;
+    [
+      (* apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
+      unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
+
+      repeat match goal with
+      | H: _ = _ |- _ => erewrite <- H
+      end;
+      exact eq_refl *)
+                    |
+      split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
+    ]
+  end.
+  eapply top_conv.
+  unfold top''.
+  eapply Reachability.reachable_states_triv.
+  left.
+  subst.
+  exact eq_refl.
 
 Time Admitted.
