@@ -456,3 +456,102 @@ End MemoryTall.
 Module TallSelf.
   Definition aut := Sum.sum MemoryTall.aut MemoryTall.aut.
 End TallSelf.
+
+Module MemoryWide16.
+  Inductive state :=
+  | start
+  | state_0
+  | state_1
+  | state_2
+  | state_3
+  | state_4
+  | state_5
+  | state_6
+  | state_7
+  | state_8
+  | state_9
+  | state_10
+  | state_11
+  | state_12
+  | state_13
+  | state_14
+  | state_15
+  | finish.
+
+  Scheme Equality for state.
+  Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
+  Global Instance state_finite: @Finite state _ state_eq_dec.
+  Proof.
+    solve_finiteness.
+  Defined.
+
+  Inductive header := | Scratch1 | Val.
+
+  Definition sz (h: header) : nat :=
+    match h with
+    | Scratch1 => 1
+    | Val => 4
+    end.
+
+  Scheme Equality for header.
+  Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
+  Global Instance header_finite: @Finite header _ header_eq_dec.
+  Proof.
+    solve_finiteness.
+  Defined.
+
+  Definition states (s: state) :=
+    match s with
+    | start =>
+      {| st_op := extract(Val) ;
+         st_trans := transition select (| EHdr (Hdr_sz := sz) Val |) {{
+            [| exact #b|0|0|0|0 |] ==> inl state_0 ;;;
+            [| exact #b|0|0|0|1 |] ==> inl state_1 ;;;
+            [| exact #b|0|0|1|0 |] ==> inl state_2 ;;;
+            [| exact #b|0|0|1|1 |] ==> inl state_3 ;;;
+            [| exact #b|0|1|0|0 |] ==> inl state_4 ;;;
+            [| exact #b|0|1|0|1 |] ==> inl state_5 ;;;
+            [| exact #b|0|1|1|0 |] ==> inl state_6 ;;;
+            [| exact #b|0|1|1|1 |] ==> inl state_7 ;;;
+            [| exact #b|1|0|0|0 |] ==> inl state_8 ;;;
+            [| exact #b|1|0|0|1 |] ==> inl state_9 ;;;
+            [| exact #b|1|0|1|0 |] ==> inl state_10 ;;;
+            [| exact #b|1|0|1|1 |] ==> inl state_11 ;;;
+            [| exact #b|1|1|0|0 |] ==> inl state_12 ;;;
+            [| exact #b|1|1|0|1 |] ==> inl state_13 ;;;
+            [| exact #b|1|1|1|0 |] ==> inl state_14 ;;;
+            [| exact #b|1|1|1|1 |] ==> inl state_15 ;;;
+            reject
+         }}
+      |}
+    | state_0 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_1 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_2 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_3 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_4 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_5 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_6 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_7 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_8 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_9 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_10 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_11 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_12 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_13 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_14 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | state_15 => {| st_op := extract(Scratch1); st_trans := transition inl finish |}
+    | finish => {| 
+        st_op := extract(Scratch1);
+        st_trans := transition accept
+      |}
+    end.
+
+  Program Definition aut: Syntax.t state sz :=
+    {| t_states := states |}.
+  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+
+End MemoryWide16.
+
+Module Wide16Self.
+  Definition aut := Sum.sum MemoryWide16.aut MemoryWide16.aut.
+End Wide16Self.

@@ -5,10 +5,10 @@ Require Import Coq.Arith.PeanoNat.
 
 Require Import Leapfrog.Utils.FunctionalFP.
 
-Notation A := WideSelf.aut.
+Notation A := Wide16Self.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Notation start_left :=  MemoryWide.start.
-Notation start_right := MemoryWide.start.
+Notation start_left :=  MemoryWide16.start.
+Notation start_right := MemoryWide16.start.
 
 Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit start_left start_right r}.
   econstructor.
@@ -91,8 +91,9 @@ Proof.
 
   (* time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify). *)
   time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  (* time "close phase" close_bisim top'. *)
-  eapply PreBisimulationClose;
+  (* time "close phase" close_bisim' top'. *)
+  time "close phase" close_bisim top'.
+  (* eapply PreBisimulationClose;
   match goal with
   | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
     let H0 := fresh "H0" in
@@ -113,8 +114,8 @@ Proof.
   end.
 
   1: {
-    admit.
-    (* apply in_checker_conv with (A_eq := state_temp_prod_eqdec).
+    (* admit. *)
+    apply in_checker_conv with (A_eq := state_temp_prod_eqdec).
     vm_compute in H.
     
     destruct q1, q2.
@@ -126,7 +127,7 @@ Proof.
     repeat match goal with 
     | H: _ = _ |- _ => erewrite <- H
     end.
-    exact eq_refl. *)
+    exact eq_refl.
   }
   
 
@@ -136,10 +137,10 @@ Proof.
   | H: _ /\ _ |- _ => destruct H
   end.
 
-  split; [admit | admit].
+  (* split; [admit | admit]. *)
 
 
-  (* split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]. *)
+  split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]. *)
   
 
 Time Admitted.

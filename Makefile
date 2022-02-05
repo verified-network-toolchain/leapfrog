@@ -36,6 +36,12 @@ benchmarks-large: ipoptions3 edgeself edgetrans datacenterself serviceproviderse
 ipfilter: build
 	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
 
+memorytall: build
+	xargs coqc lib/Benchmarks/MemoryTallProof.v < _CoqProject | grep "Tactic call"
+
+memorywide: build
+	xargs coqc lib/Benchmarks/MemoryWideProof.v < _CoqProject | grep "Tactic call"
+
 mpls: build
 	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
 

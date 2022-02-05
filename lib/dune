@@ -24,6 +24,7 @@
    Benchmarks.IPOptions3Proof
    Benchmarks.IPOptionsProofSmall
    Benchmarks.MemoryWideProof
+   Benchmarks.MemoryWide16Proof
    Benchmarks.MemoryTallProof
     ; Benchmarks.BabyIP
    Benchmarks.BabyIPProof
