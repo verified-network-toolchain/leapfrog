@@ -116,7 +116,7 @@ Section BisimChecker.
   Admitted.
 
   Definition state_temp_prod_eqdec : forall (x y: state_template a * state_template a), {x = y} + {x <> y} :=
-    fun x y => EquivDec.prod_eqdec _ _ x y. 
+    fun x y => EquivDec.prod_eqdec _ _ x y.
 
 End BisimChecker.
 
@@ -388,24 +388,24 @@ Ltac print_rel_len :=
   Fixpoint in_checker {A} (A_eq: forall (x y: A), ({x = y} + {x <> y})%type) (x: A) (xs : list A) : bool :=
     match xs with
     | nil => false
-    | x' :: xs' => 
+    | x' :: xs' =>
       if A_eq x' x then true else in_checker A_eq x xs'
     end.
-  
-  Lemma in_checker_conv : 
-    forall A A_eq x xs, 
+
+  Lemma in_checker_conv :
+    forall A A_eq x xs,
       (@in_checker A A_eq x xs = true) -> List.In x xs.
   Proof.
     intros.
     induction xs; [inversion H|].
-    
+
     simpl in_checker in H.
     destruct (A_eq _ _).
     - econstructor; assumption.
     - eapply or_intror.
       eapply IHxs.
       assumption.
-  Qed. 
+  Qed.
 
 
 Ltac close_bisim top' :=
@@ -439,7 +439,7 @@ Ltac close_bisim top' :=
     simpl; tauto
   end.
 
-Ltac close_bisim' top' := 
+Ltac close_bisim' top' :=
   eapply PreBisimulationClose;
   match goal with
   | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
@@ -457,22 +457,63 @@ Ltac close_bisim' top' :=
       | |- ?X => time "smt check pos" check_interp_pos X; admit
       end
     );
-    eapply H0; 
+    eapply H0;
     destruct q1, q2;
     vm_compute in H;
-    repeat match goal with 
+    repeat match goal with
     | H: _ /\ _ |- _ => destruct H
     end;
     [
       apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
       unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
-    
-      repeat match goal with 
+
+      repeat match goal with
       | H: _ = _ |- _ => erewrite <- H
       end;
       exact eq_refl
                     |
       split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
+    ]
+  end.
+
+Ltac close_bisim'' top' r_states :=
+  apply PreBisimulationClose;
+  match goal with
+  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
+    let H0 := fresh "H0" in
+    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
+      eapply simplify_entailment_correct' with (i := top');
+      eapply compile_simplified_entailment_correct';
+
+      simpl; intros;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+
+      crunch_foterm;
+      match goal with
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    );
+    apply H0; auto;
+    unfold top, conf_to_state_template;
+    destruct q1, q2;
+    vm_compute in H;
+    repeat match goal with
+           | H: _ /\ _ |- _ =>
+             destruct H
+           end;
+    subst;
+    simpl conf_state;
+    simpl conf_buf_len;
+    erewrite <- Reachability.reachable_states_wit_conv; [
+      unfold Reachability.reachable_states;
+      apply Reachability.reachable_states_expansive;
+      unfold Reachability.build_state_pairs;
+      unfold Reachability.build_state_pair;
+      left;
+      reflexivity |
+      vm_compute; auto |
+      apply (projT2 r_states)
     ]
   end.
 

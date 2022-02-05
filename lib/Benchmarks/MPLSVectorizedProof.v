@@ -67,6 +67,6 @@ Proof.
 
   (* time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify). *)
   time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
+  time "close phase" close_bisim'' top' r_states.
 Time Admitted.
 
