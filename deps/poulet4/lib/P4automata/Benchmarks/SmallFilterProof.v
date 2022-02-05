@@ -26,20 +26,20 @@ Definition top'' : Relations.rel conf :=
 Definition top''' : Relations.rel (state_template A) :=
   fun q1 q2 => List.In (q1, q2) r_states'.
 
-Lemma r_states_conv: 
+Lemma r_states_conv:
   r_states = r_states'.
 Proof.
   vm_compute.
   exact eq_refl.
 Qed.
 
-Lemma top_conv: 
+Lemma top_conv:
   forall q1 q2, top q1 q2 <-> top'' q1 q2.
 Proof.
   intros; unfold top, top''; erewrite r_states_conv; eapply iff_refl.
 Qed.
 
-Lemma top'_conv: 
+Lemma top'_conv:
   forall q1 q2, top' q1 q2 <-> top''' q1 q2.
 Proof.
   intros; unfold top', top'''; erewrite r_states_conv; eapply iff_refl.
@@ -107,21 +107,29 @@ Proof.
     eapply H0;
     destruct q1, q2;
     vm_compute in H;
-    repeat match goal with 
+    repeat match goal with
     | H: _ /\ _ |- _ => destruct H
     end;
     [
       (* apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
       unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
-    
-      repeat match goal with 
+
+      repeat match goal with
       | H: _ = _ |- _ => erewrite <- H
       end;
       exact eq_refl *)
                     |
       split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
-    ] 
+    ]
   end.
     eapply top_conv.
     unfold top''.
+  unfold conf_to_state_template.
+  simpl P4automaton.conf_state.
+  simpl P4automaton.conf_buf_len.
+  unfold r_states'.
+  apply Reachability.reachable_states_triv.
+  left.
+  subst.
+  reflexivity.
 Time Admitted.

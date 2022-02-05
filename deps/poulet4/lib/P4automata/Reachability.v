@@ -443,6 +443,14 @@ Section ReachablePairs.
       apply IHfuel.
   Qed.
 
+  Lemma reachable_states_triv:
+    forall fuel r p,
+      List.In p r ->
+      List.In p (reachable_states' fuel r).
+  Proof.
+    now apply reachable_states_expansive.
+  Qed.
+
   Lemma reachable_states_mono_fuel:
     forall f1 f2 r,
       f1 <= f2 ->
