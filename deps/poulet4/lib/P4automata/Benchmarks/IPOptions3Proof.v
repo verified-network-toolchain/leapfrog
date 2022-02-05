@@ -27,18 +27,6 @@ Lemma r_states_conv:
   r_states = r_states'.
 Admitted.
 
-Lemma top_conv:
-  forall q1 q2, top q1 q2 <-> top'' q1 q2.
-Proof.
-  intros; unfold top, top''; erewrite r_states_conv; eapply iff_refl.
-Qed.
-
-Lemma top'_conv:
-  forall q1 q2, top' q1 q2 <-> top''' q1 q2.
-Proof.
-  intros; unfold top', top'''; erewrite r_states_conv; eapply iff_refl.
-Qed.
-
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
