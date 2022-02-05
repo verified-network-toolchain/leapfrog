@@ -6,8 +6,7 @@ Notation H := (IncrementalBits.header + BigBits.header).
 Notation A := IncrementalSeparate.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
+Definition r_states := (Reachability.reachable_states
                         IncrementalSeparate.aut
                         IncrementalBits.Start
                         BigBits.Parse).
@@ -59,6 +58,57 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
+  match goal with 
+  | |- pre_bisimulation _ (_ ?rs) _ _ _ _ _ => 
+    set (r_states' := rs);
+    vm_compute in r_states'
+  end.
+  subst r_states'.
+
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim' top'.
+
+  eapply PreBisimulationClose;
+  match goal with
+  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
+    let H0 := fresh "H0" in
+    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
+      eapply simplify_entailment_correct' with (i := top');
+      eapply compile_simplified_entailment_correct';
+
+      simpl; intros;
+      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+
+      crunch_foterm;
+      match goal with
+      | |- ?X => time "smt check pos" check_interp_pos X; admit
+      end
+    );
+    eapply H0;
+    destruct q1, q2;
+    vm_compute in H;
+    repeat match goal with 
+    | H: _ /\ _ |- _ => destruct H
+    end;
+    [
+      (* apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
+      unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
+    
+      repeat match goal with 
+      | H: _ = _ |- _ => erewrite <- H
+      end;
+      exact eq_refl *)
+                    |
+      split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
+    ] 
+  end.
+  (* Print in_checker_conv. *)
+
+    (* eapply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y).
+    unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
+    
+    repeat match goal with 
+    | H: _ = _ |- _ => erewrite <- H
+    end;
+    exact eq_refl *)
 Time Admitted.
