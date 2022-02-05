@@ -4,18 +4,23 @@ Require Import Poulet4.P4automata.Benchmarks.BabyIP.
 Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
+Definition r_states' := (Reachability.reachable_states
                         BabyIP.aut
                         200
                         BabyIP1.Start
                         BabyIP2.Start).
+
+Definition r_states := Eval vm_compute in r_states'.
 
 Definition top : Relations.rel conf :=
   fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
 
 Definition top' : Relations.rel (state_template A) :=
   fun q1 q2 => List.In (q1, q2) r_states.
+
+Lemma r_states_conv:
+  r_states = r_states'.
+Admitted.
 
 Declare ML Module "mirrorsolve".
 
@@ -58,5 +63,5 @@ Proof.
   subst rel0.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim top'.
+  time "close phase" close_bisim' top top' r_states_conv.
 Time Admitted.
