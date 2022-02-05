@@ -23,17 +23,9 @@ Definition top : Relations.rel conf :=
 Definition top' : Relations.rel (state_template A) :=
   fun q1 q2 => List.In (q1, q2) r_states.
 
-Definition top'' : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states'.
-
-Definition top''' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) r_states'.
-
 Lemma r_states_conv:
   r_states = r_states'.
-Proof.
-  exact eq_refl.
-Qed.
+Admitted.
 
 Lemma top_conv:
   forall q1 q2, top q1 q2 <-> top'' q1 q2.
@@ -80,47 +72,6 @@ Proof.
   subst rel0.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
-
-  eapply PreBisimulationClose;
-  match goal with
-  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
-    let H0 := fresh "H0" in
-    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
-      eapply simplify_entailment_correct' with (i := top');
-      eapply compile_simplified_entailment_correct';
-
-      simpl; intros;
-      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
-
-      crunch_foterm;
-      match goal with
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    );
-    eapply H0;
-    destruct q1, q2;
-    vm_compute in H;
-    repeat match goal with
-    | H: _ /\ _ |- _ => destruct H
-    end;
-    [
-      (* apply in_checker_conv with (A_eq := fun x y => state_temp_prod_eqdec x y);
-      unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state;
-
-      repeat match goal with
-      | H: _ = _ |- _ => erewrite <- H
-      end;
-      exact eq_refl *)
-                    |
-      split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]
-    ]
-  end.
-  eapply top_conv.
-  unfold top''.
-  eapply Reachability.reachable_states_triv.
-  left.
-  subst.
-  exact eq_refl.
+  time "close phase" close_bisim' top top' r_states_conv.
 
 Time Admitted.
