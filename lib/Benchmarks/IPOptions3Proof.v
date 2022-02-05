@@ -72,6 +72,6 @@ Proof.
   idtac "put the init_rel together".
 
   time "build phase" repeat (run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
+  time "close phase" close_bisim' top'.
 
 Time Admitted.

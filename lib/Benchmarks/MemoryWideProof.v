@@ -30,31 +30,6 @@ Definition top' : Relations.rel (state_template A) :=
 
 Declare ML Module "mirrorsolve".
 
-Fixpoint in_checker {A} (A_eq: forall (x y: A), ({x = y} + {x <> y})%type) (x: A) (xs : list A) : bool :=
-  match xs with
-  | nil => false
-  | x' :: xs' => 
-    if A_eq x' x then true else in_checker A_eq x xs'
-  end.
-
-Lemma in_checker_conv : 
-  forall A A_eq x xs, 
-    (@in_checker A A_eq x xs = true) -> List.In x xs.
-Proof.
-  intros.
-  induction xs; [inversion H|].
-  
-  simpl in_checker in H.
-  destruct (A_eq _ _).
-  - econstructor; assumption.
-  - eapply or_intror.
-    eapply IHxs.
-    assumption.
-Qed.
-
-Definition state_temp_prod_eqdec : forall (x y: state_template A * state_template A), {x = y} + {x <> y} :=
-  fun x y => EquivDec.prod_eqdec _ _ x y.
-
 Lemma prebisim_mpls_unroll:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -91,56 +66,7 @@ Proof.
 
   (* time "build phase" repeat (time "single step" run_bisim' top top' r_states interp_compile_simplify). *)
   time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  (* time "close phase" close_bisim top'. *)
-  eapply PreBisimulationClose;
-  match goal with
-  | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
-    let H0 := fresh "H0" in
-    assert (H0: interp_entailment' top {| e_prem := P; e_concl := C |}) by (
-      eapply simplify_entailment_correct' with (i := top');
-      eapply compile_simplified_entailment_correct';
-
-      simpl; intros;
-      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
-
-      crunch_foterm;
-      match goal with
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    );
-    eapply H0
-  end.
-
-  1: {
-    admit.
-    (* apply in_checker_conv with (A_eq := state_temp_prod_eqdec).
-    vm_compute in H.
-    
-    destruct q1, q2.
-    unfold conf_to_state_template, P4automaton.conf_buf_len, P4automaton.conf_state.
-  
-    repeat match goal with 
-    | H: _ /\ _ |- _ => destruct H
-    end.
-    repeat match goal with 
-    | H: _ = _ |- _ => erewrite <- H
-    end.
-    exact eq_refl. *)
-  }
-  
-
-  destruct q1, q2;
-  vm_compute in H;
-  repeat match goal with 
-  | H: _ /\ _ |- _ => destruct H
-  end.
-
-  split; [admit | admit].
-
-
-  (* split; [ vm_compute; (repeat split || assumption) | (intros; exact I)]. *)
-  
+  time "close phase" close_bisim' top'.
 
 Time Admitted.
 
