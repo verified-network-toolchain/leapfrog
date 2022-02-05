@@ -92,6 +92,7 @@ Lemma prebisim_incremental_sep:
                    q1 q2.
 Proof.
   idtac "running timestamp three bisimulation".
+  intros.
 
 
   match goal with
