@@ -6,31 +6,11 @@ Notation H := (IncrementalBits.header + BigBits.header).
 Notation A := IncrementalSeparate.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 
-Definition r_states' := (Reachability.reachable_states_one
-                          IncrementalSeparate.aut
-                          200
-                          IncrementalBits.Start
-                          BigBits.Parse).
-
-Definition r_states := Eval vm_compute in r_states'.
-
-Print r_states.
-
 Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
+  fun q1 q2 => True.
 
 Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) r_states.
-
-Lemma r_states_conv:
-  r_states = r_states'.
-Admitted.
-(*
-Proof.
-  vm_compute.
-  exact eq_refl.
-Qed.
-*)
+  fun q1 q2 => True.
 
 Declare ML Module "mirrorsolve".
 
@@ -59,7 +39,7 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp_one r_states)
+                   (wp_without_reachability (a := A))
                    top
                    []
                    (mk_init _ _ _ A 200 IncrementalBits.Start BigBits.Parse)
@@ -72,6 +52,11 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim' top top' r_states_conv.
+  time "build phase" repeat (time "single step" run_bisim top top').
+  time "close phase" close_bisim' top top'.
+
+  match goal with
+  | ?H |- ?G =>
+    idtac H; idtac G
+  end.
 Time Admitted.

@@ -203,6 +203,24 @@ Section WP.
     let pred_pairs := List.filter (Reachability.reaches_one (cur_st_left, cur_st_right)) reachable_states in
     List.map (wp_pred_pair phi) (List.map (fun p => (1, p)) pred_pairs).
 
+  Definition predecessors (s: state_template a) : list (state_template a) :=
+    match Nat.ltb 0 s.(st_buf_len) with
+    | true => [ {| st_state := s.(st_state); st_buf_len := s.(st_buf_len) - 1 |} ]
+    | false =>
+      {| st_state := inr true; st_buf_len := 0; |} ::
+      {| st_state := inr false; st_buf_len := 0; |} ::
+      List.map (fun s => {|
+        st_state := inl s : P4automaton.state_ref (P4A.interp a);
+        st_buf_len := 0
+      |}) (enum S)
+    end.
+
+  Definition wp_without_reachability (phi: conf_rel a) : list (conf_rel a) :=
+    let cur_st_left  := phi.(cr_st).(cs_st1) in
+    let cur_st_right := phi.(cr_st).(cs_st2) in
+    let pred_pairs := List.list_prod (predecessors cur_st_left) (predecessors cur_st_right) in
+    List.map (wp_pred_pair phi) (List.map (fun s => (1, s)) pred_pairs).
+
 End WP.
 
 Global Hint Unfold wp_lpred: wp.

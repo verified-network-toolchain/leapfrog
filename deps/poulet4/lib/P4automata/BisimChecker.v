@@ -216,10 +216,10 @@ Ltac skip_bisim :=
     ]
   end.
 
-Ltac extend_bisim' HN r_states :=
+Ltac extend_bisim' HN :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
-    pose (t := WP.wp_one r_states C);
+    pose (t := WP.wp_without_reachability C);
     apply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ trivial | subst t; reflexivity |];
     clear HN;
@@ -291,11 +291,11 @@ Ltac verify_interp top top' :=
     end
   else idtac.
 
-Ltac run_bisim top top' r_states :=
+Ltac run_bisim top top' :=
   verify_interp top top';
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    idtac "extending"; extend_bisim' HN r_states; clear HN
+    idtac "extending"; extend_bisim' HN; clear HN
   | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
     idtac "skipping"; skip_bisim' H; clear H; try clear C
   end.
@@ -355,7 +355,7 @@ Ltac close_bisim top' :=
     simpl; tauto
   end.
 
-Ltac close_bisim' top top' conv :=
+Ltac close_bisim' top top' :=
   eapply PreBisimulationClose;
   match goal with
   | H: interp_conf_rel' ?C ?q1 ?q2|- interp_crel _ ?top ?P ?q1 ?q2 =>
