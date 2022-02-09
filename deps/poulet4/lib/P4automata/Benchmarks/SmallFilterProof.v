@@ -6,13 +6,15 @@ Notation H := (IncrementalBits.header + BigBits.header).
 Notation A := IncrementalSeparate.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 
-Definition r_states' := (Reachability.reachable_states
+Definition r_states' := (Reachability.reachable_states_one
                           IncrementalSeparate.aut
                           200
                           IncrementalBits.Start
                           BigBits.Parse).
 
 Definition r_states := Eval vm_compute in r_states'.
+
+Print r_states.
 
 Definition top : Relations.rel conf :=
   fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) r_states.
@@ -22,10 +24,13 @@ Definition top' : Relations.rel (state_template A) :=
 
 Lemma r_states_conv:
   r_states = r_states'.
+Admitted.
+(*
 Proof.
   vm_compute.
   exact eq_refl.
 Qed.
+*)
 
 Declare ML Module "mirrorsolve".
 
@@ -54,7 +59,7 @@ Lemma prebisim_incremental_sep:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
+                   (wp_one r_states)
                    top
                    []
                    (mk_init _ _ _ A 200 IncrementalBits.Start BigBits.Parse)

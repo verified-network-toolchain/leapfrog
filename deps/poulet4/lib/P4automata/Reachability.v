@@ -255,12 +255,29 @@ Section ReachablePairs.
     - admit.
   Admitted.
 
+  Definition state_template_eq_dec' (a b: state_template a) : {a = b} + {a <> b} :=
+    match state_template_eq_dec a b with
+    | left H => left H
+    | right H => right H
+    end.
+
   Definition reaches (cur prev: state_template a * state_template a)
     : list (nat * (state_template a * state_template a)) :=
     let '(n, successors) := reachable_pair_step' prev in
     if List.In_dec (state_pair_eq_dec) cur successors
     then [(n, prev)]
     else [].
+
+  Definition reaches_one (cur prev: state_pair) : bool :=
+    let '(p1, p2) := prev in
+    let '(c1, c2) := cur in
+    match
+      List.in_dec (state_template_eq_dec') c1 (advance 1 p1 p1.(st_state)),
+      List.in_dec (state_template_eq_dec') c2 (advance 1 p2 p2.(st_state))
+    with
+    | left _, left _ => true
+    | _, _ => false
+    end.
 
   Lemma reaches_prev:
     forall cur prev prev' size,
@@ -354,6 +371,27 @@ Section ReachablePairs.
     | 0 => r
     | Datatypes.S fuel => reachable_step (reachable_states' fuel r)
     end.
+
+  Definition reachable_pair_step_one' (r0: state_pair) : state_pairs :=
+    let '(t1, t2) := r0 in
+    let s1 := t1.(st_state) in
+    let s2 := t2.(st_state) in
+    List.list_prod (advance 1 t1 s1) (advance 1 t2 s2).
+
+  Definition reachable_step_one (r: state_pairs) : state_pairs :=
+    let r' := (List.concat (List.map reachable_pair_step_one' r)) in
+    List.nodup state_pair_eq_dec (r' ++ r).
+
+  Fixpoint reachable_states_one' (fuel: nat) (r: state_pairs) :=
+    match fuel with
+    | 0 => r
+    | Datatypes.S fuel => reachable_step_one (reachable_states_one' fuel r)
+    end.
+
+  Definition reachable_states_one n s1 s2 : state_pairs :=
+    let s := ({| st_state := inl (inl s1); st_buf_len := 0 |},
+              {| st_state := inl (inr s2); st_buf_len := 0 |}) in
+    reachable_states_one' n [s].
 
   Lemma nodup_incl' {X: Type} {Heq: EqDec X eq}:
     forall (l1 l2: list X),
@@ -450,6 +488,13 @@ Section ReachablePairs.
   Proof.
     now apply reachable_states_expansive.
   Qed.
+
+  Lemma reachable_states_triv_one:
+    forall fuel r p,
+      List.In p r ->
+      List.In p (reachable_states_one' fuel r).
+  Proof.
+  Admitted.
 
   Lemma reachable_states_mono_fuel:
     forall f1 f2 r,

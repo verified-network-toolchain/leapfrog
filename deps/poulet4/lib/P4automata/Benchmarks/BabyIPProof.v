@@ -4,7 +4,7 @@ Require Import Poulet4.P4automata.Benchmarks.BabyIP.
 Notation H := (BabyIP1.header + BabyIP2.header).
 Notation A := BabyIP.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Definition r_states' := (Reachability.reachable_states
+Definition r_states' := (Reachability.reachable_states_one
                         BabyIP.aut
                         200
                         BabyIP1.Start
@@ -49,7 +49,7 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
+                   (wp_one r_states)
                    top
                    []
                    (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)
@@ -61,6 +61,9 @@ Proof.
   set (rel0 := (mk_init _ _ _ BabyIP.aut 10 BabyIP1.Start BabyIP2.Start)).
   vm_compute in rel0.
   subst rel0.
+
+  time "single step" run_bisim top top' r_states.
+  verify_interp top top'.
 
   time "build phase" repeat (time "single step" run_bisim top top' r_states).
   time "close phase" close_bisim' top top' r_states_conv.

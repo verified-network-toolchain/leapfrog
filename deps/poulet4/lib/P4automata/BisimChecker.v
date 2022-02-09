@@ -219,7 +219,7 @@ Ltac skip_bisim :=
 Ltac extend_bisim' HN r_states :=
   match goal with
   | |- pre_bisimulation ?a _ _ _ (?C :: _) _ _ =>
-    pose (t := WP.wp r_states C);
+    pose (t := WP.wp_one r_states C);
     apply PreBisimulationExtend with (H0 := right HN) (W := t);
     [ trivial | subst t; reflexivity |];
     clear HN;
@@ -390,7 +390,8 @@ Ltac close_bisim' top top' conv :=
   | |- List.In _ ?r_states =>
     unfold r_states
   end;
-  apply reachable_states_triv;
+  apply Reachability.reachable_states_triv_one;
+  try typeclasses eauto;
   left;
   subst;
   reflexivity.

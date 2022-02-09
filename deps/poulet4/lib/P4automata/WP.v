@@ -197,6 +197,12 @@ Section WP.
     let pred_pairs := List.flat_map (Reachability.reaches (cur_st_left, cur_st_right)) reachable_states in
     List.map (wp_pred_pair phi) pred_pairs.
 
+  Definition wp_one (phi: conf_rel a) : list (conf_rel a) :=
+    let cur_st_left  := phi.(cr_st).(cs_st1) in
+    let cur_st_right := phi.(cr_st).(cs_st2) in
+    let pred_pairs := List.filter (Reachability.reaches_one (cur_st_left, cur_st_right)) reachable_states in
+    List.map (wp_pred_pair phi) (List.map (fun p => (1, p)) pred_pairs).
+
 End WP.
 
 Global Hint Unfold wp_lpred: wp.
