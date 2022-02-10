@@ -58,7 +58,7 @@ Section Syntactic.
       c1.(conf_buf) = rewrite_size H c2.(conf_buf) }
   .
 
-  Lemma syntactic_to_semantic: bisimulation -> Semantic.bisimulation _ _ concretize.
+  Lemma syntactic_to_semantic: bisimulation -> Semantic.bisimulation concretize.
   Proof.
     unfold bisimulation.
     intros.

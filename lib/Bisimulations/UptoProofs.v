@@ -19,7 +19,7 @@ Section UptoProofs.
     :
       SoundClosure a f ->
       forall c1 c2,
-        BS.bisimilar a c1 c2 ->
+        BS.bisimilar c1 c2 ->
         bisimilar_upto a f c1 c2
   .
   Proof.
@@ -38,7 +38,7 @@ Section UptoProofs.
       SoundClosure a f ->
       forall c1 c2,
         bisimilar_upto a f c1 c2 ->
-        BS.bisimilar a c1 c2
+        BS.bisimilar c1 c2
   .
   Proof.
     intros.

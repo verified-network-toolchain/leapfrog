@@ -5,10 +5,10 @@ Require Import Leapfrog.FinType.
 Require Import Leapfrog.Relations.
 
 Section Semantic.
-  Variable (a: p4automaton).
-  Notation conf := (configuration a).
+  Context {a1 a2: p4automaton}.
+  Notation rel := (configuration a1 -> configuration a2 -> Prop).
 
-  Definition bisimulation (R: rel conf) :=
+  Definition bisimulation (R: rel) :=
     forall q1 q2,
       R q1 q2 ->
       (accepting q1 <-> accepting q2) /\
@@ -18,7 +18,7 @@ Section Semantic.
     exists R, bisimulation R /\ R q1 q2.
 
   Lemma bisimilar_implies_equiv :
-    forall (c1 c2: conf),
+    forall (c1: configuration a1) (c2: configuration a2),
       bisimilar c1 c2 ->
       lang_equiv c1 c2.
   Proof.
@@ -56,7 +56,7 @@ Section Semantic.
   Qed.
 
   Lemma equiv_implies_bisimilar:
-    forall c1 c2: conf,
+    forall (c1: configuration a1) (c2: configuration a2),
       lang_equiv c1 c2 -> bisimilar c1 c2.
   Proof.
     intros.
@@ -66,7 +66,7 @@ Section Semantic.
   Qed.
 
   Theorem bisimilar_iff_lang_equiv:
-    forall c1 c2: conf,
+    forall (c1: configuration a1) (c2: configuration a2),
       lang_equiv c1 c2 <-> bisimilar c1 c2.
   Proof.
     split.

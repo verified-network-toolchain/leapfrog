@@ -324,7 +324,7 @@ Section LeapsProofs.
   Theorem bisimilar_iff_bisimilar_with_leaps
           (c1 c2: conf)
     :
-      BS.bisimilar a c1 c2 <->
+      BS.bisimilar c1 c2 <->
       bisimilar_with_leaps a c1 c2
   .
   Proof.
