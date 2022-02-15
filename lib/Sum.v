@@ -76,10 +76,41 @@ Section Sum.
       erewrite Syntax.state_fmapSH_size; eauto.
   Qed.
 
+  Require Import MirrorSolve.HLists.
+
+  Fixpoint app {A: Type} (f: A -> Type)
+             {l1 l2: list A}
+             (h1: HList.t f l1) 
+             (h2: HList.t f l2) : HList.t f (l1 ++ l2).
+    destruct l1.
+    - exact h2.
+    - inversion h1.
+      constructor.
+      + exact X.
+      + apply app.
+        * apply X0.
+        * apply h2.
+  Defined.
+
+  Fixpoint map_inj X A (B: A -> Type) (f: X -> A)
+    (l: list X) {struct l} :
+      HList.t (fun x => B (f x)) l ->
+      HList.t B (List.map f l).
+    refine (match l as l' return HList.t (fun x => B (f x)) l' ->
+                         HList.t B (List.map f l')
+            with
+            | [] => fun h => HList.HNil _
+            | x :: xs => fun h => _
+            end).
+    inversion h.
+    exact (HList.HCons _ X0 (map_inj _ _ _ _ _ X1)).
+  Defined.
+  
   Definition sum_stores
              (s1: Syntax.store Hdr1 Hdr1_sz)
-             (s2: Syntax.store Hdr2 Hdr2_sz) : Syntax.store Hdr Hdr_sz.
-  Admitted.
+             (s2: Syntax.store Hdr2 Hdr2_sz) : Syntax.store Hdr Hdr_sz :=
+    app (map_inj (fun h => Syntax.v (Hdr_sz h)) inl s1)
+        (map_inj (fun h => Syntax.v (Hdr_sz h)) inr s2).
 
   Import P4automaton.
 
@@ -180,23 +211,33 @@ Section Sum.
   Qed.
 
   Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
-    v1 ~= v2 ->
+    v1 = v2 ->
     Syntax.assign _ _ (inl hdr) v1 (sum_stores s s') =
     sum_stores (Syntax.assign _ _ hdr v2 s) s'.
   Proof.
+    intros; subst v1.
+    unfold Syntax.store in *.
+    simpl in *.
+    unfold sum_stores.
+    unfold Syntax.assign, Syntax.Env.bind.
+    generalize (map_inj (fun h => Syntax.v (Hdr_sz h)) inr s').
+    intros.
   Admitted.
 
   Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
-    WP.P4A.find _ _ (inl h) (sum_stores s s') ~=
+    WP.P4A.find _ _ (inl h) (sum_stores s s') =
     WP.P4A.find _ _ h s.
   Proof.
+    unfold WP.P4A.find.
+    unfold WP.P4A.Env.get.
+    unfold sum_stores.
   Admitted.
 
   Transparent Syntax.expr_fmapH.
   Transparent Syntax.eval_expr.
 
   Lemma eval_expr1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) n e:
-    Syntax.eval_expr _ _ n (sum_stores s s') (Syntax.expr_fmapH _ inl (fun h : Hdr1 => sum_obligation_1 h) e) ~=
+    Syntax.eval_expr _ _ n (sum_stores s s') (Syntax.expr_fmapH _ inl (fun h : Hdr1 => sum_obligation_1 h) e) =
     Syntax.eval_expr _ _ n s e.
   Proof.
     revert s s'; dependent induction e; intros; simpl.
@@ -234,7 +275,8 @@ Section Sum.
         * apply Syntax.op_fmapH_size.
         * now apply NtupleProofs.eq_t2l.
     - erewrite assign1; auto.
-      now apply WPProofs.vbits_congr.
+      f_equal.
+      apply JMeq_eq; auto.
     - erewrite assign1; auto.
       apply eval_expr1.
   Qed.
@@ -258,6 +300,22 @@ Section Sum.
     now repeat rewrite NtupleProofs.eq_rect_jmeq.
   Qed.
 
+  Lemma eval_sel1:
+    forall s s' ty (c: Syntax.cond Hdr1_sz ty) cases default,
+      Syntax.eval_sel St Hdr Hdr_sz (sum_stores s s')
+                      (Syntax.cond_fmapH Hdr_sz inl (fun h => sum_obligation_1 h) c)
+                      (List.map (Syntax.sel_case_fmapS inl) cases) (Syntax.state_ref_fmapS inl default) =
+        match Syntax.eval_sel St1 Hdr1 Hdr1_sz s c cases default with
+        | inl q' => inl (inl q')
+        | inr b => inr b
+        end.
+  Proof.
+    dependent induction cases; intros.
+    - apply eq_refl.
+    - simpl.
+      admit.
+  Admitted.
+
   Lemma transition1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1):
     Syntax.P4A.transitions (Syntax.interp sum) (inl q) (sum_stores s s') =
     match Syntax.P4A.transitions (Syntax.interp a1) q s with
@@ -265,7 +323,14 @@ Section Sum.
     | inr b => inr b
     end.
   Proof.
-  Admitted.
+    simpl.
+    unfold Syntax.transitions, Syntax.eval_trans.
+    simpl in *.
+    destruct (Syntax.st_trans (Syntax.t_states a1 q)); simpl.
+    - unfold Syntax.state_ref_fmapS.
+      reflexivity.
+    - apply eval_sel1.
+  Qed.
 
   Lemma embed_step1:
     forall c1 c1' b,
