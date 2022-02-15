@@ -210,6 +210,13 @@ Section Sum.
     now rewrite Syntax.state_fmapSH_size.
   Qed.
 
+  Lemma bind_app:
+    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k v pf pf',
+      HList.bind k v pf (app t1 t2) =
+      app (HList.bind k v pf' t1) t2.
+  Proof.
+  Admitted.
+
   Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
     v1 = v2 ->
     Syntax.assign _ _ (inl hdr) v1 (sum_stores s s') =
@@ -220,8 +227,11 @@ Section Sum.
     simpl in *.
     unfold sum_stores.
     unfold Syntax.assign, Syntax.Env.bind.
-    generalize (map_inj (fun h => Syntax.v (Hdr_sz h)) inr s').
-    intros.
+    pose proof (bind_app _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
+                           (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
+    erewrite H.
+    f_equal.
+    admit.
   Admitted.
 
   Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
