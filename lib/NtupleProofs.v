@@ -450,3 +450,10 @@ Proof.
   replace (n - n) with 0 by Lia.lia.
   now rewrite skipn_O.
 Qed.
+
+Lemma eq_rect_jmeq (n n': nat) (buf: Ntuple.n_tuple bool n) H:
+  eq_rect n _ buf n' H ~= buf.
+Proof.
+  subst.
+  reflexivity.
+Qed.
