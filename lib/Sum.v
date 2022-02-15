@@ -217,6 +217,16 @@ Section Sum.
   Proof.
   Admitted.
 
+  Lemma bind_map_inj:
+    forall (X A: Type)
+      (A_equiv: Equivalence (@eq A))
+      (A_eq_dec: @EqDec A _ A_equiv)
+      (X_equiv: Equivalence (@eq X))
+      (X_eq_dec: @EqDec X _ X_equiv) (B: A -> Type) (f: X -> A) l (xs: HList.t (fun x => B (f x)) l) k v pf pf',
+      HList.bind (f k) v pf (map_inj _ f xs) = map_inj _ f (HList.bind k v pf' xs).
+  Proof.
+  Admitted.
+
   Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
     v1 = v2 ->
     Syntax.assign _ _ (inl hdr) v1 (sum_stores s s') =
@@ -231,8 +241,14 @@ Section Sum.
                            (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
     erewrite H.
     f_equal.
-    admit.
-  Admitted.
+    erewrite bind_map_inj with (pf' := elem_of_enum hdr).
+    reflexivity.
+    Unshelve.
+    pose proof (@elem_of_enum Hdr1 _ _ _ hdr).
+    apply List.in_map_iff.
+    eexists.
+    intuition eauto.
+  Qed.
 
   Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
     WP.P4A.find _ _ (inl h) (sum_stores s s') =
