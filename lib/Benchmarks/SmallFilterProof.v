@@ -26,24 +26,6 @@ RegisterEnvCtors
 *)
 
 
-(* TODO: We need something like this for general sums of automata. Basically,
-   if two states in the sum automaton have the same language, then those
-   states have the same language in their original automaton. *)
-Lemma sum_thing:
-  forall (q1: IncrementalBits.state) (q2: BigBits.state),
-    lang_equiv_state
-      (a1 := P4A.interp A)
-      (a2 := P4A.interp A)
-      (inl q1)
-      (inr q2) ->
-    lang_equiv_state
-      (a1 := P4A.interp IncrementalBits.aut)
-      (a2 := P4A.interp BigBits.aut)
-      q1
-      q2.
-Proof.
-Admitted.
-
 Lemma prebisim_incremental_sep:
   lang_equiv_state
     (a1 := P4A.interp IncrementalBits.aut)
@@ -52,7 +34,7 @@ Lemma prebisim_incremental_sep:
     BigBits.Parse
 .
 Proof.
-  apply sum_thing.
+  eapply Sum.sum_thing; [typeclasses eauto | typeclasses eauto |].
   unfold lang_equiv_state.
   intros.
   match goal with
