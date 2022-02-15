@@ -1,10 +1,13 @@
 Require Coq.Lists.List.
 Require Coq.Logic.Eqdep_dec.
+Require Import Coq.micromega.Lia.
 Require Import Coq.Classes.EquivDec.
 Import List.ListNotations.
 
+Require Import Leapfrog.Bisimulations.Semantic.
 Require Import Leapfrog.FinType.
 Require Import Leapfrog.HAList.
+Require Import Leapfrog.WPProofs.
 Require Leapfrog.Syntax.
 
 Open Scope list_scope.
@@ -81,7 +84,6 @@ Section Sum.
   Import P4automaton.
 
   Require Import Coq.Program.Program.
-  Locate "~=".
   Inductive embed_conf1:
     P4automaton.configuration (Syntax.interp a1) ->
     P4automaton.configuration (Syntax.interp sum) ->
@@ -167,24 +169,193 @@ Section Sum.
     - inversion H; subst; simpl in *; congruence.
     - inversion H; subst; simpl in *; congruence.
   Qed.
-  
-  Require Leapfrog.Bisimulations.Semantic.
+
+  Lemma size1 (q: St1):
+    size' (Syntax.interp sum) (inl (inl q)) = size' (Syntax.interp a1) (inl q).
+  Proof.
+    autorewrite with size'; simpl.
+    unfold Syntax.size.
+    unfold sum; simpl.
+    now rewrite Syntax.state_fmapSH_size.
+  Qed.
+
+  Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
+    v1 ~= v2 ->
+    Syntax.assign _ _ (inl hdr) v1 (sum_stores s s') =
+    sum_stores (Syntax.assign _ _ hdr v2 s) s'.
+  Proof.
+  Admitted.
+
+  Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
+    WP.P4A.find _ _ (inl h) (sum_stores s s') ~=
+    WP.P4A.find _ _ h s.
+  Proof.
+  Admitted.
+
+  Transparent Syntax.expr_fmapH.
+  Transparent Syntax.eval_expr.
+
+  Lemma eval_expr1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) n e:
+    Syntax.eval_expr _ _ n (sum_stores s s') (Syntax.expr_fmapH _ inl (fun h : Hdr1 => sum_obligation_1 h) e) ~=
+    Syntax.eval_expr _ _ n s e.
+  Proof.
+    revert s s'; dependent induction e; intros; simpl.
+    - apply find1.
+    - reflexivity.
+    - now rewrite IHe.
+    - now rewrite IHe1, IHe2.
+  Qed.
+
+  Opaque Syntax.expr_fmapH.
+  Opaque Syntax.eval_expr.
+
+  Transparent Syntax.op_fmapH.
+  Transparent Syntax.eval_op.
+
+  Lemma eval_op1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) o buf1 buf2:
+    buf1 ~= buf2 ->
+    Syntax.eval_op _ _ (sum_stores s s') (Syntax.op_fmapH _ inl (fun h => sum_obligation_1 h) o) buf1 =
+    sum_stores (Syntax.eval_op _ _ s o buf2) s'.
+  Proof.
+    revert s s'; dependent induction o; intros; simpl.
+    - reflexivity.
+    - erewrite IHo1; auto.
+      erewrite IHo2; auto.
+      + repeat rewrite Ntuple.rewrite_size_jmeq.
+        apply NtupleProofs.t2l_eq.
+        repeat rewrite Ntuple.t2l_n_tuple_skip_n.
+        f_equal.
+        * apply Syntax.op_fmapH_size.
+        * now apply NtupleProofs.eq_t2l.
+      + repeat rewrite Ntuple.rewrite_size_jmeq.
+        apply NtupleProofs.t2l_eq.
+        repeat rewrite Ntuple.t2l_n_tuple_take_n.
+        f_equal.
+        * apply Syntax.op_fmapH_size.
+        * now apply NtupleProofs.eq_t2l.
+    - erewrite assign1; auto.
+      now apply WPProofs.vbits_congr.
+    - erewrite assign1; auto.
+      apply eval_expr1.
+  Qed.
+
+  Opaque Syntax.op_fmapH.
+
+  Lemma update1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1) buf1 buf2:
+    buf1 ~= buf2 ->
+    Syntax.P4A.update (Syntax.interp sum)
+                      (inl q)
+                      buf1
+                      (sum_stores s s') =
+    sum_stores (Syntax.P4A.update (Syntax.interp a1) q buf2 s) s'
+  .
+  Proof.
+    intros.
+    unfold Syntax.P4A.update; simpl.
+    unfold Syntax.update; simpl.
+    erewrite eval_op1; auto.
+    repeat f_equal.
+    now repeat rewrite NtupleProofs.eq_rect_jmeq.
+  Qed.
+
+  Lemma transition1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1):
+    Syntax.P4A.transitions (Syntax.interp sum) (inl q) (sum_stores s s') =
+    match Syntax.P4A.transitions (Syntax.interp a1) q s with
+    | inl q' => inl (inl q')
+    | inr b => inr b
+    end.
+  Proof.
+  Admitted.
+
+  Lemma embed_step1:
+    forall c1 c1' b,
+      embed_conf1 c1 c1' ->
+      embed_conf1 (step c1 b) (step c1' b).
+  Proof.
+    intros.
+    inversion H; subst.
+    - assert (conf_buf_len c1 = conf_buf_len c1')
+        by (eapply NtupleProofs.inv_jmeq_size; exact H2).
+      unfold step.
+      destruct (Compare_dec.le_lt_dec _ _),
+               (Compare_dec.le_lt_dec _ _); try lia.
+      + destruct c1, c1'; simpl in *.
+        destruct conf_state, conf_state0; try discriminate.
+        autorewrite with transitions'.
+        autorewrite with update'.
+        inversion H0; inversion H1; subst.
+        erewrite update1.
+        * match goal with
+          | |- context[Syntax.P4A.transitions _ q ?c] =>
+            set (conf_store_new := c)
+          end.
+          match goal with
+          | |- context[Syntax.P4A.transitions _ (inl q) ?c] =>
+            set (conf_store_new' := c)
+          end.
+          assert (conf_store_new' = sum_stores conf_store_new st)
+            by (subst conf_store_new'; reflexivity).
+          pose proof (transition1 conf_store_new st q).
+          rewrite <- H3 in H4.
+          rewrite H4.
+          simpl.
+          destruct (Syntax.transitions St1 Hdr1 Hdr1_sz a1 q conf_store_new).
+          -- eapply EmbedConf1Inl; simpl; now subst.
+          -- eapply EmbedConf1Inr; simpl; now subst.
+        * rewrite H2.
+          erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
+          erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
+          unfold Ntuple.rewrite_size.
+          repeat rewrite rew_opp_l.
+          now apply NtupleProofs.pair_proper.
+      + exfalso.
+        rewrite H1, size1 in l0.
+        rewrite H0, H4 in l.
+        simpl in l, l0; lia.
+      + exfalso.
+        rewrite H1, size1 in l0.
+        rewrite H0, H4 in l.
+        simpl in l, l0; lia.
+      + apply EmbedConf1Inl with (q := q) (st := st); auto; simpl.
+        now apply NtupleProofs.pair_proper.
+    - assert (size' _ (conf_state c1) = 1) by (now rewrite H0).
+      assert (size' _ (conf_state c1') = 1) by (now rewrite H1).
+      unfold step.
+      destruct (Compare_dec.le_lt_dec _ _),
+               (Compare_dec.le_lt_dec _ _); try Lia.lia.
+      destruct c1, c1'; simpl in *.
+      destruct conf_state, conf_state0; try discriminate.
+      autorewrite with transitions'.
+      autorewrite with update'.
+      now apply EmbedConf1Inr with (q := false) (st := st).
+  Qed.
+
+  Lemma embed_step2:
+    forall c2 c2' b,
+      embed_conf2 c2 c2' ->
+      embed_conf2 (step c2 b) (step c2' b).
+  Proof.
+    intros.
+  Admitted.
+
   Lemma split_is_bisim:
     forall R,
-      Semantic.bisimulation R ->
-      Semantic.bisimulation (split_bisim R).
+      bisimulation R ->
+      bisimulation (split_bisim R).
   Proof.
-    unfold Semantic.bisimulation.
-    intros.
+    unfold bisimulation; intros.
+    inversion H0; subst.
+    apply H in H3; destruct H3.
     split.
-    - inversion H0; subst.
-      apply H in H3.
-      destruct H3.
-      erewrite embed_accepting1 by eauto.
+    - erewrite embed_accepting1 by eauto.
       erewrite embed_accepting2 by eauto.
       auto.
-    - admit.
-  Admitted.
+    - intros.
+      econstructor.
+      + apply embed_step1, H1.
+      + apply embed_step2, H2.
+      + apply H4.
+  Qed.
 
   Lemma sum_thing:
     forall (q1: St1) (q2: St2),
@@ -201,9 +372,9 @@ Section Sum.
   Proof.
     unfold P4automaton.lang_equiv_state.
     intros.
-    apply Bisimulations.Semantic.bisimilar_iff_lang_equiv.
-    setoid_rewrite Bisimulations.Semantic.bisimilar_iff_lang_equiv in H.
-    unfold Semantic.bisimilar.
+    apply bisimilar_iff_lang_equiv.
+    setoid_rewrite bisimilar_iff_lang_equiv in H.
+    unfold bisimilar.
     simpl in s1, s2.
     pose (sum_stores s1 s2) as s0.
     specialize (H s0 s0).
@@ -219,5 +390,5 @@ Section Sum.
         unfold s0.
         reflexivity.
   Qed.
-  
+
 End Sum.
