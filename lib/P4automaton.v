@@ -595,7 +595,7 @@ Definition lang_equiv
 .
 
 Definition lang_equiv_state
-  {a1 a2: p4automaton}
+  (a1 a2: p4automaton)
   (q1: states a1)
   (q2: states a2)
 :=

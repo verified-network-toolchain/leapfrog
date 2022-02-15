@@ -189,13 +189,13 @@ Section Sum.
   Lemma sum_thing:
     forall (q1: St1) (q2: St2),
       P4automaton.lang_equiv_state
-        (a1 := Syntax.interp sum)
-        (a2 := Syntax.interp sum)
+        (Syntax.interp sum)
+        (Syntax.interp sum)
         (inl q1)
         (inr q2) ->
       P4automaton.lang_equiv_state
-        (a1 := Syntax.interp a1)
-        (a2 := Syntax.interp a2)
+        (Syntax.interp a1)
+        (Syntax.interp a2)
         q1
         q2.
   Proof.

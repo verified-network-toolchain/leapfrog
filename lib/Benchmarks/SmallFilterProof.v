@@ -32,13 +32,13 @@ RegisterEnvCtors
 Lemma sum_thing:
   forall (q1: IncrementalBits.state) (q2: BigBits.state),
     lang_equiv_state
-      (a1 := P4A.interp A)
-      (a2 := P4A.interp A)
+      (P4A.interp A)
+      (P4A.interp A)
       (inl q1)
       (inr q2) ->
     lang_equiv_state
-      (a1 := P4A.interp IncrementalBits.aut)
-      (a2 := P4A.interp BigBits.aut)
+      (P4A.interp IncrementalBits.aut)
+      (P4A.interp BigBits.aut)
       q1
       q2.
 Proof.
@@ -46,8 +46,8 @@ Admitted.
 
 Lemma prebisim_incremental_sep:
   lang_equiv_state
-    (a1 := P4A.interp IncrementalBits.aut)
-    (a2 := P4A.interp BigBits.aut)
+    (P4A.interp IncrementalBits.aut)
+    (P4A.interp BigBits.aut)
     IncrementalBits.Start
     BigBits.Parse
 .
