@@ -339,8 +339,37 @@ Section Sum.
     dependent induction cases; intros.
     - apply eq_refl.
     - simpl.
-      admit.
-  Admitted.
+      rewrite IHcases.
+      assert (
+      Syntax.match_pat Hdr1 Hdr1_sz s c (Syntax.sc_pat a)
+                       =
+      Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
+        (Syntax.cond_fmapH Hdr_sz inl (fun h : Hdr1 => sum_obligation_1 h) c)
+        (Syntax.sc_pat a)).
+      {
+        set (P ty (pat: WP.P4A.pat ty) cond := 
+               Syntax.match_pat Hdr1 Hdr1_sz s cond pat
+               =
+                 Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
+                                  (Syntax.cond_fmapH Hdr_sz inl (fun h : Hdr1 => sum_obligation_1 h) cond)
+                                  pat).
+        cut (P _ (Syntax.sc_pat a) c); simpl; auto.
+        generalize (Syntax.sc_pat a).
+        generalize c.
+        generalize ty.
+        eapply pat_cond_ind; intros; unfold P in *.
+        - unfold Syntax.cond_fmapH;
+          autorewrite with match_pat.
+          erewrite eval_expr1.
+          auto.
+        - auto.
+        - autorewrite with match_pat.
+          rewrite H, H0.
+          auto.
+      }
+      rewrite <- H.
+      destruct (Syntax.match_pat Hdr1 Hdr1_sz s c (Syntax.sc_pat a)); eauto.
+  Qed.
 
   Lemma transition1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1):
     Syntax.P4A.transitions (Syntax.interp sum) (inl q) (sum_stores s s') =
