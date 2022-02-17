@@ -215,7 +215,30 @@ Section Sum.
       HList.bind k v pf (app t1 t2) =
       app (HList.bind k v pf' t1) t2.
   Proof.
-  Admitted.
+    induction l1; intros.
+    - cbv in pf'.
+      tauto.
+    - dependent destruction t1.
+      destruct (A_eq_dec k a) eqn:Heq.
+      + autorewrite with bind.
+        rewrite Heq.
+        simpl.
+        unfold eq_rect_r, eq_rect.
+        destruct e.
+        simpl.
+        autorewrite with bind.
+        rewrite Heq.
+        reflexivity.
+      + simpl.
+        autorewrite with bind.
+        rewrite Heq.
+        cbn.
+        autorewrite with bind.
+        rewrite Heq.
+        cbn.
+        erewrite IHl1.
+        eauto.
+  Qed.
 
   Lemma bind_map_inj:
     forall (X A: Type)
