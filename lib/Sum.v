@@ -328,6 +328,8 @@ Section Sum.
     eapply get_app_l with (t1 := t1) (pf' := pf); auto.
     unfold t1.
     erewrite get_map_inj; eauto.
+    intros.
+    congruence.
   Qed.
 
   Transparent Syntax.expr_fmapH.
