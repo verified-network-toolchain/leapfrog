@@ -250,6 +250,63 @@ Section Sum.
     intuition eauto.
   Qed.
 
+  Lemma get_app_l:
+    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k pf pf',
+      List.In k l1 ->
+      HList.get k pf (app t1 t2) = HList.get k pf' t1.
+  Proof.
+    intros.
+    dependent induction t1.
+    - simpl in *.
+      tauto.
+    - simpl in *.
+      destruct (A_eq_dec k a) eqn:?.
+      + cbn.
+        autorewrite with get.
+        now rewrite Heqs.
+      + autorewrite with get.
+        rewrite Heqs.
+        cbn.
+        autorewrite with get.
+        rewrite Heqs.
+        simpl.
+        destruct pf; try congruence.
+        destruct pf'; try congruence.
+        auto.
+  Qed.
+
+  Lemma get_map_inj:
+    forall (X A: Type)
+      (A_equiv: Equivalence (@eq A))
+      (A_eq_dec: @EqDec A _ A_equiv)
+      (X_equiv: Equivalence (@eq X))
+      (X_eq_dec: @EqDec X _ X_equiv) (B: A -> Type) (f: X -> A) l (xs: HList.t (fun x => B (f x)) l) k pf pf',
+      (forall x y, f x = f y -> x = y) ->
+      HList.get (f k) pf (map_inj _ f xs) = HList.get k pf' xs.
+  Proof.
+    intros.
+    induction l.
+    - cbv in pf'.
+      tauto.
+    - simpl in pf.
+      dependent destruction xs.
+      cbn.
+      autorewrite with get.
+      destruct (A_eq_dec _ _), (X_eq_dec _ _).
+      + unfold equiv in *.
+        subst a.
+        cbn.
+        unfold eq_rect_r.
+        erewrite <- !eq_rect_eq.
+        reflexivity.
+      + pose proof (H _ _ e).
+        congruence.
+      + congruence.
+      + simpl in *.
+        destruct pf, pf'; try congruence.
+        erewrite IHl; eauto.
+  Qed.
+
   Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
     WP.P4A.find _ _ (inl h) (sum_stores s s') =
     WP.P4A.find _ _ h s.
@@ -257,7 +314,21 @@ Section Sum.
     unfold WP.P4A.find.
     unfold WP.P4A.Env.get.
     unfold sum_stores.
-  Admitted.
+    set (t1 := (map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inl s)).
+    set (l1 := List.map (@inl _ Hdr2) (enum Hdr1)) in *.
+    assert (pf: List.In (inl h) l1).
+    {
+      unfold l1.
+      rewrite List.in_map_iff.
+      eexists.
+      split; eauto.
+      apply elem_of_enum.
+    }
+    eapply eq_trans.
+    eapply get_app_l with (t1 := t1) (pf' := pf); auto.
+    unfold t1.
+    erewrite get_map_inj; eauto.
+  Qed.
 
   Transparent Syntax.expr_fmapH.
   Transparent Syntax.eval_expr.
