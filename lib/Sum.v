@@ -246,9 +246,34 @@ Section Sum.
       (A_eq_dec: @EqDec A _ A_equiv)
       (X_equiv: Equivalence (@eq X))
       (X_eq_dec: @EqDec X _ X_equiv) (B: A -> Type) (f: X -> A) l (xs: HList.t (fun x => B (f x)) l) k v pf pf',
+      (forall x y, f x = f y -> x = y) ->
       HList.bind (f k) v pf (map_inj _ f xs) = map_inj _ f (HList.bind k v pf' xs).
   Proof.
-  Admitted.
+    intros.
+    induction l.
+    - simpl in pf'.
+      tauto.
+    - dependent destruction xs.
+      simpl.
+      autorewrite with bind.
+      destruct (X_eq_dec k a) eqn:Heq; cbn.
+      + autorewrite with bind.
+        destruct (A_eq_dec (f k) (f a)); try congruence.
+        f_equal.
+        destruct e.
+        simpl.
+        erewrite eq_rect_eq; eauto.
+      + autorewrite with bind.
+        simpl.
+        destruct (A_eq_dec (f k) (f a)).
+        * exfalso.
+          apply c.
+          apply H.
+          apply e.
+        * f_equal.
+          erewrite IHl.
+          eauto.
+  Qed.
 
   Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
     v1 = v2 ->
