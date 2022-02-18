@@ -210,7 +210,33 @@ Section Sum.
     now rewrite Syntax.state_fmapSH_size.
   Qed.
 
-  Lemma bind_app:
+  Lemma size2 (q: St2):
+    size' (Syntax.interp sum) (inl (inr q)) = size' (Syntax.interp a2) (inl q).
+  Proof.
+    autorewrite with size'; simpl.
+    unfold Syntax.size.
+    unfold sum; simpl.
+    now rewrite Syntax.state_fmapSH_size.
+  Qed.
+
+  Lemma bind_proof_irrelevant:
+    forall A (A_eq_dec: EqDec A eq) B (l: list A) (t: HList.t B l) k v pf pf',
+      HList.bind k v pf t = 
+      HList.bind k v pf' t.
+  Proof.
+    induction l; intros.
+    - simpl in pf.
+      tauto.
+    - simpl in *.
+      dependent destruction t.
+      autorewrite with bind.
+      destruct (A_eq_dec k a); eauto.
+      destruct pf, pf'; try congruence.
+      cbn.
+      erewrite IHl; eauto.
+  Qed.
+
+  Lemma bind_app_l:
     forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k v pf pf',
       HList.bind k v pf (app t1 t2) =
       app (HList.bind k v pf' t1) t2.
@@ -238,6 +264,35 @@ Section Sum.
         cbn.
         erewrite IHl1.
         eauto.
+  Qed.
+
+  Lemma bind_app_r:
+    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k v pf pf',
+      ~ List.In k l1 ->
+      HList.bind k v pf (app t1 t2) =
+      app t1 (HList.bind k v pf' t2).
+  Proof.
+    induction l1; intros.
+    - dependent destruction t1.
+      cbn in pf, pf'.
+      apply bind_proof_irrelevant.
+    - dependent destruction t1.
+      destruct (A_eq_dec k a) eqn:Heq.
+      + exfalso.
+        apply H.
+        unfold equiv in *.
+        subst a.
+        eauto with datatypes.
+      + cbn.
+        assert (Hnotin: ~ List.In k l1) by eauto with datatypes.
+        assert (Hinl1l2: List.In k (l1 ++ l2)) by eauto with datatypes.
+        assert (Hinl2: List.In k l2) by eauto with datatypes.
+        specialize (IHl1 l2 t1 t2 k v Hinl1l2 pf' Hnotin).
+        rewrite <- IHl1.
+        autorewrite with bind.
+        rewrite Heq.
+        cbn.
+        erewrite bind_proof_irrelevant; eauto.
   Qed.
 
   Lemma bind_map_inj:
@@ -285,17 +340,55 @@ Section Sum.
     simpl in *.
     unfold sum_stores.
     unfold Syntax.assign, Syntax.Env.bind.
-    pose proof (bind_app _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
-                           (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
+    pose proof (bind_app_l _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
+                             (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
     erewrite H.
     f_equal.
-    erewrite bind_map_inj with (pf' := elem_of_enum hdr).
+    erewrite bind_map_inj with (pf' := elem_of_enum hdr) by (intros; congruence).
     reflexivity.
     Unshelve.
     pose proof (@elem_of_enum Hdr1 _ _ _ hdr).
     apply List.in_map_iff.
     eexists.
     intuition eauto.
+  Qed.
+
+  Lemma assign2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
+    v1 = v2 ->
+    Syntax.assign _ _ (inr hdr) v1 (sum_stores s s') =
+    sum_stores s (Syntax.assign _ _ hdr v2 s').
+  Proof.
+    intros; subst v1.
+    unfold Syntax.store in *.
+    simpl in *.
+    unfold sum_stores.
+    unfold Syntax.assign, Syntax.Env.bind.
+    pose proof (bind_app_r _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
+                             (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
+    erewrite H
+      by (rewrite List.in_map_iff; firstorder congruence).
+    f_equal.
+    erewrite bind_map_inj with (pf' := elem_of_enum hdr); eauto.
+    intros; congruence.
+    Unshelve.
+    pose proof (@elem_of_enum Hdr2 _ _ _ hdr).
+    apply List.in_map_iff.
+    eexists.
+    intuition eauto.
+  Qed.
+
+  Lemma get_proof_irrelevant:
+    forall A (A_eq_dec: EqDec A eq) B (l: list A) (t: HList.t B l) k pf pf',
+      HList.get k pf t = 
+      HList.get k pf' t.
+  Proof.
+    induction l; intros.
+    - simpl in pf.
+      tauto.
+    - simpl in *.
+      dependent destruction t.
+      autorewrite with get.
+      destruct (A_eq_dec k a); eauto.
   Qed.
 
   Lemma get_app_l:
@@ -321,6 +414,26 @@ Section Sum.
         destruct pf; try congruence.
         destruct pf'; try congruence.
         auto.
+  Qed.
+
+  Lemma get_app_r:
+    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k pf pf',
+      ~ List.In k l1 ->
+      HList.get k pf (app t1 t2) = HList.get k pf' t2.
+  Proof.
+    intros.
+    dependent induction t1.
+    - simpl in *.
+      apply get_proof_irrelevant.
+    - cbn.
+      autorewrite with get.
+      destruct (A_eq_dec k a) eqn:?.
+      + exfalso.
+        apply H.
+        destruct e.
+        eauto with datatypes.
+      + cbn.
+        erewrite IHt1; eauto with datatypes.
   Qed.
 
   Lemma get_map_inj:
@@ -380,6 +493,32 @@ Section Sum.
     congruence.
   Qed.
 
+  Lemma find2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
+    WP.P4A.find _ _ (inr h) (sum_stores s s') =
+    WP.P4A.find _ _ h s'.
+  Proof.
+    unfold WP.P4A.find.
+    unfold WP.P4A.Env.get.
+    unfold sum_stores.
+    set (t2 := (map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inr s')).
+    set (l2 := List.map (@inr Hdr1 _) (enum Hdr2)) in *.
+    assert (pf: List.In (inr h) l2).
+    {
+      unfold l2.
+      rewrite List.in_map_iff.
+      eexists.
+      split; eauto.
+      apply elem_of_enum.
+    }
+    eapply eq_trans.
+    eapply get_app_r with (t2 := t2) (pf' := pf);
+      rewrite List.in_map_iff; firstorder congruence.
+    unfold t2.
+    erewrite get_map_inj; eauto.
+    intros.
+    congruence.
+  Qed.
+
   Transparent Syntax.expr_fmapH.
   Transparent Syntax.eval_expr.
 
@@ -393,6 +532,18 @@ Section Sum.
     - now rewrite IHe.
     - now rewrite IHe1, IHe2.
   Qed.
+
+  Lemma eval_expr2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) n e:
+    Syntax.eval_expr _ _ n (sum_stores s s') (Syntax.expr_fmapH _ inr (fun h : Hdr2 => sum_obligation_2 h) e) =
+    Syntax.eval_expr _ _ n s' e.
+  Proof.
+    revert s s'; dependent induction e; intros; simpl.
+    - apply find2.
+    - reflexivity.
+    - now rewrite IHe.
+    - now rewrite IHe1, IHe2.
+  Qed.
+
 
   Opaque Syntax.expr_fmapH.
   Opaque Syntax.eval_expr.
@@ -428,6 +579,34 @@ Section Sum.
       apply eval_expr1.
   Qed.
 
+  Lemma eval_op2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) o buf1 buf2:
+    buf1 ~= buf2 ->
+    Syntax.eval_op _ _ (sum_stores s s') (Syntax.op_fmapH _ inr (fun h => sum_obligation_2 h) o) buf1 =
+    sum_stores s (Syntax.eval_op _ _ s' o buf2).
+  Proof.
+    revert s s'; dependent induction o; intros; simpl.
+    - reflexivity.
+    - erewrite IHo1, IHo2; auto.
+      + repeat rewrite Ntuple.rewrite_size_jmeq.
+        apply NtupleProofs.t2l_eq.
+        repeat rewrite Ntuple.t2l_n_tuple_skip_n.
+        f_equal.
+        * apply Syntax.op_fmapH_size.
+        * now apply NtupleProofs.eq_t2l.
+      + repeat rewrite Ntuple.rewrite_size_jmeq.
+        apply NtupleProofs.t2l_eq.
+        repeat rewrite Ntuple.t2l_n_tuple_take_n.
+        f_equal.
+        * apply Syntax.op_fmapH_size.
+        * now apply NtupleProofs.eq_t2l.
+    - erewrite assign2; auto.
+      f_equal.
+      apply JMeq_eq; auto.
+    - erewrite assign2; auto.
+      apply eval_expr2.
+  Qed.
+
+
   Opaque Syntax.op_fmapH.
 
   Lemma update1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1) buf1 buf2:
@@ -443,6 +622,23 @@ Section Sum.
     unfold Syntax.P4A.update; simpl.
     unfold Syntax.update; simpl.
     erewrite eval_op1; auto.
+    repeat f_equal.
+    now repeat rewrite NtupleProofs.eq_rect_jmeq.
+  Qed.
+
+  Lemma update2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St2) buf1 buf2:
+    buf1 ~= buf2 ->
+    Syntax.P4A.update (Syntax.interp sum)
+                      (inr q)
+                      buf1
+                      (sum_stores s s') =
+    sum_stores s (Syntax.P4A.update (Syntax.interp a2) q buf2 s')
+  .
+  Proof.
+    intros.
+    unfold Syntax.P4A.update; simpl.
+    unfold Syntax.update; simpl.
+    erewrite eval_op2; auto.
     repeat f_equal.
     now repeat rewrite NtupleProofs.eq_rect_jmeq.
   Qed.
@@ -492,6 +688,51 @@ Section Sum.
       destruct (Syntax.match_pat Hdr1 Hdr1_sz s c (Syntax.sc_pat a)); eauto.
   Qed.
 
+  Lemma eval_sel2:
+    forall s s' ty (c: Syntax.cond Hdr2_sz ty) cases default,
+      Syntax.eval_sel St Hdr Hdr_sz (sum_stores s s')
+                      (Syntax.cond_fmapH Hdr_sz inr (fun h => sum_obligation_2 h) c)
+                      (List.map (Syntax.sel_case_fmapS inr) cases) (Syntax.state_ref_fmapS inr default) =
+        match Syntax.eval_sel St2 Hdr2 Hdr2_sz s' c cases default with
+        | inl q' => inl (inr q')
+        | inr b => inr b
+        end.
+  Proof.
+    dependent induction cases; intros.
+    - apply eq_refl.
+    - simpl.
+      rewrite IHcases.
+      assert (
+      Syntax.match_pat Hdr2 Hdr2_sz s' c (Syntax.sc_pat a)
+                       =
+      Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
+        (Syntax.cond_fmapH Hdr_sz inr (fun h : Hdr2 => sum_obligation_2 h) c)
+        (Syntax.sc_pat a)).
+      {
+        set (P ty (pat: WP.P4A.pat ty) cond := 
+               Syntax.match_pat Hdr2 Hdr2_sz s' cond pat
+               =
+                 Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
+                                  (Syntax.cond_fmapH Hdr_sz inr (fun h : Hdr2 => sum_obligation_2 h) cond)
+                                  pat).
+        cut (P _ (Syntax.sc_pat a) c); simpl; auto.
+        generalize (Syntax.sc_pat a).
+        generalize c.
+        generalize ty.
+        eapply pat_cond_ind; intros; unfold P in *.
+        - unfold Syntax.cond_fmapH;
+          autorewrite with match_pat.
+          erewrite eval_expr2.
+          auto.
+        - auto.
+        - autorewrite with match_pat.
+          rewrite H, H0.
+          auto.
+      }
+      rewrite <- H.
+      destruct (Syntax.match_pat _ _ _ _ _); eauto.
+  Qed.
+
   Lemma transition1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1):
     Syntax.P4A.transitions (Syntax.interp sum) (inl q) (sum_stores s s') =
     match Syntax.P4A.transitions (Syntax.interp a1) q s with
@@ -507,6 +748,23 @@ Section Sum.
       reflexivity.
     - apply eval_sel1.
   Qed.
+
+  Lemma transition2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St2):
+    Syntax.P4A.transitions (Syntax.interp sum) (inr q) (sum_stores s s') =
+    match Syntax.P4A.transitions (Syntax.interp a2) q s' with
+    | inl q' => inl (inr q')
+    | inr b => inr b
+    end.
+  Proof.
+    simpl.
+    unfold Syntax.transitions, Syntax.eval_trans.
+    simpl in *.
+    destruct (Syntax.st_trans (Syntax.t_states a2 q)); simpl.
+    - unfold Syntax.state_ref_fmapS.
+      reflexivity.
+    - apply eval_sel2.
+  Qed.
+
 
   Lemma embed_step1:
     forall c1 c1' b,
@@ -577,7 +835,62 @@ Section Sum.
       embed_conf2 (step c2 b) (step c2' b).
   Proof.
     intros.
-  Admitted.
+    inversion H; subst.
+    - assert (conf_buf_len c2 = conf_buf_len c2')
+        by (eapply NtupleProofs.inv_jmeq_size; exact H2).
+      unfold step.
+      destruct (Compare_dec.le_lt_dec _ _),
+               (Compare_dec.le_lt_dec _ _); try lia.
+      + destruct c2, c2'; simpl in *.
+        destruct conf_state, conf_state0; try discriminate.
+        autorewrite with transitions'.
+        autorewrite with update'.
+        inversion H0; inversion H1; subst.
+        erewrite update2.
+        * match goal with
+          | |- context[Syntax.P4A.transitions _ q ?c] =>
+            set (conf_store_new := c)
+          end.
+          match goal with
+          | |- context[Syntax.P4A.transitions _ (inr q) ?c] =>
+            set (conf_store_new' := c)
+          end.
+          assert (conf_store_new' = sum_stores st conf_store_new)
+            by (subst conf_store_new'; reflexivity).
+          pose proof (transition2 st conf_store_new q).
+          rewrite <- H3 in H4.
+          rewrite H4.
+          simpl.
+          destruct (Syntax.transitions _ _ _ a2 q conf_store_new).
+          -- eapply EmbedConf2Inl; simpl; now subst.
+          -- eapply EmbedConf2Inr; simpl; now subst.
+        * rewrite H2.
+          erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
+          erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
+          unfold Ntuple.rewrite_size.
+          repeat rewrite rew_opp_l.
+          now apply NtupleProofs.pair_proper.
+      + exfalso.
+        rewrite H1, size2 in l0.
+        rewrite H0, H4 in l.
+        simpl in l, l0; lia.
+      + exfalso.
+        rewrite H1, size2 in l0.
+        rewrite H0, H4 in l.
+        simpl in l, l0; lia.
+      + apply EmbedConf2Inl with (q := q) (st := st); auto; simpl.
+        now apply NtupleProofs.pair_proper.
+    - assert (size' _ (conf_state c2) = 1) by (now rewrite H0).
+      assert (size' _ (conf_state c2') = 1) by (now rewrite H1).
+      unfold step.
+      destruct (Compare_dec.le_lt_dec _ _),
+               (Compare_dec.le_lt_dec _ _); try Lia.lia.
+      destruct c2, c2'; simpl in *.
+      destruct conf_state, conf_state0; try discriminate.
+      autorewrite with transitions'.
+      autorewrite with update'.
+      now apply EmbedConf2Inr with (q := false) (st := st).
+  Qed.
 
   Lemma split_is_bisim:
     forall R,
