@@ -90,7 +90,7 @@ Ltac decide_entailment H P HP P_orig e :=
   end;
   clear Horig.
 
-Lemma prebisim_incremental_sep:
+Lemma small_filter_equiv:
   lang_equiv_state
     (P4A.interp IncrementalBits.aut)
     (P4A.interp BigBits.aut)
@@ -190,3 +190,6 @@ Proof.
          end
   end.
 Qed.
+
+Check small_filter_equiv.
+Print Assumptions small_filter_equiv.
