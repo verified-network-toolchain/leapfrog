@@ -103,6 +103,25 @@ Section ConfRel.
   Definition state_template_sane (st: state_template) :=
     st.(st_buf_len) < size' (P4A.interp a) st.(st_state).
 
+  Definition state_template_sane_fn (st: state_template) :=
+    match Nat.ltb st.(st_buf_len) (size' (P4A.interp a) st.(st_state)) with
+    | true => True
+    | false => False
+    end.
+
+  Lemma state_template_sane_fn_equiv:
+    forall st,
+      state_template_sane st <->
+      state_template_sane_fn st.
+  Proof.
+    unfold state_template_sane, state_template_sane_fn.
+    intros st.
+    pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
+    destruct H; eauto.
+    - tauto.
+    - tauto.
+  Qed.
+
   Global Program Instance state_template_eq_dec : EquivDec.EqDec state_template eq :=
     { equiv_dec x y :=
         if x.(st_state) == y.(st_state)
