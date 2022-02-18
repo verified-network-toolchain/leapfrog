@@ -263,12 +263,6 @@ Section ConvProofs.
       apply concat_cons.
   Qed.
 
-  Lemma l2t_snoc:
-    forall (l: list A) (x: A),
-      JMeq (l2t (l ++ [x])) (l2t l, x).
-  Proof.
-  Admitted.
-
   Lemma l2t_t2l:
     forall n (t: n_tuple A n),
       JMeq (l2t (t2l t)) t.

@@ -6,7 +6,6 @@ Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
 Require Import MirrorSolve.FirstOrder.
 Require Import Leapfrog.FirstOrderConfRel.
-Require Import Leapfrog.CompileConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
 Require Import Leapfrog.CompileFirstOrderConfRelSimplified.
 
@@ -179,33 +178,6 @@ Ltac hashcons_list xs :=
   end.
 
 
-Ltac extend_bisim r_states :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: ~interp_entailment a i ({| e_prem := R; e_concl := C |}));
-    [ idtac |
-    let t := fresh "t" in
-    pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend' with (H0 := right H) (W := t);
-    [
-      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
-      let v := fresh "v" in
-      set (v := add_strengthen_crel _ _);
-      vm_compute in v;
-      subst v
-    ];
-    vm_compute in t;
-    subst t;
-    match goal with
-    | |- pre_bisimulation _ _ _ (?R' :: ?R'') (?X ++ _) _ =>
-      let r := fresh "R" in
-      set (r := R');
-      hashcons_list X;
-      simpl (_ ++ _)
-    end ]
-  end.
-
 Ltac skip_bisim :=
   match goal with
   | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
@@ -233,31 +205,6 @@ Ltac extend_bisim' HN :=
       time "set R'" (set (r := R'));
       time "hashcons" (hashcons_list X);
       time "simplify append" (simpl (_ ++ _))
-    end
-  end.
-
-
-Ltac extend_bisim'' HN :=
-  match goal with
-  | |- pre_bisimulation ?a ?r_states _ _ (?C :: _) _ _ =>
-    pose (t := WP.wp r_states C);
-    eapply PreBisimulationExtend' with (H0 := right HN) (W := t);
-    [
-      typeclasses eauto 1 | typeclasses eauto 1 | trivial | trivial | subst t; reflexivity |
-      let v := fresh "v" in
-      set (v := add_strengthen_crel _ _);
-      vm_compute in v;
-      subst v
-    ];
-    clear HN;
-    time "wp compute" vm_compute in t;
-    subst t;
-    match goal with
-    | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
-      let r := fresh "R'" in
-      set (r := R');
-      hashcons_list X;
-      simpl (_ ++ _)
     end
   end.
 

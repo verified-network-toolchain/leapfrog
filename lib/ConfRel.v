@@ -584,11 +584,6 @@ Section ConfRel.
       end
     end.
 
-  Lemma add_strengthen_corr :
-    forall C CR q1 q2 top,
-    interp_crel top (add_strengthen_crel C CR) q1 q2 <-> interp_crel top (C :: CR) q1 q2.
-  Admitted.
-
   Record entailment :=
     { e_prem: crel;
       e_concl: conf_rel }.

@@ -7,7 +7,6 @@ Require Export Leapfrog.P4automaton.
 Require Export MirrorSolve.FirstOrder.
 Require Export Leapfrog.FirstOrderConfRel.
 
-Require Export Leapfrog.CompileConfRel.
 Require Export Leapfrog.CompileConfRelSimplified.
 Require Export Leapfrog.CompileFirstOrderConfRelSimplified.
 Require Export Leapfrog.WP.
