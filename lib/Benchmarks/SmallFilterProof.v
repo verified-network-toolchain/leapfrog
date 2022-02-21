@@ -3,6 +3,7 @@ Require Import Leapfrog.Bisimulations.LeapsProofs.
 Require Import Leapfrog.Bisimulations.WPLeapsProofs.
 Require Import Leapfrog.Benchmarks.ProofHeader.
 Require Import Leapfrog.Benchmarks.SmallFilter.
+Require Leapfrog.SumProofs.
 
 
 Notation H := (IncrementalBits.header + BigBits.header).
@@ -99,7 +100,7 @@ Lemma small_filter_equiv:
     IncrementalBits.Start
     BigBits.Parse.
 Proof.
-  eapply Sum.sum_thing; [typeclasses eauto | typeclasses eauto |].
+  eapply SumProofs.sum_thing; [typeclasses eauto | typeclasses eauto |].
   unfold lang_equiv_state.
   intros.
   match goal with
@@ -178,12 +179,12 @@ Proof.
                     top' _ _ _ _ _ r_states (conf_to_state_template q1)
                       (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
                 (eapply simplify_entailment_correct';
-                  eapply compile_simplified_entailment_correct'; simpl; 
+                  eapply compile_simplified_entailment_correct'; simpl;
                   intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
                   eapply compile_simplified_fm_bv_correct; crunch_foterm;
                   match goal with
                   | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
-                  end); apply H0; auto; unfold top', conf_to_state_template; 
+                  end); apply H0; auto; unfold top', conf_to_state_template;
                 destruct q1, q2; vm_compute in H;
                 repeat match goal with
                        | H:_ /\ _ |- _ => idtac H; destruct H
