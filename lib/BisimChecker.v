@@ -8,6 +8,8 @@ Require Import MirrorSolve.FirstOrder.
 Require Import Leapfrog.FirstOrderConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
 Require Import Leapfrog.CompileFirstOrderConfRelSimplified.
+Require Import Leapfrog.Sum.
+Require Import Leapfrog.LangEquivToPreBisim.
 
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
@@ -115,6 +117,12 @@ Section BisimChecker.
   Admitted.
 
 End BisimChecker.
+
+Lemma drop_antecedent:
+  forall P Q: Prop, P -> (P -> Q) <-> Q.
+Proof.
+  tauto.
+Qed.
 
 Lemma forall_exists:
   forall {A B} (P: A -> B -> Prop),
@@ -232,12 +240,101 @@ Ltac crunch_foterm :=
     subst temp
   end.
 
+Ltac crunch_foterm_ctx :=
+  match goal with
+  | H: context[interp_fm ?v ?g] |- _ =>
+      let temp := fresh "temp" in
+      set (temp := g) in H; vm_compute in temp; subst temp;
+      (let temp := fresh "temp1" in
+       set (temp := v) in H; vm_compute in temp; subst temp)
+  end.
+
+Ltac compile_fm H :=
+  erewrite simplify_entailment_correct
+    with (equiv0:=RelationClasses.eq_equivalence)
+         (St_eq_dec:=@Sum.St_eq_dec _ _ _ _ _ _)
+    in H;
+  rewrite compile_simplified_entailment_correct in H;
+  rewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr in H;
+  erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr in H;
+  erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct in H;
+  crunch_foterm_ctx;
+  (* these could be invariants and somehow avoided completely
+     or if they have to be done it could all be done with reflection *)
+  try rewrite !drop_antecedent with (P := state_template_sane _) in H
+      by apply P4A.P4A.cap';
+  try rewrite !drop_antecedent with (P := state_template_sane _) in H
+      by (unfold state_template_sane;
+          simpl;
+          autorewrite with size';
+          cbv;
+          autorewrite with op_fmapH; Lia.lia);
+  rewrite !drop_antecedent with (P := top' _ _ _ _ _ _ _ _) in H
+      by repeat match goal with
+                | |- ?x = ?x \/ _ => exact (or_introl eq_refl)
+                | |- ?x = ?y \/ _ => apply or_intror
+                | |- _ => cbn
+                end.
+
+Ltac remember_iff name hyp term :=
+  set (name := term);
+  assert (hyp: name <-> term) by reflexivity;
+  clearbody name.
+
 Declare ML Module "mirrorsolve".
 
 Polymorphic Axiom dummy_pf_true:
   forall sig m c (v: valu sig m c) fm, interp_fm v fm.
 Polymorphic Axiom dummy_pf_false:
   forall sig m c (v: valu sig m c) fm, ~ interp_fm v fm.
+
+Ltac decide_entailment H P HP P_orig e :=
+  let Horig := fresh "Horig" in
+  set (P_orig := e);
+  remember_iff P HP e;
+  assert (Horig: P_orig <-> P)
+    by (rewrite HP; reflexivity);
+  compile_fm HP;
+  match goal with
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check neg" check_interp_neg (interp_fm v f);
+      idtac "UNSAT";
+      assert (~ P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_false)
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check pos" check_interp_pos (interp_fm v f);
+      idtac "SAT";
+      assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
+  | |- _ => idtac "undecided goal :("
+  end;
+  clear Horig.
+
+Ltac close_bisim_axiom :=
+  match goal with
+  | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
+        apply PreBisimulationClose;
+         match goal with
+         | H:interp_conf_rel' ?C ?q1 ?q2
+           |- interp_crel _ _ ?P ?q1 ?q2 =>
+               let H0 := fresh "H0" in
+               assert
+                (H0 :
+                 interp_entailment'
+                   (fun q1 q2 =>
+                    top' _ _ _ _ _ r_states (conf_to_state_template q1)
+                      (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
+                (eapply simplify_entailment_correct';
+                  eapply compile_simplified_entailment_correct'; simpl; 
+                  intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
+                  match goal with
+                  | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
+                  end); apply H0; auto; unfold top', conf_to_state_template; 
+                destruct q1, q2; vm_compute in H;
+                repeat match goal with
+                       | H:_ /\ _ |- _ => idtac H; destruct H
+                       end; subst; simpl; tauto
+         end
+  end.
 
 Ltac verify_interp :=
   match goal with
@@ -320,6 +417,27 @@ Ltac run_bisim' top top' r_states L :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
+Ltac run_bisim_axiom :=
+  match goal with
+  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
+      let H := fresh "H" in
+      let P := fresh "P" in
+      let HP := fresh "HP" in
+      let P_orig := fresh "P_orig" in
+      decide_entailment H P HP P_orig (interp_entailment a
+                                                         (fun q1 q2 =>
+                                                            top' _ _ _ _ _ r_states
+                                                                 (conf_to_state_template q1)
+                                                                 (conf_to_state_template q2))
+                                                         ({| e_prem := R; e_concl := C |}));
+      match goal with
+      | HN: ~ P_orig |- _ =>
+          time "extending" (extend_bisim' HN; clear HN)
+      | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+          time "skipping" (skip_bisim' H; clear H; try clear C)
+      end;
+      clear P HP P_orig
+  end.
 
 Ltac print_rel_len :=
   let foo := fresh "foo" in
@@ -415,3 +533,11 @@ Ltac solve_header_eqdec_ n x y indfuns :=
   | nil =>
     destruct x; exfalso; auto
   end.
+
+Ltac solve_lang_equiv_state := 
+  eapply lang_equiv_to_pre_bisim;
+  intros;
+  vm_compute Reachability.reachable_states;
+  vm_compute mk_init;
+  repeat run_bisim_axiom;
+  close_bisim_axiom.
