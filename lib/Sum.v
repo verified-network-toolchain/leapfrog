@@ -2,13 +2,17 @@ Require Coq.Lists.List.
 Require Coq.Logic.Eqdep_dec.
 Require Import Coq.micromega.Lia.
 Require Import Coq.Classes.EquivDec.
+Require Import Coq.Program.Program.
 Import List.ListNotations.
 
 Require Import Leapfrog.Bisimulations.Semantic.
 Require Import Leapfrog.FinType.
 Require Import Leapfrog.HAList.
 Require Import Leapfrog.WPProofs.
+Require Import Leapfrog.P4automaton.
 Require Leapfrog.Syntax.
+
+Require Import MirrorSolve.HLists.
 
 Open Scope list_scope.
 
@@ -76,258 +80,61 @@ Section Sum.
       erewrite Syntax.state_fmapSH_size; eauto.
   Qed.
 
-  Require Import MirrorSolve.HLists.
-
-  Fixpoint app {A: Type} (f: A -> Type)
-             {l1 l2: list A}
-             (h1: HList.t f l1) 
-             (h2: HList.t f l2) : HList.t f (l1 ++ l2).
-    destruct l1.
-    - exact h2.
-    - inversion h1.
-      constructor.
-      + exact X.
-      + apply app.
-        * apply X0.
-        * apply h2.
-  Defined.
-
-  Fixpoint map_inj X A (B: A -> Type) (f: X -> A)
-    (l: list X) {struct l} :
-      HList.t (fun x => B (f x)) l ->
-      HList.t B (List.map f l).
-    refine (match l as l' return HList.t (fun x => B (f x)) l' ->
-                         HList.t B (List.map f l')
-            with
-            | [] => fun h => HList.HNil _
-            | x :: xs => fun h => _
-            end).
-    inversion h.
-    exact (HList.HCons _ X0 (map_inj _ _ _ _ _ X1)).
-  Defined.
-  
   Definition sum_stores
              (s1: Syntax.store Hdr1 Hdr1_sz)
              (s2: Syntax.store Hdr2 Hdr2_sz) : Syntax.store Hdr Hdr_sz :=
-    app (map_inj (fun h => Syntax.v (Hdr_sz h)) inl s1)
-        (map_inj (fun h => Syntax.v (Hdr_sz h)) inr s2).
+    HList.app (HList.map_inj (fun h => Syntax.v (Hdr_sz h)) inl s1)
+              (HList.map_inj (fun h => Syntax.v (Hdr_sz h)) inr s2).
 
-  Import P4automaton.
-
-  Require Import Coq.Program.Program.
-  Inductive embed_conf1:
-    P4automaton.configuration (Syntax.interp a1) ->
-    P4automaton.configuration (Syntax.interp sum) ->
-    Prop :=
-  | EmbedConf1Inl:
-    forall q
-      st
-      (c1: P4automaton.configuration (Syntax.interp a1))
-      (c1': P4automaton.configuration (Syntax.interp sum)),
-      conf_state c1 = inl q ->
-      conf_state c1' = inl (inl q) ->
-      conf_buf c1 ~= conf_buf c1' ->
-      sum_stores (conf_store c1) st = conf_store c1' ->
-      embed_conf1 c1 c1'
-  | EmbedConf1Inr:
-    forall q
-      st
-      (c1: P4automaton.configuration (Syntax.interp a1))
-      (c1': P4automaton.configuration (Syntax.interp sum)),
-      conf_state c1 = inr q ->
-      conf_state c1' = inr q ->
-      conf_buf c1 ~= conf_buf c1' ->
-      sum_stores (conf_store c1) st = conf_store c1' ->
-      embed_conf1 c1 c1'.
-
-  Inductive embed_conf2:
-    P4automaton.configuration (Syntax.interp a2) ->
-    P4automaton.configuration (Syntax.interp sum) ->
-    Prop :=
-  | EmbedConf2Inl:
-    forall q
-      st
-      (c2: P4automaton.configuration (Syntax.interp a2))
-      (c2': P4automaton.configuration (Syntax.interp sum)),
-      conf_state c2 = inl q ->
-      conf_state c2' = inl (inr q) ->
-      conf_buf c2 ~= conf_buf c2' ->
-      sum_stores st (conf_store c2) = conf_store c2' ->
-      embed_conf2 c2 c2'
-  | EmbedConf2Inr:
-    forall q
-      st
-      (c2: P4automaton.configuration (Syntax.interp a2))
-      (c2': P4automaton.configuration (Syntax.interp sum)),
-      conf_state c2 = inr q ->
-      conf_state c2' = inr q ->
-      conf_buf c2 ~= conf_buf c2' ->
-      sum_stores st (conf_store c2) = conf_store c2' ->
-      embed_conf2 c2 c2'.
-
-  Inductive split_bisim (R: P4automaton.configuration (Syntax.interp sum) ->
-                            P4automaton.configuration (Syntax.interp sum) ->
-                            Prop)
-    : P4automaton.configuration (Syntax.interp a1) ->
-      P4automaton.configuration (Syntax.interp a2) ->
-      Prop :=
-  | MkBisim: forall c1 c2 c1' c2',
-      embed_conf1 c1 c1' ->
-      embed_conf2 c2 c2' ->
-      R c1' c2' ->
-      split_bisim R c1 c2.
-
-  Lemma embed_accepting1:
-    forall c1 c1',
-      embed_conf1 c1 c1' ->
-      accepting c1 <-> accepting c1'.
+  Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
+    Syntax.find _ _ (inl h) (sum_stores s s') =
+    Syntax.find _ _ h s.
   Proof.
-    unfold accepting.
-    destruct c1, c1'.
-    split; intros.
-    - inversion H; subst; simpl in *; congruence.
-    - inversion H; subst; simpl in *; congruence.
-  Qed.
-
-  Lemma embed_accepting2:
-    forall c2 c2',
-      embed_conf2 c2 c2' ->
-      accepting c2 <-> accepting c2'.
-  Proof.
-    unfold accepting.
-    destruct c2, c2'.
-    split; intros.
-    - inversion H; subst; simpl in *; congruence.
-    - inversion H; subst; simpl in *; congruence.
-  Qed.
-
-  Lemma size1 (q: St1):
-    size' (Syntax.interp sum) (inl (inl q)) = size' (Syntax.interp a1) (inl q).
-  Proof.
-    autorewrite with size'; simpl.
-    unfold Syntax.size.
-    unfold sum; simpl.
-    now rewrite Syntax.state_fmapSH_size.
-  Qed.
-
-  Lemma size2 (q: St2):
-    size' (Syntax.interp sum) (inl (inr q)) = size' (Syntax.interp a2) (inl q).
-  Proof.
-    autorewrite with size'; simpl.
-    unfold Syntax.size.
-    unfold sum; simpl.
-    now rewrite Syntax.state_fmapSH_size.
-  Qed.
-
-  Lemma bind_proof_irrelevant:
-    forall A (A_eq_dec: EqDec A eq) B (l: list A) (t: HList.t B l) k v pf pf',
-      HList.bind k v pf t = 
-      HList.bind k v pf' t.
-  Proof.
-    induction l; intros.
-    - simpl in pf.
-      tauto.
-    - simpl in *.
-      dependent destruction t.
-      autorewrite with bind.
-      destruct (A_eq_dec k a); eauto.
-      destruct pf, pf'; try congruence.
-      cbn.
-      erewrite IHl; eauto.
-  Qed.
-
-  Lemma bind_app_l:
-    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k v pf pf',
-      HList.bind k v pf (app t1 t2) =
-      app (HList.bind k v pf' t1) t2.
-  Proof.
-    induction l1; intros.
-    - cbv in pf'.
-      tauto.
-    - dependent destruction t1.
-      destruct (A_eq_dec k a) eqn:Heq.
-      + autorewrite with bind.
-        rewrite Heq.
-        simpl.
-        unfold eq_rect_r, eq_rect.
-        destruct e.
-        simpl.
-        autorewrite with bind.
-        rewrite Heq.
-        reflexivity.
-      + simpl.
-        autorewrite with bind.
-        rewrite Heq.
-        cbn.
-        autorewrite with bind.
-        rewrite Heq.
-        cbn.
-        erewrite IHl1.
-        eauto.
-  Qed.
-
-  Lemma bind_app_r:
-    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k v pf pf',
-      ~ List.In k l1 ->
-      HList.bind k v pf (app t1 t2) =
-      app t1 (HList.bind k v pf' t2).
-  Proof.
-    induction l1; intros.
-    - dependent destruction t1.
-      cbn in pf, pf'.
-      apply bind_proof_irrelevant.
-    - dependent destruction t1.
-      destruct (A_eq_dec k a) eqn:Heq.
-      + exfalso.
-        apply H.
-        unfold equiv in *.
-        subst a.
-        eauto with datatypes.
-      + cbn.
-        assert (Hnotin: ~ List.In k l1) by eauto with datatypes.
-        assert (Hinl1l2: List.In k (l1 ++ l2)) by eauto with datatypes.
-        assert (Hinl2: List.In k l2) by eauto with datatypes.
-        specialize (IHl1 l2 t1 t2 k v Hinl1l2 pf' Hnotin).
-        rewrite <- IHl1.
-        autorewrite with bind.
-        rewrite Heq.
-        cbn.
-        erewrite bind_proof_irrelevant; eauto.
-  Qed.
-
-  Lemma bind_map_inj:
-    forall (X A: Type)
-      (A_equiv: Equivalence (@eq A))
-      (A_eq_dec: @EqDec A _ A_equiv)
-      (X_equiv: Equivalence (@eq X))
-      (X_eq_dec: @EqDec X _ X_equiv) (B: A -> Type) (f: X -> A) l (xs: HList.t (fun x => B (f x)) l) k v pf pf',
-      (forall x y, f x = f y -> x = y) ->
-      HList.bind (f k) v pf (map_inj _ f xs) = map_inj _ f (HList.bind k v pf' xs).
-  Proof.
+    unfold Syntax.find.
+    unfold Syntax.Env.get.
+    unfold sum_stores.
+    set (t1 := (HList.map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inl s)).
+    set (l1 := List.map (@inl _ Hdr2) (enum Hdr1)) in *.
+    assert (pf: List.In (inl h) l1).
+    {
+      unfold l1.
+      rewrite List.in_map_iff.
+      eexists.
+      split; eauto.
+      apply elem_of_enum.
+    }
+    eapply eq_trans.
+    eapply HList.get_app_l with (t1 := t1) (pf' := pf); auto.
+    unfold t1.
+    erewrite HList.get_map_inj; eauto.
     intros.
-    induction l.
-    - simpl in pf'.
-      tauto.
-    - dependent destruction xs.
-      simpl.
-      autorewrite with bind.
-      destruct (X_eq_dec k a) eqn:Heq; cbn.
-      + autorewrite with bind.
-        destruct (A_eq_dec (f k) (f a)); try congruence.
-        f_equal.
-        destruct e.
-        simpl.
-        erewrite eq_rect_eq; eauto.
-      + autorewrite with bind.
-        simpl.
-        destruct (A_eq_dec (f k) (f a)).
-        * exfalso.
-          apply c.
-          apply H.
-          apply e.
-        * f_equal.
-          erewrite IHl.
-          eauto.
+    congruence.
+  Qed.
+
+  Lemma find2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
+    Syntax.find _ _ (inr h) (sum_stores s s') =
+    Syntax.find _ _ h s'.
+  Proof.
+    unfold Syntax.find.
+    unfold Syntax.Env.get.
+    unfold sum_stores.
+    set (t2 := (HList.map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inr s')).
+    set (l2 := List.map (@inr Hdr1 _) (enum Hdr2)) in *.
+    assert (pf: List.In (inr h) l2).
+    {
+      unfold l2.
+      rewrite List.in_map_iff.
+      eexists.
+      split; eauto.
+      apply elem_of_enum.
+    }
+    eapply eq_trans.
+    eapply HList.get_app_r with (t2 := t2) (pf' := pf);
+      rewrite List.in_map_iff; firstorder congruence.
+    unfold t2.
+    erewrite HList.get_map_inj; eauto.
+    intros.
+    congruence.
   Qed.
 
   Lemma assign1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) hdr v1 v2:
@@ -340,11 +147,11 @@ Section Sum.
     simpl in *.
     unfold sum_stores.
     unfold Syntax.assign, Syntax.Env.bind.
-    pose proof (bind_app_l _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
-                             (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
+    pose proof (HList.bind_app_l _ (HList.map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
+                                   (HList.map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
     erewrite H.
     f_equal.
-    erewrite bind_map_inj with (pf' := elem_of_enum hdr) by (intros; congruence).
+    erewrite HList.bind_map_inj with (pf' := elem_of_enum hdr) by (intros; congruence).
     reflexivity.
     Unshelve.
     pose proof (@elem_of_enum Hdr1 _ _ _ hdr).
@@ -363,12 +170,12 @@ Section Sum.
     simpl in *.
     unfold sum_stores.
     unfold Syntax.assign, Syntax.Env.bind.
-    pose proof (bind_app_r _ (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
-                             (map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
+    pose proof (HList.bind_app_r _ (HList.map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inl s)
+                                   (HList.map_inj (fun h : Hdr => Syntax.v (Hdr_sz h)) inr s')).
     erewrite H
       by (rewrite List.in_map_iff; firstorder congruence).
     f_equal.
-    erewrite bind_map_inj with (pf' := elem_of_enum hdr); eauto.
+    erewrite HList.bind_map_inj with (pf' := elem_of_enum hdr); eauto.
     intros; congruence.
     Unshelve.
     pose proof (@elem_of_enum Hdr2 _ _ _ hdr).
@@ -377,146 +184,22 @@ Section Sum.
     intuition eauto.
   Qed.
 
-  Lemma get_proof_irrelevant:
-    forall A (A_eq_dec: EqDec A eq) B (l: list A) (t: HList.t B l) k pf pf',
-      HList.get k pf t = 
-      HList.get k pf' t.
+  Lemma size1 (q: St1):
+    Syntax.P4A.size' (Syntax.interp sum) (inl (inl q)) = size' (Syntax.interp a1) (inl q).
   Proof.
-    induction l; intros.
-    - simpl in pf.
-      tauto.
-    - simpl in *.
-      dependent destruction t.
-      autorewrite with get.
-      destruct (A_eq_dec k a); eauto.
+    autorewrite with size'; simpl.
+    unfold Syntax.size.
+    unfold sum; simpl.
+    now rewrite Syntax.state_fmapSH_size.
   Qed.
 
-  Lemma get_app_l:
-    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k pf pf',
-      List.In k l1 ->
-      HList.get k pf (app t1 t2) = HList.get k pf' t1.
+  Lemma size2 (q: St2):
+    size' (Syntax.interp sum) (inl (inr q)) = size' (Syntax.interp a2) (inl q).
   Proof.
-    intros.
-    dependent induction t1.
-    - simpl in *.
-      tauto.
-    - simpl in *.
-      destruct (A_eq_dec k a) eqn:?.
-      + cbn.
-        autorewrite with get.
-        now rewrite Heqs.
-      + autorewrite with get.
-        rewrite Heqs.
-        cbn.
-        autorewrite with get.
-        rewrite Heqs.
-        simpl.
-        destruct pf; try congruence.
-        destruct pf'; try congruence.
-        auto.
-  Qed.
-
-  Lemma get_app_r:
-    forall A (A_eq_dec: EqDec A eq) B (l1 l2: list A) (t1: HList.t B l1) (t2: HList.t B l2) k pf pf',
-      ~ List.In k l1 ->
-      HList.get k pf (app t1 t2) = HList.get k pf' t2.
-  Proof.
-    intros.
-    dependent induction t1.
-    - simpl in *.
-      apply get_proof_irrelevant.
-    - cbn.
-      autorewrite with get.
-      destruct (A_eq_dec k a) eqn:?.
-      + exfalso.
-        apply H.
-        destruct e.
-        eauto with datatypes.
-      + cbn.
-        erewrite IHt1; eauto with datatypes.
-  Qed.
-
-  Lemma get_map_inj:
-    forall (X A: Type)
-      (A_equiv: Equivalence (@eq A))
-      (A_eq_dec: @EqDec A _ A_equiv)
-      (X_equiv: Equivalence (@eq X))
-      (X_eq_dec: @EqDec X _ X_equiv) (B: A -> Type) (f: X -> A) l (xs: HList.t (fun x => B (f x)) l) k pf pf',
-      (forall x y, f x = f y -> x = y) ->
-      HList.get (f k) pf (map_inj _ f xs) = HList.get k pf' xs.
-  Proof.
-    intros.
-    induction l.
-    - cbv in pf'.
-      tauto.
-    - simpl in pf.
-      dependent destruction xs.
-      cbn.
-      autorewrite with get.
-      destruct (A_eq_dec _ _), (X_eq_dec _ _).
-      + unfold equiv in *.
-        subst a.
-        cbn.
-        unfold eq_rect_r.
-        erewrite <- !eq_rect_eq.
-        reflexivity.
-      + pose proof (H _ _ e).
-        congruence.
-      + congruence.
-      + simpl in *.
-        destruct pf, pf'; try congruence.
-        erewrite IHl; eauto.
-  Qed.
-
-  Lemma find1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
-    WP.P4A.find _ _ (inl h) (sum_stores s s') =
-    WP.P4A.find _ _ h s.
-  Proof.
-    unfold WP.P4A.find.
-    unfold WP.P4A.Env.get.
-    unfold sum_stores.
-    set (t1 := (map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inl s)).
-    set (l1 := List.map (@inl _ Hdr2) (enum Hdr1)) in *.
-    assert (pf: List.In (inl h) l1).
-    {
-      unfold l1.
-      rewrite List.in_map_iff.
-      eexists.
-      split; eauto.
-      apply elem_of_enum.
-    }
-    eapply eq_trans.
-    eapply get_app_l with (t1 := t1) (pf' := pf); auto.
-    unfold t1.
-    erewrite get_map_inj; eauto.
-    intros.
-    congruence.
-  Qed.
-
-  Lemma find2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) h:
-    WP.P4A.find _ _ (inr h) (sum_stores s s') =
-    WP.P4A.find _ _ h s'.
-  Proof.
-    unfold WP.P4A.find.
-    unfold WP.P4A.Env.get.
-    unfold sum_stores.
-    set (t2 := (map_inj (fun h0 : Hdr => Syntax.v (Hdr_sz h0)) inr s')).
-    set (l2 := List.map (@inr Hdr1 _) (enum Hdr2)) in *.
-    assert (pf: List.In (inr h) l2).
-    {
-      unfold l2.
-      rewrite List.in_map_iff.
-      eexists.
-      split; eauto.
-      apply elem_of_enum.
-    }
-    eapply eq_trans.
-    eapply get_app_r with (t2 := t2) (pf' := pf);
-      rewrite List.in_map_iff; firstorder congruence.
-    unfold t2.
-    erewrite get_map_inj; eauto.
-    intros.
-    congruence.
+    autorewrite with size'; simpl.
+    unfold Syntax.size.
+    unfold sum; simpl.
+    now rewrite Syntax.state_fmapSH_size.
   Qed.
 
   Transparent Syntax.expr_fmapH.
@@ -543,7 +226,6 @@ Section Sum.
     - now rewrite IHe.
     - now rewrite IHe1, IHe2.
   Qed.
-
 
   Opaque Syntax.expr_fmapH.
   Opaque Syntax.eval_expr.
@@ -606,7 +288,7 @@ Section Sum.
       apply eval_expr2.
   Qed.
 
-
+  Opaque Syntax.eval_op.
   Opaque Syntax.op_fmapH.
 
   Lemma update1 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St1) buf1 buf2:
@@ -664,7 +346,7 @@ Section Sum.
         (Syntax.cond_fmapH Hdr_sz inl (fun h : Hdr1 => sum_obligation_1 h) c)
         (Syntax.sc_pat a)).
       {
-        set (P ty (pat: WP.P4A.pat ty) cond := 
+        set (P ty (pat: Syntax.pat ty) cond :=
                Syntax.match_pat Hdr1 Hdr1_sz s cond pat
                =
                  Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
@@ -709,7 +391,7 @@ Section Sum.
         (Syntax.cond_fmapH Hdr_sz inr (fun h : Hdr2 => sum_obligation_2 h) c)
         (Syntax.sc_pat a)).
       {
-        set (P ty (pat: WP.P4A.pat ty) cond := 
+        set (P ty (pat: Syntax.pat ty) cond :=
                Syntax.match_pat Hdr2 Hdr2_sz s' cond pat
                =
                  Syntax.match_pat Hdr Hdr_sz (sum_stores s s')
@@ -765,6 +447,91 @@ Section Sum.
     - apply eval_sel2.
   Qed.
 
+  Inductive embed_conf1:
+    configuration (Syntax.interp a1) ->
+    configuration (Syntax.interp sum) ->
+    Prop :=
+  | EmbedConf1Inl:
+    forall q
+      st
+      (c1: configuration (Syntax.interp a1))
+      (c1': configuration (Syntax.interp sum)),
+      conf_state c1 = inl q ->
+      conf_state c1' = inl (inl q) ->
+      conf_buf c1 ~= conf_buf c1' ->
+      sum_stores (conf_store c1) st = conf_store c1' ->
+      embed_conf1 c1 c1'
+  | EmbedConf1Inr:
+    forall q
+      st
+      (c1: configuration (Syntax.interp a1))
+      (c1': configuration (Syntax.interp sum)),
+      conf_state c1 = inr q ->
+      conf_state c1' = inr q ->
+      conf_buf c1 ~= conf_buf c1' ->
+      sum_stores (conf_store c1) st = conf_store c1' ->
+      embed_conf1 c1 c1'.
+
+  Inductive embed_conf2:
+    configuration (Syntax.interp a2) ->
+    configuration (Syntax.interp sum) ->
+    Prop :=
+  | EmbedConf2Inl:
+    forall q
+      st
+      (c2: configuration (Syntax.interp a2))
+      (c2': configuration (Syntax.interp sum)),
+      conf_state c2 = inl q ->
+      conf_state c2' = inl (inr q) ->
+      conf_buf c2 ~= conf_buf c2' ->
+      sum_stores st (conf_store c2) = conf_store c2' ->
+      embed_conf2 c2 c2'
+  | EmbedConf2Inr:
+    forall q
+      st
+      (c2: configuration (Syntax.interp a2))
+      (c2': configuration (Syntax.interp sum)),
+      conf_state c2 = inr q ->
+      conf_state c2' = inr q ->
+      conf_buf c2 ~= conf_buf c2' ->
+      sum_stores st (conf_store c2) = conf_store c2' ->
+      embed_conf2 c2 c2'.
+
+  Inductive split_bisim (R: configuration (Syntax.interp sum) ->
+                            configuration (Syntax.interp sum) ->
+                            Prop)
+    : configuration (Syntax.interp a1) ->
+      configuration (Syntax.interp a2) ->
+      Prop :=
+  | MkBisim: forall c1 c2 c1' c2',
+      embed_conf1 c1 c1' ->
+      embed_conf2 c2 c2' ->
+      R c1' c2' ->
+      split_bisim R c1 c2.
+
+  Lemma embed_accepting1:
+    forall c1 c1',
+      embed_conf1 c1 c1' ->
+      accepting c1 <-> accepting c1'.
+  Proof.
+    unfold accepting.
+    destruct c1, c1'.
+    split; intros.
+    - inversion H; subst; simpl in *; congruence.
+    - inversion H; subst; simpl in *; congruence.
+  Qed.
+
+  Lemma embed_accepting2:
+    forall c2 c2',
+      embed_conf2 c2 c2' ->
+      accepting c2 <-> accepting c2'.
+  Proof.
+    unfold accepting.
+    destruct c2, c2'.
+    split; intros.
+    - inversion H; subst; simpl in *; congruence.
+    - inversion H; subst; simpl in *; congruence.
+  Qed.
 
   Lemma embed_step1:
     forall c1 c1' b,
@@ -913,18 +680,18 @@ Section Sum.
 
   Lemma sum_thing:
     forall (q1: St1) (q2: St2),
-      P4automaton.lang_equiv_state
+      lang_equiv_state
         (Syntax.interp sum)
         (Syntax.interp sum)
         (inl q1)
         (inr q2) ->
-      P4automaton.lang_equiv_state
+      lang_equiv_state
         (Syntax.interp a1)
         (Syntax.interp a2)
         q1
         q2.
   Proof.
-    unfold P4automaton.lang_equiv_state.
+    unfold lang_equiv_state.
     intros.
     apply bisimilar_iff_lang_equiv.
     setoid_rewrite bisimilar_iff_lang_equiv in H.
