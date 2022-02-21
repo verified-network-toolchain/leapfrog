@@ -50,6 +50,8 @@ Ltac compile_fm H :=
   erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr in H;
   erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct in H;
   crunch_foterm_ctx;
+  (* these could be invariants and somehow avoided completely
+     or if they have to be done it could all be done with reflection *)
   try rewrite !drop_antecedent with (P := state_template_sane _) in H
       by apply P4A.P4A.cap';
   try rewrite !drop_antecedent with (P := state_template_sane _) in H
@@ -95,8 +97,7 @@ Lemma small_filter_equiv:
     (P4A.interp IncrementalBits.aut)
     (P4A.interp BigBits.aut)
     IncrementalBits.Start
-    BigBits.Parse
-.
+    BigBits.Parse.
 Proof.
   eapply Sum.sum_thing; [typeclasses eauto | typeclasses eauto |].
   unfold lang_equiv_state.
@@ -189,7 +190,7 @@ Proof.
                        end; subst; simpl; tauto
          end
   end.
-Qed.
+Time Qed.
 
 Check small_filter_equiv.
 Print Assumptions small_filter_equiv.
