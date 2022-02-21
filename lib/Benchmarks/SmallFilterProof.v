@@ -1,5 +1,6 @@
 Require Import Leapfrog.Benchmarks.ProofHeader.
 Require Import Leapfrog.Benchmarks.SmallFilter.
+Require Leapfrog.SumProofs.
 
 Lemma small_filter_equiv:
   lang_equiv_state

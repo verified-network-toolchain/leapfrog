@@ -2,6 +2,7 @@ Require Import Coq.Lists.List.
 Import ListNotations.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.Sum.
+Require Import Leapfrog.SumProofs.
 Require Import Leapfrog.WP.
 Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.Bisimulations.Semantic.
@@ -64,7 +65,7 @@ Section LangEquivToPreBisim.
       lang_equiv_state (P4A.interp a1) (P4A.interp a2) s1 s2.
   Proof.
     intros.
-    eapply Sum.sum_thing; [typeclasses eauto | typeclasses eauto |].
+    eapply SumProofs.sum_thing; [typeclasses eauto | typeclasses eauto |].
     unfold lang_equiv_state.
     intros.
     match goal with
