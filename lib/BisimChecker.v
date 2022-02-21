@@ -14,6 +14,8 @@ Require Import Leapfrog.LangEquivToPreBisim.
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
 
+Require Import Leapfrog.Utils.FunctionalFP.
+
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -294,7 +296,7 @@ Ltac decide_entailment H P HP P_orig e :=
   remember_iff P HP e;
   assert (Horig: P_orig <-> P)
     by (rewrite HP; reflexivity);
-  compile_fm HP;
+  time "compile fm" compile_fm HP;
   match goal with
   | HP: P <-> interp_fm ?v ?f |- _ =>
       time "smt check neg" check_interp_neg (interp_fm v f);
@@ -536,8 +538,11 @@ Ltac solve_header_eqdec_ n x y indfuns :=
 
 Ltac solve_lang_equiv_state := 
   eapply lang_equiv_to_pre_bisim;
-  intros;
-  vm_compute Reachability.reachable_states;
-  vm_compute mk_init;
-  repeat run_bisim_axiom;
-  close_bisim_axiom.
+  time "init prebisim" (intros;
+  unfold mk_init;
+  erewrite Reachability.reachable_states_wit_conv; [
+    | repeat econstructor | econstructor; solve_fp_wit
+  ];
+  simpl);
+  time "build phase" repeat run_bisim_axiom;
+  time "close phase" close_bisim_axiom.

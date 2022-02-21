@@ -34,19 +34,19 @@ benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
 benchmarks-large: ipoptions3 edgeself edgetrans datacenter serviceprovider enterprise
 
 ipfilter: build
-	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject
 
 mpls: build
-	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject
 
 selfcomparison: build
-	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject
 
 ethernet: build
-	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject
 
 sloppystrict: build
-	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject
 
 ipoptions3: build
 	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject > ipoptions_timing.out 2>&1 &
@@ -70,3 +70,4 @@ _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
 	echo >> _CoqProject
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve" >> _CoqProject
+	echo "-I $(OPAM_SWITCH_PREFIX)/lib/coq-memprof" >> _CoqProject
