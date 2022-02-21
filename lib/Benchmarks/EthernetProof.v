@@ -16,6 +16,6 @@ Lemma ethernet_equiv:
     Reference.SPref
     Combined.Parse.
 Proof.
-  solve_lang_equiv_state.
+  solve_lang_equiv_state Reference.state_eqdec Combined.state_eqdec.
 Time Qed.
 Print Assumptions ethernet_equiv.

@@ -8,6 +8,8 @@ Lemma mpls_equiv:
     Plain.ParseMPLS
     Unrolled.ParseMPLS.
 Proof.
-  solve_lang_equiv_state.
+
+  solve_lang_equiv_state Plain.state_eqdec Unrolled.state_eqdec.
+  
 Time Qed.
 

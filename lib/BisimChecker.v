@@ -110,6 +110,27 @@ Section BisimChecker.
     then true
     else false.
 
+  Fixpoint in_R (x: state_template a * state_template a) (R: list (state_template a * state_template a)) : bool :=
+    match R with 
+    | nil => false
+    | x' :: R' => 
+      match EquivDec.prod_eqdec _ _ x' x with 
+      | left H => true
+      | right _ => in_R x R'
+      end
+    end.
+  
+  Lemma in_In : 
+    forall (R: list (state_template a * state_template a)) (x: state_template a * state_template a),
+      List.In x R <-> (in_R x R = true). 
+  Proof.
+    intros;
+    induction R; simpl.
+    - split; intros H; inversion H.
+    - destruct (EquivDec.prod_eqdec _ _ _ _);
+      split; intros; intuition eauto.
+  Qed.
+
   Lemma filter_entails:
     forall i R C,
       (forall q1 q2, interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
@@ -117,6 +138,49 @@ Section BisimChecker.
       (forall q1 q2, interp_crel a i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel a C q1 q2).
   Proof.
   Admitted.
+
+
+  Lemma compilation_corr: 
+    forall (R: list (Reachability.state_pair a)) (E: entailment a), 
+      interp_entailment a
+        (fun q1 q2 : configuration (ConfRel.P4A.interp a) =>
+          top' _ _ _ _ a R (conf_to_state_template q1) (conf_to_state_template q2))
+        E
+      <-> 
+      (state_template_sane
+          (cs_st1
+              (se_st
+                (simplify_entailment E))) ->
+        state_template_sane
+          (cs_st2
+              (se_st
+                (simplify_entailment E))) ->
+        top' _ _ _ _ a R
+          (cs_st1
+              (se_st
+                (simplify_entailment E)))
+          (cs_st2
+              (se_st
+                (simplify_entailment E))) ->
+        interp_fm (m := FOBV.fm_model)
+          (VEmp _ _)
+          (* (compile_valu (a := a) (VEmp (FirstOrderConfRelSimplified.sig _) (FirstOrderConfRelSimplified.fm_model _))) *)
+          (compile_fm
+              (FirstOrderConfRelSimplified.simplify_eq_zero_fm
+                (FirstOrderConfRelSimplified.simplify_concat_zero_fm
+                    (compile_simplified_entailment (simplify_entailment E)))))).
+  Proof.
+    
+    intros.
+    erewrite simplify_entailment_correct
+      with (equiv0:=RelationClasses.eq_equivalence)
+          (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec);
+    erewrite compile_simplified_entailment_correct;
+    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+    erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+    erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;    
+    eapply iff_refl.
+  Qed.
 
 End BisimChecker.
 
@@ -244,39 +308,27 @@ Ltac crunch_foterm :=
 
 Ltac crunch_foterm_ctx :=
   match goal with
-  | H: context[interp_fm ?v ?g] |- _ =>
+  (* | H: context[interp_fm ?v ?g] |- _ =>
       let temp := fresh "temp" in
       set (temp := g) in H; vm_compute in temp; subst temp;
       (let temp := fresh "temp1" in
-       set (temp := v) in H; vm_compute in temp; subst temp)
+       set (temp := v) in H; vm_compute in temp; subst temp) *)
+  | H: _ <-> interp_fm _ ?g |- _ => 
+    let temp := fresh "temp" in
+    set (temp := g) in H; vm_compute in temp; subst temp
   end.
 
-Ltac compile_fm H :=
-  erewrite simplify_entailment_correct
-    with (equiv0:=RelationClasses.eq_equivalence)
-         (St_eq_dec:=@Sum.St_eq_dec _ _ _ _ _ _)
-    in H;
-  rewrite compile_simplified_entailment_correct in H;
-  rewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr in H;
-  erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr in H;
-  erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct in H;
-  crunch_foterm_ctx;
+Ltac compile_fm H el er :=
+  erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
   (* these could be invariants and somehow avoided completely
      or if they have to be done it could all be done with reflection *)
   try rewrite !drop_antecedent with (P := state_template_sane _) in H
       by apply P4A.P4A.cap';
   try rewrite !drop_antecedent with (P := state_template_sane _) in H
-      by (unfold state_template_sane;
-          simpl;
-          autorewrite with size';
-          cbv;
-          autorewrite with op_fmapH; Lia.lia);
+      by (vm_compute; repeat econstructor);
   rewrite !drop_antecedent with (P := top' _ _ _ _ _ _ _ _) in H
-      by repeat match goal with
-                | |- ?x = ?x \/ _ => exact (or_introl eq_refl)
-                | |- ?x = ?y \/ _ => apply or_intror
-                | |- _ => cbn
-                end.
+      by (eapply in_In; exact eq_refl);
+  crunch_foterm_ctx.
 
 Ltac remember_iff name hyp term :=
   set (name := term);
@@ -290,13 +342,13 @@ Polymorphic Axiom dummy_pf_true:
 Polymorphic Axiom dummy_pf_false:
   forall sig m c (v: valu sig m c) fm, ~ interp_fm v fm.
 
-Ltac decide_entailment H P HP P_orig e :=
+Ltac decide_entailment H P HP el er P_orig e :=
   let Horig := fresh "Horig" in
   set (P_orig := e);
   remember_iff P HP e;
   assert (Horig: P_orig <-> P)
     by (rewrite HP; reflexivity);
-  time "compile fm" compile_fm HP;
+  time "compile fm" compile_fm HP el er;
   match goal with
   | HP: P <-> interp_fm ?v ?f |- _ =>
       time "smt check neg" check_interp_neg (interp_fm v f);
@@ -419,14 +471,14 @@ Ltac run_bisim' top top' r_states L :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
-Ltac run_bisim_axiom :=
+Ltac run_bisim_axiom el er :=
   match goal with
   | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
       let H := fresh "H" in
       let P := fresh "P" in
       let HP := fresh "HP" in
       let P_orig := fresh "P_orig" in
-      decide_entailment H P HP P_orig (interp_entailment a
+      decide_entailment H P HP el er P_orig (interp_entailment a
                                                          (fun q1 q2 =>
                                                             top' _ _ _ _ _ r_states
                                                                  (conf_to_state_template q1)
@@ -536,7 +588,7 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-Ltac solve_lang_equiv_state := 
+Ltac solve_lang_equiv_state el er := 
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
   unfold mk_init;
@@ -544,5 +596,5 @@ Ltac solve_lang_equiv_state :=
     | repeat econstructor | econstructor; solve_fp_wit
   ];
   simpl);
-  time "build phase" repeat run_bisim_axiom;
+  time "build phase" repeat run_bisim_axiom el er;
   time "close phase" close_bisim_axiom.
