@@ -76,3 +76,12 @@ _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
 	echo >> _CoqProject
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve" >> _CoqProject
+
+container: Dockerfile
+	docker build . -t leapfrog
+
+shell: container
+	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -it leapfrog
+
+shell-gui: container
+	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog
