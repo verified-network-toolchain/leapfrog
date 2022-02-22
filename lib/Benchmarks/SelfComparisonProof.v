@@ -5,9 +5,6 @@ Declare ML Module "mirrorsolve".
 SetSMTSolver "cvc4".
 
 Module Positive.
-
-  ClearEnvCtors.
-
   Lemma equiv_read_undef:
     lang_equiv_state
         (P4A.interp ReadUndef.aut)
@@ -15,13 +12,11 @@ Module Positive.
         ReadUndef.ParseEth
         ReadUndef.ParseEth.
   Proof.
-    solve_lang_equiv_state ReadUndef.state_eqdec ReadUndef.state_eqdec.
+    solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec.
   Time Qed.
 End Positive.
 
 Module Negative.
-
-  ClearEnvCtors.
   Lemma equiv_read_undef:
     lang_equiv_state
         (P4A.interp ReadUndef.aut)
@@ -29,6 +24,6 @@ Module Negative.
         ReadUndef.ParseEth
         ReadUndef.ParseEth.
   Proof.
-    Fail solve_lang_equiv_state ReadUndef.state_eqdec ReadUndef.state_eqdec.
+    Fail solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec.
   Time Qed.
 End Negative.

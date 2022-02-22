@@ -9,6 +9,6 @@ Lemma small_filter_equiv:
     IncrementalBits.Start
     BigBits.Parse.
 Proof.
-  solve_lang_equiv_state.
+  solve_lang_equiv_state_axiom IncrementalBits.state_eqdec BigBits.state_eqdec.
 Time Qed.
 Print Assumptions small_filter_equiv.

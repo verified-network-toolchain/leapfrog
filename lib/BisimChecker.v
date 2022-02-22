@@ -244,11 +244,11 @@ Ltac hashcons_list xs :=
   | ?x :: ?xs =>
     hashcons_list xs;
     let v := fresh "v" in
-    set (v := x)
+    set (v := x) in |- * at 1
 
   | ?x :: nil =>
     let v := fresh "v" in
-    set (v := x)
+    set (v := x) in |- * at 1
   | _ => idtac
   end.
 
@@ -364,6 +364,26 @@ Ltac decide_entailment H P HP el er P_orig e :=
       time "smt check pos" check_interp_pos (interp_fm v f);
       idtac "SAT";
       time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
+  | |- _ => idtac "undecided goal :("
+  end;
+  time "clearing Horig" clear Horig.
+
+Ltac decide_entailment_admit H P HP el er P_orig e :=
+  let Horig := fresh "Horig" in
+  pose (P_orig := e);
+  time "remembering iff" remember_iff P HP e;
+  time "Horig" assert (Horig: P_orig <-> P)
+    by (rewrite HP; eapply iff_refl);
+  time "compile fm" compile_fm HP el er;
+  match goal with
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check neg" check_interp_neg (interp_fm v f);
+      idtac "UNSAT";
+      time "asserting neg" assert (~ P_orig) by admit
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check pos" check_interp_pos (interp_fm v f);
+      idtac "SAT";
+      time "asserting pos" assert (P_orig) by admit
   | |- _ => idtac "undecided goal :("
   end;
   time "clearing Horig" clear Horig.
@@ -499,6 +519,28 @@ Ltac run_bisim_axiom el er :=
       time "clearing all" clear P HP P_orig
   end.
 
+Ltac run_bisim_admit el er :=
+  match goal with
+  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
+      let H := fresh "H" in
+      let P := fresh "P" in
+      let HP := fresh "HP" in
+      let P_orig := fresh "P_orig" in
+      decide_entailment_admit H P HP el er P_orig (interp_entailment a
+                                                          (fun q1 q2 =>
+                                                            top' _ _ _ _ _ r_states
+                                                                  (conf_to_state_template q1)
+                                                                  (conf_to_state_template q2))
+                                                          ({| e_prem := R; e_concl := C |}));
+      match goal with
+      | HN: ~ P_orig |- _ =>
+          time "extending" (extend_bisim' HN; clear HN)
+      | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+          time "skipping" (skip_bisim' H; clear H; try clear C)
+      end;
+      time "clearing all" clear P HP P_orig
+  end.
+
 Ltac print_rel_len :=
   let foo := fresh "foo" in
   let bar := fresh "bar" in
@@ -594,7 +636,7 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-Ltac solve_lang_equiv_state el er := 
+Ltac solve_lang_equiv_state_axiom el er := 
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
   unfold mk_init;
@@ -603,4 +645,15 @@ Ltac solve_lang_equiv_state el er :=
   ];
   simpl);
   time "build phase" repeat run_bisim_axiom el er;
+  time "close phase" close_bisim_axiom.
+
+Ltac solve_lang_equiv_state_admit el er := 
+  eapply lang_equiv_to_pre_bisim;
+  time "init prebisim" (intros;
+  unfold mk_init;
+  erewrite Reachability.reachable_states_wit_conv; [
+    | repeat econstructor | econstructor; solve_fp_wit
+  ];
+  simpl);
+  time "build phase" repeat run_bisim_admit el er;
   time "close phase" close_bisim_axiom.
