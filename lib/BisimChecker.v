@@ -331,9 +331,9 @@ Ltac compile_fm H el er :=
   crunch_foterm_ctx.
 
 Ltac remember_iff name hyp term :=
-  set (name := term);
-  assert (hyp: name <-> term) by reflexivity;
-  clearbody name.
+  time "setting in rem_iff" pose (name := term);
+  time "proving name <-> term" assert (hyp: name <-> term) by eapply iff_refl;
+  time "clearbody" clearbody name.
 
 Declare ML Module "mirrorsolve".
 
@@ -344,23 +344,23 @@ Polymorphic Axiom dummy_pf_false:
 
 Ltac decide_entailment H P HP el er P_orig e :=
   let Horig := fresh "Horig" in
-  set (P_orig := e);
-  remember_iff P HP e;
-  assert (Horig: P_orig <-> P)
-    by (rewrite HP; reflexivity);
+  pose (P_orig := e);
+  time "remembering iff" remember_iff P HP e;
+  time "Horig" assert (Horig: P_orig <-> P)
+    by (rewrite HP; eapply iff_refl);
   time "compile fm" compile_fm HP el er;
   match goal with
   | HP: P <-> interp_fm ?v ?f |- _ =>
       time "smt check neg" check_interp_neg (interp_fm v f);
       idtac "UNSAT";
-      assert (~ P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_false)
+      time "asserting neg" assert (~ P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_false)
   | HP: P <-> interp_fm ?v ?f |- _ =>
       time "smt check pos" check_interp_pos (interp_fm v f);
       idtac "SAT";
-      assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
+      time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
   | |- _ => idtac "undecided goal :("
   end;
-  clear Horig.
+  time "clearing Horig" clear Horig.
 
 Ltac close_bisim_axiom :=
   match goal with
@@ -490,7 +490,7 @@ Ltac run_bisim_axiom el er :=
       | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
           time "skipping" (skip_bisim' H; clear H; try clear C)
       end;
-      clear P HP P_orig
+      time "clearing all" clear P HP P_orig
   end.
 
 Ltac print_rel_len :=
