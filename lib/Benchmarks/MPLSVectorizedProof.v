@@ -9,7 +9,7 @@ Lemma mpls_equiv:
     Unrolled.ParseMPLS.
 Proof.
 
-  solve_lang_equiv_state_axiom Plain.state_eqdec Unrolled.state_eqdec.
+  solve_lang_equiv_state_axiom Plain.state_eqdec Unrolled.state_eqdec false.
 
 Time Qed.
 

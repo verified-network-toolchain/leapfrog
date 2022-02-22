@@ -265,7 +265,7 @@ Ltac skip_bisim :=
     ]
   end.
 
-Ltac extend_bisim' HN :=
+Ltac extend_bisim' HN use_hc :=
   match goal with
   | |- pre_bisimulation ?a ?r_states _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
@@ -278,7 +278,10 @@ Ltac extend_bisim' HN :=
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
       time "set R'" (set (r := R'));
-      time "hashcons" (hashcons_list X);
+      match use_hc with 
+      | true => time "hashcons" (hashcons_list X)
+      | false => idtac
+      end;
       time "simplify append" (simpl (_ ++ _))
     end
   end.
@@ -497,7 +500,7 @@ Ltac run_bisim' top top' r_states L :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
-Ltac run_bisim_axiom el er :=
+Ltac run_bisim_axiom el er use_hc :=
   match goal with
   | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
       let H := fresh "H" in
@@ -512,14 +515,14 @@ Ltac run_bisim_axiom el er :=
                                                          ({| e_prem := R; e_concl := C |}));
       match goal with
       | HN: ~ P_orig |- _ =>
-          time "extending" (extend_bisim' HN; clear HN)
+          time "extending" (extend_bisim' HN use_hc; clear HN)
       | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
           time "skipping" (skip_bisim' H; clear H; try clear C)
       end;
       time "clearing all" clear P HP P_orig
   end.
 
-Ltac run_bisim_admit el er :=
+Ltac run_bisim_admit el er use_hc :=
   match goal with
   | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
       let H := fresh "H" in
@@ -534,7 +537,7 @@ Ltac run_bisim_admit el er :=
                                                           ({| e_prem := R; e_concl := C |}));
       match goal with
       | HN: ~ P_orig |- _ =>
-          time "extending" (extend_bisim' HN; clear HN)
+          time "extending" (extend_bisim' HN use_hc; clear HN)
       | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
           time "skipping" (skip_bisim' H; clear H; try clear C)
       end;
@@ -636,7 +639,7 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-Ltac solve_lang_equiv_state_axiom el er := 
+Ltac solve_lang_equiv_state_axiom el er use_hc := 
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
   unfold mk_init;
@@ -644,10 +647,10 @@ Ltac solve_lang_equiv_state_axiom el er :=
     | repeat econstructor | econstructor; solve_fp_wit
   ];
   simpl);
-  time "build phase" repeat run_bisim_axiom el er;
+  time "build phase" repeat run_bisim_axiom el er use_hc;
   time "close phase" close_bisim_axiom.
 
-Ltac solve_lang_equiv_state_admit el er := 
+Ltac solve_lang_equiv_state_admit el er use_hc := 
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
   unfold mk_init;
@@ -655,5 +658,5 @@ Ltac solve_lang_equiv_state_admit el er :=
     | repeat econstructor | econstructor; solve_fp_wit
   ];
   simpl);
-  time "build phase" repeat run_bisim_admit el er;
+  time "build phase" repeat run_bisim_admit el er use_hc;
   time "close phase" close_bisim_axiom.
