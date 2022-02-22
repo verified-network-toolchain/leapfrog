@@ -11,5 +11,5 @@ Lemma ipfilter_equiv:
     UDPCombined.ParsePref
     UDPInterleaved.ParseIP.
 Proof.
-  solve_lang_equiv_state UDPCombined.state_eqdec UDPInterleaved.state_eqdec.
+  solve_lang_equiv_state_axiom UDPCombined.state_eqdec UDPInterleaved.state_eqdec false.
 Time Qed.

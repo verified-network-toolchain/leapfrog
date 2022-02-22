@@ -12,7 +12,7 @@ Module Positive.
         ReadUndef.ParseEth
         ReadUndef.ParseEth.
   Proof.
-    solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec.
+    solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec false.
   Time Qed.
 End Positive.
 
@@ -24,6 +24,6 @@ Module Negative.
         ReadUndef.ParseEth
         ReadUndef.ParseEth.
   Proof.
-    Fail solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec.
+    Fail solve_lang_equiv_state_axiom ReadUndef.state_eqdec ReadUndef.state_eqdec false.
   Time Qed.
 End Negative.

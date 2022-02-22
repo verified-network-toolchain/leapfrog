@@ -8,6 +8,6 @@ Lemma babyip_equiv:
     BabyIP1.Start
     BabyIP2.Start.
 Proof.
-  solve_lang_equiv_state.
+  solve_lang_equiv_state_axiom BabyIP1.state_eqdec BabyIP2.state_eqdec false.
 Time Qed.
 Print Assumptions babyip_equiv.
