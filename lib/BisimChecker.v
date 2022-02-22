@@ -147,24 +147,13 @@ Section BisimChecker.
           top' _ _ _ _ a R (conf_to_state_template q1) (conf_to_state_template q2))
         E
       <-> 
-      (state_template_sane
-          (cs_st1
-              (se_st
-                (simplify_entailment E))) ->
-        state_template_sane
-          (cs_st2
-              (se_st
-                (simplify_entailment E))) ->
-        top' _ _ _ _ a R
-          (cs_st1
-              (se_st
-                (simplify_entailment E)))
-          (cs_st2
-              (se_st
-                (simplify_entailment E))) ->
-        interp_fm (m := FOBV.fm_model)
+      let E' := (se_st (simplify_entailment E)) in 
+      (state_template_sane (cs_st1 E') ->
+        state_template_sane (cs_st2 E') ->
+        top' _ _ _ _ a R (cs_st1 E') (cs_st2 E') ->
+        interp_fm 
+          (m := FOBV.fm_model)
           (VEmp _ _)
-          (* (compile_valu (a := a) (VEmp (FirstOrderConfRelSimplified.sig _) (FirstOrderConfRelSimplified.fm_model _))) *)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
@@ -188,6 +177,18 @@ Lemma drop_antecedent:
   forall P Q: Prop, P -> (P -> Q) <-> Q.
 Proof.
   tauto.
+Qed.
+
+Lemma drop_antecedent_3:
+  forall (A B C D : Prop),
+  A -> 
+  B -> 
+  C -> 
+  (A -> B -> C -> D) <-> D.
+Proof.
+  intros.
+  do 3 (erewrite drop_antecedent; eauto).
+  eapply iff_refl.
 Qed.
 
 Lemma forall_exists:
@@ -319,15 +320,20 @@ Ltac crunch_foterm_ctx :=
   end.
 
 Ltac compile_fm H el er :=
-  erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
+  time "compilation correct" erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
+  simpl in H;
   (* these could be invariants and somehow avoided completely
-     or if they have to be done it could all be done with reflection *)
-  try rewrite !drop_antecedent with (P := state_template_sane _) in H
-      by apply P4A.P4A.cap';
-  try rewrite !drop_antecedent with (P := state_template_sane _) in H
-      by (vm_compute; repeat econstructor);
-  rewrite !drop_antecedent with (P := top' _ _ _ _ _ _ _ _) in H
-      by (eapply in_In; exact eq_refl);
+      or if they have to be done it could all be done with reflection *)
+  time "antecedents" match goal with 
+  | H0: _ <-> (?a -> ?b -> ?c -> ?d) |- _ => 
+    erewrite drop_antecedent_3 with (A := a) in H0;
+    [|
+      vm_compute; repeat econstructor |
+      vm_compute; repeat econstructor |
+      eapply in_In; exact eq_refl 
+    ]
+
+  end;
   crunch_foterm_ctx.
 
 Ltac remember_iff name hyp term :=
