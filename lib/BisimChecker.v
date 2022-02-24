@@ -650,6 +650,12 @@ Ltac solve_lang_equiv_state_axiom el er use_hc :=
   time "build phase" repeat run_bisim_axiom el er use_hc;
   time "close phase" close_bisim_axiom.
 
+
+  (** 
+    arguments: 
+      el and er, eq_dec functions for the left and right automata states
+      use_hc, a bool, to use or not use "hashconsing" of intermediate conf_templates 
+  *)
 Ltac solve_lang_equiv_state_admit el er use_hc := 
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;

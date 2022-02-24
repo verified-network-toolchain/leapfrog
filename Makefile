@@ -49,22 +49,22 @@ sloppystrict: build
 	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject
 
 ipoptions3: build
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject > ipoptions_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject
 
 edgeself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject
 
 edgetrans:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject > edge_trans_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject
 
 datacenterself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject
 
 enterpriseself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject
 
 serviceproviderself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
