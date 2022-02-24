@@ -10,7 +10,10 @@ class Benchmarks:
   benchmarks: list[Benchmark] # all benchmarks
 
   def __add__(self, other): 
-    Benchmarks(benchmarks=self.benchmarks + other.benchmarks)
+    if isinstance(other, Benchmarks):
+      return Benchmarks(benchmarks=self.benchmarks + other.benchmarks)
+    else:
+      assert False
 
 
 # To modify benchmarks, change the list of benchmarks below by adding/editing rows
