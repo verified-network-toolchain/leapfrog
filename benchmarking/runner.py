@@ -47,7 +47,7 @@ def make_bench_prefix(conf:LogConfig):
   now = datetime.now()
   fmt = "%d-%m-%Y.%H:%M:%S"
   
-  return os.path.join(conf.location, now.strftime(fmt))
+  return os.path.join(conf.location, get_current_short_hash(), now.strftime(fmt))
 
 
 # assumes that the dependencies of the benchmark has been already built
