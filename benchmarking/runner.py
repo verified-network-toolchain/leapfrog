@@ -91,15 +91,21 @@ def main(opt: MainOpt):
   os.makedirs(prefix)
 
   print("building leapfrog...")
-  subprocess.run("make -j %s" % runner_conf.leapfrog_target, cwd="..", shell=True)
-  print("done!")
+  try:
+    subprocess.run("make -j %s" % runner_conf.leapfrog_target, cwd="..", shell=True, check=True)
+    print("done!")
 
-  print("starting benchmarking with output directory:", prefix)
+    print("starting benchmarking with output directory:", prefix)
 
-  for bench in tqdm(benches.benchmarks):
-    print('running benchmark for', bench.name)
-    run_benchmark(prefix, runner_conf.time_cmd, bench)
-    print('done!')
+    for bench in tqdm(benches.benchmarks):
+      print('running benchmark for', bench.name)
+      run_benchmark(prefix, runner_conf.time_cmd, bench)
+      print('done!')
+  finally:
+    print("ran into error while running benchmarks, cleaning up...")
+    subprocess.run("make clean", cwd="..", shell=True)
+    print("done!")
+
   
 parser = argparse.ArgumentParser()
 parser.add_argument('--size', choices=['small', 'large', 'all'])
