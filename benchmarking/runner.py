@@ -90,6 +90,10 @@ def main(opt: MainOpt):
 
   os.makedirs(prefix)
 
+  print("building leapfrog...")
+  subprocess.run("make -j %s" % runner_conf.leapfrog_target, cwd="..", shell=True)
+  print("done!")
+
   print("starting benchmarking with output directory:", prefix)
 
   for bench in tqdm(benches.benchmarks):
