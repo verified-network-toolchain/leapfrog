@@ -86,7 +86,7 @@ def main(opt: MainOpt, log_config):
   
   prefix = make_bench_prefix(log_config)
 
-  os.makedirs(prefix)
+  os.makedirs(prefix, mode=0o777)
 
   print("building leapfrog...")
   try:
