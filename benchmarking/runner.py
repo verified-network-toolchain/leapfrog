@@ -108,7 +108,7 @@ def main(opt: MainOpt):
 
   
 parser = argparse.ArgumentParser()
-parser.add_argument('--size', choices=['small', 'large', 'all'])
+parser.add_argument('--size', choices=['small', 'large', 'all'], required=True)
 
 if __name__ == "__main__":
   args = parser.parse_args()
