@@ -19,8 +19,9 @@ from enum import Enum
 
 import argparse
 import resource
+import pathlib
 
-
+LEAPFROG_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 
 @dataclass(frozen=True)
 class RunnerConfig:
@@ -66,7 +67,7 @@ def run_benchmark(prefix: str, time_cmd: str, b: Benchmark):
 MainOpt = Enum('MainOpt', 'SMALL LARGE ALL')
 
 
-def main(opt: MainOpt):
+def main(opt: MainOpt, log_config):
 
   benches : Benchmarks
   match opt:
@@ -83,10 +84,7 @@ def main(opt: MainOpt):
       print('bad argument to main', opt)
       assert False
   
-
-  conf = log_config
-
-  prefix = make_bench_prefix(conf)
+  prefix = make_bench_prefix(log_config)
 
   os.makedirs(prefix)
 
@@ -109,6 +107,8 @@ def main(opt: MainOpt):
   
 parser = argparse.ArgumentParser()
 parser.add_argument('--size', choices=['small', 'large', 'all'], required=True)
+parser.add_argument('--log-dir', default=os.path.join(LEAPFROG_ROOT,
+"benchmarking/logs"))
 
 if __name__ == "__main__":
   args = parser.parse_args()
@@ -131,5 +131,5 @@ if __name__ == "__main__":
     case _:
       print('bad CLI argument to runner', args.size)
       assert False
-
-  main(opt)
+  log_config = LogConfig(args.log_dir)
+  main(opt, log_config)
