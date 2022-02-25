@@ -42,7 +42,7 @@ def get_current_commit():
 def get_current_short_hash():
   repo = git.Repo(search_parent_directories=True)
   sha = repo.head.commit.hexsha
-  return repo.git.rev_parse(sha, short=4)
+  return repo.git.rev_parse(sha, short=7)
 
 def make_bench_prefix(conf:LogConfig):
   now = datetime.now()
