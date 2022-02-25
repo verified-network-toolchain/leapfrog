@@ -8,8 +8,8 @@ Require Import Leapfrog.Sum.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.Notations.
 
-Require Import Leapfrog.BisimChecker.
 Require Import Coq.Program.Equality.
+Require Import Coq.Program.Program.
 
 Open Scope p4a.
 
@@ -135,18 +135,6 @@ Module Plain.
 End Plain.
 
 Module Optimized.
-  Require Coq.Classes.EquivDec.
-  Require Coq.Lists.List.
-  Import List.ListNotations.
-  Require Import Coq.Program.Program.
-  Require Import Leapfrog.Syntax.
-  Require Import Leapfrog.FinType.
-  Require Import Leapfrog.Sum.
-  Require Import Leapfrog.Syntax.
-  Require Import Leapfrog.BisimChecker.
-
-  Require Import Leapfrog.Notations.
-
   Open Scope p4a.
 
   Inductive state := | State_1_suff_2 | State_0_suff_2 | State_2_suff_0 | State_0_suff_1 | State_1_suff_1 | State_1 | State_0_suff_3 | State_4 | State_2 | State_1_suff_3 | State_0  | State_1_suff_0 | State_4_suff_0 | State_4_body.

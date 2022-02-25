@@ -1,3 +1,4 @@
+Require Import Coq.Lists.List.
 
 Section ExactFP.
   Variable (A: Type).
@@ -131,8 +132,6 @@ End ExactFPRec.
 Section ListFP.
   Variable (T: Type).
   Variable (f: list T -> list T).
-
-  Require Import Coq.Lists.List.
 
   Variable (f_mono: 
     forall xs, 
