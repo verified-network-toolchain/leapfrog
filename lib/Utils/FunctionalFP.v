@@ -187,29 +187,23 @@ Section ListFP.
   Qed.
 End ListFP.
 
+
 Ltac solve_fp_wit := 
   let init_v := fresh "v" in
   match goal with 
   | |- fp_wit _ _ _ ?x =>
     set (init_v := x)
   end;
-  repeat (
+  repeat time "fpiter step" (
+    eapply FPIter;
     match goal with 
     | |- fp_wit _ _ ?X _ => 
-      econstructor;
       let iter_v := fresh "v'" in 
       set (iter_v := X);
       vm_compute in iter_v;
       subst iter_v
     end
   );
-  match goal with
-  | |- fp_wit _ _ ?X _ =>
-    let iter_v := fresh "v'" in
-    set (iter_v := X);
-    vm_compute in iter_v;
-    subst iter_v
-  end;
   subst init_v;
   eapply FPDone;
   exact eq_refl.

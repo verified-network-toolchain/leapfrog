@@ -11,6 +11,10 @@ Require Import Leapfrog.Notations.
 Require Import Coq.Program.Equality.
 Require Import Coq.Program.Program.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Open Scope p4a.
 
 Module Plain.
@@ -27,7 +31,7 @@ Module Plain.
   | HdrIPv4_8
   | HdrIPv6.
 
-  Definition sz (h: header) :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrEth0
     | HdrEth1 => 112
@@ -88,15 +92,15 @@ Module Plain.
     | ParseMPLS0 =>
       {| st_op := extract(HdrMPLS0);
         st_trans := transition select (| (EHdr' HdrMPLS0)[23--23] |)
-                                {{ [| hexact 0 |] ==> inl ParseMPLS1 ;;;
-                                  [| hexact 1 |] ==> inl ParseIPVer ;;;
+                                {{ [| exact #b|0 |] ==> inl ParseMPLS1 ;;;
+                                  [| exact #b|1 |] ==> inl ParseIPVer ;;;
                                   reject
                                 }}
       |}
     | ParseMPLS1 =>
       {| st_op := extract(HdrMPLS1);
         st_trans := transition select (| (EHdr' HdrMPLS1)[23--23] |)
-                              {{ [| hexact 1 |] ==> inl ParseIPVer ;;;
+                              {{ [| exact #b|1 |] ==> inl ParseIPVer ;;;
                                 reject
                               }}
       |}
@@ -153,7 +157,8 @@ Module Plain.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 End Plain.
 
 Module Optimized.
@@ -185,7 +190,7 @@ Inductive header :=
 | buf_176
 | buf_208.
 
-Definition sz (h: header) : nat :=
+Definition sz (h: header) : N :=
   match h with
   | buf_320 => 320
   | buf_128 => 128
@@ -309,5 +314,6 @@ Definition sz (h: header) : nat :=
   end.
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 End Optimized.

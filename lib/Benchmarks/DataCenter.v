@@ -13,6 +13,10 @@ Require Import Coq.Program.Equality.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Inductive header :=
 | HdrEth0
 | HdrEth1
@@ -30,7 +34,7 @@ Inductive header :=
 | HdrARP
 | HdrARPIP.
 
-Definition sz (h: header) : nat :=
+Definition sz (h: header) : N :=
   match h with
   | HdrEth0
   | HdrEth1 => 112
@@ -81,17 +85,17 @@ Proof.
 Defined.
 
 Definition states (s: state) : P4A.state state sz :=
-  match s with
+  match s return P4A.state state sz with
   | ParseEth0 =>
     {| st_op := extract(HdrEth0);
        st_trans := transition select (| (EHdr HdrEth0)[111--96] |)
-                              {{ [| hexact 0x8100 |] ==> inl ParseVLAN0 ;;;
-                                 [| hexact 0x9100 |] ==> inl ParseVLAN0 ;;;
-                                 [| hexact 0x9200 |] ==> inl ParseVLAN0 ;;;
-                                 [| hexact 0x9300 |] ==> inl ParseVLAN0 ;;;
-                                 [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
+                              {{ [| hexact_w(16) 0x8100 |] ==> inl ParseVLAN0 ;;;
+                                 [| hexact_w(16) 0x9100 |] ==> inl ParseVLAN0 ;;;
+                                 [| hexact_w(16) 0x9200 |] ==> inl ParseVLAN0 ;;;
+                                 [| hexact_w(16) 0x9300 |] ==> inl ParseVLAN0 ;;;
+                                 [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                 [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
 
     |}

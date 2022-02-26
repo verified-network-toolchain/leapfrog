@@ -12,6 +12,10 @@ Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Module Reference.
   Inductive state: Set :=
   | SPref
@@ -32,7 +36,7 @@ Module Reference.
   | HSrc
   | HProto.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | HPref => 64
     | HDest => 48
@@ -57,7 +61,7 @@ Module Reference.
                   st_trans := transition (inl SProto) |}
     | SProto => {| st_op := extract(HProto);
                   st_trans := transition select (| EHdr HProto |) {{
-                    [| exact #b|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+                    [| hexact_w(16) 0x8000 |] ==> accept ;;;
                       reject
                   }}
                 |}
@@ -65,7 +69,8 @@ Module Reference.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End Reference.
 
@@ -92,7 +97,7 @@ Module Combined.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | HdrVar => 176
     end.
@@ -102,7 +107,7 @@ Module Combined.
     | Parse =>
       {| st_op := extract(HdrVar);
         st_trans := transition select (| (EHdr (Hdr_sz := sz) HdrVar)[176 -- 160] |) {{
-          [| exact #b|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0 |] ==> accept ;;;
+          [| hexact_w(16) 0x8000 |] ==> accept ;;;
             @reject state
         }}
       |}
@@ -110,7 +115,7 @@ Module Combined.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
 
 End Combined.
 

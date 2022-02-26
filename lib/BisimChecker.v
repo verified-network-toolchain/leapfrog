@@ -664,8 +664,9 @@ Ltac solve_lang_equiv_state_admit el er use_hc :=
   time "init prebisim" (intros;
   unfold mk_init;
   erewrite Reachability.reachable_states_wit_conv; [
-    | repeat econstructor | econstructor; solve_fp_wit
-  ];
-  simpl);
+    | repeat econstructor
+    | unfold Reachability.reachable_states_wit;
+      solve_fp_wit
+  ]; simpl);
   time "build phase" repeat run_bisim_admit el er use_hc;
   time "close phase" close_bisim_axiom.

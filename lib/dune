@@ -22,7 +22,7 @@
    Benchmarks.EnterpriseSelfProof
    Benchmarks.DataCenter
    Benchmarks.DatacenterSelfProof
-   Benchmarks.Edge
+   ; Benchmarks.Edge
    Benchmarks.EdgeSelfProof
    Benchmarks.ServiceProvider
    Benchmarks.ServiceproviderSelfProof
@@ -37,7 +37,7 @@
    Benchmarks.BabyIP
    Benchmarks.BabyIPProof
    Benchmarks.BabyIPProofSimplified
-   Benchmarks.Ethernet
+   ; Benchmarks.Ethernet
    Benchmarks.EthernetProof
    Benchmarks.IPFilter
    Benchmarks.IPFilterProof

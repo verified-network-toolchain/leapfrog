@@ -9,6 +9,7 @@ From Equations Require Import Equations.
 Require Import Coq.Numbers.BinNums.
 Require Import Coq.NArith.BinNat.
 Require Import Coq.NArith.Nnat.
+Require Import Coq.PArith.BinPosDef.
 
 
 Import ListNotations.
@@ -203,6 +204,87 @@ Next Obligation.
   Lia.lia.
 Defined.
 
+Fixpoint p2digs (p: positive) : list bool :=
+  match p with 
+  | xH => [true]
+  | xO p' => false :: p2digs p'
+  | xI p' => true :: p2digs p'
+  end.
+
+Definition n2digs (n: N) : list bool :=
+  match n with 
+  | 0%N => nil
+  | N.pos p => p2digs p
+  end. 
+
+Fixpoint p2digs_sz (p: positive) : {r: (list bool * nat) & len_pf (fst r) (snd r)} :=
+  match p with 
+  | xH => existT _ ([true], 1) (len_suc _ _ len_nil _)
+  | xO p' => 
+    let (r, pf) := p2digs_sz p' in 
+      existT _ (false :: fst r, S (snd r)) (len_suc _ _ pf _)
+  | xI p' => 
+    let (r, pf) := p2digs_sz p' in 
+      existT _ (true :: fst r, S (snd r)) (len_suc _ _ pf _)
+  end.
+
+Fixpoint size_N (p: positive) : N := 
+  match p with 
+  | xH => 1%N
+  | xI p'
+  | xO p' => N.succ (size_N p')
+  end.
+
+Lemma p_digs_sz : 
+  forall p r, 
+    p2digs_sz p = r -> 
+    N.of_nat (snd (projT1 r)) = size_N p. 
+Proof.
+  intros p.
+  induction p; simpl; intros; (try now ( subst; exact eq_refl));
+  destruct r;
+  destruct x;
+  simpl in *;
+  pose proof (IHp (p2digs_sz p));
+  erewrite <- H0; trivial;
+  simpl;
+  destruct (p2digs_sz p);
+  simpl in *;
+  clear H0;
+  inversion H;
+  subst;
+  erewrite Nat2N.inj_succ;
+  exact eq_refl.
+Defined.
+
+Definition p2nt (p: positive) : n_tuple bool (size_N p).
+  refine (
+    let r := p2digs_sz p in 
+    _
+  ).
+  erewrite <- p_digs_sz with (r := r); [|exact eq_refl].
+  destruct r.
+  refine (
+    exist _ (fst x) _
+  ).
+  erewrite Nat2N.id.
+  exact l.
+Defined.
+
+
+(* I think this is exactly log2 but not positive, it should be *)
+Definition N_size_N (n: N) : N := 
+  match n with 
+  | 0%N => 0
+  | N.pos p => size_N p
+  end.
+
+Definition n2t (n: N) : n_tuple bool (N_size_N n) :=
+  match n with 
+  | 0%N => n_tuple_emp
+  | N.pos p => p2nt p
+  end. 
+
 Program Fixpoint nat2t (n: nat) (v: nat) : n_tuple bool (N.of_nat n) :=
   match n as n' return n_tuple bool (N.of_nat n') with
   | 0 => nil
@@ -238,6 +320,9 @@ Next Obligation.
   Lia.lia.
 Defined.
 
+Definition n_tuple_repeat_N {A} (n: N) (a: A) : n_tuple A n :=
+  N.peano_rect _ n_tuple_emp (fun _ r => n_tuple_cons_succ r a) n.
+
 Equations n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m) := 
   n_tuple_concat (exist _ xs xp) (exist _ ys yp) := exist _ (xs ++ ys) _.
 Next Obligation.
@@ -245,6 +330,11 @@ Next Obligation.
   eapply len_pf_concat; eauto.
 Defined.
 
+Definition minus_max m n := (m - n + n)%N.
+
+Definition n_tuple_pad {A n m} (x: A) (xs: n_tuple A n) : n_tuple A (minus_max m n) :=
+  n_tuple_concat (n_tuple_repeat_N (m - n) x) xs.
+  
 Lemma n_tuple_concat_emp_l:
   forall A n (xs: n_tuple A n), 
     n_tuple_concat n_tuple_emp xs = xs.

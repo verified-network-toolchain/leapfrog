@@ -7,6 +7,10 @@ Delimit Scope p4a_cases_scope with p4ac.
 Declare Scope p4a_bits_scope.
 Delimit Scope p4a_bits_scope with p4abits.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Notation "e1 ;; e2" := (OpSeq e1%p4a e2%p4a)%p4a
   (at level 100, right associativity) : p4a_scope.
 
@@ -27,7 +31,7 @@ Notation "0" := (false) : p4a_bits_scope.
 
 Notation "#b | x | .. | z" :=
   (let bs := (cons x%p4abits .. (cons z%p4abits nil) ..) in
-    VBits (length bs) (Ntuple.l2t bs)
+    VBits (Ntuple.l2t bs)
   ) (at level 60) : p4a_scope.
 
 Notation "'transition' 'select' e {{ c1 ;;; c2 ;;; .. ;;; cn ;;; default }}" := (
@@ -48,7 +52,8 @@ Definition reject {A} := @inr A _ false.
 Notation "*" := (PAny _) : p4a_scope.
 Notation "'exact' e" := (PExact e) (at level 60): p4a_scope.
 
-Notation "'hexact' n" := (PExact (VBits _ (Ntuple.nat2t _ n))) (at level 60): p4a_scope.
+Notation "'hexact' n" := (PExact (VBits (Ntuple.n_tuple_pad false (Ntuple.n2t n%N)))) (at level 60): p4a_scope.
+Notation "hexact_w( w ) n" := (PExact (VBits (Ntuple.n_tuple_pad (m := w) false (Ntuple.n2t n%N)))) (at level 60): p4a_scope.
 
 Notation "[| x |] ==> target " := ({| sc_pat := x%p4a ; sc_st := target%p4a |}) (at level 60): p4a_scope.
 

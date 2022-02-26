@@ -11,5 +11,11 @@ Lemma ethernet_equiv:
     Plain.ParseEth0
     Optimized.State_0.
 Proof.
-  solve_lang_equiv_state_axiom Plain.state_eqdec Optimized.state_eqdec true.
-Time Qed.
+  eapply lang_equiv_to_pre_bisim.
+  time "init prebisim" intros;
+  unfold mk_init;
+  erewrite Reachability.reachable_states_wit_conv.
+  2: repeat time "constructor" econstructor.
+  2: unfold Reachability.reachable_states_wit;
+     solve_fp_wit.
+Time Admitted.
