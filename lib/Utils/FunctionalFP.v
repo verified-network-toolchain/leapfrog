@@ -192,14 +192,14 @@ Ltac solve_fp_wit :=
   let init_v := fresh "v" in
   match goal with 
   | |- fp_wit _ _ _ ?x =>
-    set (init_v := x)
+    set (init_v := x) in |- * at 1
   end;
   repeat time "fpiter step" (
     eapply FPIter;
     match goal with 
     | |- fp_wit _ _ ?X _ => 
       let iter_v := fresh "v'" in 
-      set (iter_v := X);
+      set (iter_v := X) in |- * at 1;
       vm_compute in iter_v;
       subst iter_v
     end
