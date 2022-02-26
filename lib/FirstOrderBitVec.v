@@ -6,6 +6,11 @@ Require Import MirrorSolve.FirstOrder.
 Require Import MirrorSolve.HLists.
 Require Import Leapfrog.Ntuple.
 
+
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Import ListNotations.
 Import HListNotations.
 
@@ -20,17 +25,17 @@ Section FirstOrderBitVec.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
   Inductive sorts: Type :=
-  | Bits (n: nat).
+  | Bits (n: N).
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
-  | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo)).
+  | Slice: forall n hi lo, funs [Bits n] (Bits (N.min (1 + hi) n - lo)).
 
   Inductive rels: arity sorts -> Type :=.
 
@@ -55,7 +60,7 @@ Section FirstOrderBitVec.
              (f: sig_funs sig params ret)
              (args: HList.t mod_sorts params)
     : mod_sorts ret :=
-    { mod_fns (BitsLit n xs) hnil := xs;
+    { mod_fns (BitsLit xs) hnil := xs;
       mod_fns (Concat n m) (xs ::: ys ::: hnil) :=
         n_tuple_concat xs ys;
       mod_fns (Slice n hi lo) (xs ::: hnil) :=

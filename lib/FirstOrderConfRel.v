@@ -9,6 +9,10 @@ Require Import Leapfrog.Ntuple.
 Import ListNotations.
 Import HListNotations.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Section AutModel.
   Set Implicit Arguments.
   (* State identifiers. *)
@@ -20,29 +24,29 @@ Section AutModel.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
   Notation conf := (configuration (P4A.interp a)).
 
   Inductive sorts: Type :=
-  | Bits (n: nat)
+  | Bits (n: N)
   | State
   | Store
-  | ConfigPair (n m: nat)
+  | ConfigPair (n m: N)
   | Natural.
 
-  Definition conf' (n: nat) :=
+  Definition conf' (n: N) :=
     {c: conf | c.(conf_buf_len) = n}.
 
   Inductive funs: arity sorts -> sorts -> Type :=
   | BitsLit: forall n, n_tuple bool n -> funs [] (Bits n)
   | StateLit: forall (s: states (P4A.interp a) + bool), funs [] State
   | ConfPairLit: forall n m (c: conf' n * conf' m), funs [] (ConfigPair n m)
-  | NatLit: forall n : nat, funs [] Natural
+  | NatLit: forall n : N, funs [] Natural
   | Concat: forall n m, funs [Bits n; Bits m] (Bits (n + m))
-  | Slice: forall n hi lo, funs [Bits n] (Bits (Nat.min (1 + hi) n - lo))
+  | Slice: forall n hi lo, funs [Bits n] (Bits (N.min (1 + hi) n - lo))
   | Lookup: forall k, funs [Store] (Bits (Hdr_sz k))
   | Update: forall k, funs [Store; Bits (Hdr_sz k)] Store
   | State1: forall n m, funs [ConfigPair n m] State
@@ -68,7 +72,7 @@ Section AutModel.
     | State => states (P4A.interp a) + bool
     | Store => store (P4A.interp a)
     | ConfigPair n m => conf' n * conf' m
-    | Natural => nat
+    | Natural => N
     end.
 
   Equations mod_fns
@@ -76,7 +80,7 @@ Section AutModel.
              (f: sig_funs sig params ret)
              (args: HList.t mod_sorts params)
     : mod_sorts ret :=
-    { mod_fns (BitsLit n xs) hnil := xs;
+    { mod_fns (BitsLit xs) hnil := xs;
       mod_fns (StateLit s) hnil := s;
       mod_fns (ConfPairLit c) hnil := c;
       mod_fns (NatLit n) hnil := n;
@@ -86,10 +90,10 @@ Section AutModel.
         n_tuple_slice hi lo xs;
       mod_fns (Lookup k) (store ::: hnil) :=
         match P4A.find Hdr Hdr_sz k store with
-        | P4A.VBits _ v => v
+        | P4A.VBits v => v
         end;
       mod_fns (Update k) (store ::: v ::: hnil) :=
-        P4A.assign Hdr Hdr_sz k (P4A.VBits _ v) store;
+        P4A.assign Hdr Hdr_sz k (P4A.VBits v) store;
       mod_fns (State1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_state);
       mod_fns (Store1 _ _) ((q1, q2) ::: hnil) := (proj1_sig q1).(conf_store);
       mod_fns (State2 _ _) ((q1, q2) ::: hnil) := (proj1_sig q2).(conf_state);

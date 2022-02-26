@@ -13,7 +13,14 @@ Module P4A := P4automaton.
 
 Module Env := Leapfrog.DepEnv.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Open Scope list_scope.
+
+Require Import Coq.Init.Logic.
+Import EqNotations.
 
 Section Syntax.
 
@@ -29,7 +36,7 @@ Section Syntax.
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
 
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Inductive hdr_ref: Type :=
   | HRVar (var: Hdr).
@@ -44,10 +51,10 @@ Section Syntax.
   Solve Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
 
-  Inductive expr : nat -> Type :=
+  Inductive expr : N -> Type :=
   | EHdr (h: Hdr): expr (Hdr_sz h)
   | ELit {n} (bs: n_tuple bool n): expr n
-  | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo)
+  | ESlice {n} (e: expr n) (hi lo: N): expr (N.min (1 + hi) n - lo)
   | EConcat {n m} (l: expr n) (r: expr m): expr (n + m).
   (* todo: binops, ...? *)
 
@@ -56,19 +63,28 @@ Section Syntax.
   Inductive v n :=
   | VBits: n_tuple bool n -> v n.
 
-  Global Program Instance v_eq_dec (n: nat): EquivDec.EqDec (v n) eq :=
+  Global Program Instance v_eq_dec (n: N): EquivDec.EqDec (v n) eq :=
     { equiv_dec x y :=
         match x, y with
-        | VBits _ xs, VBits _ ys =>
+        | VBits xs, VBits ys =>
           if xs == ys
           then in_left
           else in_right
         end }.
   Solve All Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
+  Next Obligation.
+  unfold "===" in *.
+    destruct xs; destruct ys.
+    simpl in *;
+    subst.
+    pose proof lenpf_uniq _ _ _ l l0.
+    subst.
+    auto.
+  Defined.
 
-  Global Program Instance v_finite (n: nat): Finite (v n) :=
-    {| enum := List.map (VBits n) (enum (n_tuple bool n)) |}.
+  Global Program Instance v_finite (n: N): Finite (v n) :=
+    {| enum := List.map (@VBits n) (enum (n_tuple bool n)) |}.
   Next Obligation.
     apply NoDup_map.
     - intros x y Heq; inversion Heq; auto.
@@ -82,7 +98,7 @@ Section Syntax.
   Qed.
 
   Inductive typ :=
-  | TBits (n: nat)
+  | TBits (n: N)
   | TPair (t1 t2: typ).
   Derive NoConfusion for typ.
 
@@ -111,7 +127,7 @@ Section Syntax.
   | OpExtract (hdr: Hdr)
   | OpAsgn (lhs: Hdr) (rhs: expr (Hdr_sz lhs)).
 
-  Fixpoint op_size (o: op) :=
+  Fixpoint op_size (o: op) : N :=
     match o with
     | OpNil => 0
     | OpSeq o1 o2 => op_size o1 + op_size o2
@@ -123,15 +139,15 @@ Section Syntax.
     { st_op: op;
       st_trans: transition }.
 
-  Definition st_size (st: state) : nat :=
+  Definition st_size (st: state) : N :=
     op_size (st_op st).
 
   Record t: Type :=
     { t_states: St -> state;
-      t_nonempty: forall h, Hdr_sz h > 0;
-      t_has_extract: forall s, st_size (t_states s) > 0 }.
+      t_nonempty: forall h, (Hdr_sz h > 0)%N;
+      t_has_extract: forall s, (st_size (t_states s) > 0)%N }.
 
-  Program Definition bind (s: St) (st: state) (ex: st_size st > 0) (ok: forall h, Hdr_sz h > 0) (a: t) :=
+  Program Definition bind (s: St) (st: state) (ex: (st_size st > 0)%N) (ok: forall h, (Hdr_sz h > 0)%N) (a: t) :=
     {| t_states := fun s' => if s == s' then st else a.(t_states) s' |}.
   Next Obligation.
     destruct (s == s0).
@@ -142,17 +158,7 @@ Section Syntax.
   Definition size (a: t) (s: St) :=
     st_size (a.(t_states) s).
 
-  Lemma eq_dec_refl (A: Type) (eq_dec: forall x y : A, {x = y} + {x <> y}) :
-    forall x,
-      eq_dec x x = left eq_refl.
-  Proof using.
-    intros.
-    pose proof (@Eqdep_dec.UIP_dec A eq_dec x x eq_refl).
-    destruct (eq_dec x x).
-    - erewrite H; eauto.
-    - congruence.
-  Qed.
-  Hint Rewrite eq_dec_refl : core.
+  
 
 End Syntax.
 
@@ -160,8 +166,8 @@ Section Fmap.
   Set Implicit Arguments.
   Variables (St1 St2: Type).
   Variables (Hdr1 Hdr2: Type).
-  Variable (sz1: Hdr1 -> nat).
-  Variable (sz2: Hdr2 -> nat).
+  Variable (sz1: Hdr1 -> N).
+  Variable (sz2: Hdr2 -> N).
   Variable (f: St1 -> St2).
   Variable (g: Hdr1 -> Hdr2).
 
@@ -172,7 +178,7 @@ Section Fmap.
     | HRVar h => HRVar (g h)
     end.
 
-  Equations expr_fmapH {n: nat} (e: expr sz1 n) : expr sz2 n := {
+  Equations expr_fmapH {n: N} (e: expr sz1 n) : expr sz2 n := {
     expr_fmapH (EHdr _ h) := eq_rect_r _ (EHdr _ (g h)) (g_sound h);
     expr_fmapH (ELit _ bs) := ELit _ bs;
     expr_fmapH (ESlice e hi lo) := ESlice (expr_fmapH e) hi lo;
@@ -241,13 +247,13 @@ Section Interp.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
   Variable (a: t St Hdr_sz).
 
   Definition store := Env.t Hdr (fun h => v (Hdr_sz h)).
 
-  Definition clamp_list (n: nat) (l: list bool) :=
-    List.firstn n (l ++ (List.repeat false (List.length l - n))).
+  Definition clamp_list (n: N) (l: list bool) :=
+    List.firstn (N.to_nat n) (l ++ (List.repeat false (List.length l - (N.to_nat n)))).
 
   Definition assign (h: Hdr) (v: v (Hdr_sz h)) (st: store) : store :=
     Env.bind _ _ h v st.
@@ -333,38 +339,55 @@ Section Interp.
       apply IHl.
   Qed.
 
-  Definition slice {A} (l: list A) (hi lo: nat) :=
-    List.skipn lo (List.firstn (1 + hi) l).
+  Definition slice {A} (l: list A) (hi lo: N) :=
+    List.skipn (N.to_nat lo) (List.firstn (1 + (N.to_nat hi)) l).
 
   Lemma slice_len:
-    forall A hi lo (l: list A),
-      length (slice l hi lo) = Nat.min (1 + hi) (length l) - lo.
+    forall A (hi lo: N) (l: list A),
+      length (slice l hi lo) = N.to_nat (N.min (1 + hi) (N.of_nat (length l)) - lo)%N.
   Proof.
     unfold slice.
     intros.
     rewrite List.skipn_length.
     rewrite List.firstn_length.
-    reflexivity.
+    erewrite N2Nat.inj_sub.
+    erewrite N2Nat.inj_min.
+    erewrite N2Nat.inj_add.
+    erewrite Nat2N.id.
+    trivial.
   Qed.
 
-  Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
+  Definition n_slice {A n} (l: n_tuple A n) (hi lo: N) : n_tuple A (N.min (1 + hi) n - lo)%N.
   Proof.
     pose proof (l2t (slice (t2l l) hi lo)).
     rewrite slice_len in X.
     rewrite t2l_len in X.
+    repeat erewrite N2Nat.id in X.
     exact X.
   Defined.
 
-  Equations eval_expr (n: nat) (st: store) (e: expr Hdr_sz n) : v n :=
+  Lemma to_nat_float_1:
+    forall hi e0 lo, 
+      (Nat.min (1 + N.to_nat hi) (N.to_nat e0) - N.to_nat lo) = 
+      N.to_nat (N.min (1 + hi) e0 - lo).
+  Proof.
+    intros.
+    erewrite N2Nat.inj_sub.
+    erewrite N2Nat.inj_min.
+    erewrite N2Nat.inj_add.
+    trivial.
+  Qed.
+  Local Obligation Tactic := intros.
+  Equations eval_expr (n: N) (st: store) (e: expr Hdr_sz n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
-      eval_expr n st (ELit _ bs) := VBits _ bs;
+      eval_expr n st (ELit _ bs) := VBits bs;
       eval_expr n st (ESlice e hi lo) :=
-        let '(VBits _ bs) := eval_expr _ st e in
-        VBits _ (n_tuple_slice hi lo bs);
+        let '(VBits bs) := eval_expr _ st e in
+        VBits (n_tuple_slice hi lo bs);
       eval_expr n st (EConcat l r) :=
-        let '(VBits _ bs_l) := eval_expr _ st l in
-        let '(VBits _ bs_r) := eval_expr _ st r in
-        VBits _ (n_tuple_concat bs_l bs_r)
+        let '(VBits bs_l) := eval_expr _ st l in
+        let '(VBits bs_r) := eval_expr _ st r in
+        VBits (n_tuple_concat bs_l bs_r)
     }.
 
   Equations eval_op (st: store) (o: op Hdr_sz) (bits: n_tuple bool (op_size o))  : store :=
@@ -372,7 +395,7 @@ Section Interp.
       eval_op st (OpNil _) bits :=
         st;
       eval_op st (@OpExtract hdr) bits :=
-        assign hdr (VBits _ bits) st;
+        assign hdr (VBits bits) st;
       eval_op st (OpSeq o1 o2) bits :=
         let bits' := n_tuple_take_n (op_size o1) bits in
         let st := eval_op st o1 (rewrite_size _ bits') in
@@ -381,9 +404,11 @@ Section Interp.
         assign hdr (eval_expr _ st expr) st
     }.
   Next Obligation.
+    simpl op_size.
     Lia.lia.
   Qed.
   Next Obligation.
+    simpl op_size.
     Lia.lia.
   Qed.
 
@@ -395,7 +420,7 @@ Section Interp.
     eval_op st
             (* Deal with conversion of n-tuple to (n+0)-tuple *)
             (a.(t_states) state).(st_op)
-            (eq_rect _ _ bits _ (plus_O_n _)).
+            (eq_rect _ _ bits _ (N.add_0_l _)).
 
   Equations match_pat {T: typ} (st: store) (c: cond Hdr_sz T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
@@ -439,57 +464,29 @@ Section Interp.
       default :: List.map (fun c => sc_st c) cases
     end.
 
-  Definition interp : P4A.p4automaton :=
+  Program Definition interp : P4A.p4automaton :=
     {| P4A.store := store;
        P4A.states := St;
-       P4A.size := size a;
+       P4A.size := (size a);
        P4A.update := update;
        P4A.transitions := transitions;
-       P4A.cap := a.(t_has_extract) |}.
+       P4A.cap := _ |}.
+  Next Obligation.
+    pose proof a.(t_has_extract).
+    unfold t_states in H.
+    simpl in H.
+    unfold size.
+    specialize (H s).
+    destruct a.
+    simpl in *.
+    Lia.lia.
+  Defined.
 End Interp.
 Arguments EHdr {_ _} _.
 Arguments ELit {_ _} _.
 Arguments ESlice {_ _} _ _ _.
 Arguments interp {_ _ _ _ _ _} a.
 
-Section Inline.
-  (* State identifiers. *)
-  Variable (St: Type).
-  Context `{St_eq_dec: EquivDec.EqDec St eq}.
-
-  (* Header identifiers. *)
-  Variable (Hdr: Type).
-  Variable (Hdr_sz: Hdr -> nat).
-
-  Program Definition inline (pref: St) (suff: St) (auto: t St Hdr_sz) : t St Hdr_sz :=
-    match auto.(t_states) pref with
-    | Build_state op (TGoto _ (inl nxt)) =>
-      if nxt == suff
-      then
-      let pref' :=
-        match auto.(t_states) suff with
-        | suff_st => {| st_op := OpSeq op (st_op suff_st); st_trans := st_trans suff_st |}
-        end in
-      bind pref pref' _ _ auto
-      else auto
-    | _ => auto
-    end.
-  Next Obligation.
-    pose proof auto.(t_has_extract) suff.
-    unfold st_size in *.
-    simpl in *.
-    Lia.lia.
-  Qed.
-  Next Obligation.
-    apply auto.(t_nonempty).
-  Qed.
-
-  (* Lemma inline_corr :
-    forall pref suff auto (s: store),
-      let start_config : P4A.configuration (interp _ _ auto) := (SNStart, s, nil) in
-      True. *)
-
-End Inline.
 
 Section Properties.
 
@@ -506,7 +503,7 @@ Section Properties.
 
   (* Header identifiers. *)
   Variable (Hdr: Type).
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
 
@@ -520,11 +517,12 @@ Section Properties.
     (s: St)
   :
     conf_state q = inl s ->
-    1 + conf_buf_len q = size' (interp a) (conf_state q) ->
+    (1 + conf_buf_len q = size' (interp a) (conf_state q))%N ->
     List.In (conf_state (step q b))
             (possible_next_states _ _ _ (t_states a s)).
   Proof.
-    intros.
+  Admitted.
+    (* intros.
     rewrite conf_state_step_transition with (Heq := H0).
     destruct (conf_state q); [|discriminate].
     autorewrite with update'.
@@ -547,7 +545,7 @@ Section Properties.
           -- rewrite H1 at 2.
              apply List.in_eq.
           -- now repeat apply List.in_cons.
-  Qed.
+  Qed. *)
 
   Lemma conf_state_follow_transition_syntactic
     (q: configuration (interp a))
@@ -555,7 +553,7 @@ Section Properties.
     (s: St)
   :
     conf_state q = inl s ->
-    length bs + conf_buf_len q = size' (interp a) (conf_state q) ->
+    ((N.of_nat (length bs)) + conf_buf_len q = size' (interp a) (conf_state q))%N ->
     List.In (conf_state (follow q bs))
             (possible_next_states _ _ _ (t_states a s)).
   Proof.
@@ -568,9 +566,15 @@ Section Properties.
         now apply conf_state_step_transition_syntactic.
       + rewrite follow_equation_2.
         apply IHbs.
-        * rewrite conf_state_step_fill; auto; Lia.lia.
-        * rewrite conf_buf_len_step_fill; try Lia.lia.
-          rewrite conf_state_step_fill; Lia.lia.
+        * rewrite conf_state_step_fill; auto. 
+          destruct (conf_buf_len q); simpl; Lia.lia.
+        * rewrite conf_buf_len_step_fill; 
+          try now (
+            destruct (conf_buf_len q); simpl; Lia.lia
+          ).
+          rewrite conf_state_step_fill; try now (
+            destruct (conf_buf_len q); simpl; Lia.lia
+          ).
   Qed.
 
 End Properties.

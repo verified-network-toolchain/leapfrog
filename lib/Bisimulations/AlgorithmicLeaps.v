@@ -7,6 +7,11 @@ Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.Relations.
 Require Import Leapfrog.Bisimulations.Leaps.
 
+
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Section AlgorithmicLeaps.
   Variable (a: p4automaton).
   Notation conf := (configuration a).
@@ -37,7 +42,7 @@ Section AlgorithmicLeaps.
         (forall q1 q2,
             ⟦W⟧ q1 q2 ->
             (forall bs,
-                length bs = Leaps.leap_size _ q1 q2 ->
+                (N.of_nat (length bs)) = Leaps.leap_size _ q1 q2 ->
                 C (follow q1 bs) (follow q2 bs))) ->
         R ⇝ (C :: T) q1 q2
   where "R ⇝ S" := (pre_bisimulation R S).

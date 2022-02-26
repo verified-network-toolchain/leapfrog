@@ -10,6 +10,10 @@ Require Import MirrorSolve.FirstOrder.
 Require Import MirrorSolve.HLists.
 Import HListNotations.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Set Universe Polymorphism.
 
 Section CompileConfRelSimplified.
@@ -23,7 +27,7 @@ Section CompileConfRelSimplified.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
@@ -102,11 +106,11 @@ Section CompileConfRelSimplified.
 
   Equations compile_bit_expr
             {c: bctx}
-            (b1 b2: nat)
+            (b1 b2: N)
             (e: bit_expr Hdr c)
     : tm (sig Hdr_sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) (be_sort b1 b2 e) :=
     { compile_bit_expr b1 b2 (BELit _ _ l) :=
-        TFun (sig Hdr_sz) (BitsLit _ (List.length l) (Ntuple.l2t l)) hnil;
+        TFun (sig Hdr_sz) (BitsLit _ (Ntuple.l2t l)) hnil;
       compile_bit_expr b1 b2 (BEBuf _ _ Left) :=
         TVar (weaken_var _ (var_buf1 b1 b2));
       compile_bit_expr b1 b2 (BEBuf _ _ Right) :=
@@ -122,15 +126,16 @@ Section CompileConfRelSimplified.
       compile_bit_expr b1 b2 (BESlice e hi lo) :=
         TFun (sig Hdr_sz) (Slice _ _ hi lo)
              (compile_bit_expr b1 b2 e ::: hnil);
-      compile_bit_expr b1 b2 (BEConcat e1 e2) :=
-      simplify_concat_zero (
-        TFun (sig Hdr_sz) (Concat _ _ _)
+      compile_bit_expr b1 b2 (BEConcat e1 e2) := 
+      simplify_concat_zero a 
+        (TFun (sig Hdr_sz) (Concat _ _ _)
              (compile_bit_expr b1 b2 e1 :::
-              compile_bit_expr b1 b2 e2 ::: hnil)) }.
+              compile_bit_expr b1 b2 e2 ::: hnil)) 
+      }.
 
   Equations compile_store_rel
             {c: bctx}
-            (b1 b2: nat)
+            (b1 b2: N)
             (r: store_rel Hdr c)
             : fm (sig Hdr_sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) :=
     { compile_store_rel b1 b2 BRTrue := FTrue;
@@ -139,8 +144,8 @@ Section CompileConfRelSimplified.
         match eq_dec (be_size Hdr_sz b1 b2 e1) (be_size Hdr_sz b1 b2 e2) with
         | left Heq =>
           FEq (eq_rect _ (fun n => tm (sig Hdr_sz) _ (Bits n))
-                       (simplify_concat_zero (compile_bit_expr b1 b2 e1)) _ Heq)
-              (simplify_concat_zero (compile_bit_expr b1 b2 e2))
+                       (simplify_concat_zero a (compile_bit_expr b1 b2 e1)) _ Heq)
+              (simplify_concat_zero a (compile_bit_expr b1 b2 e2))
         | right _ => FFalse
         end;
       compile_store_rel b1 b2 (BRAnd r1 r2) :=
@@ -155,7 +160,7 @@ Section CompileConfRelSimplified.
     }.
 
   Definition compile_simplified_conf_rel
-    (b1 b2: nat)
+    (b1 b2: N)
     (r: simplified_conf_rel Hdr)
     : fm (sig Hdr_sz) (outer_ctx b1 b2)
   :=
@@ -165,7 +170,7 @@ Section CompileConfRelSimplified.
     quantify _ sr.
 
   Definition compile_simplified_crel
-    (b1 b2: nat)
+    (b1 b2: N)
     (R: simplified_crel Hdr)
     : fm (sig Hdr_sz) (outer_ctx b1 b2) :=
     List.fold_right (fun r f =>

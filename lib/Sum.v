@@ -6,6 +6,10 @@ Require Import MirrorSolve.HLists.
 
 Open Scope list_scope.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Section Sum.
   Set Implicit Arguments.
 
@@ -20,12 +24,12 @@ Section Sum.
 
   (* Header identifiers. *)
   Variable (Hdr1: Type).
-  Variable (Hdr1_sz : Hdr1 -> nat).
+  Variable (Hdr1_sz : Hdr1 -> N).
   Context `{Hdr1_eq_dec: EquivDec.EqDec Hdr1 eq}.
   Context `{Hdr1_finite: @Finite Hdr1 _ Hdr1_eq_dec}.
 
   Variable (Hdr2: Type).
-  Variable (Hdr2_sz : Hdr2 -> nat).
+  Variable (Hdr2_sz : Hdr2 -> N).
   Context `{Hdr2_eq_dec: EquivDec.EqDec Hdr2 eq}.
   Context `{Hdr2_finite: @Finite Hdr2 _ Hdr2_eq_dec}.
 
@@ -48,7 +52,7 @@ Section Sum.
     | _ => opaque_eq
     end.
 
-  Definition Hdr_sz (h: Hdr) : nat :=
+  Definition Hdr_sz (h: Hdr) : N :=
     match h with
     | inl h => Hdr1_sz h
     | inr h => Hdr2_sz h

@@ -9,6 +9,11 @@ Require Leapfrog.WP.
 
 Require Import Coq.Classes.EquivDec.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
+
 Section WPLeaps.
 
   (* State identifiers. *)
@@ -26,7 +31,7 @@ Section WPLeaps.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
@@ -84,16 +89,16 @@ Section WPLeaps.
   Definition not_accept1 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true; st_buf_len := 0 |};
-                               cs_st2 := {| st_state := inl s;    st_buf_len := n |} |};
+                               cs_st2 := {| st_state := inl s;    st_buf_len := (N.of_nat n) |} |};
                    cr_rel := BRFalse _ BCEmp |})
-             (range (P4A.size a s)).
+             (range (N.to_nat (P4A.size a s))).
 
   Definition not_accept2 (a: P4A.t St Hdr_sz) (s: St) : crel a :=
     List.map (fun n =>
-                {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := n |};
+                {| cr_st := {| cs_st1 := {| st_state := inl s;    st_buf_len := (N.of_nat n) |};
                                cs_st2 := {| st_state := inr true; st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
-             (range (P4A.size a s)).
+             (range (N.to_nat (P4A.size a s))).
 
   Definition init_rel (a: P4A.t St Hdr_sz) : crel a :=
     List.concat (List.map (not_accept1 a) (enum St) ++
@@ -101,17 +106,17 @@ Section WPLeaps.
 
   Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
-                {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
+                {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := (N.of_nat n) |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
                    cr_rel := BRFalse _ BCEmp |})
-             (range (P4A.size a (inl s))).
+             (range (N.to_nat (P4A.size a (inl s)))).
 
   Definition sum_not_accept2 (a: P4A.t (St1 + St2) Hdr_sz) (s: St2) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
-                               cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
+                               cs_st2 := {| st_state := inl (inr s); st_buf_len := (N.of_nat n) |} |};
                    cr_rel := BRFalse _ BCEmp |})
-             (range (P4A.size a (inr s))).
+             (range (N.to_nat (P4A.size a (inr s)))).
 
   Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum St1)
@@ -189,3 +194,6 @@ Arguments ctopbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
 Arguments topbdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
 Arguments safe_wp_1bit {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
 Arguments wp_bdd {St1 St2 Hdr equiv2 Hdr_eq_dec Hdr_finite Hdr_sz}.
+Arguments sum_not_accept1 {_ _ _ _ _ _ _} _ _.
+Arguments sum_not_accept2 {_ _ _ _ _ _ _} _ _.
+

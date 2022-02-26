@@ -6,32 +6,44 @@
  (modules
   (:standard
    \
+   Bisimulations.LeapsProofs
+   Bisimulations.WPLeapsProofs
+   Bisimulations.AlgorithmicLeapsProofs
+   WPProofs
+   SumProofs
    Benchmarks.Benchmarking
+    Benchmarks.TCAMSimple
    Benchmarks.TCAMSimpleProof
    Benchmarks.SimpleByteProof
    Benchmarks.NegativeProof
+   Benchmarks.SelfComparison
    Benchmarks.SelfComparisonProof
+   Benchmarks.Enterprise
    Benchmarks.EnterpriseSelfProof
+   Benchmarks.DataCenter
    Benchmarks.DatacenterSelfProof
+   Benchmarks.Edge
    Benchmarks.EdgeSelfProof
+   Benchmarks.ServiceProvider
    Benchmarks.ServiceproviderSelfProof
    Benchmarks.ServiceProviderTransProof
    Benchmarks.EdgeTransProof
    Benchmarks.SimpleBucketProof
+   Benchmarks.IPOptions
    Benchmarks.IPOptionsProof
    Benchmarks.IPOptions2Proof
    Benchmarks.IPOptions3Proof
    Benchmarks.IPOptionsProofSmall
-    ; Benchmarks.BabyIP
+   Benchmarks.BabyIP
    Benchmarks.BabyIPProof
    Benchmarks.BabyIPProofSimplified
-    ; Benchmarks.Ethernet
+   Benchmarks.Ethernet
    Benchmarks.EthernetProof
-    ; Benchmarks.IPFilter
+   Benchmarks.IPFilter
    Benchmarks.IPFilterProof
    Benchmarks.IncPostfilter ; delete
    Benchmarks.LoopFooter ; delete
-   ;  Benchmarks.MPLSVectorized
+   Benchmarks.MPLSVectorized
    Benchmarks.MPLSVectorizedProof
    Benchmarks.MPLSVectorizedSmall
    Benchmarks.MPLSVectorizedSmallProof
@@ -45,12 +57,18 @@
    Benchmarks.SimpleLoopProof
    Benchmarks.SimpleSplit ; delete
    Benchmarks.SimpleSplitProof
-    ; Benchmarks.SmallFilter
+   Benchmarks.SmallFilter
    Benchmarks.SmallFilterProof
+   Benchmarks.SloppyStrict
    Benchmarks.SloppyStrictProof
+   Benchmarks.Timestamp
    Benchmarks.TimestampSmallProof
    Benchmarks.TimestampSingleProof
    Benchmarks.TimestampSingleZeroProof
    Benchmarks.UnrollInline ; delete
+
+   ; definitely delete these
+   Benchmarks.TLVSmall
+   Benchmarks.SimpleParsers
    )))
 (include_subdirs qualified)

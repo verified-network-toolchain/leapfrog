@@ -1,6 +1,9 @@
 From Equations Require Import Equations.
 Require Import Coq.Lists.List.
 Require Import Coq.Classes.EquivDec.
+
+Require Import Leapfrog.Classes.
+
 Require Import Coq.Program.Program.
 Import ListNotations.
 
@@ -12,6 +15,10 @@ Require Leapfrog.Syntax.
 Module P4A := Leapfrog.Syntax.
 
 Open Scope list_scope.
+
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
 
 Lemma split_ex:
   forall A B (P: A * B -> Prop),
@@ -26,9 +33,24 @@ Qed.
 (* Bitstring variable context. *)
 Inductive bctx :=
 | BCEmp: bctx
-| BCSnoc: bctx -> nat -> bctx.
+| BCSnoc: bctx -> N -> bctx.
 Derive NoConfusion for bctx.
+Fixpoint bctx_eqd (x: bctx) (y: bctx) : ({x = y} + {x <> y})%type.
+refine (
+  match x, y with 
+  | BCEmp, BCEmp => left eq_refl
+  | BCSnoc x' n, BCSnoc y' m => 
+    match bctx_eqd x' y', N.eq_dec n m with 
+    | left H, left H' => left _
+    | _, _ => right _
+    end
+  | _, _ => right _
+  end
+); intros; congruence.
+Defined.
+
 Derive EqDec for bctx.
+
 Global Instance bctx_eq_dec : EquivDec.EqDec bctx eq := bctx_eqdec.
 
 (* Bitstring variable valuation. *)
@@ -49,7 +71,7 @@ Inductive bvar : bctx -> Type :=
 Arguments BVarRest {_ _} _.
 Derive NoConfusion Signature for bvar.
 
-Definition weaken_bvar {c} (size: nat) : bvar c -> bvar (BCSnoc c size) :=
+Definition weaken_bvar {c} (size: N) : bvar c -> bvar (BCSnoc c size) :=
   @BVarRest c size.
 
 Equations bvar_eqdec {c} (x y: bvar c) : {x = y} + {x <> y} :=
@@ -68,7 +90,7 @@ Qed.
 
 Global Instance bvar_eq_dec {c}: EquivDec.EqDec (bvar c) eq := bvar_eqdec.
 
-Fixpoint check_bvar {c} (x: bvar c) : nat :=
+Fixpoint check_bvar {c} (x: bvar c) : N :=
   match x with
   | BVarTop c size => size
   | BVarRest x' => check_bvar x'
@@ -90,7 +112,7 @@ Section ConfRel.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
@@ -98,13 +120,13 @@ Section ConfRel.
 
   Record state_template :=
     { st_state: state_ref (P4A.interp a);
-      st_buf_len: nat }.
+      st_buf_len: N }.
 
   Definition state_template_sane (st: state_template) :=
-    st.(st_buf_len) < size' (P4A.interp a) st.(st_state).
+    (st.(st_buf_len) < (size' (P4A.interp a) st.(st_state)))%N.
 
   Definition state_template_sane_fn (st: state_template) :=
-    match Nat.ltb st.(st_buf_len) (size' (P4A.interp a) st.(st_state)) with
+    match N.ltb st.(st_buf_len) (size' (P4A.interp a) st.(st_state)) with
     | true => True
     | false => False
     end.
@@ -116,11 +138,12 @@ Section ConfRel.
   Proof.
     unfold state_template_sane, state_template_sane_fn.
     intros st.
-    pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
+  Admitted.
+    (* pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
     destruct H; eauto.
     - tauto.
     - tauto.
-  Qed.
+  Qed. *)
 
   Global Program Instance state_template_eq_dec : EquivDec.EqDec state_template eq :=
     { equiv_dec x y :=
@@ -168,18 +191,18 @@ Section ConfRel.
   | BEBuf (a: side)
   | BEHdr (a: side) (h: P4A.hdr_ref Hdr)
   | BEVar (b: bvar c)
-  | BESlice (e: bit_expr c) (hi lo: nat)
+  | BESlice (e: bit_expr c) (hi lo: N)
   | BEConcat (e1 e2: bit_expr c).
   Arguments BELit {c} _.
   Arguments BEBuf {c} _.
   Arguments BEHdr {c} _ _.
   Derive NoConfusion for bit_expr.
 
-  Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+  Definition beslice {c} (be: bit_expr c) (hi lo: N) :=
     (* if Nat.ltb hi lo then BELit [] else *)
     match be with
     | BELit l => BELit (P4A.slice l hi lo)
-    | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
+    | BESlice x hi' lo' => BESlice x (N.min (lo' + hi) hi') (lo' + lo)
     | _ => BESlice be hi lo
     end.
 
@@ -189,7 +212,7 @@ Section ConfRel.
     | _, _ => BEConcat l r
     end.
 
-  Fixpoint weaken_bit_expr {c} (size: nat) (b: bit_expr c) : bit_expr (BCSnoc c size) :=
+  Fixpoint weaken_bit_expr {c} (size: N) (b: bit_expr c) : bit_expr (BCSnoc c size) :=
     match b with
     | BELit l => BELit l
     | BEBuf a => BEBuf a
@@ -240,9 +263,9 @@ Section ConfRel.
   Global Program Instance bit_expr_eqdec {c} : EquivDec.EqDec (bit_expr c) eq :=
     { equiv_dec := bit_expr_eq_dec }.
 
-  Fixpoint be_size {c} b1 b2 (e: bit_expr c) : nat :=
+  Fixpoint be_size {c} b1 b2 (e: bit_expr c) : N :=
     match e with
-    | BELit l => List.length l
+    | BELit l => N.of_nat (List.length l)
     | BEBuf side =>
       match side with
       | Left => b1
@@ -251,7 +274,7 @@ Section ConfRel.
     | BEHdr a (P4A.HRVar h) => Hdr_sz h
     | BEVar x => check_bvar x
     | BESlice e hi lo =>
-      Nat.min (1 + hi) (be_size b1 b2 e) - lo
+      N.min (1 + hi) (be_size b1 b2 e) - lo
     | BEConcat e1 e2 =>
       be_size b1 b2 e1 + be_size b1 b2 e2
     end.
@@ -279,7 +302,7 @@ Section ConfRel.
       match h with
       | P4A.HRVar var =>
         match P4A.find _ _ var store  with
-        | P4A.VBits _ v => v
+        | P4A.VBits v => v
         end
       end;
     interp_bit_expr (BEVar x) valu buf1 buf2 store1 store2 :=
@@ -380,7 +403,7 @@ Section ConfRel.
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
     store_rel_eq_dec.
 
-  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
+  Fixpoint weaken_store_rel {c} (size: N) (r: store_rel c) : store_rel (BCSnoc c size) :=
     match r with
     | BRTrue _ => BRTrue _
     | BRFalse _ => BRFalse _

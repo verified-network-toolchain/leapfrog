@@ -16,6 +16,10 @@ Import List.ListNotations.
 
 Require Import Leapfrog.Utils.FunctionalFP.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -41,12 +45,12 @@ Section BisimChecker.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Notation St := (St1 + St2)%type.
   Variable (a: P4A.t St Hdr_sz).
 
-  Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
+  (* Definition sum_not_accept1 (a: P4A.t (St1 + St2) Hdr_sz) (s: St1) : crel a :=
     List.map (fun n =>
                 {| cr_st := {| cs_st1 := {| st_state := inl (inl s); st_buf_len := n |};
                                cs_st2 := {| st_state := inr true;    st_buf_len := 0 |} |};
@@ -58,8 +62,7 @@ Section BisimChecker.
                 {| cr_st := {| cs_st1 := {| st_state := inr true;    st_buf_len := 0 |};
                                cs_st2 := {| st_state := inl (inr s); st_buf_len := n |} |};
                    cr_rel := BRFalse _ BCEmp |})
-             (range (P4A.size a (inr s))).
-
+             (range (P4A.size a (inr s))). *)
   Definition sum_init_rel (a: P4A.t (St1 + St2) Hdr_sz) : crel a :=
     List.concat (List.map (sum_not_accept1 a) (enum St1)
                           ++ List.map (sum_not_accept2 a) (enum St2)).
@@ -156,7 +159,7 @@ Section BisimChecker.
           (VEmp _ _)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
-                (FirstOrderConfRelSimplified.simplify_concat_zero_fm
+                (FirstOrderConfRelSimplified.simplify_concat_zero_fm a
                     (compile_simplified_entailment (simplify_entailment E)))))).
   Proof.
     
@@ -166,8 +169,8 @@ Section BisimChecker.
           (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec);
     erewrite compile_simplified_entailment_correct;
     erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-    erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-    erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;    
+    erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|typeclasses eauto].
+    erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; [|typeclasses eauto].
     eapply iff_refl.
   Qed.
 

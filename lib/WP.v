@@ -7,6 +7,10 @@ Module P4A := Leapfrog.Syntax.
 Require Import Leapfrog.ConfRel.
 Import ListNotations.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Section WP.
   Set Implicit Arguments.
 
@@ -25,7 +29,7 @@ Section WP.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
   Variable (reachable_states: list (state_template a * state_template a)).
@@ -57,7 +61,7 @@ Section WP.
 
   Definition leap_kind (pred cur: state_template a) : lkind :=
     match cur.(st_buf_len) with
-    | 0 => Jump
+    | 0%N => Jump
     | _ => Read
     end.
 
@@ -71,17 +75,17 @@ Section WP.
 
   Definition val_to_bit_expr {c n} (value: P4A.v n) : bit_expr Hdr c :=
     match value with
-    | P4A.VBits _ bs => BELit _ c (Ntuple.t2l bs)
+    | P4A.VBits bs => BELit _ c (Ntuple.t2l bs)
     end.
 
-  Fixpoint wp_op' {c} (s: side) (o: P4A.op Hdr_sz) : nat * store_rel Hdr c -> nat * store_rel Hdr c :=
+  Fixpoint wp_op' {c} (s: side) (o: P4A.op Hdr_sz) : N * store_rel Hdr c -> N * store_rel Hdr c :=
     fun '(buf_hi_idx, phi) =>
       match o with
       | P4A.OpNil _ => (buf_hi_idx, phi)
       | P4A.OpSeq o1 o2 =>
         wp_op' s o1 (wp_op' s o2 (buf_hi_idx, phi))
       | P4A.OpExtract _ hdr =>
-        let new_idx := buf_hi_idx - Hdr_sz hdr in
+        let new_idx := (buf_hi_idx - Hdr_sz hdr)%N in
         let slice := beslice (BEBuf _ _ s) (buf_hi_idx - 1) new_idx in
         (new_idx, sr_subst phi slice (BEHdr _ s (P4A.HRVar hdr)))
       | P4A.OpAsgn lhs rhs =>
@@ -176,7 +180,7 @@ Section WP.
 
   Definition wp_pred_pair
              (phi: conf_rel a)
-             (preds: nat * (state_template a * state_template a))
+             (preds: N * (state_template a * state_template a))
     : conf_rel a :=
     let '(size, (prev_l, prev_r)) := preds in
     let phi_rel := phi.(cr_rel) in

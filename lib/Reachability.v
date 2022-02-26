@@ -10,6 +10,11 @@ Require Import Leapfrog.ConfRel.
 
 Require Import Leapfrog.Utils.FunctionalFP.
 
+
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Set Implicit Arguments.
 Section ReachablePairs.
 
@@ -28,7 +33,7 @@ Section ReachablePairs.
   Variable (Hdr: Type).
   Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
   Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
+  Variable (Hdr_sz: Hdr -> N).
 
   Variable (a: P4A.t St Hdr_sz).
 
@@ -68,13 +73,13 @@ Section ReachablePairs.
   Definition state_pairs : Type :=
     list state_pair.
 
-  Definition reads_left (s: state_pair) : nat:=
+  Definition reads_left (s: state_pair) : N :=
     let '(s1, s2) := s in
     let len1 := s1.(st_buf_len) in
     let len2 := s2.(st_buf_len) in
     match s1.(st_state), s2.(st_state) with
     | inl s1, inl s2 =>
-      Nat.min (P4A.size a s1 - len1)
+      N.min (P4A.size a s1 - len1)
               (P4A.size a s2 - len2)
     | inl s1, inr _ =>
       (P4A.size a s1 - len1)
@@ -84,9 +89,9 @@ Section ReachablePairs.
     end.
 
   Lemma reads_left_lower_bound (q1 q2: conf):
-    1 <= reads_left
+    (1 <= reads_left
         (conf_to_state_template q1,
-         conf_to_state_template q2).
+         conf_to_state_template q2))%N.
   Proof.
     unfold reads_left, configuration_room_left; simpl.
     pose proof (conf_buf_sane q1).
@@ -105,9 +110,9 @@ Section ReachablePairs.
 
   Lemma reads_left_upper_bound (q1 q2: conf) (s: St):
     conf_state q1 = inl s ->
-    reads_left
+    (reads_left
         (conf_to_state_template q1,
-         conf_to_state_template q2) <= configuration_room_left q1.
+         conf_to_state_template q2) <= configuration_room_left q1)%N.
   Proof.
     intros; unfold reads_left, configuration_room_left; simpl.
     rewrite H; autorewrite with size'; simpl.
@@ -118,15 +123,15 @@ Section ReachablePairs.
     match s with
     | inl s =>
       let st := P4A.t_states a s in
-      if Compare_dec.le_gt_dec (size a s) (t1.(st_buf_len) + steps)
+      if Compare_dec.le_gt_dec (N.to_nat (size a s)) ((N.to_nat t1.(st_buf_len)) + steps)
       then List.map (fun r => {| st_state := r; st_buf_len := 0 |}) (possible_next_states _ _ _ st)
-      else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + steps |}]
+      else [{| st_state := t1.(st_state); st_buf_len := t1.(st_buf_len) + N.of_nat steps |}]
     | inr b => [{| st_state := inr false; st_buf_len := 0 |}]
     end.
 
   Lemma advance_correct_active q bs s:
     conf_state (a := interp a) q = inl s ->
-    1 <= length bs <= configuration_room_left q ->
+    (1 <= (N.of_nat (length bs)) <= configuration_room_left q)%N ->
     List.In (conf_to_state_template (follow q bs))
       (advance (length bs)
         (conf_to_state_template q)
@@ -137,13 +142,13 @@ Section ReachablePairs.
     unfold advance; simpl; rewrite H in *.
     autorewrite with size' in H0; simpl in H0.
     destruct (Compare_dec.le_gt_dec _ _).
-    - assert (P4A.size a s = conf_buf_len q + length bs) by Lia.lia.
+    - assert ((P4A.size a s = conf_buf_len q + (N.of_nat (length bs))) %N) by lia.
       unfold conf_to_state_template.
       apply List.in_map_iff; eexists; split.
       + rewrite conf_buf_len_follow_transition; [reflexivity|].
         rewrite H; now autorewrite with size'.
       + simpl.
-        apply conf_state_follow_transition_syntactic; auto.
+        eapply conf_state_follow_transition_syntactic; auto.
         rewrite H.
         autorewrite with size'.
         simpl.
@@ -153,10 +158,15 @@ Section ReachablePairs.
       f_equal.
       + rewrite conf_state_follow_fill; auto.
         rewrite H.
-        now autorewrite with size'.
+        autorewrite with size'.
+        unfold P4A.P4A.size.
+        simpl.
+        lia.
       + rewrite conf_buf_len_follow_fill; auto.
         rewrite H.
-        now autorewrite with size'.
+        autorewrite with size'.
+        unfold P4A.P4A.size.
+        simpl. lia.
   Qed.
 
   Lemma advance_correct_passive q1 bs b:
@@ -189,7 +199,7 @@ Section ReachablePairs.
 
   Lemma advance_correct q1 bs:
     (forall s, conf_state q1 = inl s ->
-               length bs <= configuration_room_left q1) ->
+               (N.of_nat (length bs)) <= configuration_room_left q1)%N ->
     1 <= length bs ->
     List.In (conf_to_state_template (follow q1 bs))
       (advance (length bs)
@@ -199,6 +209,7 @@ Section ReachablePairs.
     intros.
     destruct (conf_state q1) eqn:?.
     - apply advance_correct_active with (s := s); intuition.
+      lia.
     - now apply advance_correct_passive with (b := b).
   Qed.
 
@@ -213,11 +224,11 @@ Section ReachablePairs.
 
   Lemma advance_correct':
     forall prev1 prev2 succ1 c1 c2 bs,
-      length bs = reads_left (prev1, prev2) ->
+      (N.of_nat (length bs)) = reads_left (prev1, prev2) ->
       interp_state_template prev1 c1 ->
       interp_state_template prev2 c2 ->
       interp_state_template succ1 (follow c1 bs) ->
-      List.In succ1 (advance (reads_left (prev1, prev2))
+      List.In succ1 (advance (N.to_nat (reads_left (prev1, prev2)))
                              prev1
                              (st_state prev1)).
   Proof.
@@ -231,22 +242,26 @@ Section ReachablePairs.
       <- interp_state_template_definite with (t := prev1) (q := c1),
       <- interp_state_template_definite with (t := prev2) (q := c2)
       in H by auto.
-    apply advance_correct; setoid_rewrite H.
+    assert (N.to_nat (N.of_nat (length bs)) = length bs) by eapply Nat2N.id.
+    
+    erewrite H3.
+    apply advance_correct; try setoid_rewrite H.
     - intros.
       now apply reads_left_upper_bound with (s := s).
-    - apply reads_left_lower_bound.
+    - pose proof reads_left_lower_bound c1 c2.
+      lia.
   Qed.
 
-  Definition reachable_pair_step' (r0: state_pair) : nat * state_pairs :=
+  Definition reachable_pair_step' (r0: state_pair) : N * state_pairs :=
     let '(t1, t2) := r0 in
     let s1 := t1.(st_state) in
     let s2 := t2.(st_state) in
     let steps := reads_left r0 in
-    (steps, List.list_prod (advance steps t1 s1)
-                           (advance steps t2 s2)).
+    (steps, List.list_prod (advance (N.to_nat steps) t1 s1)
+                           (advance (N.to_nat steps) t2 s2)).
 
   Definition reaches (cur prev: state_template a * state_template a)
-    : list (nat * (state_template a * state_template a)) :=
+    : list (N * (state_template a * state_template a)) :=
     let '(n, successors) := reachable_pair_step' prev in
     if List.In_dec (state_pair_eq_dec) cur successors
     then [(n, prev)]
@@ -307,12 +322,12 @@ Section ReachablePairs.
 
   Lemma follow_in_reaches:
     forall bs prev succ c1 c2,
-      length bs = reads_left prev ->
+      (N.of_nat (length bs)) = reads_left prev ->
       interp_state_template (fst prev) c1 ->
       interp_state_template (snd prev) c2 ->
       interp_state_template (fst succ) (follow c1 bs) ->
       interp_state_template (snd succ) (follow c2 bs) ->
-      List.In (length bs, prev) (reaches succ prev).
+      List.In (N.of_nat (length bs), prev) (reaches succ prev).
   Proof.
     intros.
     unfold reaches.
@@ -659,14 +674,14 @@ Section ReachablePairs.
     [{| st_state := inr false; st_buf_len := 0 |};
      {| st_state := inr true; st_buf_len := 0 |}] ++
     List.flat_map (fun s =>
-      List.map (fun n => {| st_state := inl s; st_buf_len := n |})
-               (List.seq 0 (size a s))
+      List.map (fun n => {| st_state := inl s; st_buf_len := N.of_nat n |})
+               (List.seq 0 (N.to_nat (size a s)))
       ) (List.map inl (enum St1) ++ List.map inr (enum St2)).
 
   Definition valid_state_template (t: state_template a) :=
     match st_state t with
-    | inr _ => st_buf_len t = 0
-    | inl s => st_buf_len t < size a s
+    | inr _ => st_buf_len t = 0%N
+    | inl s => (st_buf_len t < size a s)%N
     end.
 
   Lemma valid_state_templates_accurate:
@@ -690,7 +705,8 @@ Section ReachablePairs.
         split; auto;
         apply elem_of_enum.
       + rewrite List.in_map_iff.
-        exists st_buf_len.
+        exists (N.to_nat st_buf_len).
+        erewrite N2Nat.id.
         split; auto.
         apply List.in_seq.
         lia.
@@ -713,7 +729,12 @@ Section ReachablePairs.
         destruct H0 as [? [? ?]].
         rewrite <- H0; simpl.
         destruct x; auto.
-        apply a.
+        assert ((size a s0 ?= 0 = Gt)%N) by eapply a.
+
+        unfold "<"%N.
+        erewrite N.compare_antisym.
+        erewrite H2.
+        exact eq_refl.
       + destruct H0; try contradiction.
         rewrite <- H0.
         simpl.

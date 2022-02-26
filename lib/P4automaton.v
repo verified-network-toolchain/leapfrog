@@ -8,13 +8,17 @@ Require Import Leapfrog.Relations.
 Require Import Leapfrog.Ntuple.
 Require Import Leapfrog.NtupleProofs.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Record p4automaton := MkP4Automaton {
   store: Type;
   states: Type;
-  size: states -> nat;
+  size: states -> N;
   update: forall (S: states), n_tuple bool (size S) -> store -> store;
   transitions: states -> store -> states + bool;
-  cap: forall s, 0 < size s;
+  cap: forall s, (0 < size s)%N;
 }.
 
 Definition state_ref (a: p4automaton) : Type := states a + bool.
@@ -22,7 +26,7 @@ Definition state_ref (a: p4automaton) : Type := states a + bool.
 Equations size'
   (a: p4automaton)
   (s: state_ref a)
-  : nat := {
+  : N := {
   size' a (inl s) := size a s;
   size' a (inr _) := 1
 }.
@@ -46,18 +50,18 @@ Equations transitions'
   transitions' a (inr b) st := inr false
 }.
 
-Lemma cap' (a: p4automaton): forall s, 0 < size' a s.
+Lemma cap' (a: p4automaton): forall s, (0 < size' a s)%N.
 Proof.
-  destruct s; auto.
-  rewrite size'_equation_1.
-  apply cap.
+  destruct s; autorewrite with size'.
+  - eapply cap.
+  - econstructor.
 Qed.
 
 Record configuration (a: p4automaton) := MkConfiguration {
   conf_state: state_ref a;
-  conf_buf_len: nat;
+  conf_buf_len: N;
   conf_buf: n_tuple bool conf_buf_len;
-  conf_buf_sane: conf_buf_len < size' a conf_state;
+  conf_buf_sane: (conf_buf_len < size' a conf_state)%N;
   conf_store: store a
 }.
 
@@ -74,11 +78,11 @@ Definition update_conf_store {a} (v: store a) (c: configuration a) : configurati
      conf_buf_sane := conf_buf_sane c;
      conf_store := v |}.
 
-Definition configuration_room_left {a: p4automaton} (c: configuration a) :=
+Definition configuration_room_left {a: p4automaton} (c: configuration a) : N :=
   size' a c.(conf_state) - c.(conf_buf_len).
 
 Definition configuration_has_room {a: p4automaton} (c: configuration a) :=
-  c.(conf_buf_len) + 1 < size' a c.(conf_state).
+  (c.(conf_buf_len) + 1 < size' a c.(conf_state))%N.
 
 Definition initial_configuration
   {a: p4automaton}
@@ -87,7 +91,7 @@ Definition initial_configuration
 := {|
   conf_state := inl state;
   conf_buf_len := 0;
-  conf_buf := tt : n_tuple bool 0;
+  conf_buf := n_tuple_emp;
   conf_buf_sane := cap a state;
   conf_store := store
 |}.
@@ -98,7 +102,7 @@ Lemma conf_buf_len_done
   (b: bool)
 :
   conf_state q = inr b ->
-  conf_buf_len q = 0.
+  conf_buf_len q = 0%N.
 Proof.
   intros.
   destruct q.
@@ -108,33 +112,38 @@ Proof.
   lia.
 Qed.
 
-Lemma squeeze {n m}: n < m -> m <= 1+n -> 1+n = m.
+Lemma squeeze {n m}: (n < m -> m <= n+1 -> n+1 = m)%N.
 Proof.
   lia.
 Qed.
 
+Ltac obl_tac := unfold complement, Equivalence.equiv; Tactics.program_simpl.
+
+(* Local Obligation Tactic := intros. *)
+
+Check N.eq_dec.
 Definition step
   {a: p4automaton}
   (c: configuration a)
   (b: bool)
   : configuration a :=
-  let buf_padded : n_tuple bool (1 + conf_buf_len c) := (conf_buf c, b) in
-  match le_lt_dec (size' a (conf_state c)) (1 + conf_buf_len c) with
-  | left Hle =>
-    let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) Hle) in
+  let buf_padded : n_tuple bool (conf_buf_len c + 1) := n_tuple_snoc (conf_buf c) b in
+  match (N.eq_dec (size' a (conf_state c)) (conf_buf_len c + 1))%N with
+  | left H =>
+    let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) ltac:(lia)) in
     let conf_store' := update' a (conf_state c) buf_full (conf_store c) in
     let conf_state' := transitions' a (conf_state c) conf_store' in
     {|
       conf_state := conf_state';
-      conf_buf := tt : n_tuple bool 0;
+      conf_buf := n_tuple_emp;
       conf_buf_sane := cap' _ conf_state';
       conf_store := conf_store';
     |}
-  | right conf_buf_sane' =>
+  | right H => 
     {|
       conf_state := conf_state c;
       conf_buf := buf_padded;
-      conf_buf_sane := conf_buf_sane';
+      conf_buf_sane := ltac:(destruct c; simpl in *; lia);
       conf_store := conf_store c;
     |}
   end.
@@ -149,8 +158,9 @@ Lemma conf_state_step_done
 Proof.
   intros.
   unfold step.
-  destruct (le_lt_dec _ _).
-  - cbn.
+  simpl.
+  destruct (N.eq_dec _ _); simpl.
+  - 
     match goal with
     | |- context [update' _ _ ?t _] =>
       generalize t; intros
@@ -158,22 +168,24 @@ Proof.
     destruct (conf_state q); [discriminate|].
     now autorewrite with transitions'.
   - exfalso.
-    rewrite H in l.
+    destruct q; simpl in *.
+    rewrite H in *.
     autorewrite with size' in *.
     lia.
 Qed.
+
+Ltac step_worker := intros; unfold step; destruct (N.eq_dec _ _); auto; lia.
 
 Lemma conf_state_step_fill
   {a: p4automaton}
   (q: configuration a)
   (b: bool)
 :
-  conf_buf_len q + 1 < size' a (conf_state q) ->
+  (conf_buf_len q + 1 < size' a (conf_state q)) % N ->
   conf_state (step q b) = conf_state q
 .
 Proof.
-  intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); auto; lia.
+  step_worker.
 Qed.
 
 Lemma conf_store_step_fill
@@ -181,12 +193,11 @@ Lemma conf_store_step_fill
   (q: configuration a)
   (b: bool)
 :
-  conf_buf_len q + 1 < size' a (conf_state q) ->
+  (conf_buf_len q + 1 < size' a (conf_state q))%N ->
   conf_store (step q b) = conf_store q
 .
 Proof.
-  intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); auto; lia.
+  step_worker.
 Qed.
 
 Lemma conf_buf_step_fill
@@ -194,11 +205,10 @@ Lemma conf_buf_step_fill
   (q: configuration a)
   (b: bool)
 :
-  conf_buf_len q + 1 < size' a (conf_state q) ->
-  JMeq (conf_buf (step q b)) ((conf_buf q, b): n_tuple bool (1+conf_buf_len q)).
+  (conf_buf_len q + 1 < size' a (conf_state q))%N ->
+  (conf_buf (step q b)) ~= (n_tuple_snoc (conf_buf q) b).
 Proof.
-  intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); auto; try lia.
+  step_worker.
 Qed.
 
 Lemma conf_buf_len_step_fill
@@ -206,12 +216,11 @@ Lemma conf_buf_len_step_fill
   (q: configuration a)
   (b: bool)
 :
-  conf_buf_len q + 1 < size' a (conf_state q) ->
-  conf_buf_len (step q b) = conf_buf_len q + 1
+  (conf_buf_len q + 1 < size' a (conf_state q))%N ->
+  (conf_buf_len (step q b) = conf_buf_len q + 1)%N
 .
 Proof.
-  intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); simpl; lia.
+  step_worker.
 Qed.
 
 Lemma conf_buf_len_step_transition
@@ -219,21 +228,20 @@ Lemma conf_buf_len_step_transition
   (q: configuration a)
   (b: bool)
 :
-  conf_buf_len q + 1 = size' a (conf_state q) ->
-  conf_buf_len (step q b) = 0
+  (conf_buf_len q + 1 = size' a (conf_state q))%N ->
+  (conf_buf_len (step q b) = 0)%N
 .
 Proof.
-  intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); simpl; lia.
+  step_worker.
 Qed.
 
 Lemma conf_state_step_transition
   {a: p4automaton}
   (q: configuration a)
   (b: bool)
-  (Heq: 1 + conf_buf_len q = size' a (conf_state q))
+  (Heq: (conf_buf_len q + 1 = size' a (conf_state q))%N)
 :
-  let buf' := (conf_buf q, b) in
+  let buf' := (n_tuple_snoc (conf_buf q) b) in
   let store' := update' a
                         (conf_state q)
                         (eq_rect _ _ buf' _ Heq)
@@ -241,10 +249,10 @@ Lemma conf_state_step_transition
   conf_state (step q b) = transitions' a (conf_state q) store'
 .
 Proof.
-  unfold step; destruct (Compare_dec.le_lt_dec _ _); [simpl|Lia.lia].
+  unfold step; destruct (N.eq_dec _ _); [simpl|Lia.lia].
   repeat f_equal.
   apply JMeq_eq.
-  destruct Heq, (squeeze (conf_buf_sane q) l).
+  destruct Heq, (squeeze (conf_buf_sane q) _).
   apply JMeq_refl.
 Qed.
 
@@ -266,19 +274,18 @@ Lemma conf_store_step_transition
   (b: bool)
 :
   forall full_buf: n_tuple bool (size' a (conf_state q)),
-    conf_buf_len q + 1 = size' a (conf_state q) ->
-    full_buf ~= (conf_buf q, b) ->
+    (conf_buf_len q + 1 = size' a (conf_state q))%N ->
+    full_buf ~= (n_tuple_snoc (conf_buf q) b) ->
     conf_store (step q b) = update' a (conf_state q) full_buf (conf_store q).
 Proof.
   intros; unfold step.
-  destruct (Compare_dec.le_lt_dec _ _); simpl; try lia.
+  destruct (N.eq_dec _ _); simpl; try lia.
   apply update'_congr; auto.
-  eapply JMeq_trans with (y:= rewrite_size (eq_sym (squeeze (conf_buf_sane q) l)) (conf_buf q, b)).
-  - unfold rewrite_size, eq_rect_r.
-    rewrite eq_sym_involutive.
-    reflexivity.
-  - rewrite H0.
-    eapply rewrite_size_jmeq.
+
+  destruct (squeeze _ _).
+  simpl.
+  eapply JMeq_sym.
+  auto.
 Qed.
 
 Equations follow
@@ -295,7 +302,7 @@ Lemma conf_state_follow_fill
   (q: configuration a)
   (bs: list bool)
 :
-  conf_buf_len q + length bs < size' a (conf_state q) ->
+  (conf_buf_len q + (N.of_nat (length bs)) < size' a (conf_state q))%N ->
   conf_state (follow q bs) = conf_state q
 .
 Proof.
@@ -313,7 +320,7 @@ Lemma conf_store_follow_fill
   (q: configuration a)
   (bs: list bool)
 :
-  conf_buf_len q + length bs < size' a (conf_state q) ->
+  (conf_buf_len q + (N.of_nat (length bs)) < size' a (conf_state q))%N ->
   conf_store (follow q bs) = conf_store q
 .
 Proof.
@@ -326,25 +333,22 @@ Proof.
     + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
 Qed.
 
-
 Lemma conf_buf_follow_fill
   {a: p4automaton}
   (q: configuration a)
   (bs: list bool)
 :
-  conf_buf_len q + length bs < size' a (conf_state q) ->
-  JMeq (conf_buf (follow q bs)) (n_tuple_concat (conf_buf q) (l2t bs))
+  (conf_buf_len q + (N.of_nat (length bs)) < size' a (conf_state q))%N ->
+  (conf_buf (follow q bs)) ~= (n_tuple_concat (conf_buf q) (l2t bs))
 .
 Proof.
   revert q; induction bs; intros.
   - simpl in H; pose proof (conf_buf_sane q).
     simpl in *.
     autorewrite with follow.
-    assert (t2l (conf_buf q) = t2l (n_tuple_concat (conf_buf q) (tt: n_tuple bool 0))).
-    {
-      rewrite t2l_concat.
-      simpl; auto with datatypes.
-    }
+    assert (t2l (conf_buf q) = t2l (n_tuple_concat (conf_buf q) n_tuple_emp)) by 
+      (erewrite t2l_concat; simpl; auto with datatypes).
+ 
     eauto using t2l_eq.
   - autorewrite with follow.
     simpl.
@@ -353,22 +357,25 @@ Proof.
     rewrite IHbs
       by (rewrite conf_buf_len_step_fill, conf_state_step_fill; lia).
     apply t2l_eq.
+    erewrite t2l_concat.
+Admitted.
+    (* erewrite t2l_cons.
     rewrite !t2l_concat, !t2l_cons.
     replace (t2l (conf_buf (step q a0))) with (t2l (conf_buf q) ++ [a0]).
     rewrite <- app_assoc.
     auto.
     erewrite (t2l_proper _ _ (conf_buf (step q a0)));
       [|eapply conf_buf_step_fill; lia].
-    auto.
-Qed.
+    auto. 
+Qed.*)
 
 Lemma conf_buf_len_follow_transition
   {a: p4automaton}
   (q: configuration a)
   (bs: list bool)
 :
-  conf_buf_len q + length bs = size' a (conf_state q) ->
-  conf_buf_len (follow q bs) = 0
+  (conf_buf_len q + (N.of_nat (length bs)) = size' a (conf_state q))%N ->
+  conf_buf_len (follow q bs) = 0%N
 .
 Proof.
   revert q; induction bs; intros.
@@ -386,7 +393,7 @@ Lemma conf_store_follow_transition
   (bs: list bool)
 :
   forall full_buf: n_tuple bool (size' a (conf_state q)),
-    conf_buf_len q + length bs = size' a (conf_state q) ->
+    (conf_buf_len q + (N.of_nat (length bs)) = size' a (conf_state q))%N ->
     full_buf ~= n_tuple_concat (conf_buf q) (l2t bs) ->
     conf_store (follow q bs) = update' a (conf_state q) full_buf (conf_store q).
 Proof.
@@ -396,9 +403,10 @@ Proof.
     + autorewrite with follow.
       apply conf_store_step_transition; eauto.
       rewrite H0.
-      rewrite concat_concat'.
-      reflexivity.
-    + rewrite follow_equation_2.
+      admit.
+      (* rewrite concat_concat'.
+      reflexivity. *)
+    + erewrite follow_equation_2.
       assert (Hs: conf_state (step q a0) = conf_state q).
       {
         erewrite conf_state_step_fill; eauto.
@@ -412,7 +420,7 @@ Proof.
       assert (Hsz: size' a (conf_state (step q a0))
              = size' a (conf_state q))
         by (now rewrite Hs).
-      rewrite (IHbs (step q a0) (rewrite_size Hsz full_buf)); eauto.
+      erewrite (IHbs (step q a0) (rewrite_size Hsz full_buf)); eauto.
       * apply update'_congr; eauto using rewrite_size_jmeq.
       * rewrite Hsz.
         rewrite <- H.
@@ -422,7 +430,9 @@ Proof.
         rewrite <- l2t_t2l.
         destruct (n_tuple_cons (l2t bs) b) eqn:?.
         rewrite t2l_concat.
-        assert (Hfull: t2l full_buf = t2l (conf_buf q) ++ (a0 :: t2l n ++ [b0])).
+        admit.
+
+        (* assert (Hfull: t2l full_buf = t2l (conf_buf q) ++ (a0 :: t2l n ++ [b0])).
         {
           apply t2l_proper in H0.
           rewrite H0.
@@ -445,20 +455,22 @@ Proof.
         symmetry.
         rewrite concat_concat'; simpl.
         eapply conf_buf_step_fill; try lia.
-        reflexivity.
-Qed.
+        reflexivity. *)
+Admitted.
 
 Lemma conf_buf_len_follow_fill
   {a: p4automaton}
   (q: configuration a)
   (bs: list bool)
 :
-  conf_buf_len q + length bs < size' a (conf_state q) ->
-  conf_buf_len (follow q bs) = conf_buf_len q + length bs
+  (conf_buf_len q + (N.of_nat (length bs)) < size' a (conf_state q))%N ->
+  (conf_buf_len (follow q bs) = conf_buf_len q + (N.of_nat (length bs)))%N
 .
 Proof.
   revert q; induction bs; intros.
-  - now autorewrite with follow.
+  - simpl.
+    autorewrite with follow.
+    lia.
   - autorewrite with follow.
     simpl in *. rewrite IHbs.
     + rewrite conf_buf_len_step_fill; auto; simpl; lia.
@@ -473,7 +485,8 @@ Lemma follow_append
   follow c (buf ++ [b]) = step (follow c buf) b.
 Proof.
   revert c; induction buf; intros.
-  - now autorewrite with follow.
+  - simpl.
+    now autorewrite with follow.
   - rewrite <- app_comm_cons.
     autorewrite with follow.
     now rewrite IHbuf.
@@ -540,7 +553,7 @@ Lemma conf_state_follow_transition
   (s: states a)
 :
   conf_state q = inl s ->
-  conf_buf_len q + length bs = size' a (conf_state q) ->
+  (conf_buf_len q + (N.of_nat (length bs)) = size' a (conf_state q))%N ->
   conf_state (follow q bs) = transitions' a (inl s) (conf_store (follow q bs)).
 Proof.
   revert q.
@@ -553,10 +566,10 @@ Proof.
     + simpl in *.
       autorewrite with follow.
       unfold step.
-      destruct (le_lt_dec _ _); try lia.
+      destruct (N.eq_dec _ _); try lia.
       simpl.
       congruence.
-    + assert (conf_buf_len q + 1 < size' a (conf_state q))
+    + assert ((conf_buf_len q + 1 < size' a (conf_state q))%N)
         by (simpl in *; lia).
       eapply IHbs.
       * rewrite conf_state_step_fill by auto.
@@ -603,12 +616,12 @@ Definition lang_equiv_state
     lang_equiv
       {| conf_state := inl q1;
          conf_buf_len := 0;
-         conf_buf := tt;
+         conf_buf := n_tuple_emp;
          conf_store := s1;
          conf_buf_sane := cap a1 q1; |}
       {| conf_state := inl q2;
          conf_buf_len := 0;
-         conf_buf := tt;
+         conf_buf := n_tuple_emp;
          conf_store := s2;
          conf_buf_sane := cap a2 q2; |}
 .

@@ -7,44 +7,53 @@ Require Import Leapfrog.Ntuple.
 
 Set Universe Polymorphism.
 
-Definition next_tuple (n: nat) (t: n_tuple bool n) : n_tuple bool n.
-  revert t.
-  induction n; simpl; intros t; destruct t.
-  - exact tt.
-  - destruct b eqn:?.
-    + exact (IHn n0, false).
-    + exact (n0, true).
-Defined.
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+Require Import Coq.PArith.BinPos.
 
-Fixpoint enum_tuples' {n: nat} k (t: n_tuple bool n) :=
-  match k with
-  | 0 => nil
-  | S k => t :: enum_tuples' k (next_tuple n t)
-  end.
-
-Fixpoint enum_tuples (n: nat) : list (n_tuple bool n) :=
-  match n with
-  | 0 => tt :: nil
-  | S n =>
-    let shorter := enum_tuples n in
-    map (fun t => (t, false)) shorter ++
-    map (fun t => (t, true)) shorter
-  end.
+(*
+Definition enum_tuples (n: N) : list (n_tuple bool n) := 
+  N.peano_rect (fun n => list (n_tuple bool n)) (n_tuple_emp :: nil) (fun _ shorter => 
+    map (fun t => n_tuple_cons_succ t false) shorter ++
+    map (fun t => n_tuple_cons_succ t true) shorter
+  ) n.
 
 Lemma length_enum_tuples:
   forall n,
-    length (enum_tuples n) = Nat.pow 2 n.
+    length (enum_tuples n) = N.to_nat (2 ^ n).
 Proof.
-  induction n.
+  intros.
+  induction n using N.peano_rec.
   - reflexivity.
   - simpl.
+    unfold enum_tuples.
+    erewrite N.peano_rect_succ.
+    fold (enum_tuples n).
     rewrite app_length.
     repeat rewrite map_length.
     repeat rewrite IHn.
+    erewrite N.pow_succ_r; [|Lia.lia].
+    erewrite N2Nat.inj_mul.
+    simpl.
     Lia.lia.
 Qed.
 
-Fixpoint code (n: nat) : n_tuple bool n -> nat :=
+Definition code (n: N) : n_tuple bool n -> nat.
+refine (
+  N.peano_rect (fun n => n_tuple bool n -> nat) (fun _ => 0) _ n
+).
+clear n.
+refine (
+  fun n r t => _
+).
+destruct t.
+destruct x; [exfalso; shelve|].
+destruct b eqn:?.
+- N.of_nat (2 ^ n) + 
+
+
+inversion l.
   match n as n' return n_tuple bool n' -> nat with
   | 0 => fun _ => 0
   | S n =>
@@ -88,31 +97,61 @@ Proof.
         rewrite length_enum_tuples.
         apply code_bound.
 Qed.
+*) 
 
-Global Program Instance BoolTupleFinite (n: nat): Finite (n_tuple bool n) :=
+Global Instance BoolTupleFinite (n: N): Finite (n_tuple bool n).
+Admitted.
+(*
   {| enum := enum_tuples n |}.
 Next Obligation.
-  induction n.
+  induction n using N.peano_ind.
   - simpl.
     constructor.
     + intro; contradiction.
     + constructor.
-  - simpl.
+  - unfold enum_tuples.
+    erewrite N.peano_rect_succ.
+    fold (enum_tuples n).
     apply NoDup_app.
     + apply NoDup_map; auto.
-      intros; congruence.
+      intros.
+      inversion H.
+      clear H.
+      destruct x; destruct y.
+      simpl in *;
+      subst.
+      pose proof lenpf_uniq _ _ _ l l0.
+      subst.
+      exact eq_refl.
     + apply NoDup_map; auto.
-      intros; congruence.
+      intros.
+      inversion H.
+      clear H.
+      destruct x; destruct y.
+      simpl in *;
+      subst.
+      pose proof lenpf_uniq _ _ _ l l0.
+      subst.
+      exact eq_refl.
     + intros; intro.
       rewrite in_map_iff in *.
       destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      unfold n_tuple_cons_succ in *.
+      simpl in *.
       congruence.
     + intros; intro.
       rewrite in_map_iff in *.
       destruct H as [x0 [? _]], H0 as [x1 [? _]].
+      unfold n_tuple_cons_succ in *.
+      simpl in *.
       congruence.
 Qed.
 Next Obligation.
+  induction n using N.peano_ind.
+  - left.
+    erewrite n_tuple_emp_uniq.
+    exact eq_refl.
+  -
   eapply nth_error_In.
   eapply code_nth.
 Qed.
@@ -179,13 +218,14 @@ Proof.
   pose proof (t2l_len m ys).
   congruence.
 Qed.
-
+*)
 Lemma t2l_eq:
   forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
     t2l xs = t2l ys ->
     xs ~= ys.
 Proof.
-  intros.
+Admitted.
+  (* intros.
   pose proof (t2l_n_eq _ _ _ _ H).
   subst m.
   cut (xs = ys).
@@ -206,7 +246,8 @@ Proof.
     apply app_inv_tail in H.
     apply IHn in H.
     congruence.
-Qed.
+Qed. *)
+(*
 
 Lemma eq_t2l:
   forall n m (ys : n_tuple bool m) (xs : n_tuple bool n),
@@ -280,13 +321,15 @@ Proof.
   rewrite Heq.
   reflexivity.
 Qed.
-
+*)
 Lemma concat_proper:
   forall n1 m1 (xs1: n_tuple bool n1) (ys1: n_tuple bool m1)
     n2 m2 (xs2: n_tuple bool n2) (ys2: n_tuple bool m2),
     xs1 ~= xs2 ->
     ys1 ~= ys2 ->
     n_tuple_concat xs1 ys1 ~= n_tuple_concat xs2 ys2.
+Admitted.
+(*
 Proof.
   intros.
   assert (n1 = n2) by (eapply inv_jmeq_size; eauto).
@@ -389,20 +432,24 @@ Proof.
     change ((n_tuple bool (m + n)%nat * bool)%type) with (n_tuple bool (S m + n)) in zsy.
     apply rewrite_size_jmeq.
 Qed.
-
+*)
 Lemma t2l_concat:
   forall n m (xs: n_tuple bool n) (ys: n_tuple bool m),
     t2l (n_tuple_concat xs ys) = t2l xs ++ t2l ys.
 Proof.
-  intros.
+Admitted.
+  (* intros.
   replace (t2l (n_tuple_concat xs ys)) with (t2l (n_tuple_concat' xs ys))
     by (eapply t2l_proper; symmetry; eapply concat_concat').
-  apply t2l_concat'.
-Qed.
+  apply t2l_concat'. *)
+(* Qed. *)
+
 
 Lemma n_tuple_concat_roundtrip:
   forall n m (t: n_tuple bool m),
-    JMeq (n_tuple_concat (n_tuple_take_n n t) (n_tuple_skip_n n t)) t.
+    (n_tuple_concat (n_tuple_take_n n t) (n_tuple_skip_n n t)) ~= t.
+Admitted.
+(*
 Proof.
   intros.
   unfold n_tuple_concat.
@@ -412,11 +459,14 @@ Proof.
   rewrite t2l_n_tuple_take_n, t2l_n_tuple_skip_n.
   apply List.firstn_skipn.
 Qed.
+*)
 
 Lemma n_tuple_take_n_roundtrip:
   forall n (t: n_tuple bool n) k (t': n_tuple bool k),
     t ~= n_tuple_take_n n (n_tuple_concat t t')
 .
+Admitted.
+(*
 Proof.
   intros.
   apply t2l_eq.
@@ -431,11 +481,13 @@ Proof.
   f_equal.
   apply t2l_len.
 Qed.
-
+*)
 Lemma n_tuple_skip_n_roundtrip:
   forall n (t: n_tuple bool n) k (t': n_tuple bool k),
     t' ~= n_tuple_skip_n n (n_tuple_concat t t')
 .
+Admitted.
+(*
 Proof.
   intros.
   apply t2l_eq.
@@ -456,4 +508,4 @@ Lemma eq_rect_jmeq (n n': nat) (buf: Ntuple.n_tuple bool n) H:
 Proof.
   subst.
   reflexivity.
-Qed.
+Qed. *)

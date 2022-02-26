@@ -15,6 +15,10 @@ Module BS := Leapfrog.Bisimulations.Semantic.
 Require Leapfrog.Bisimulations.SemanticCoinductive.
 Module BC := Leapfrog.Bisimulations.SemanticCoinductive.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Section LeapsProofs.
   Variable (a: p4automaton).
   Notation conf := (configuration a).
