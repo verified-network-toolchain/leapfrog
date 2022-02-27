@@ -12,6 +12,10 @@ Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Notation eth_size := 112.
 Notation ip_size := 160.
 Notation vlan_size := 32.
@@ -43,7 +47,7 @@ Module ReadUndef.
   | HdrVLAN
   | HdrUDP.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrEth => 112
     | HdrIP => 160
@@ -69,7 +73,7 @@ Module ReadUndef.
                                 }}
       |}
     | DefaultVLAN =>
-      {| st_op := HdrVLAN <- ELit _ (Ntuple.n_tuple_repeat _ false) ;;
+      {| st_op := HdrVLAN <- ELit _ (Ntuple.n_tuple_repeat 32 false) ;;
                   extract(HdrIP);
          st_trans := transition (inl ParseUDP)
       |}
@@ -92,7 +96,8 @@ Module ReadUndef.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End ReadUndef.
 
@@ -118,7 +123,7 @@ Module ReadUndefIncorrect.
   | HdrVLAN
   | HdrUDP.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrEth => 112
     | HdrIP => 160
@@ -166,6 +171,7 @@ Module ReadUndefIncorrect.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End ReadUndefIncorrect.

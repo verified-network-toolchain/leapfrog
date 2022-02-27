@@ -53,6 +53,8 @@ Definition sz (h: header) : N :=
   | HDRARPIP => 160
   end.
 
+Notation Ehdr := (EHdr (Hdr_sz := sz)).
+
 Scheme Equality for header.
 Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.
 Global Instance header_finite: @Finite header _ header_eq_dec.
@@ -88,7 +90,7 @@ Definition states (s: state) : P4A.state state sz :=
   match s return P4A.state state sz with
   | ParseEth0 =>
     {| st_op := extract(HdrEth0);
-       st_trans := transition select (| (EHdr HdrEth0)[111--96] |)
+       st_trans := transition select (| (Ehdr HdrEth0)[111--96] |)
                               {{ [| hexact_w(16) 0x8100 |] ==> inl ParseVLAN0 ;;;
                                  [| hexact_w(16) 0x9100 |] ==> inl ParseVLAN0 ;;;
                                  [| hexact_w(16) 0x9200 |] ==> inl ParseVLAN0 ;;;
@@ -101,37 +103,37 @@ Definition states (s: state) : P4A.state state sz :=
     |}
   | ParseVLAN0 =>
     {| st_op := extract(HdrVLAN0) ;
-       st_trans := transition select (| (EHdr HdrVLAN0)[159--144] |)
-                              {{ [| hexact 0x8100 |] ==> inl ParseVLAN1 ;;;
-                                 [| hexact 0x9100 |] ==> inl ParseVLAN1 ;;;
-                                 [| hexact 0x9200 |] ==> inl ParseVLAN1 ;;;
-                                 [| hexact 0x9300 |] ==> inl ParseVLAN1 ;;;
-                                 [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
+       st_trans := transition select (| (Ehdr HdrVLAN0)[159--144] |)
+                              {{ [| hexact_w(16) 0x8100 |] ==> inl ParseVLAN1 ;;;
+                                 [| hexact_w(16) 0x9100 |] ==> inl ParseVLAN1 ;;;
+                                 [| hexact_w(16) 0x9200 |] ==> inl ParseVLAN1 ;;;
+                                 [| hexact_w(16) 0x9300 |] ==> inl ParseVLAN1 ;;;
+                                 [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                 [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseVLAN1 =>
     {| st_op := extract(HdrVLAN1) ;
-       st_trans := transition select (| (EHdr HdrVLAN1)[159--144] |)
-                              {{ [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                 [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                 [| hexact 0x8035 |] ==> inl ParseARP ;;;
+       st_trans := transition select (| (Ehdr HdrVLAN1)[159--144] |)
+                              {{ [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                 [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                 [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                  reject }}
     |}
   | ParseIPv4 =>
     {| st_op := extract(HdrIPv4);
-       st_trans := transition select (| (EHdr HdrIPv4)[79--72] |)
-                              {{ [| hexact 6 |] ==> inl ParseTCP;;;
-                                 [| hexact 17 |] ==> inl ParseUDP;;;
-                                 [| hexact 47 |] ==> inl ParseGRE0;;;
+       st_trans := transition select (| (Ehdr HdrIPv4)[79--72] |)
+                              {{ [| hexact_w(8) 6 |] ==> inl ParseTCP;;;
+                                 [| hexact_w(8) 17 |] ==> inl ParseUDP;;;
+                                 [| hexact_w(8) 47 |] ==> inl ParseGRE0;;;
                                  accept
                               }}
     |}
   | ParseUDP =>
     {| st_op := extract(HdrUDP);
-       st_trans := transition select (| (EHdr HdrUDP)[31--16] |)
-                              {{ [| hexact 0xFFFF |] ==> inl ParseVXLAN;;;
+       st_trans := transition select (| (Ehdr HdrUDP)[31--16] |)
+                              {{ [| hexact_w(16) 0xFFFF |] ==> inl ParseVXLAN;;;
                                  accept
                               }}
     |}
@@ -143,27 +145,27 @@ Definition states (s: state) : P4A.state state sz :=
        st_trans := transition accept |}
   | ParseGRE0 =>
     {| st_op := extract(HdrGRE0);
-       st_trans := transition select (| (EHdr HdrGRE0)[2--2], (EHdr HdrGRE0)[31--16] |)
-                              {{ [| hexact 0x1, hexact 0x6558 |] ==> inl ParseNVGRE;;;
-                                 [| hexact 0x1, hexact 0x6559 |] ==> inl ParseGRE1;;;
+       st_trans := transition select (| (Ehdr HdrGRE0)[2--2], (Ehdr HdrGRE0)[31--16] |)
+                              {{ [| hexact_w(1) 0x1, hexact_w(16) 0x6558 |] ==> inl ParseNVGRE;;;
+                                 [| hexact_w(1) 0x1, hexact_w(16) 0x6559 |] ==> inl ParseGRE1;;;
                                  accept
                               }}
     |}
   | ParseGRE1 =>
-    {| st_op := extract(HdrGRE1);
-       st_trans := transition select (| (EHdr HdrGRE1)[31--16] |)
-                              {{ [| hexact 0x16558 |] ==> inl ParseNVGRE;;;
-                                 [| hexact 0x16559 |] ==> inl ParseGRE2;;;
-                                 accept
-                              }}
+      {| st_op := extract(HdrGRE1);
+         st_trans := transition select (| (Ehdr HdrGRE1)[2--2], (Ehdr HdrGRE1)[31--16] |)
+                            {{ [| hexact_w(1) 0x1, hexact_w(16) 0x6558 |] ==> inl ParseNVGRE;;;
+                                [| hexact_w(1) 0x1, hexact_w(16) 0x6559 |] ==> inl ParseGRE2;;;
+                                accept
+                            }}
     |}
   | ParseGRE2 =>
     {| st_op := extract(HdrGRE2);
-       st_trans := transition select (| (EHdr HdrGRE2)[31--16] |)
-                              {{ [| hexact 0x16558 |] ==> inl ParseNVGRE;;;
-                                 [| hexact 0x16559 |] ==> reject;;;
-                                 accept
-                              }}
+       st_trans := transition select (| (Ehdr HdrGRE2)[2--2], (Ehdr HdrGRE2)[31--16] |)
+                          {{ [| hexact_w(1) 0x1, hexact_w(16) 0x6558 |] ==> inl ParseNVGRE;;;
+                              [| hexact_w(1) 0x1, hexact_w(16) 0x6559 |] ==> reject;;;
+                              accept
+                          }}
     |}
   | ParseNVGRE =>
     {| st_op := extract(HdrNVGRE);
@@ -176,8 +178,8 @@ Definition states (s: state) : P4A.state state sz :=
        st_trans := transition accept |}
   | ParseARP =>
     {| st_op := extract(HdrARP);
-       st_trans := transition select (| (EHdr HdrARP)[31--16] |)
-                              {{ [| hexact 0x0800 |] ==> inl ParseARPIP;;;
+       st_trans := transition select (| (Ehdr HdrARP)[31--16] |)
+                              {{ [| hexact_w(16) 0x0800 |] ==> inl ParseARPIP;;;
                                  accept
                               }}
     |}
@@ -189,4 +191,5 @@ Definition states (s: state) : P4A.state state sz :=
 
 Program Definition aut: Syntax.t state sz :=
   {| t_states := states |}.
-Solve Obligations with (destruct s || destruct h; vm_compute; Lia.lia).
+Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+

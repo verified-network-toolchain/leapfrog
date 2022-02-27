@@ -12,15 +12,15 @@
    WPProofs
    SumProofs
    Benchmarks.Benchmarking
-    Benchmarks.TCAMSimple
+   Benchmarks.TCAMSimple
    Benchmarks.TCAMSimpleProof
    Benchmarks.SimpleByteProof
    Benchmarks.NegativeProof
-   Benchmarks.SelfComparison
+   ; Benchmarks.SelfComparison
    Benchmarks.SelfComparisonProof
-   Benchmarks.Enterprise
+   ;Benchmarks.Enterprise
    Benchmarks.EnterpriseSelfProof
-   Benchmarks.DataCenter
+   ; Benchmarks.DataCenter
    Benchmarks.DatacenterSelfProof
    ; Benchmarks.Edge
    Benchmarks.EdgeSelfProof
@@ -29,7 +29,7 @@
    Benchmarks.ServiceProviderTransProof
    Benchmarks.EdgeTransProof
    Benchmarks.SimpleBucketProof
-   Benchmarks.IPOptions
+   ; Benchmarks.IPOptions
    Benchmarks.IPOptionsProof
    Benchmarks.IPOptions2Proof
    Benchmarks.IPOptions3Proof
@@ -39,7 +39,7 @@
    Benchmarks.BabyIPProofSimplified
    ; Benchmarks.Ethernet
    Benchmarks.EthernetProof
-   Benchmarks.IPFilter
+   ; Benchmarks.IPFilter
    Benchmarks.IPFilterProof
    Benchmarks.IncPostfilter ; delete
    Benchmarks.LoopFooter ; delete
@@ -59,9 +59,9 @@
    Benchmarks.SimpleSplitProof
    Benchmarks.SmallFilter
    Benchmarks.SmallFilterProof
-   Benchmarks.SloppyStrict
+   ; Benchmarks.SloppyStrict
    Benchmarks.SloppyStrictProof
-   Benchmarks.Timestamp
+   ; Benchmarks.Timestamp
    Benchmarks.TimestampSmallProof
    Benchmarks.TimestampSingleProof
    Benchmarks.TimestampSingleZeroProof

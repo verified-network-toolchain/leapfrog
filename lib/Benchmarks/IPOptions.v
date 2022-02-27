@@ -9,6 +9,10 @@ Require Import Leapfrog.Notations.
 
 Require Import Leapfrog.BisimChecker.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Open Scope p4a.
 
 Ltac prep_equiv :=
@@ -164,7 +168,7 @@ Module IPOptionsRef10.
   | L9
   | V9.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -867,7 +871,8 @@ Module IPOptionsRef10.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsRef10.
 
@@ -959,7 +964,7 @@ Module IPOptionsRef5.
   | L4
   | V4.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -1322,10 +1327,10 @@ Module IPOptionsRef5.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsRef5.
-
 
 
 Module IPOptionsRef2.
@@ -1386,7 +1391,7 @@ Module IPOptionsRef2.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -1538,7 +1543,8 @@ Module IPOptionsRef2.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsRef2.
 
@@ -1581,7 +1587,7 @@ Module IPOptions32.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -1657,7 +1663,8 @@ Module IPOptions32.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptions32.
 
@@ -1695,7 +1702,7 @@ Module IPOptionsSpec32.
   | L1
   | V.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -1786,7 +1793,8 @@ Module IPOptionsSpec32.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsSpec32.
 
@@ -1834,7 +1842,7 @@ Module IPOptionsRef62.
   | L1
   | V1.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -1963,7 +1971,8 @@ Module IPOptionsRef62.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsRef62.
 
@@ -2021,7 +2030,7 @@ Module IPOptionsRef63.
   | L2
   | V2.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | Scratch8 => 8
     | Scratch16 => 16
@@ -2204,6 +2213,7 @@ Module IPOptionsRef63.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End IPOptionsRef63.

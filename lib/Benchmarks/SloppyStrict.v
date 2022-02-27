@@ -10,6 +10,10 @@ Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
   program_simpl; try congruence.
@@ -36,7 +40,7 @@ Module Sloppy.
   | HdrIPv4
   | HdrIPv6.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | HdrEthernet => 112
     | HdrIPv4 => 128
@@ -55,7 +59,7 @@ Module Sloppy.
     | ParseEthernet =>
       {| st_op := extract(HdrEthernet) ;
          st_trans := transition select (| ESlice _ (EHdr (Hdr_sz := sz) HdrEthernet) 111 96 |) {{
-           [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
+           [| hexact_w(16) 0x86dd |] ==> inl ParseIPv6 ;;;
             inl ParseIPv4
          }}
       |}
@@ -71,7 +75,7 @@ Module Sloppy.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
 
 End Sloppy.
 
@@ -95,7 +99,7 @@ Module Strict.
   | HdrIPv4
   | HdrIPv6.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | HdrEthernet => 112
     | HdrIPv4 => 128
@@ -109,13 +113,15 @@ Module Strict.
     solve_finiteness.
   Defined.
 
+  Notation Ehdr := (EHdr (Hdr_sz := sz)).
+
   Definition states (s: state) : WP.P4A.state state sz :=
     match s with
     | ParseEthernet =>
       {| st_op := extract(HdrEthernet) ;
-         st_trans := transition select (| ESlice _ (EHdr HdrEthernet) 111 96 |) {{
-           [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
-           [| hexact 0x8600 |] ==> inl ParseIPv4 ;;;
+         st_trans := transition select (| ESlice _ (Ehdr HdrEthernet) 111 96 |) {{
+           [| hexact_w(16) 0x86dd |] ==> inl ParseIPv6 ;;;
+           [| hexact_w(16) 0x8600 |] ==> inl ParseIPv4 ;;;
             reject
          }}
       |}
@@ -131,7 +137,7 @@ Module Strict.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
 
 End Strict.
 

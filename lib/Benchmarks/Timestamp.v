@@ -11,6 +11,10 @@ Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
   program_simpl; try congruence.
@@ -51,7 +55,7 @@ Module TimestampRefKeepSingle.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Typ => 8
     | Len => 8
@@ -118,7 +122,8 @@ Module TimestampRefKeepSingle.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampRefKeepSingle.
 
@@ -156,7 +161,7 @@ Module TimestampRefZeroSingle.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Typ => 8
     | Len => 8
@@ -223,7 +228,8 @@ Module TimestampRefZeroSingle.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampRefZeroSingle.
 
@@ -259,7 +265,7 @@ Module TimestampSpecSingle.
   | Flag
   | Timestamp.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Typ => 8
     | Len => 8
@@ -341,7 +347,8 @@ Module TimestampSpecSingle.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampSpecSingle.
 
@@ -366,7 +373,7 @@ Module TimestampRefSmall.
   | Pref2
   | Timestamps.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Len => 2
     | Pref1 => 8
@@ -414,7 +421,8 @@ Module TimestampRefSmall.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampRefSmall.
 
@@ -438,7 +446,7 @@ Module TimestampSpecSmall.
   | T2
   | T3.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Len => 2
     | T1 | T2 | T3 => 8
@@ -486,7 +494,8 @@ Module TimestampSpecSmall.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampSpecSmall.
 
@@ -541,7 +550,7 @@ Module TimestampSpec2.
   | Flag
   | Timestamp.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Scratch8  => 8
     | Scratch16  => 16
@@ -695,7 +704,8 @@ Module TimestampSpec2.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampSpec2.
 
@@ -762,7 +772,7 @@ Module TimestampSpec3.
   | Flag
   | Timestamp.
 
-  Definition sz (h: header): nat :=
+  Definition sz (h: header): N :=
     match h with
     | Scratch8  => 8
     | Scratch16  => 16
@@ -980,7 +990,8 @@ Module TimestampSpec3.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End TimestampSpec3.
 

@@ -13,6 +13,10 @@ Require Import Leapfrog.Notations.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
   program_simpl; try congruence.
@@ -37,7 +41,7 @@ Module UDPInterleaved.
   | HdrUDP
   | HdrTCP.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrIP => 64
     | HdrUDP => 32
@@ -71,7 +75,8 @@ Module UDPInterleaved.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End UDPInterleaved.
 
@@ -91,7 +96,7 @@ Module UDPCombined.
   | HdrIP
   | HdrPref.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrIP => 64
     | HdrPre => 32
@@ -124,7 +129,8 @@ Module UDPCombined.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End UDPCombined.
 

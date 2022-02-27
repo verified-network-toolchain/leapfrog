@@ -11,6 +11,10 @@ Require Import Leapfrog.Notations.
 Require Import Leapfrog.BisimChecker.
 Require Import Coq.Program.Equality.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Open Scope p4a.
 
 Module Simple.
@@ -37,15 +41,15 @@ Module Simple.
   | HdrARP
   | HdrARPIP.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrEth => 112
     | HdrVLAN0
     | HdrVLAN1 => 160
-    | HdrIPv4 => 64
-    | HdrIPv6 => 64
-    | HdrTCP => 160
-    | HdrUDP => 160
+    | HdrIPv4 => 160
+    | HdrIPv6 => 160
+    | HdrTCP => 192
+    | HdrUDP => 64
     | HdrICMP => 32
     | HdrICMPv6 => 32
     | HdrARP => 64
@@ -79,58 +83,60 @@ Module Simple.
     solve_finiteness.
   Defined.
 
+  Notation Ehdr := (EHdr (Hdr_sz := sz)).
+
   Definition states (s: state) : P4A.state state sz :=
-    match s with
+    match s return P4A.state state sz with
     | ParseEth =>
       {| st_op := extract(HdrEth);
-        st_trans := transition select (| (EHdr HdrEth)[111--96] |)
-                                {{ [| hexact 0x8100 |] ==> inl ParseVLAN0 ;;;
-                                  [| hexact 0x9100 |] ==> inl ParseVLAN0 ;;;
-                                  [| hexact 0x9200 |] ==> inl ParseVLAN0 ;;;
-                                  [| hexact 0x9300 |] ==> inl ParseVLAN0 ;;;
-                                  [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
-                                  [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                  [| hexact 0x8035 |] ==> inl ParseARP ;;;
+        st_trans := transition select (| (Ehdr HdrEth)[111--96] |)
+                                {{ [| hexact_w(16) 0x8100 |] ==> inl ParseVLAN0 ;;;
+                                  [| hexact_w(16) 0x9100 |] ==> inl ParseVLAN0 ;;;
+                                  [| hexact_w(16) 0x9200 |] ==> inl ParseVLAN0 ;;;
+                                  [| hexact_w(16) 0x9300 |] ==> inl ParseVLAN0 ;;;
+                                  [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                  [| hexact_w(16) 0x86dd |] ==> inl ParseIPv6 ;;;
+                                  [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                  [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                   reject }}
       |}
     | ParseVLAN0 =>
       {| st_op := extract(HdrVLAN0) ;
-        st_trans := transition select (| (EHdr HdrVLAN0)[159--144] |)
-                                {{ [| hexact 0x8100 |] ==> inl ParseVLAN1 ;;;
-                                  [| hexact 0x9100 |] ==> inl ParseVLAN1 ;;;
-                                  [| hexact 0x9200 |] ==> inl ParseVLAN1 ;;;
-                                  [| hexact 0x9300 |] ==> inl ParseVLAN1 ;;;
-                                  [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
-                                  [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                  [| hexact 0x8035 |] ==> inl ParseARP ;;;
+        st_trans := transition select (| (Ehdr HdrVLAN0)[159--144] |)
+                                {{ [| hexact_w(16) 0x8100 |] ==> inl ParseVLAN1 ;;;
+                                  [| hexact_w(16) 0x9100 |] ==> inl ParseVLAN1 ;;;
+                                  [| hexact_w(16) 0x9200 |] ==> inl ParseVLAN1 ;;;
+                                  [| hexact_w(16) 0x9300 |] ==> inl ParseVLAN1 ;;;
+                                  [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                  [| hexact_w(16) 0x86dd |] ==> inl ParseIPv6 ;;;
+                                  [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                  [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                   reject }}
       |}
     | ParseVLAN1 =>
       {| st_op := extract(HdrVLAN1) ;
-        st_trans := transition select (| (EHdr HdrVLAN1)[159--144] |)
-                                {{ [| hexact 0x0800 |] ==> inl ParseIPv4 ;;;
-                                  [| hexact 0x86dd |] ==> inl ParseIPv6 ;;;
-                                  [| hexact 0x0806 |] ==> inl ParseARP ;;;
-                                  [| hexact 0x8035 |] ==> inl ParseARP ;;;
+        st_trans := transition select (| (Ehdr HdrVLAN1)[159--144] |)
+                                {{ [| hexact_w(16) 0x0800 |] ==> inl ParseIPv4 ;;;
+                                  [| hexact_w(16) 0x86dd |] ==> inl ParseIPv6 ;;;
+                                  [| hexact_w(16) 0x0806 |] ==> inl ParseARP ;;;
+                                  [| hexact_w(16) 0x8035 |] ==> inl ParseARP ;;;
                                   reject }}
       |}
     | ParseIPv4 =>
       {| st_op := extract(HdrIPv4);
-        st_trans := transition select (| (EHdr HdrIPv4)[79--72] |)
-                                {{ [| hexact 1 |] ==> inl ParseICMP;;;
-                                  [| hexact 6 |] ==> inl ParseTCP;;;
-                                  [| hexact 17 |] ==> inl ParseUDP;;;
+        st_trans := transition select (| (Ehdr HdrIPv4)[79--72] |)
+                                {{ [| hexact_w(8) 1 |] ==> inl ParseICMP;;;
+                                  [| hexact_w(8) 6 |] ==> inl ParseTCP;;;
+                                  [| hexact_w(8) 17 |] ==> inl ParseUDP;;;
                                   accept
                                 }}
       |}
     | ParseIPv6 =>
       {| st_op := extract(HdrIPv6);
-        st_trans := transition select (| (EHdr HdrIPv6)[55--48] |)
-                                {{ [| hexact 1 |] ==> inl ParseICMPv6;;;
-                                  [| hexact 6 |] ==> inl ParseTCP;;;
-                                  [| hexact 17 |] ==> inl ParseUDP;;;
+        st_trans := transition select (| (Ehdr HdrIPv6)[55--48] |)
+                                {{ [| hexact_w(8) 1 |] ==> inl ParseICMPv6;;;
+                                  [| hexact_w(8) 6 |] ==> inl ParseTCP;;;
+                                  [| hexact_w(8) 17 |] ==> inl ParseUDP;;;
                                   accept
                                 }}
       |}
@@ -148,8 +154,8 @@ Module Simple.
         st_trans := transition accept |}
     | ParseARP =>
       {| st_op := extract(HdrARP);
-        st_trans := transition select (| (EHdr HdrARP)[31--16] |)
-                                {{ [| hexact 0x0800 |] ==> inl ParseARPIP;;;
+        st_trans := transition select (| (Ehdr HdrARP)[31--16] |)
+                                {{ [| hexact_w(16) 0x0800 |] ==> inl ParseARPIP;;;
                                   accept
                                 }}
       |}
@@ -161,7 +167,8 @@ Module Simple.
 
   Program Definition aut: Syntax.t state sz :=
     {| t_states := states |}.
-  Solve Obligations with (destruct s || destruct h; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 End Simple.
 (*
 Module Optimized.
@@ -437,7 +444,7 @@ Definition states (s: state) :=
   match s with
   | State_0 => {|
     st_op := extract(buf_16);
-    st_trans := transition select (| (EHdr buf_16)[15 -- 15], (EHdr buf_16)[14 -- 14], (EHdr buf_16)[13 -- 13], (EHdr buf_16)[12 -- 12], (EHdr buf_16)[11 -- 11], (EHdr buf_16)[10 -- 10], (EHdr buf_16)[9 -- 9], (EHdr buf_16)[8 -- 8], (EHdr buf_16)[7 -- 7], (EHdr buf_16)[6 -- 6], (EHdr buf_16)[5 -- 5], (EHdr buf_16)[4 -- 4], (EHdr buf_16)[3 -- 3], (EHdr buf_16)[2 -- 2], (EHdr buf_16)[1 -- 1], (EHdr buf_16)[0 -- 0], (EHdr buf_16)[15 -- 15], (EHdr buf_16)[14 -- 14], (EHdr buf_16)[13 -- 13], (EHdr buf_16)[12 -- 12], (EHdr buf_16)[11 -- 11], (EHdr buf_16)[10 -- 10], (EHdr buf_16)[9 -- 9], (EHdr buf_16)[8 -- 8], (EHdr buf_16)[7 -- 7], (EHdr buf_16)[6 -- 6], (EHdr buf_16)[5 -- 5], (EHdr buf_16)[4 -- 4], (EHdr buf_16)[3 -- 3], (EHdr buf_16)[2 -- 2], (EHdr buf_16)[1 -- 1], (EHdr buf_16)[0 -- 0]|) {{
+    st_trans := transition select (| (Ehdr buf_16)[15 -- 15], (Ehdr buf_16)[14 -- 14], (Ehdr buf_16)[13 -- 13], (Ehdr buf_16)[12 -- 12], (Ehdr buf_16)[11 -- 11], (EHdr buf_16)[10 -- 10], (EHdr buf_16)[9 -- 9], (EHdr buf_16)[8 -- 8], (EHdr buf_16)[7 -- 7], (EHdr buf_16)[6 -- 6], (EHdr buf_16)[5 -- 5], (EHdr buf_16)[4 -- 4], (EHdr buf_16)[3 -- 3], (EHdr buf_16)[2 -- 2], (EHdr buf_16)[1 -- 1], (EHdr buf_16)[0 -- 0], (EHdr buf_16)[15 -- 15], (EHdr buf_16)[14 -- 14], (EHdr buf_16)[13 -- 13], (EHdr buf_16)[12 -- 12], (EHdr buf_16)[11 -- 11], (EHdr buf_16)[10 -- 10], (EHdr buf_16)[9 -- 9], (EHdr buf_16)[8 -- 8], (EHdr buf_16)[7 -- 7], (EHdr buf_16)[6 -- 6], (EHdr buf_16)[5 -- 5], (EHdr buf_16)[4 -- 4], (EHdr buf_16)[3 -- 3], (EHdr buf_16)[2 -- 2], (EHdr buf_16)[1 -- 1], (EHdr buf_16)[0 -- 0]|) {{
       [| *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, *, * |] ==> inl State_0_suff_0 ;;;
       reject
     }}
