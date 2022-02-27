@@ -201,7 +201,7 @@ Section ConfRel.
   Definition beslice {c} (be: bit_expr c) (hi lo: N) :=
     (* if Nat.ltb hi lo then BELit [] else *)
     match be with
-    | BELit l => BELit (P4A.slice l hi lo)
+    | BELit l => BELit (Ntuple.slice l hi lo)
     | BESlice x hi' lo' => BESlice x (N.min (lo' + hi) hi') (lo' + lo)
     | _ => BESlice be hi lo
     end.

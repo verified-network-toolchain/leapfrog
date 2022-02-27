@@ -159,16 +159,16 @@ Section BisimChecker.
           (VEmp _ _)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
-                (FirstOrderConfRelSimplified.simplify_concat_zero_fm a
+                (FirstOrderConfRelSimplified.simplify_concat_zero_fm
                     (compile_simplified_entailment (simplify_entailment E)))))).
   Proof.
     
     intros.
     erewrite simplify_entailment_correct
       with (equiv0:=RelationClasses.eq_equivalence)
-          (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec);
-    erewrite compile_simplified_entailment_correct;
-    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
+          (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec).
+    erewrite compile_simplified_entailment_correct; [|typeclasses eauto];
+    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr; [|typeclasses eauto];
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|typeclasses eauto].
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct; [|typeclasses eauto].
     eapply iff_refl.
@@ -326,7 +326,9 @@ Ltac crunch_foterm_ctx :=
   end.
 
 Ltac compile_fm H el er :=
-  time "compilation correct" erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
+  time "compilation correct" erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H; [
+    | typeclasses eauto | typeclasses eauto
+  ];
   simpl in H;
   (* these could be invariants and somehow avoided completely
       or if they have to be done it could all be done with reflection *)
@@ -397,29 +399,33 @@ Ltac decide_entailment_admit H P HP el er P_orig e :=
 Ltac close_bisim_axiom :=
   match goal with
   | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
-        apply PreBisimulationClose;
-         match goal with
-         | H:interp_conf_rel' ?C ?q1 ?q2
-           |- interp_crel _ _ ?P ?q1 ?q2 =>
-               let H0 := fresh "H0" in
-               assert
-                (H0 :
-                 interp_entailment'
-                   (fun q1 q2 =>
-                    top' _ _ _ _ _ r_states (conf_to_state_template q1)
-                      (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
-                (eapply simplify_entailment_correct';
-                  eapply compile_simplified_entailment_correct'; simpl; 
-                  intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
-                  match goal with
-                  | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
-                  end); apply H0; auto; unfold top', conf_to_state_template; 
-                destruct q1, q2; vm_compute in H;
-                repeat match goal with
-                       | H:_ /\ _ |- _ => idtac H; destruct H
-                       end; subst; simpl; tauto
-         end
+    eapply PreBisimulationClose;
+    match goal with
+    | H:interp_conf_rel' ?C ?q1 ?q2 |- interp_crel _ _ ?P ?q1 ?q2 =>
+      let H0 := fresh "H0" in
+      assert
+      (H0 : interp_entailment' 
+        (fun q1 q2 =>
+          top' _ _ _ _ _ r_states (conf_to_state_template q1)
+            (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}
+       ) by ( 
+        eapply simplify_entailment_correct';
+        eapply compile_simplified_entailment_correct'; [typeclasses eauto|];
+        simpl;
+        intros;
+        eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [typeclasses eauto|];
+        eapply compile_simplified_fm_bv_correct; [typeclasses eauto|];
+        crunch_foterm;
+        match goal with
+        | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
+        end
+      );
+      apply H0; auto; unfold top', conf_to_state_template; 
+      destruct q1, q2; vm_compute in H;
+      repeat match goal with
+      | H:_ /\ _ |- _ => destruct H
+      end; subst; simpl; tauto
+    end
   end.
 
 Ltac verify_interp :=

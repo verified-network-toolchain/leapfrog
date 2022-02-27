@@ -127,7 +127,7 @@ Section CompileConfRelSimplified.
         TFun (sig Hdr_sz) (Slice _ _ hi lo)
              (compile_bit_expr b1 b2 e ::: hnil);
       compile_bit_expr b1 b2 (BEConcat e1 e2) := 
-      simplify_concat_zero a 
+      simplify_concat_zero
         (TFun (sig Hdr_sz) (Concat _ _ _)
              (compile_bit_expr b1 b2 e1 :::
               compile_bit_expr b1 b2 e2 ::: hnil)) 
@@ -144,8 +144,8 @@ Section CompileConfRelSimplified.
         match eq_dec (be_size Hdr_sz b1 b2 e1) (be_size Hdr_sz b1 b2 e2) with
         | left Heq =>
           FEq (eq_rect _ (fun n => tm (sig Hdr_sz) _ (Bits n))
-                       (simplify_concat_zero a (compile_bit_expr b1 b2 e1)) _ Heq)
-              (simplify_concat_zero a (compile_bit_expr b1 b2 e2))
+                       (simplify_concat_zero (compile_bit_expr b1 b2 e1)) _ Heq)
+              (simplify_concat_zero (compile_bit_expr b1 b2 e2))
         | right _ => FFalse
         end;
       compile_store_rel b1 b2 (BRAnd r1 r2) :=

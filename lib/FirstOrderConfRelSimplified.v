@@ -89,13 +89,11 @@ Section AutModel.
   |}.
 
   Obligation Tactic := intros.
-  Definition simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt.
-  Admitted.
-  (* Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
-    { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: x ::: hnil)) :=
-        simplify_concat_zero x;
-      simplify_concat_zero (TFun sig (Concat (S n) m) (x ::: y ::: hnil)) :=
-        TFun sig (Concat (S n) m)
+  Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
+    { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: y ::: hnil)) :=
+        simplify_concat_zero y;
+      simplify_concat_zero (TFun sig (Concat n m) (x ::: y ::: hnil)) :=
+        TFun sig (Concat n m)
                  (simplify_concat_zero x :::
                   simplify_concat_zero y ::: hnil);
       simplify_concat_zero (TFun sig (Slice n hi lo) (x ::: hnil)) :=
@@ -103,19 +101,11 @@ Section AutModel.
       simplify_concat_zero (TFun sig f args) :=
         TFun sig f args;
       simplify_concat_zero (TVar x) := TVar x;
-    }. *)
+    }.
 
   
 
   Import Coq.Program.Equality.
-
-  Lemma concat_emp' :
-    forall n (t: n_tuple bool n), n_tuple_concat n_tuple_emp t = t.
-  Proof.
-    intros.
-    apply JMeq_eq.
-    eapply concat_emp.
-  Qed.
 
   Lemma interp_zero_tm:
      forall c (t: tm c (Bits 0)) v,
@@ -123,8 +113,7 @@ Section AutModel.
   Proof.
     intros.
     eapply n_tuple_emp_uniq.
-  Qed.
-
+  Admitted.
 
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,
@@ -266,3 +255,5 @@ Register FirstOrderConfRelSimplified.Lookup as p4a.funs.lookup.
 
 Register HList.HNil as p4a.core.hnil.
 Register HList.HCons as p4a.core.hcons.
+
+Register Ntuple.mk_n_tup as p4a.core.mk_n_tuple.

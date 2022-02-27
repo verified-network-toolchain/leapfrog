@@ -403,7 +403,8 @@ Section CompileFirstOrderConfRelSimplified.
       simpl in val.
       pose proof n_tuple_emp_uniq _ val.
       subst.
-      reflexivity.
+      erewrite H0; trivial.
+      admit.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
@@ -419,7 +420,7 @@ Section CompileFirstOrderConfRelSimplified.
         rewrite <- IHenum.
         now rewrite rewrite_size_jmeq.
         all: now inversion H.
-  Qed.
+  Admitted.
 
   Lemma compile_val_roundtrip:
     forall s (val: FOBV.mod_sorts (compile_sort s)),

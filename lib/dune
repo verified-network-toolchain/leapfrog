@@ -43,7 +43,7 @@
    Benchmarks.IPFilterProof
    Benchmarks.IncPostfilter ; delete
    Benchmarks.LoopFooter ; delete
-   Benchmarks.MPLSVectorized
+   ; Benchmarks.MPLSVectorized
    Benchmarks.MPLSVectorizedProof
    Benchmarks.MPLSVectorizedSmall
    Benchmarks.MPLSVectorizedSmallProof

@@ -9,7 +9,8 @@ Lemma mpls_equiv:
     Unrolled.ParseMPLS.
 Proof.
 
-  solve_lang_equiv_state_axiom Plain.state_eqdec Unrolled.state_eqdec false.
+  time "mpls no hc" solve_lang_equiv_state_axiom Plain.state_eqdec Unrolled.state_eqdec false.
+  (* time "mpls hc" solve_lang_equiv_state_axiom Plain.state_eqdec Unrolled.state_eqdec true. *)
 
 Time Qed.
 

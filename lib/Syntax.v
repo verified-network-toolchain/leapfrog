@@ -73,15 +73,6 @@ Section Syntax.
         end }.
   Solve All Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
-  Next Obligation.
-  unfold "===" in *.
-    destruct xs; destruct ys.
-    simpl in *;
-    subst.
-    pose proof lenpf_uniq _ _ _ l l0.
-    subst.
-    auto.
-  Defined.
 
   Global Program Instance v_finite (n: N): Finite (v n) :=
     {| enum := List.map (@VBits n) (enum (n_tuple bool n)) |}.
@@ -338,33 +329,6 @@ Section Interp.
       congruence.
       apply IHl.
   Qed.
-
-  Definition slice {A} (l: list A) (hi lo: N) :=
-    List.skipn (N.to_nat lo) (List.firstn (1 + (N.to_nat hi)) l).
-
-  Lemma slice_len:
-    forall A (hi lo: N) (l: list A),
-      length (slice l hi lo) = N.to_nat (N.min (1 + hi) (N.of_nat (length l)) - lo)%N.
-  Proof.
-    unfold slice.
-    intros.
-    rewrite List.skipn_length.
-    rewrite List.firstn_length.
-    erewrite N2Nat.inj_sub.
-    erewrite N2Nat.inj_min.
-    erewrite N2Nat.inj_add.
-    erewrite Nat2N.id.
-    trivial.
-  Qed.
-
-  Definition n_slice {A n} (l: n_tuple A n) (hi lo: N) : n_tuple A (N.min (1 + hi) n - lo)%N.
-  Proof.
-    pose proof (l2t (slice (t2l l) hi lo)).
-    rewrite slice_len in X.
-    rewrite t2l_len in X.
-    repeat erewrite N2Nat.id in X.
-    exact X.
-  Defined.
 
   Lemma to_nat_float_1:
     forall hi e0 lo, 

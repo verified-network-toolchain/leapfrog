@@ -11,6 +11,10 @@ Require Import Leapfrog.BisimChecker.
 
 Open Scope p4a.
 
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.NArith.BinNat.
+Require Import Coq.NArith.Nnat.
+
 Ltac prep_equiv :=
   unfold Equivalence.equiv, RelationClasses.complement in *;
   program_simpl; try congruence.
@@ -33,7 +37,7 @@ Module Plain.
   | HdrMPLS
   | HdrUDP.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrMPLS => 32
     | HdrUDP => 64
@@ -64,7 +68,7 @@ Module Plain.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve Obligations with (destruct h || destruct s; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
 
 End Plain.
 
@@ -94,7 +98,7 @@ Module Unrolled.
     solve_finiteness.
   Defined.
 
-  Definition sz (h: header) : nat :=
+  Definition sz (h: header) : N :=
     match h with
     | HdrMPLS0 => 32
     | HdrMPLS1 => 32
@@ -129,7 +133,8 @@ Module Unrolled.
 
   Program Definition aut: Syntax.t state _ :=
     {| t_states := states |}.
-  Solve Obligations with (destruct h || destruct s; cbv; Lia.lia).
+  Solve Obligations with (try (destruct s; vm_compute; exact eq_refl) || (destruct h; simpl sz; Lia.lia)).
+
 
 End Unrolled.
 
