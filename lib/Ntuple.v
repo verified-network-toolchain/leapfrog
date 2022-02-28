@@ -92,6 +92,12 @@ Ltac simpl_lenpf :=
     clear H
   end.
 
+Fixpoint witness_lenpf {A} (xs: list A) : len_pf xs (length xs) :=
+  match xs with 
+  | nil => len_nil
+  | _ :: xs => len_suc _ _ (witness_lenpf xs) _ 
+  end.
+
 Equations len_pf_prev {A} {n: nat} {xs: list A} (pf: len_pf xs (S n)) : len_pf (tl xs) n :=
   len_pf_prev (len_suc _ _ pf _) := pf.
 
