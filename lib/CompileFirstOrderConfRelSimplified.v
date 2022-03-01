@@ -422,43 +422,31 @@ Section CompileFirstOrderConfRelSimplified.
       List.NoDup enum ->
       val ~= compile_store_val_partial (decompile_store_val_partial enum val init_store) enum.
   Proof.
-    intros.
-    assert (n_tup_wf (compile_store_val_partial (decompile_store_val_partial enum val init_store) enum)) by (
-      eapply decompile_store_val_wf; eauto
-    ).
-    revert H1.
-    revert H0.
-    revert H.
-    revert val.
-    revert enum.
     induction enum; intros.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       pose proof n_tuple_emp_uniq _ val.
-      erewrite H2; trivial.
+      erewrite H1; trivial.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
+      assert (compile_sizes enum = (compile_sizes (a0 :: enum) - Hdr_sz a0)%N)
+        by (unfold compile_sizes; simpl; Lia.lia).
       rewrite P4A.assign_find; auto.
-      rewrite_sizes.
-      symmetry.
-      inversion H;
-      subst.
-      + unfold compile_sizes in H4.
-        simpl in H4.
-        (* assert (Hdr_sz a0 = 0%N) by Lia.lia.
-        assert (list_sum_N (get_sizes enum) = 0%N) by Lia.lia.
-        unfold n_tuple_take_n.
-        erewrite H2.
-        erewrite H2 in *.
-        erewrite H3 in *.
-        simpl in *.
-        clear H4.
-        simpl in *.
-        clear H2.
-      erewrite IHenum; auto.
-      rewrite compile_store_val_partial_invariant; auto. *)
-  Admitted.
+      eapply JMeq_trans.
+      + symmetry.
+        apply NtupleProofs.n_tuple_concat_roundtrip.
+      + apply NtupleProofs.concat_proper; rewrite_sizes; auto.
+        symmetry.
+        rewrite IHenum.
+        * rewrite compile_store_val_partial_invariant; auto.
+          now inversion H0.
+        * apply NtupleProofs.n_tup_skip_wf'; auto.
+        * now inversion H0.
+        * apply decompile_store_val_wf.
+          -- now inversion H0.
+          -- apply NtupleProofs.n_tup_skip_wf'; auto.
+  Qed.
 
   Lemma compile_val_roundtrip:
     forall s (val: FOBV.mod_sorts (compile_sort s)),
