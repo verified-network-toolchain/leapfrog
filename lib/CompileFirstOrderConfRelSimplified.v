@@ -458,6 +458,14 @@ Section CompileFirstOrderConfRelSimplified.
     eapply DepEnv.env_extensionality; eauto.
   Qed.
 
+  Lemma find_wf:
+    forall a val n,
+      P4A.find Hdr Hdr_sz a val = P4A.VBits n ->
+      n_tup_wf n
+    .
+  Proof.
+  Admitted.
+
   Lemma decompile_val_roundtrip:
     forall s (val: FOS.mod_sorts a s),
       val = decompile_val (compile_val val).
@@ -483,11 +491,12 @@ Section CompileFirstOrderConfRelSimplified.
           simpl.
           rewrite P4A.assign_find;
             try solve [eauto | typeclasses eauto].
-          destruct (P4A.find Hdr Hdr_sz a0 val).
+          destruct (P4A.find Hdr Hdr_sz a0 val) eqn:?.
           f_equal.
           apply JMeq_eq.
           rewrite_sizes.
           eapply NtupleProofs.n_tuple_take_n_roundtrip.
+          now apply find_wf with (val := val).
         * unfold equiv, complement in c.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
@@ -495,10 +504,11 @@ Section CompileFirstOrderConfRelSimplified.
           rewrite P4A.find_not_first by assumption.
           rewrite IHl by (destruct H; congruence).
           do 2 f_equal.
-          destruct (P4A.find Hdr Hdr_sz a0 val).
+          destruct (P4A.find Hdr Hdr_sz a0 val) eqn:?.
           apply JMeq_eq.
           rewrite_sizes.
           eapply NtupleProofs.n_tuple_skip_n_roundtrip.
+          now apply find_wf with (val := val).
   Qed.
 
   Lemma compile_store_val_partial_correct':
