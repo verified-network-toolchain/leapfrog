@@ -391,11 +391,10 @@ Section CompileFirstOrderConfRelSimplified.
         now apply List.in_cons.
   Qed.
 
-
-  Lemma decompile_store_val_wf : 
-    forall enum val, 
-      List.NoDup enum -> 
-      n_tup_wf val -> 
+  Lemma decompile_store_val_wf :
+    forall enum val,
+      List.NoDup enum ->
+      n_tup_wf val ->
       n_tup_wf (compile_store_val_partial (decompile_store_val_partial enum val init_store) enum).
   Proof.
     induction enum; intros;
@@ -407,22 +406,15 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite P4A.assign_find; auto.
       inversion H; subst.
       erewrite compile_store_val_partial_invariant; auto.
-      assert (forall A n m (v: n_tuple A n), n_tup_wf v -> n_tup_wf (n_tuple_skip_n m v)) by shelve.
-      assert (forall A n m (v: n_tuple A n), n_tup_wf v -> n_tup_wf (n_tuple_take_n m v)) by shelve.
-      assert (forall A n m (v : n_tuple A n) (v': n_tuple A m), 
-        n_tup_wf v -> 
-        n_tup_wf v' -> 
-        n_tup_wf (n_tuple_concat v v')
-      ) by shelve.
-      eapply H5. 
-      + (* eapply H2 with (m := (Hdr_sz a0)). *)
-        admit.
-      + unfold n_tup_wf.
-        unfold compile_sizes in val.
-        simpl in val.
-        eapply len_pf_rev.
-        admit.
-  Admitted.
+      apply NtupleProofs.n_tup_cat_wf.
+      + apply NtupleProofs.n_tup_take_wf'; auto.
+        unfold compile_sizes; simpl.
+        Lia.lia.
+      + apply IHenum; auto.
+        apply NtupleProofs.n_tup_skip_wf'; auto.
+        unfold compile_sizes; simpl.
+        Lia.lia.
+  Qed.
 
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
