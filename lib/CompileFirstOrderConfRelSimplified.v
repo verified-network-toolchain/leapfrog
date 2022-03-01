@@ -443,24 +443,7 @@ Section CompileFirstOrderConfRelSimplified.
           now inversion H0.
         * apply NtupleProofs.n_tup_skip_wf'; auto.
         * now inversion H0.
-        * apply decompile_store_val_wf.
-          -- now inversion H0.
-          -- apply NtupleProofs.n_tup_skip_wf'; auto.
   Qed.
-
-  Lemma compile_val_roundtrip:
-    forall s (val: FOBV.mod_sorts (compile_sort s)),
-      val = compile_val (decompile_val val).
-  Proof.
-    intros.
-    destruct s.
-    - reflexivity.
-    - autorewrite with decompile_val.
-      autorewrite with compile_val.
-      rewrite <- decompile_store_val_partial_roundtrip; auto.
-      1: admit.
-      apply NoDup_enum.
-  Admitted.
 
   Definition store_almost_equal (s1 s2: store (P4A.interp a)) :=
     forall (h: Hdr), P4A.find Hdr Hdr_sz h s1 = P4A.find Hdr Hdr_sz h s2.
@@ -574,8 +557,7 @@ Section CompileFirstOrderConfRelSimplified.
         * now rewrite interp_tm_reindex_tm with (sig := FOBV.sig) (v' := compile_valu val).
       + destruct s0.
         * rewrite (compile_var_equation_3 n (ctx1 := c)).
-  Admitted.
-          (* rewrite (compile_valu_equation_2 (c0 := c) n).
+          rewrite (compile_valu_equation_2 (c0 := c)).
           replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
           with (interp_tm (compile_valu val) (compile_var v)).
           autorewrite with interp_tm.
@@ -597,7 +579,7 @@ Section CompileFirstOrderConfRelSimplified.
           -- now autorewrite with interp_tm.
           -- now rewrite interp_tm_weaken_tm with
                (v' := (compile_store_valu_partial (build_hlist_env (enum Hdr) m))).
-  Qed. *)
+  Qed.
 
   Lemma compile_simplified_tm_bv_correct:
     forall c s v (tm: tm _ c s),
