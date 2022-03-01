@@ -256,4 +256,4 @@ Register FirstOrderConfRelSimplified.Lookup as p4a.funs.lookup.
 Register HList.HNil as p4a.core.hnil.
 Register HList.HCons as p4a.core.hcons.
 
-Register Ntuple.mk_n_tup as p4a.core.mk_n_tuple.
+(* Register Ntuple.mk_n_tup as p4a.core.mk_n_tuple. *)

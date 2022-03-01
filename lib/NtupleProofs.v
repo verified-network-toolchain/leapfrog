@@ -509,18 +509,3 @@ Proof.
   subst.
   reflexivity.
 Qed. *)
-
-Lemma concat_emp' :
-  forall n (t: n_tuple bool n), 
-    n_tup_wf t ->
-    n_tuple_concat n_tuple_emp t = t.
-Proof.
-  intros.
-  inversion H.
-  apply JMeq_eq.
-  compute.
-  destruct t.
-  simpl in *.
-  erewrite H1.
-  reflexivity.
-Qed.

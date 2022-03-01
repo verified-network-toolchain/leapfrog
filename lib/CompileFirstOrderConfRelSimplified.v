@@ -391,6 +391,38 @@ Section CompileFirstOrderConfRelSimplified.
         now apply List.in_cons.
   Qed.
 
+
+  Lemma decompile_store_val_wf : 
+    forall enum val, 
+      List.NoDup enum -> 
+      n_tup_wf val -> 
+      n_tup_wf (compile_store_val_partial (decompile_store_val_partial enum val init_store) enum).
+  Proof.
+    induction enum; intros;
+    autorewrite with decompile_store_val_partial;
+    autorewrite with compile_store_val_partial.
+    - eapply n_tup_emp_wf.
+    - rewrite_sizes.
+      simpl.
+      rewrite P4A.assign_find; auto.
+      inversion H; subst.
+      erewrite compile_store_val_partial_invariant; auto.
+      assert (forall A n m (v: n_tuple A n), n_tup_wf v -> n_tup_wf (n_tuple_skip_n m v)) by shelve.
+      assert (forall A n m (v: n_tuple A n), n_tup_wf v -> n_tup_wf (n_tuple_take_n m v)) by shelve.
+      assert (forall A n m (v : n_tuple A n) (v': n_tuple A m), 
+        n_tup_wf v -> 
+        n_tup_wf v' -> 
+        n_tup_wf (n_tuple_concat v v')
+      ) by shelve.
+      eapply H5. 
+      + (* eapply H2 with (m := (Hdr_sz a0)). *)
+        admit.
+      + unfold n_tup_wf.
+        unfold compile_sizes in val.
+        simpl in val.
+        admit.
+  Admitted.
+
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
       List.NoDup enum ->
@@ -401,6 +433,10 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with compile_store_val_partial.
       unfold compile_sizes in val.
       simpl in val.
+      assert (val = n_tuple_emp).
+      eapply n_tuple_emp_uniq.
+
+      erewrite <- n_tuple_emp_uniq.
       pose proof n_tuple_emp_uniq _ val.
       subst.
       erewrite H0; trivial.
@@ -409,17 +445,12 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with compile_store_val_partial.
       simpl.
       rewrite P4A.assign_find; auto.
+      rewrite_sizes.
       symmetry.
-      rewrite <- NtupleProofs.n_tuple_concat_roundtrip with (n := Hdr_sz a0).
-      symmetry.
-      apply NtupleProofs.concat_proper with
-        (xs2 := (rewrite_size (decompile_store_val_partial_obligations_obligation_1 a0 enum) _))
-        (ys2 := (compile_store_val_partial _ enum)).
-      + now rewrite rewrite_size_jmeq.
-      + rewrite compile_store_val_partial_invariant.
-        rewrite <- IHenum.
-        now rewrite rewrite_size_jmeq.
-        all: now inversion H.
+      inversion H; 
+      subst.
+      erewrite IHenum; auto.
+      rewrite compile_store_val_partial_invariant; auto.
   Admitted.
 
   Lemma compile_val_roundtrip:
@@ -476,9 +507,8 @@ Section CompileFirstOrderConfRelSimplified.
           destruct (P4A.find Hdr Hdr_sz a0 val).
           f_equal.
           apply JMeq_eq.
-          rewrite rewrite_size_jmeq.
-          pose proof NtupleProofs.n_tuple_take_n_roundtrip.
-          now specialize (H0 (Hdr_sz a0) n _ (compile_store_val_partial val l)).
+          rewrite_sizes.
+          eapply NtupleProofs.n_tuple_take_n_roundtrip.
         * unfold equiv, complement in c.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
@@ -488,9 +518,8 @@ Section CompileFirstOrderConfRelSimplified.
           do 2 f_equal.
           destruct (P4A.find Hdr Hdr_sz a0 val).
           apply JMeq_eq.
-          rewrite rewrite_size_jmeq.
-          pose proof NtupleProofs.n_tuple_skip_n_roundtrip.
-          now specialize (H0 (Hdr_sz a0) n _ (compile_store_val_partial val l)).
+          rewrite_sizes.
+          eapply NtupleProofs.n_tuple_skip_n_roundtrip.
   Qed.
 
   Lemma compile_store_val_partial_correct':
@@ -511,11 +540,10 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite (compile_store_partial_equation_2 _ enum).
       autorewrite with interp_tm; simpl.
       autorewrite with mod_fns.
-  Admitted.
-      (* f_equal; intros. (* this seems broken? *)
-      * rewrite <- interp_tm_tm_cons.
-        eapply IHenum.
-  Qed. *)
+      f_equal; intros.
+      erewrite <- interp_tm_tm_cons.
+      eapply IHenum.
+  Qed.
 
   Lemma compile_store_val_partial_correct:
     forall m,
@@ -647,17 +675,16 @@ Section CompileFirstOrderConfRelSimplified.
       inversion H.
       specialize (IHenum H3 val).
       destruct IHenum as [? ?].
-  Admitted.
-      (* exists (P4A.assign Hdr Hdr_sz a0 (P4A.VBits _ m) x0).
+      exists (P4A.assign Hdr Hdr_sz a0 (P4A.VBits m) x0).
       autorewrite with build_hlist_env.
       simpl.
       unfold build_hlist_env_obligations_obligation_1.
       subst.
-      rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum)).
+      rewrite (compile_store_valu_partial_equation_2 (rest := enum)).
       f_equal.
-      rewrite P4A.assign_find; auto.
-      now apply compile_store_valu_partial_invariant.
-  Qed. *)
+      + rewrite P4A.assign_find; auto.
+      + now apply compile_store_valu_partial_invariant.
+  Qed.
 
   Lemma compile_store_valu_partial_surjective:
     forall (val: valu FOBV.sig FOBV.fm_model compile_store_ctx),

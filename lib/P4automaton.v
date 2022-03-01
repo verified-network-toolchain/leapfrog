@@ -206,7 +206,7 @@ Lemma conf_buf_step_fill
   (b: bool)
 :
   (conf_buf_len q + 1 < size' a (conf_state q))%N ->
-  (conf_buf (step q b)) ~= (n_tuple_snoc (conf_buf q) b).
+  (conf_buf (step q b)) = (n_tuple_snoc (conf_buf q) b).
 Proof.
   step_worker.
 Qed.
@@ -346,8 +346,9 @@ Proof.
   - simpl in H; pose proof (conf_buf_sane q).
     simpl in *.
     autorewrite with follow.
-    assert (t2l (conf_buf q) = t2l (n_tuple_concat (conf_buf q) n_tuple_emp)) by 
-      (erewrite t2l_concat; simpl; auto with datatypes).
+    assert (t2l (conf_buf q) = t2l (n_tuple_concat (conf_buf q) n_tuple_emp)) by (
+      erewrite t2l_concat; simpl; erewrite app_nil_r; trivial
+    ).
  
     eauto using t2l_eq.
   - autorewrite with follow.
@@ -358,16 +359,16 @@ Proof.
       by (rewrite conf_buf_len_step_fill, conf_state_step_fill; lia).
     apply t2l_eq.
     erewrite t2l_concat.
-Admitted.
-    (* erewrite t2l_cons.
-    rewrite !t2l_concat, !t2l_cons.
-    replace (t2l (conf_buf (step q a0))) with (t2l (conf_buf q) ++ [a0]).
-    rewrite <- app_assoc.
-    auto.
-    erewrite (t2l_proper _ _ (conf_buf (step q a0)));
-      [|eapply conf_buf_step_fill; lia].
-    auto. 
-Qed.*)
+    unfold l2t, t2l.
+    unfold n_tuple_concat.
+    assert (conf_buf (step q a0) = n_tuple_snoc (conf_buf q) a0) by (
+      erewrite <- conf_buf_step_fill; trivial; lia
+    ).
+    erewrite H0.
+    unfold n_tuple_snoc.
+    erewrite <- app_assoc.
+    trivial.
+Qed.
 
 Lemma conf_buf_len_follow_transition
   {a: p4automaton}
@@ -402,10 +403,6 @@ Proof.
   - destruct bs; simpl in *.
     + autorewrite with follow.
       apply conf_store_step_transition; eauto.
-      rewrite H0.
-      admit.
-      (* rewrite concat_concat'.
-      reflexivity. *)
     + erewrite follow_equation_2.
       assert (Hs: conf_state (step q a0) = conf_state q).
       {
@@ -425,38 +422,20 @@ Proof.
       * rewrite Hsz.
         rewrite <- H.
         rewrite conf_buf_len_step_fill; lia.
-      * rewrite rewrite_size_jmeq.
-        rewrite <- l2t_t2l with (t:=full_buf).
-        rewrite <- l2t_t2l.
-        destruct (n_tuple_cons (l2t bs) b) eqn:?.
-        rewrite t2l_concat.
-        admit.
+      * assert (rewrite_size Hsz full_buf ~= full_buf) by eapply rewrite_size_jmeq.
+        erewrite H1.
+        unfold l2t in *.
+        erewrite H0.
+        unfold n_tuple_concat.
 
-        (* assert (Hfull: t2l full_buf = t2l (conf_buf q) ++ (a0 :: t2l n ++ [b0])).
-        {
-          apply t2l_proper in H0.
-          rewrite H0.
-          rewrite t2l_concat.
-          set (f := fun x => t2l (conf_buf q) ++ x).
-          eapply JMeq_congr.
-          replace (a0 :: t2l n ++ [b0])
-            with (a0 :: t2l ((n, b0): n_tuple bool (S (0 + length bs))))
-            by reflexivity.
-          erewrite <- t2l_cons.
-          reflexivity.
-        }
-        rewrite Hfull.
-        replace (t2l (conf_buf (step q a0))) with (t2l (conf_buf q) ++ [a0]).
-        rewrite <- app_assoc.
+        assert (conf_buf (step q a0) = n_tuple_snoc (conf_buf q) a0) by (
+          erewrite <- conf_buf_step_fill; trivial; lia
+        ).
+        erewrite H2.
+        unfold n_tuple_snoc.
+        erewrite <- app_assoc.
         reflexivity.
-        replace [a0] with (t2l ((tt, a0): n_tuple bool 1)).
-        rewrite <- t2l_concat.
-        eapply eq_t2l.
-        symmetry.
-        rewrite concat_concat'; simpl.
-        eapply conf_buf_step_fill; try lia.
-        reflexivity. *)
-Admitted.
+Qed.
 
 Lemma conf_buf_len_follow_fill
   {a: p4automaton}

@@ -258,6 +258,9 @@ Section ConfRel.
              | H: _ \/ _ |- _ => destruct H
              | |- ?g => congruence
              end).
+  Next Obligation.
+  exact 0%N.
+  Defined.
   #[global] Transparent bit_expr_eq_dec.
 
   Global Program Instance bit_expr_eqdec {c} : EquivDec.EqDec (bit_expr c) eq :=

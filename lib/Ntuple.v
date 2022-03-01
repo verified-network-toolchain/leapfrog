@@ -105,25 +105,16 @@ Equations len_pf_concat {A} {n m: nat} {xs ys: list A} (l: len_pf xs n) (r: len_
   len_pf_concat len_nil r := r;
   len_pf_concat (len_suc _ _ l _) r := len_suc _ _ (len_pf_concat l r) _.
 
-Record n_tuple A (n: N) := mk_n_tup {
-  elems : list A; 
-  len: N
-}.
+Definition n_tuple A (n: N) := list A.
 
-Arguments elems {_ _} _.
-Arguments len {_ _ } _.
+Definition n_tup_wf {A n} (t: n_tuple A n) := len_pf t (N.to_nat n).
 
-Definition n_tup_wf {A n} (t: n_tuple A n) := len_pf t.(elems) (N.to_nat t.(len)) /\ n = t.(len).
-
-Definition n_tuple_emp {A} : n_tuple A 0 := {| elems := nil; len := 0%N |}.
+Definition n_tuple_emp {A} : n_tuple A 0 := nil.
 
 Definition n_tup_emp_wf : forall A, n_tup_wf (@n_tuple_emp A) := 
-  fun _ => conj len_nil eq_refl.
+  fun _ => len_nil.
 
-Definition n_tuple_prev {A n} (xs: n_tuple A (N.succ n)) : n_tuple A n := {|
-  elems := List.tl xs.(elems);
-  len := N.pred xs.(len)
-|}.
+Definition n_tuple_prev {A n} (xs: n_tuple A (N.succ n)) : n_tuple A n := tl xs.
 
 Lemma n_tuple_emp_uniq: 
   forall A (x: n_tuple A 0), 
@@ -132,47 +123,30 @@ Lemma n_tuple_emp_uniq:
 Proof.
   intros.
   inversion H.
-  destruct x.
-  simpl in *.
-  inversion H0; simpl in *; subst; unfold n_tuple_emp; trivial.
-  inversion H2.
+  subst; exact eq_refl.
 Qed.
 
 
-Definition n_tuple_snoc {A n} (xs: n_tuple A n) (x: A) : n_tuple A (n + 1) := {|
-  elems := xs.(elems) ++ [x];
-  len := xs.(len) + 1
-|}.
+Definition n_tuple_snoc {A n} (xs: n_tuple A n) (x: A) : n_tuple A (n + 1) := xs ++ [x].
 
-Definition n_tuple_cons {A n} (xs: n_tuple A n) (x: A) : n_tuple A (n + 1) := {|
-  elems := x :: xs.(elems);
-  len := xs.(len) + 1
-|}.
+Definition n_tuple_cons {A n} (xs: n_tuple A n) (x: A) : n_tuple A (n + 1) := x :: xs.
 
-Definition n_tuple_cons_succ {A n} (xs: n_tuple A n) (x: A) : n_tuple A (N.succ n) := {|
-  elems := x :: xs.(elems);
-  len := N.succ xs.(len)
-|}.
+Definition n_tuple_cons_succ {A n} (xs: n_tuple A n) (x: A) : n_tuple A (N.succ n) := x :: xs.
 
-Definition t2l {A: Type} {n: N} (x: n_tuple A n) : list A := x.(elems).
+Definition t2l {A: Type} {n: N} (x: n_tuple A n) : list A := x.
 
 Lemma t2l_len {A} n: forall (x: n_tuple A n), n_tup_wf x -> length (t2l x) = N.to_nat n.
-Admitted.
-(* Proof.
+Proof.
   intros.
-  destruct x.
-  pose proof len_pf_conv _ _ _ l.
-  simpl in *.
-  auto.
-Qed. *)
+  unfold t2l.
+  eapply len_pf_conv.
+  eapply H.
+Qed.
 
 Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m := 
   eq_rect_r (fun m' => n_tuple A m') l pf.
 
-Definition l2t {A: Type} (l: list A) : n_tuple A (N.of_nat (length l)) := {|
-  elems := l;
-  len := (N.of_nat (length l))
-|}.
+Definition l2t {A: Type} (l: list A) : n_tuple A (N.of_nat (length l)) := l.
 
 Fixpoint p2digs (p: positive) : list bool :=
   match p with 
@@ -227,10 +201,7 @@ Proof.
   exact eq_refl.
 Defined.
 
-Definition p2nt (p: positive) : n_tuple bool (size_N p) := {|
-  elems := p2digs p;
-  len := size_N p
-|}.
+Definition p2nt (p: positive) : n_tuple bool (size_N p) := p2digs p.
 
 (* I think this is exactly log2 but not positive, it should be *)
 Definition N_size_N (n: N) : N := 
@@ -246,18 +217,12 @@ Definition n2t (n: N) : n_tuple bool (N_size_N n) :=
   end. 
 
 
-Definition n_tuple_repeat {A: Type} (n: nat) (a: A) : n_tuple A (N.of_nat n) := {|
-  elems := List.repeat a n; 
-  len := N.of_nat n
-|}.
+Definition n_tuple_repeat {A: Type} (n: nat) (a: A) : n_tuple A (N.of_nat n) := List.repeat a n.
 
 Definition n_tuple_repeat_N {A} (n: N) (a: A) : n_tuple A n :=
   N.peano_rect _ n_tuple_emp (fun _ r => n_tuple_cons_succ r a) n.
 
-Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m) := {|
-  elems := xs.(elems) ++ ys.(elems);
-  len := n + m
-|}.
+Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m) := xs ++ ys.
 
 Definition minus_max m n := (m - n + n)%N.
 
@@ -270,13 +235,22 @@ Lemma n_tuple_concat_emp_l:
     n_tuple_concat n_tuple_emp xs = xs.
 Proof.
   intros.
-  inversion H.
-  subst.
-  vm_compute.
-  destruct xs.
-  erewrite H1.
   exact eq_refl.
 Qed.
+
+Lemma n_tuple_concat_emp_r:
+  forall A n (xs: n_tuple A n), 
+    n_tup_wf xs ->
+    n_tuple_concat xs n_tuple_emp = xs.
+Proof.
+  intros.
+  unfold n_tup_wf in H.
+  induction H; intuition eauto.
+  simpl.
+  erewrite IHlen_pf.
+  trivial.
+Qed.
+
 
 Lemma add_0_r: 
   forall (n: N), (n + 0 = n)%N.
@@ -298,35 +272,10 @@ Proof.
   simpl.
 Admitted. *)
 
-(* TODO: if this needs to be fast, we can replace with a custom version that avoids rewrites *)
 Global Instance n_tuple_eq_dec
          {A: Type}
          `{A_eq_dec: EquivDec.EqDec A eq}
-         (n: N) : EquivDec.EqDec (n_tuple A n) eq.
-refine (
-  fun x y => 
-    match x, y with 
-    | mk_n_tup _ _ xs x_len, mk_n_tup _ _ ys y_len => 
-      match list_eq_dec A_eq_dec xs ys with 
-      | left H_elems => 
-        match N_eqdec x_len y_len with 
-        | left H_len => left
-          (eq_ind_r
-            (fun xs0 : list A =>
-              {| elems := xs0; len := x_len |} ===
-              {| elems := ys; len := y_len |})
-            (eq_ind_r
-              (fun x_len0 : N =>
-                {| elems := ys; len := x_len0 |} ===
-                {| elems := ys; len := y_len |}) 
-              eq_refl H_len) H_elems)
-        | right H_len => right _
-        end
-      | right H_elems => right _
-      end
-    end
-); congruence.
-Defined.
+         (n: N) : EquivDec.EqDec (n_tuple A n) eq := fun x y => list_eq_dec A_eq_dec x y. 
 
 Lemma min_0_r : forall n, Nat.min n 0 = 0.
 Proof.
@@ -339,15 +288,11 @@ Proof.
   eapply min_l; eapply le_0_n.
 Qed.
 
-Definition n_tuple_take_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (N.min n m) := {|
-  elems := firstn (N.to_nat n) (t2l xs);
-  len := N.min n xs.(len)
-|}.
+Definition n_tuple_take_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (N.min n m) := 
+  firstn (N.to_nat n) (t2l xs).
 
-Definition n_tuple_skip_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (m - n) := {|
-  elems := skipn (N.to_nat n) (t2l xs);
-  len := (m - n)
-|}.
+Definition n_tuple_skip_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (m - n) := 
+  skipn (N.to_nat n) (t2l xs).
 
 Definition n_tuple_slice {A n} (hi lo: N) (xs: n_tuple A n) : n_tuple A (N.min (1 + hi) n - lo) :=
   n_tuple_skip_n lo (n_tuple_take_n (1 + hi) xs).
@@ -371,6 +316,15 @@ Proof.
   destruct pf.
   reflexivity.
 Qed.
+
+Ltac rewrite_sizes := 
+  repeat match goal with 
+  | |- context[rewrite_size ?X ?Y] => 
+    let H := fresh "H" in 
+    assert (H: rewrite_size X Y ~= Y) by eapply rewrite_size_jmeq; 
+    erewrite H;
+    clear H
+  end.
 
 Lemma concat_emp:
   forall A n (t: n_tuple A n),
@@ -434,10 +388,8 @@ Proof.
   trivial.
 Qed.
 
-Definition n_slice {A n} (l: n_tuple A n) (hi lo: N) : n_tuple A (N.min (1 + hi) n - lo)%N := {|
-  elems := slice l.(elems) hi lo;
-  len := (N.min (1 + hi) n - lo)%N
-|}.
+Definition n_slice {A n} (l: n_tuple A n) (hi lo: N) : n_tuple A (N.min (1 + hi) n - lo)%N := 
+  slice l hi lo.
 
 Section ConvProofs.
   Set Universe Polymorphism.
@@ -447,128 +399,41 @@ Section ConvProofs.
     forall (xs ys: list A),
       (l2t (xs ++ ys)) ~= (n_tuple_concat (l2t xs) (l2t ys)).
   Proof.
-    (* induction xs; intros.
-    - apply JMeq_sym.
-      apply concat_emp.
-    - pose proof (IHxs ys).
-      simpl l2t.
-      set (t := l2t ys) in *.
-      destruct t.
-      autorewrite with n_tuple_concat in *. *)
-  Admitted.
-     
-      (* assert (JMeq (n_tuple_cons (l2t (xs ++ ys)) a)
-                   (n_tuple_cons (n_tuple_concat (l2t xs) (l2t ys)) a)).
-      {
-        generalize dependent (l2t (xs ++ ys)).
-        rewrite app_length.
-        erewrite Nat2N.inj_add.
-        intros.
-        erewrite H.
-        reflexivity.
-      }
-      eapply JMeq_trans.
-      apply concat_cons.
-  Qed. *)
+    intros.
+    reflexivity.
+  Qed.
  
   Lemma l2t_t2l:
     forall n (t: n_tuple A n),
       (l2t (t2l t)) ~= t.
   Proof.
-  Admitted.
-(*
-    induction n; intros; destruct t.
-    - reflexivity.
-    - cbn.
-      pose proof (l2t_app (t2l n0) [a]).
-      eapply JMeq_trans.
-      eapply H.
-      cbn.
-      assert (JMeq
-                (n_tuple_concat (l2t (t2l n0)) ((tt, a): n_tuple _ 1))
-                (l2t (t2l n0), a)).
-      {
-        generalize (l2t (t2l n0)).
-        generalize (length (t2l n0)).
-        unfold n_tuple_concat.
-        intro n1.
-        generalize (n_tuple_concat_obligation_1 A n1 1).
-        intros.
-        cbn in *.
-        apply rewrite_size_jmeq.
-      }
-      eapply JMeq_trans.
-      eapply H0.
-      eapply JMeq_sym.
-      specialize (IHn n0).
-      revert IHn.
-      generalize dependent (l2t (t2l n0)).
-      rewrite t2l_len.
-      intros.
-      rewrite IHn.
-      reflexivity.
+    reflexivity.
   Qed.
-*)
 
   Lemma t2l_cons:
     forall n (t: n_tuple A n) x,
       t2l (n_tuple_cons t x) = x :: t2l t.
   Proof.
-  Admitted.
-    (* induction n.
-    - reflexivity.
-    - intros.
-      destruct t.
-      simpl.
-      replace (x :: t2l n0 ++ [a])
-        with ((x :: t2l n0) ++ [a])
-        by eauto with datatypes.
-      rewrite <- IHn.
-      remember (n_tuple_cons n0 x) as g.
-      simpl in *.
-      now destruct g.
-  Qed. *)
-(*
+    reflexivity.
+  Qed.
   Lemma t2l_l2t:
     forall (l: list A),
       Ntuple.t2l (l2t l) = l.
   Proof.
-    induction l.
-    - reflexivity.
-    - simpl (l2t _ ).
-      replace (a :: l) with (a :: t2l (l2t l)) by (rewrite IHl; auto).
-      apply t2l_cons.
+    reflexivity.
+  Qed.
+  Lemma t2l_n_tuple_take_n:
+    forall (n m : N) (t: n_tuple bool n),
+      (t2l (n_tuple_take_n m t) = firstn (N.to_nat m) (t2l t))%N.
+  Proof.
+    reflexivity.
   Qed.
 
-End ConvProofs.
+  Lemma t2l_n_tuple_skip_n:
+    forall n m (t: n_tuple bool n),
+      t2l (n_tuple_skip_n m t) = skipn (N.to_nat m) (t2l t).
+  Proof.
+    reflexivity.
+  Qed. 
 
-Lemma t2l_n_tuple_take_n:
-  forall n m (t: n_tuple bool n),
-    t2l (n_tuple_take_n m t) = firstn m (t2l t).
-Proof.
-  intros.
-  unfold n_tuple_take_n.
-  generalize (Ntuple.n_tuple_take_n_obligation_1 bool n m t).
-  generalize (Nat.min m n).
-  intros.
-  subst.
-  rewrite rewrite_size_eq.
-  rewrite (t2l_l2t bool).
-  reflexivity.
-Qed.
-
-Lemma t2l_n_tuple_skip_n:
-  forall n m (t: n_tuple bool n),
-    t2l (n_tuple_skip_n m t) = skipn m (t2l t).
-Proof.
-  intros.
-  unfold n_tuple_skip_n.
-  generalize (Ntuple.n_tuple_skip_n_obligation_1 bool n m t).
-  generalize (n - m).
-  intros.
-  subst.
-  rewrite rewrite_size_eq.
-  rewrite t2l_l2t.
-  reflexivity.
-Qed. *)
 End ConvProofs.
