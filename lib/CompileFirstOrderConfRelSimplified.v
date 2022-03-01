@@ -136,7 +136,7 @@ Section CompileFirstOrderConfRelSimplified.
     List.map Hdr_sz enum.
 
   Fixpoint list_sum_N (ns: list N) : N :=
-    match ns with 
+    match ns with
     | nil => 0
     | n :: ns => n + list_sum_N ns
     end.
@@ -155,7 +155,7 @@ Section CompileFirstOrderConfRelSimplified.
     : tm FOBV.sig (compile_store_ctx_partial enum)
                   (FOBV.Bits (compile_sizes enum)) := {
     compile_store_partial nil := TFun FOBV.sig (FOBV.BitsLit n_tuple_emp) hnil;
-    compile_store_partial (elem :: enum) := 
+    compile_store_partial (elem :: enum) :=
     TFun FOBV.sig (FOBV.Concat (Hdr_sz elem) (compile_sizes enum))
                     (TVar (VHere _ _ _) :::
                      tm_cons FOBV.sig (compile_store_partial enum) ::: hnil)
@@ -418,7 +418,7 @@ Section CompileFirstOrderConfRelSimplified.
 
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
-      n_tup_wf val -> 
+      n_tup_wf val ->
       List.NoDup enum ->
       val ~= compile_store_val_partial (decompile_store_val_partial enum val init_store) enum.
   Proof.
@@ -427,8 +427,8 @@ Section CompileFirstOrderConfRelSimplified.
       eapply decompile_store_val_wf; eauto
     ).
     revert H1.
-    revert H0. 
-    revert H. 
+    revert H0.
+    revert H.
     revert val.
     revert enum.
     induction enum; intros.
@@ -442,8 +442,8 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite P4A.assign_find; auto.
       rewrite_sizes.
       symmetry.
-      inversion H; 
-      subst. 
+      inversion H;
+      subst.
       + unfold compile_sizes in H4.
         simpl in H4.
         (* assert (Hdr_sz a0 = 0%N) by Lia.lia.
@@ -456,7 +456,6 @@ Section CompileFirstOrderConfRelSimplified.
         clear H4.
         simpl in *.
         clear H2.
-
       erewrite IHenum; auto.
       rewrite compile_store_val_partial_invariant; auto. *)
   Admitted.
