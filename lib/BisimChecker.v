@@ -172,6 +172,7 @@ Section BisimChecker.
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|typeclasses eauto].
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct.
     eapply iff_refl.
+    typeclasses eauto.
   Qed.
 
 End BisimChecker.
