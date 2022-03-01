@@ -13,8 +13,8 @@ Require Import Coq.NArith.Nnat.
 Require Import Coq.PArith.BinPos.
 
 (*
-Definition enum_tuples (n: N) : list (n_tuple bool n) := 
-  N.peano_rect (fun n => list (n_tuple bool n)) (n_tuple_emp :: nil) (fun _ shorter => 
+Definition enum_tuples (n: N) : list (n_tuple bool n) :=
+  N.peano_rect (fun n => list (n_tuple bool n)) (n_tuple_emp :: nil) (fun _ shorter =>
     map (fun t => n_tuple_cons_succ t false) shorter ++
     map (fun t => n_tuple_cons_succ t true) shorter
   ) n.
@@ -50,7 +50,7 @@ refine (
 destruct t.
 destruct x; [exfalso; shelve|].
 destruct b eqn:?.
-- N.of_nat (2 ^ n) + 
+- N.of_nat (2 ^ n) +
 
 
 inversion l.
@@ -97,7 +97,7 @@ Proof.
         rewrite length_enum_tuples.
         apply code_bound.
 Qed.
-*) 
+*)
 
 Global Instance BoolTupleFinite (n: N): Finite (n_tuple bool n).
 Admitted.
@@ -510,7 +510,7 @@ Proof.
   reflexivity.
 Qed. *)
 
-Lemma n_tuple_take_emp : 
+Lemma n_tuple_take_emp :
   forall {A} n, @n_tuple_take_n A _ n n_tuple_emp = n_tuple_emp.
 Proof.
   intros.
@@ -518,7 +518,7 @@ Proof.
   induction (N.to_nat n); intuition eauto.
 Qed.
 
-Lemma n_tuple_skip_emp : 
+Lemma n_tuple_skip_emp :
   forall {A} n, @n_tuple_skip_n A _ n n_tuple_emp = n_tuple_emp.
 Proof.
   intros.
@@ -526,34 +526,71 @@ Proof.
   induction (N.to_nat n); intuition eauto.
 Qed.
 
-Lemma n_tup_take_wf : 
-  forall A n m (v: n_tuple A n), 
+Lemma n_tup_take_wf':
+  forall A n m k (v: n_tuple A n),
+    n_tup_wf v -> k = N.min m n -> n_tup_wf (n := k) (n_tuple_take_n m v).
+Proof.
+  unfold n_tup_wf; intros.
+  apply len_pf_rev.
+  apply len_pf_conv in H.
+  unfold n_tuple_take_n.
+  rewrite firstn_length.
+  rewrite t2l_len.
+  - Lia.lia.
+  - now apply len_pf_rev.
+Qed.
+
+Lemma n_tup_take_wf :
+  forall A n m (v: n_tuple A n),
     n_tup_wf v -> n_tup_wf (n_tuple_take_n m v).
 Proof.
-Admitted.
-  (* intros.
-  unfold n_tup_wf in *.
-  pose proof len_pf_conv _ _ _ H.
-  clear H.
-  eapply len_pf_rev.
-  induction v; simpl.
-  - simpl in *.
-    assert (n = 0%N) by Lia.lia.
-    assert (N.min m n = 0%N) by Lia.lia.
-    erewrite H1.
-    erewrite H.
-    erewrite n_tuple_take_emp.
-    exact eq_refl.
-  - simpl in *.
-    simpl n_tuple_take_n. *)
-Lemma n_tup_skip_wf :  
-  forall A n m (v: n_tuple A n), 
-    n_tup_wf v -> n_tup_wf (n_tuple_skip_n m v).
-Admitted.
+  intros.
+  now apply n_tup_take_wf'.
+Qed.
 
-Lemma n_tup_cat_wf : 
-  forall A n m (v : n_tuple A n) (v': n_tuple A m), 
-  n_tup_wf v -> 
-  n_tup_wf v' -> 
+Lemma n_tup_skip_wf':
+  forall A n m k (v: n_tuple A n),
+    n_tup_wf v -> (k = n - m)%N -> n_tup_wf (n := k) (n_tuple_skip_n m v).
+Proof.
+  unfold n_tup_wf; intros.
+  apply len_pf_rev.
+  apply len_pf_conv in H.
+  unfold n_tuple_skip_n.
+  rewrite skipn_length.
+  rewrite t2l_len.
+  - Lia.lia.
+  - now apply len_pf_rev.
+Qed.
+
+Lemma n_tup_skip_wf :
+  forall A n m (v: n_tuple A n),
+    n_tup_wf v -> n_tup_wf (n_tuple_skip_n m v).
+Proof.
+  intros.
+  now eapply n_tup_skip_wf'.
+Qed.
+
+Lemma n_tup_cat_wf':
+  forall A n m k (v : n_tuple A n) (v': n_tuple A m),
+  n_tup_wf v ->
+  n_tup_wf v' ->
+  k = (n + m)%N ->
+  n_tup_wf (n := k) (n_tuple_concat v v').
+Proof.
+  intros.
+  apply len_pf_rev.
+  apply len_pf_conv in H, H0.
+  unfold n_tuple_concat.
+  rewrite app_length.
+  Lia.lia.
+Qed.
+
+Lemma n_tup_cat_wf :
+  forall A n m (v : n_tuple A n) (v': n_tuple A m),
+  n_tup_wf v ->
+  n_tup_wf v' ->
   n_tup_wf (n_tuple_concat v v').
-Admitted.
+Proof.
+  intros.
+  now apply n_tup_cat_wf'.
+Qed.
