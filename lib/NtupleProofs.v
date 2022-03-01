@@ -509,3 +509,51 @@ Proof.
   subst.
   reflexivity.
 Qed. *)
+
+Lemma n_tuple_take_emp : 
+  forall {A} n, @n_tuple_take_n A _ n n_tuple_emp = n_tuple_emp.
+Proof.
+  intros.
+  unfold n_tuple_take_n.
+  induction (N.to_nat n); intuition eauto.
+Qed.
+
+Lemma n_tuple_skip_emp : 
+  forall {A} n, @n_tuple_skip_n A _ n n_tuple_emp = n_tuple_emp.
+Proof.
+  intros.
+  unfold n_tuple_skip_n.
+  induction (N.to_nat n); intuition eauto.
+Qed.
+
+Lemma n_tup_take_wf : 
+  forall A n m (v: n_tuple A n), 
+    n_tup_wf v -> n_tup_wf (n_tuple_take_n m v).
+Proof.
+Admitted.
+  (* intros.
+  unfold n_tup_wf in *.
+  pose proof len_pf_conv _ _ _ H.
+  clear H.
+  eapply len_pf_rev.
+  induction v; simpl.
+  - simpl in *.
+    assert (n = 0%N) by Lia.lia.
+    assert (N.min m n = 0%N) by Lia.lia.
+    erewrite H1.
+    erewrite H.
+    erewrite n_tuple_take_emp.
+    exact eq_refl.
+  - simpl in *.
+    simpl n_tuple_take_n. *)
+Lemma n_tup_skip_wf :  
+  forall A n m (v: n_tuple A n), 
+    n_tup_wf v -> n_tup_wf (n_tuple_skip_n m v).
+Admitted.
+
+Lemma n_tup_cat_wf : 
+  forall A n m (v : n_tuple A n) (v': n_tuple A m), 
+  n_tup_wf v -> 
+  n_tup_wf v' -> 
+  n_tup_wf (n_tuple_concat v v').
+Admitted.

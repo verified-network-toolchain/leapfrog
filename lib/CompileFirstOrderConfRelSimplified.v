@@ -420,27 +420,30 @@ Section CompileFirstOrderConfRelSimplified.
       + unfold n_tup_wf.
         unfold compile_sizes in val.
         simpl in val.
+        eapply len_pf_rev.
         admit.
   Admitted.
 
   Lemma decompile_store_val_partial_roundtrip:
     forall enum val,
+      n_tup_wf val -> 
       List.NoDup enum ->
       val ~= compile_store_val_partial (decompile_store_val_partial enum val init_store) enum.
   Proof.
+    intros.
+    assert (n_tup_wf (compile_store_val_partial (decompile_store_val_partial enum val init_store) enum)) by (
+      eapply decompile_store_val_wf; eauto
+    ).
+    revert H1.
+    revert H0. 
+    revert H. 
+    revert val.
+    revert enum.
     induction enum; intros.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
-      unfold compile_sizes in val.
-      simpl in val.
-      assert (val = n_tuple_emp).
-      eapply n_tuple_emp_uniq.
-
-      erewrite <- n_tuple_emp_uniq.
       pose proof n_tuple_emp_uniq _ val.
-      subst.
-      erewrite H0; trivial.
-      admit.
+      erewrite H2; trivial.
     - autorewrite with decompile_store_val_partial.
       autorewrite with compile_store_val_partial.
       simpl.
@@ -448,9 +451,22 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite_sizes.
       symmetry.
       inversion H; 
-      subst.
+      subst. 
+      + unfold compile_sizes in H4.
+        simpl in H4.
+        (* assert (Hdr_sz a0 = 0%N) by Lia.lia.
+        assert (list_sum_N (get_sizes enum) = 0%N) by Lia.lia.
+        unfold n_tuple_take_n.
+        erewrite H2.
+        erewrite H2 in *.
+        erewrite H3 in *.
+        simpl in *.
+        clear H4.
+        simpl in *.
+        clear H2.
+
       erewrite IHenum; auto.
-      rewrite compile_store_val_partial_invariant; auto.
+      rewrite compile_store_val_partial_invariant; auto. *)
   Admitted.
 
   Lemma compile_val_roundtrip:
@@ -463,8 +479,9 @@ Section CompileFirstOrderConfRelSimplified.
     - autorewrite with decompile_val.
       autorewrite with compile_val.
       rewrite <- decompile_store_val_partial_roundtrip; auto.
+      1: admit.
       apply NoDup_enum.
-  Qed.
+  Admitted.
 
   Definition store_almost_equal (s1 s2: store (P4A.interp a)) :=
     forall (h: Hdr), P4A.find Hdr Hdr_sz h s1 = P4A.find Hdr Hdr_sz h s2.
