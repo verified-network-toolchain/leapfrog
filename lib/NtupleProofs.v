@@ -594,3 +594,11 @@ Proof.
   intros.
   now apply n_tup_cat_wf'.
 Qed.
+
+
+Lemma n_tup_slice_wf :
+  forall A hi lo n (v: n_tuple A n),
+  n_tup_wf v ->
+  n_tup_wf (n_tuple_slice hi lo v).
+Proof.
+Admitted.
