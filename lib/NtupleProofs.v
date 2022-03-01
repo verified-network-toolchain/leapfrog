@@ -224,7 +224,11 @@ Lemma t2l_eq:
     t2l xs = t2l ys ->
     xs ~= ys.
 Proof.
-Admitted.
+  intros.
+  unfold t2l in H.
+  now rewrite H.
+Qed.
+
   (* intros.
   pose proof (t2l_n_eq _ _ _ _ H).
   subst m.
@@ -328,7 +332,11 @@ Lemma concat_proper:
     xs1 ~= xs2 ->
     ys1 ~= ys2 ->
     n_tuple_concat xs1 ys1 ~= n_tuple_concat xs2 ys2.
-Admitted.
+Proof.
+  intros.
+  unfold n_tuple_concat.
+  now rewrite H, H0.
+Qed.
 (*
 Proof.
   intros.
@@ -437,7 +445,9 @@ Lemma t2l_concat:
   forall n m (xs: n_tuple bool n) (ys: n_tuple bool m),
     t2l (n_tuple_concat xs ys) = t2l xs ++ t2l ys.
 Proof.
-Admitted.
+  now unfold t2l, n_tuple_concat.
+Qed.
+
   (* intros.
   replace (t2l (n_tuple_concat xs ys)) with (t2l (n_tuple_concat' xs ys))
     by (eapply t2l_proper; symmetry; eapply concat_concat').
@@ -448,7 +458,11 @@ Admitted.
 Lemma n_tuple_concat_roundtrip:
   forall n m (t: n_tuple bool m),
     (n_tuple_concat (n_tuple_take_n n t) (n_tuple_skip_n n t)) ~= t.
-Admitted.
+Proof.
+  unfold n_tuple_concat, n_tuple_take_n, n_tuple_skip_n, t2l; intros.
+  now rewrite firstn_skipn.
+Qed.
+
 (*
 Proof.
   intros.
@@ -463,9 +477,22 @@ Qed.
 
 Lemma n_tuple_take_n_roundtrip:
   forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    n_tup_wf t ->
     t ~= n_tuple_take_n n (n_tuple_concat t t')
 .
-Admitted.
+Proof.
+  unfold n_tuple_take_n, n_tuple_concat, t2l; intros.
+  rewrite firstn_app.
+  unfold n_tup_wf in H.
+  apply len_pf_conv in H.
+  rewrite H.
+  replace (N.to_nat n - N.to_nat n) with 0 by Lia.lia.
+  rewrite firstn_O.
+  rewrite app_nil_r.
+  rewrite <- H.
+  now rewrite firstn_all.
+Qed.
+
 (*
 Proof.
   intros.
@@ -484,9 +511,20 @@ Qed.
 *)
 Lemma n_tuple_skip_n_roundtrip:
   forall n (t: n_tuple bool n) k (t': n_tuple bool k),
+    n_tup_wf t ->
     t' ~= n_tuple_skip_n n (n_tuple_concat t t')
 .
-Admitted.
+Proof.
+  unfold n_tuple_skip_n, n_tuple_concat, t2l; intros.
+  rewrite skipn_app.
+  unfold n_tup_wf in H.
+  apply len_pf_conv in H.
+  rewrite <- H.
+  rewrite skipn_all.
+  rewrite app_nil_l.
+  replace (length t - length t) with 0 by Lia.lia.
+  now rewrite skipn_O.
+Qed.
 (*
 Proof.
   intros.

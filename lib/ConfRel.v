@@ -138,7 +138,10 @@ Section ConfRel.
   Proof.
     unfold state_template_sane, state_template_sane_fn.
     intros st.
-  Admitted.
+    destruct ((st_buf_len st <? size' (P4A.interp a) (st_state st))%N) eqn:?.
+    - now rewrite N.ltb_lt in Heqb.
+    - now rewrite N.ltb_nlt in Heqb.
+  Qed.
     (* pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
     destruct H; eauto.
     - tauto.

@@ -458,12 +458,21 @@ Section CompileFirstOrderConfRelSimplified.
     eapply DepEnv.env_extensionality; eauto.
   Qed.
 
+  Definition store_wf val :=
+    forall a n, P4A.find Hdr Hdr_sz a val = P4A.VBits n -> n_tup_wf n.
+
+  Inductive val_wf: forall s, FOS.mod_sorts a s -> Prop :=
+  | ValWellFormedBits: forall n (t: n_tuple bool n), n_tup_wf t -> val_wf (FOS.Bits _) t
+  | ValWellFormedStore: forall st, store_wf st -> val_wf FOS.Store st
+  .
+
   Lemma decompile_val_roundtrip:
     forall s (val: FOS.mod_sorts a s),
+      val_wf s val ->
       val = decompile_val (compile_val val).
   Proof.
     intros.
-    destruct s.
+    dependent destruction H.
     - autorewrite with compile_val.
       autorewrite with decompile_val.
       constructor.
@@ -472,7 +481,7 @@ Section CompileFirstOrderConfRelSimplified.
       autorewrite with compile_val.
       autorewrite with decompile_val.
       pose proof (elem_of_enum (Finite := Hdr_finite) h).
-      revert h H; induction (enum Hdr); intros.
+      revert h H H0; induction (enum Hdr); intros.
       + contradiction.
       + destruct (h == a0).
         * unfold equiv in e.
@@ -483,22 +492,24 @@ Section CompileFirstOrderConfRelSimplified.
           simpl.
           rewrite P4A.assign_find;
             try solve [eauto | typeclasses eauto].
-          destruct (P4A.find Hdr Hdr_sz a0 val).
+          destruct (P4A.find Hdr Hdr_sz a0 st) eqn:?.
           f_equal.
           apply JMeq_eq.
           rewrite_sizes.
           eapply NtupleProofs.n_tuple_take_n_roundtrip.
+          now apply H.
         * unfold equiv, complement in c.
           autorewrite with compile_store_val_partial.
           autorewrite with decompile_store_val_partial.
           simpl.
           rewrite P4A.find_not_first by assumption.
-          rewrite IHl by (destruct H; congruence).
+          rewrite IHl by (auto; destruct H0; congruence).
           do 2 f_equal.
-          destruct (P4A.find Hdr Hdr_sz a0 val).
+          destruct (P4A.find Hdr Hdr_sz a0 st) eqn:?.
           apply JMeq_eq.
           rewrite_sizes.
           eapply NtupleProofs.n_tuple_skip_n_roundtrip.
+          now apply H.
   Qed.
 
   Lemma compile_store_val_partial_correct':
@@ -690,7 +701,10 @@ Section CompileFirstOrderConfRelSimplified.
       + now f_equal.
       + rewrite decompile_val_roundtrip.
         rewrite decompile_val_roundtrip at 1.
-        now f_equal.
+        * now f_equal.
+        * (* need a condition on v for this to go through; maybe something like valu_wf *)
+          admit.
+        * admit.
     - now rewrite IHfm.
     - now rewrite IHfm1, IHfm2.
     - now rewrite IHfm1, IHfm2.
@@ -717,7 +731,7 @@ Section CompileFirstOrderConfRelSimplified.
         -- specialize (H (compile_store_valu_partial (build_hlist_env _ val))).
            apply IHfm.
            now rewrite (compile_valu_equation_3 val (c0 := c)).
-  Qed.
+  Admitted.
 
 End CompileFirstOrderConfRelSimplified.
 
