@@ -14,3 +14,5 @@ Lemma ethernet_equiv:
 Proof.
   solve_lang_equiv_state_axiom Reference.state_eqdec Combined.state_eqdec false.
 Qed.
+
+Print Assumptions ethernet_equiv.

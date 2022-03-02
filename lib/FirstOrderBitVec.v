@@ -105,7 +105,7 @@ Section FirstOrderBitVec.
       output_wf srt v /\ valu_wf inner
     end.
 
-  Fixpoint fm_wf {ctx} (e: fm ctx) : Prop := 
+  Fixpoint fm_wf {ctx} (e: fm ctx) : Prop :=
     match e with 
     | FTrue => True
     | FFalse => True
@@ -118,6 +118,9 @@ Section FirstOrderBitVec.
     | (FForall _ f) => fm_wf f
     end.
 
+
+  
+  
   Require Import Coq.Program.Tactics.
   Require Import Coq.Program.Equality.
 

@@ -173,7 +173,13 @@ Section BisimChecker.
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct.
     eapply iff_refl.
     typeclasses eauto.
-  Qed.
+    - exact I.
+    - (* we need a meta theorem here, 
+         that simplify_entailment is always well-formed and the other 
+         compilation passes preserve well-formedness
+         *)
+      admit.
+  Admitted.
 
 End BisimChecker.
 

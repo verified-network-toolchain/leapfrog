@@ -88,6 +88,137 @@ Section AutModel.
     FirstOrder.mod_rels := mod_rels;
   |}.
 
+  Definition store_wf val :=
+    forall a n, P4A.find Hdr Hdr_sz a val = P4A.VBits n -> n_tup_wf n.
+
+  Inductive val_wf: forall s, mod_sorts s -> Prop :=
+    | ValWellFormedBits: forall n (t: n_tuple bool n), n_tup_wf t -> val_wf (Bits _) t
+    | ValWellFormedStore: forall st, store_wf st -> val_wf Store st.
+
+  Hint Constructors val_wf.
+
+  Ltac inv_v_wf H := 
+    refine (match H with 
+    | ValWellFormedBits _ => _
+    | _ => _
+    end); try exact idProp.
+
+  Fixpoint tm_wf {c srt} (t: tm c srt) : Prop :=
+    match t with
+    | TVar v => True
+    | @TFun _ c' args ret f hl =>
+      let rec := HList.all (fun srt => @tm_wf c' srt) hl in 
+      let fun_wf := 
+        match f with 
+        | BitsLit vs => n_tup_wf vs
+        | _ => True
+        end in 
+      rec /\ fun_wf
+    end.
+
+  Fixpoint valu_wf {c} (vs: valu _ fm_model c) : Prop :=
+    match vs with 
+    | VEmp _ _ => True
+    | VSnoc _ _ srt _ v inner  => 
+      val_wf srt v /\ valu_wf inner
+    end.
+
+  Fixpoint fm_wf {ctx} (e: fm ctx) : Prop := 
+    match e with 
+    | FTrue => True
+    | FFalse => True
+    | (FEq e1 e2) => tm_wf e1 /\ tm_wf e2
+    | (FRel _ _ _) => True
+    | (FNeg _ f) => fm_wf f
+    | (FOr _ f1 f2) => fm_wf f1 /\ fm_wf f2
+    | (FAnd _ f1 f2) => fm_wf f1 /\ fm_wf f2
+    | (FImpl f1 f2) => fm_wf f1 /\ fm_wf f2
+    | (FForall _ f) => fm_wf f
+    end.
+
+
+  (* Lemma interp_valu_wf : 
+    forall c vs s t, valu_wf vs -> val_wf s (interp_tm (c := c) vs t).
+  Admitted.
+
+  Hint Immediate interp_valu_wf. *)
+
+  Require Import Coq.Program.Tactics.
+  Require Import Coq.Program.Equality.
+
+  Lemma valu_find_wf : 
+    forall c srt (vs: valu _ _ c) v,
+      valu_wf vs -> 
+      val_wf srt (find _ fm_model v vs).
+  Proof.
+    intros.
+    dependent induction vs;
+    dependent destruction v;
+    autorewrite with find;
+    simpl in *;
+    intuition eauto.
+  Qed.
+
+  Lemma valu_p4afind_wf:  
+    forall c (vs: valu _ _ c) (t : tm c Store) h,
+      valu_wf vs ->
+      tm_wf t ->
+      match
+        P4A.find Hdr Hdr_sz h (interp_tm (m := fm_model) vs t)
+      with
+      | P4A.VBits v => n_tup_wf v
+      end.
+  Proof.
+  Admitted.
+    
+  Lemma tm_interp_wf : 
+    forall c (v: valu _ _ c) srt (t: tm c srt), 
+      valu_wf v ->
+      tm_wf t -> 
+      val_wf srt (interp_tm (m := fm_model) v t).
+  Proof. 
+    dependent induction t using tm_ind'; intros;
+    autorewrite with interp_tm; try now (
+      eapply valu_find_wf; auto
+    ).
+
+    Opaque N.add.
+
+    destruct srt eqn:?;
+    repeat match goal with 
+    | H: HList.t _ (_ :: _) |- _ => 
+      dependent destruction H
+    | H: HList.t _ nil |- _ => 
+      dependent destruction H
+    end; 
+    simpl in *;
+    autorewrite with mod_fns;
+    intuition eauto.
+    - subst.
+      econstructor.
+      eapply NtupleProofs.n_tup_cat_wf; intuition eauto.
+      + specialize (H2 _ H0 H3).
+        inv_v_wf H2.
+        eauto.
+      + specialize (H1 _ H0 H).
+        inv_v_wf H1.
+        eauto.
+
+    - econstructor.
+      eapply NtupleProofs.n_tup_slice_wf;
+      intuition eauto.
+      specialize (H2 _ H0 H1).
+      inv_v_wf H2.
+      eauto.
+    - pose proof valu_p4afind_wf _ _ h H0 H1.
+      destruct (P4A.find _ _ _ _).
+      intuition eauto.
+  Qed.
+
+
+
+
+
   Obligation Tactic := intros.
   Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
     { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: y ::: hnil)) :=
@@ -105,14 +236,21 @@ Section AutModel.
 
   
 
+  
+
   Import Coq.Program.Equality.
 
   Lemma interp_zero_tm:
      forall c (t: tm c (Bits 0)) v,
+
        interp_tm (m := fm_model) v t = n_tuple_emp.
   Proof.
-    intros.
-    eapply n_tuple_emp_uniq.
+    dependent induction t using tm_ind'; intros;
+    autorewrite with interp_tm.
+    - induction v0;
+      dependent destruction v;
+      autorewrite with find.
+      + simpl in *.
   Admitted.
 
   Lemma simplify_concat_zero_corr :

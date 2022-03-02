@@ -62,13 +62,14 @@ Section CompileFirstOrderConfRelSimplified.
             (compile_store_valu_partial hdrs)
   }.
 
-  Equations compile_ctx (c: ctx (FOS.sig Hdr_sz)) : ctx FOBV.sig := {
-    compile_ctx (CEmp _) := CEmp _;
-    compile_ctx (CSnoc _ c FOS.Store) :=
-      app_ctx (compile_ctx c) compile_store_ctx;
-    compile_ctx (CSnoc _ c (FOS.Bits n)) :=
+  Fixpoint compile_ctx (c: ctx (FOS.sig Hdr_sz)) : ctx FOBV.sig := 
+    match c with 
+    | CEmp _ => CEmp _
+    | CSnoc _ c FOS.Store => 
+      app_ctx (compile_ctx c) compile_store_ctx
+    | CSnoc _ c (FOS.Bits n) =>
       CSnoc _ (compile_ctx c) (FOBV.Bits n)
-  }.
+    end.
 
   Equations build_hlist_env
     (hdrs: list Hdr)
@@ -458,17 +459,9 @@ Section CompileFirstOrderConfRelSimplified.
     eapply DepEnv.env_extensionality; eauto.
   Qed.
 
-  Definition store_wf val :=
-    forall a n, P4A.find Hdr Hdr_sz a val = P4A.VBits n -> n_tup_wf n.
-
-  Inductive val_wf: forall s, FOS.mod_sorts a s -> Prop :=
-  | ValWellFormedBits: forall n (t: n_tuple bool n), n_tup_wf t -> val_wf (FOS.Bits _) t
-  | ValWellFormedStore: forall st, store_wf st -> val_wf FOS.Store st
-  .
-
   Lemma decompile_val_roundtrip:
     forall s (val: FOS.mod_sorts a s),
-      val_wf s val ->
+      FOS.val_wf a s val ->
       val = decompile_val (compile_val val).
   Proof.
     intros.
@@ -510,6 +503,18 @@ Section CompileFirstOrderConfRelSimplified.
           rewrite_sizes.
           eapply NtupleProofs.n_tuple_skip_n_roundtrip.
           now apply H.
+  Qed.
+
+  Lemma decompile_val_fos_wf : 
+    forall n (val: mod_sorts FOBV.sig FOBV.fm_model _),
+      FOBV.output_wf _ val ->
+      FOS.val_wf a (FOS.Bits n) (decompile_val val).
+  Proof.
+    intros.
+    econstructor.
+    autorewrite with decompile_val.
+    simpl in H.
+    auto.
   Qed.
 
   Lemma compile_store_val_partial_correct':
@@ -685,52 +690,123 @@ Section CompileFirstOrderConfRelSimplified.
     apply NoDup_enum.
   Qed.
 
-  Lemma compile_simplified_fm_bv_correct:
-    forall c v (fm : fm _ c),
-      interp_fm (m := FOS.fm_model a) v fm <->
-      interp_fm (m := FOBV.fm_model) (compile_valu v) (compile_fm (c := c) fm)
-      .
+  Ltac my_simpl := 
+    repeat match goal with 
+    | H: _ /\ _ |- _ => destruct H
+    end.
+
+  Lemma compile_tm_wf : 
+    forall c srt (t: tm _ c srt), 
+      FOS.tm_wf t <-> FOBV.tm_wf (compile_tm t).
   Proof.
+  Admitted.
+
+  Lemma compile_fm_wf :
+    forall ctx (f: fm _ ctx),
+      FOS.fm_wf f <-> FOBV.fm_wf (compile_fm f).
+  Admitted.
+
+  Lemma compile_val_wf: 
+    forall srt v,
+      FOS.val_wf a srt v <-> FOBV.output_wf _ (compile_val v).
+  Admitted.
+
+  Lemma decompile_val_wf: 
+    forall srt v,
+      FOS.val_wf a srt (decompile_val v) <-> FOBV.output_wf _ v.
+  Admitted.
+
+  Lemma decompile_wf : 
+    forall srt v,
+      FOBV.output_wf _ v -> 
+      FOS.val_wf a srt (decompile_val v). 
+  Admitted.
+
+  Lemma compile_interp_wf: 
+    forall srt c v (t: FOS.tm c srt),
+    FOBV.tm_wf (compile_tm t) -> 
+    FOBV.output_wf _ (compile_val (interp_tm (m := FOS.fm_model a) v t)).
+  Proof.
+  Admitted.
+    (* intros.
+    dependent induction t using tm_ind';
+    autorewrite with compile_tm.
+    - simpl.
+      dependent induction v;
+      autorewrite with compile_var.
+      unfold FOBV.tm_wf. *)
+
+  Definition fm_2: (FOS.fm (CEmp (FOS.sig Hdr_sz))).
+  refine (
+    FForall (sig := FOS.sig Hdr_sz) (FOS.Bits 2) (
+      FEq (TVar (VHere _ _ _)) (@TFun (FOS.sig Hdr_sz) _ _ _ (FOS.BitsLit _ (l2t (false :: false :: nil))) hnil) 
+    )
+  ).
+  Defined.
+
+  Goal FOS.fm_wf fm_2.
+  Proof.
+    simpl.
+    vm_compute.
     intros.
+    repeat (split; trivial).
+    repeat econstructor.
+  Qed.
+
+  Lemma compile_simplified_fm_bv_correct:
+    forall c v, 
+      FOS.valu_wf v -> 
+      forall (fm : fm _ c),
+        FOS.fm_wf fm ->
+        ((interp_fm (m := FOS.fm_model a) v fm) <->
+         (interp_fm (m := FOBV.fm_model) (compile_valu v) (compile_fm (c := c) fm))).
+  Proof.
     dependent induction fm;
-    autorewrite with compile_fm;
+    intros;
+    autorewrite with compile_fm in *;
     autorewrite with interp_fm;
-    try easy.
+    try easy;
+    simpl in *;
+    intros;
+    my_simpl.
     - repeat rewrite <- compile_simplified_tm_bv_correct.
-      split; intros.
+      split; intros; my_simpl.
       + now f_equal.
-      + rewrite decompile_val_roundtrip.
-        rewrite decompile_val_roundtrip at 1.
-        * now f_equal.
-        * (* need a condition on v for this to go through; maybe something like valu_wf *)
-          admit.
-        * admit.
-    - now rewrite IHfm.
-    - now rewrite IHfm1, IHfm2.
-    - now rewrite IHfm1, IHfm2.
-    - now rewrite IHfm1, IHfm2.
-    - destruct s.
+      + erewrite decompile_val_roundtrip; intuition eauto;
+        erewrite decompile_val_roundtrip at 1; intuition eauto;
+        try now f_equal.
+        all: (try eapply FOS.tm_interp_wf; intuition eauto).
+        eapply decompile_val_wf.
+        eapply compile_interp_wf.
+        eapply compile_tm_wf.
+        auto.
+        
+    - now erewrite IHfm.
+    - now erewrite IHfm1, IHfm2.
+    - now erewrite IHfm1, IHfm2.
+    - now erewrite IHfm1, IHfm2.
+    -
+      destruct s eqn:?.
       + autorewrite with compile_fm.
         autorewrite with interp_fm.
-        intuition.
-        -- specialize (H (decompile_val val (sort := FOS.Bits n))).
-           apply IHfm in H.
-           apply H.
-        -- specialize (H (compile_val val)).
-           apply IHfm.
-           apply H.
-      + autorewrite with compile_fm.
-        rewrite quantify_correct.
-        intuition.
-        -- pose proof (compile_store_valu_partial_surjective valu).
-           destruct H0 as [s ?].
-           specialize (H s).
-           apply IHfm in H.
-           rewrite (compile_valu_equation_3 s (c0 := c)) in H.
-           now rewrite H0 in H.
-        -- specialize (H (compile_store_valu_partial (build_hlist_env _ val))).
-           apply IHfm.
-           now rewrite (compile_valu_equation_3 val (c0 := c)).
+        fold (compile_ctx).
+        simpl in *.
+        intuition. 
+        * specialize (H1 (decompile_val val (sort := FOS.Bits n))).
+          eapply IHfm in H1; intuition.
+          econstructor; eauto.
+          eapply decompile_val_wf.
+          simpl.
+          (* ugh, we need to know that val is also well-formed... *)
+          admit.
+        * eapply IHfm; intuition eauto.
+          -- econstructor; eauto.
+             econstructor.
+             (* same difference... *)
+             admit.
+          -- autorewrite with compile_valu.
+             eapply H1.
+         
   Admitted.
 
 End CompileFirstOrderConfRelSimplified.
