@@ -11,6 +11,6 @@ Lemma enterprise_self_equiv:
     Simple.ParseEth
     Simple.ParseEth.
 Proof.
-  solve_lang_equiv_state_axiom Simple.state_eqdec Simple.state_eqdec true.
-Time Qed.
+  solve_lang_equiv_state_admit Simple.state_eqdec Simple.state_eqdec true.
+Time Admitted.
 

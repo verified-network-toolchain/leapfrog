@@ -17,5 +17,5 @@ Lemma edge_self_equiv:
     Plain.ParseEth0
     Plain.ParseEth0.
 Proof.
-  solve_lang_equiv_state_axiom Plain.state_eqdec Plain.state_eqdec true.
-Time Qed.
+  solve_lang_equiv_state_admit Plain.state_eqdec Plain.state_eqdec true.
+Time Admitted.

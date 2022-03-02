@@ -11,5 +11,5 @@ Lemma ethernet_equiv:
     Plain.ParseEth0
     Optimized.State_0.
 Proof.
-  solve_lang_equiv_state_axiom Plain.state_eqdec Optimized.state_eqdec true.
-Time Qed.
+  solve_lang_equiv_state_admit Plain.state_eqdec Optimized.state_eqdec true.
+Time Admitted.

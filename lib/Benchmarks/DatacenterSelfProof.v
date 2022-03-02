@@ -12,5 +12,5 @@ Lemma datacenter_self_equiv:
     DataCenter.ParseEth0
     DataCenter.ParseEth0.
 Proof.
-  solve_lang_equiv_state_axiom DataCenter.state_eqdec DataCenter.state_eqdec true.
-Time Qed.
+  solve_lang_equiv_state_admit DataCenter.state_eqdec DataCenter.state_eqdec true.
+Time Admitted.
