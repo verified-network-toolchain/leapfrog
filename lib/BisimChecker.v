@@ -110,14 +110,29 @@ Section BisimChecker.
     then true
     else false.
 
+  Definition state_ref_eqb (x y: state_ref (P4A.interp a)) : bool :=
+    match x, y with
+    | inl x, inl y => if St_eq_dec x y then true else false
+    | inr true, inr true => true
+    | inr false, inr false => true
+    | _, _ => false
+    end.
+  
+  Definition st_eqb (x y: state_template a) : bool :=
+    andb (Nat.eqb (st_buf_len x) (st_buf_len y))
+         (state_ref_eqb (st_state x) (st_state y)).
+  
+  Definition st_pair_eqb (x y: state_template a * state_template a) : bool :=
+    andb (st_eqb (fst x) (fst y))
+         (st_eqb (snd x) (snd y)).
+
   Fixpoint in_R (x: state_template a * state_template a) (R: list (state_template a * state_template a)) : bool :=
     match R with 
     | nil => false
-    | x' :: R' => 
-      match EquivDec.prod_eqdec _ _ x' x with 
-      | left H => true
-      | right _ => in_R x R'
-      end
+    | x' :: R' =>
+        if st_pair_eqb x x'
+        then true
+        else in_R x R'
     end.
   
   Lemma in_In : 
@@ -127,8 +142,47 @@ Section BisimChecker.
     intros;
     induction R; simpl.
     - split; intros H; inversion H.
-    - destruct (EquivDec.prod_eqdec _ _ _ _);
-      split; intros; intuition eauto.
+    - destruct (st_pair_eqb _ _) eqn:?; unfold st_pair_eqb in *.
+      + split; intros; try exact eq_refl.
+        destruct x, a0; cbn in Heqb.
+        left.
+        symmetry in Heqb.
+        eapply Bool.andb_true_eq in Heqb.
+        destruct Heqb.
+        unfold st_eqb, state_ref_eqb in *.
+        eapply Bool.andb_true_eq in H0, H1.
+        destruct H0, H1.
+        destruct s, s0, s1, s2; simpl in *.
+        apply EqNat.beq_nat_eq in H1.
+        apply EqNat.beq_nat_eq in H0.
+        subst.
+        repeat match goal with
+               | H: context[ match ?x with | _  => _ end] |- _ => destruct x
+               | _ => congruence
+               | _ => simpl in *
+               | _ => subst
+               end.
+      + split; intros.
+        * apply IHR.
+          destruct H; auto.
+          exfalso.
+          subst.
+          unfold st_eqb in *.
+          unfold state_ref_eqb in *.
+          repeat match goal with
+                 | H: (?X && ?Y)%bool = false |- _ =>
+                     apply Bool.andb_false_elim in H;
+                     destruct H
+                 end;
+            rewrite ?Nat.eqb_refl in *;
+            try congruence;
+            repeat match goal with
+                   | H: context[ match ?x with | _  => _ end] |- _ => destruct x
+                   | _ => congruence
+                   | _ => simpl in *
+                   | _ => subst
+                   end.
+        * right; now apply IHR.
   Qed.
 
   Lemma filter_entails:
