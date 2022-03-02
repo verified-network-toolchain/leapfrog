@@ -25,5 +25,5 @@ Module Negative.
         ReadUndefIncorrect.ParseEth.
   Proof.
     Fail solve_lang_equiv_state_admit ReadUndefIncorrect.state_eqdec ReadUndefIncorrect.state_eqdec false.
-  Time Admitted.
+  Time Abort.
 End Negative.
