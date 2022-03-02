@@ -79,7 +79,7 @@ Section FirstOrderBitVec.
     FirstOrder.mod_rels := mod_rels;
   |}.
 
-  Definition output_wf (srt: sorts): mod_sorts srt -> Prop :=
+  Definition val_wf (srt: sorts): mod_sorts srt -> Prop :=
     match srt as srt' return mod_sorts srt' -> Prop with 
     | Bits n => fun v => @n_tup_wf _ n v
     end.
@@ -98,13 +98,6 @@ Section FirstOrderBitVec.
       rec /\ fun_wf
     end.
 
-  Fixpoint valu_wf {c} (vs: valu _ fm_model c) : Prop :=
-    match vs with 
-    | VEmp _ _ => True
-    | VSnoc _ _ srt _ v inner  => 
-      output_wf srt v /\ valu_wf inner
-    end.
-
   Fixpoint fm_wf {ctx} (e: fm ctx) : Prop :=
     match e with 
     | FTrue => True
@@ -117,8 +110,6 @@ Section FirstOrderBitVec.
     | (FImpl f1 f2) => fm_wf f1 /\ fm_wf f2
     | (FForall _ f) => fm_wf f
     end.
-
-
   
   
   Require Import Coq.Program.Tactics.
@@ -126,8 +117,8 @@ Section FirstOrderBitVec.
 
   Lemma valu_find_wf : 
     forall c srt (vs: valu _ _ c) v,
-      valu_wf vs -> 
-      output_wf srt (find _ fm_model v vs).
+      valu_wf (m := fm_model) val_wf vs -> 
+      val_wf srt (find _ fm_model v vs).
   Proof.
     intros.
     dependent induction vs;
@@ -139,9 +130,9 @@ Section FirstOrderBitVec.
 
   Lemma tm_interp_wf : 
     forall c (v: valu _ _ c) srt (t: tm c srt), 
-      valu_wf v ->
+      valu_wf (m := fm_model) val_wf v ->
       tm_wf t -> 
-      output_wf srt (interp_tm (m := fm_model) v t).
+      val_wf srt (interp_tm (m := fm_model) v t).
   Proof. 
     dependent induction t using tm_ind'; intros;
     autorewrite with interp_tm; try now (

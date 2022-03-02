@@ -215,11 +215,15 @@ Section ReachablePairs.
 
   Lemma interp_state_template_definite:
     forall q t,
+      config_wf q ->
       interp_state_template (a := a) t q ->
       conf_to_state_template q = t.
   Proof.
     intros.
-    now apply interp_state_template_dichotomy with (c := q).
+    eapply interp_state_template_dichotomy with (c := q); intuition.
+    unfold conf_to_state_template.
+    unfold interp_state_template.
+    intuition eauto.
   Qed.
 
   Lemma advance_correct':
@@ -236,12 +240,13 @@ Section ReachablePairs.
     rewrite <- H.
     rewrite
       <- interp_state_template_definite with (t := prev1) (q := c1),
-      <- interp_state_template_definite with (t := succ1) (q := follow c1 bs)
-      by auto.
+      <- interp_state_template_definite with (t := succ1) (q := follow c1 bs);
+    intuition.
     rewrite
       <- interp_state_template_definite with (t := prev1) (q := c1),
       <- interp_state_template_definite with (t := prev2) (q := c2)
-      in H by auto.
+      in H;
+    intuition.
     assert (N.to_nat (N.of_nat (length bs)) = length bs) by eapply Nat2N.id.
     
     erewrite H3.

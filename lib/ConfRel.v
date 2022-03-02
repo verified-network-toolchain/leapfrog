@@ -60,6 +60,13 @@ Fixpoint bval (c: bctx) : Type :=
   | BCSnoc c' size => bval c' * n_tuple bool size
   end.
 
+Fixpoint bval_wf (c: bctx) : bval c -> Prop := 
+  match c as c' return bval c' -> Prop with 
+  | BCEmp => fun _ => True
+  | BCSnoc c' size => 
+    fun '(i, nt) => n_tup_wf nt /\ bval_wf c' i
+  end.
+
 Inductive bvar : bctx -> Type :=
 | BVarTop:
     forall c size,
@@ -99,6 +106,24 @@ Fixpoint check_bvar {c} (x: bvar c) : N :=
 Equations interp_bvar {c} (valu: bval c) (x: bvar c) : n_tuple bool (check_bvar x) :=
   { interp_bvar (_, bs)    (BVarTop _ _) := bs;
     interp_bvar (valu', bs) (BVarRest x') := interp_bvar valu' x' }.
+
+Lemma interp_bvar_wf: 
+  forall {c} (valu: bval c) (x: bvar c), 
+    bval_wf c valu ->
+    n_tup_wf (interp_bvar valu x).
+Proof.
+  intros.
+  induction c.
+  - simpl in *.
+    inversion x.
+  - simpl in *.
+    destruct valu.
+    dependent destruction x;
+    autorewrite with interp_bvar;
+    intuition.
+Qed.
+
+
 
 Section ConfRel.
   Set Implicit Arguments.
@@ -142,11 +167,6 @@ Section ConfRel.
     - now rewrite N.ltb_lt in Heqb.
     - now rewrite N.ltb_nlt in Heqb.
   Qed.
-    (* pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
-    destruct H; eauto.
-    - tauto.
-    - tauto.
-  Qed. *)
 
   Global Program Instance state_template_eq_dec : EquivDec.EqDec state_template eq :=
     { equiv_dec x y :=
@@ -162,7 +182,8 @@ Section ConfRel.
 
   Definition interp_state_template (st: state_template) (c: conf) :=
     st.(st_state) = c.(conf_state) /\
-    st.(st_buf_len) = c.(conf_buf_len).
+    st.(st_buf_len) = c.(conf_buf_len) /\ 
+    n_tup_wf c.(conf_buf).
 
   Lemma interp_state_template_dichotomy (t1 t2: state_template) (c: conf):
     interp_state_template t1 c ->
@@ -170,7 +191,7 @@ Section ConfRel.
     t1 = t2.
   Proof.
     unfold interp_state_template; intros.
-    destruct H, H0.
+    intuition.
     destruct t1, t2; simpl in *.
     congruence.
   Qed.
@@ -552,12 +573,14 @@ Section ConfRel.
     fun x y =>
       interp_conf_state phi.(cr_st) x y ->
       forall valu,
+        bval_wf _ valu ->
         interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
 
   Definition interp_conf_rel' (phi: conf_rel) : relation conf :=
     fun x y =>
       interp_conf_state phi.(cr_st) x y /\
       forall valu,
+        bval_wf _ valu ->
         interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
 
   Definition crel :=
@@ -656,7 +679,11 @@ Section ConfRel.
     (buf2: n_tuple bool b2)
     store1 store2
   :=
-    forall valu, interp_store_rel (projT2 scr) valu buf1 buf2 store1 store2.
+    forall valu, 
+      bval_wf _ valu ->
+      n_tup_wf buf1 -> 
+      n_tup_wf buf2 ->
+      interp_store_rel (projT2 scr) valu buf1 buf2 store1 store2.
 
   Definition simplify_conf_rel (cr: conf_rel) :=
     existT _ cr.(cr_ctx) cr.(cr_rel).
@@ -671,7 +698,9 @@ Section ConfRel.
                                   c1.(conf_store)
                                   c2.(conf_store)).
   Proof.
-    now unfold interp_simplified_conf_rel, interp_conf_rel.
+    unfold interp_simplified_conf_rel, interp_conf_rel.
+    intuition eauto.
+    eapply H1; intuition.
   Qed.
 
   Lemma simplify_conf_rel_correct':
@@ -684,7 +713,16 @@ Section ConfRel.
                                   c1.(conf_store)
                                   c2.(conf_store)).
   Proof.
-    now unfold interp_simplified_conf_rel, interp_conf_rel'.
+    unfold interp_simplified_conf_rel, interp_conf_rel.
+    intuition.
+    unfold interp_conf_state in H0.
+    unfold interp_state_template in H0.
+    intuition.
+    unfold interp_conf_rel'.
+    intuition eauto.
+    unfold interp_conf_state.
+    unfold interp_state_template.
+    intuition eauto.
   Qed.
 
   Definition simplified_crel := list simplified_conf_rel.
@@ -755,6 +793,39 @@ Section ConfRel.
       se_prems: simplified_crel;
       se_concl: simplified_conf_rel; }.
 
+      (* Inductive bit_expr (c: bctx) :=
+  | BELit (l: list bool)
+  | BEBuf (a: side)
+  | BEHdr (a: side) (h: P4A.hdr_ref Hdr)
+  | BEVar (b: bvar c)
+  | BESlice (e: bit_expr c) (hi lo: N)
+  | BEConcat (e1 e2: bit_expr c).
+
+  Definition bit_expr_wf {c} (e: bit_expr c) : Prop := 
+    match e with 
+    | BELit 
+  Admitted.
+
+  Fixpoint store_rel_wf {bctx} (sr: store_rel bctx) : Prop := 
+    match sr with 
+    | BRTrue _ 
+    | BRFalse _ => True
+    | BREq l r => bit_expr_wf l /\ bit_expr_wf r
+    | BRAnd l r
+    | BROr l r
+    | BRImpl l r => store_rel_wf l /\ store_rel_wf r
+    end.
+
+  Definition simplified_conf_rel_wf (scr: simplified_conf_rel) : Prop := 
+    store_rel_wf (projT2 scr).
+
+  Definition simplified_crel_wf (c: simplified_crel) : Prop := List.Forall simplified_conf_rel_wf c.
+
+  Definition simplified_entailment_wf (e: simplified_entailment) : Prop :=
+    simplified_crel_wf (e.(se_prems)) /\ simplified_conf_rel_wf e.(se_concl).
+    *)
+
+
   Definition interp_simplified_entailment
     (i: relation state_template)
     (se: simplified_entailment)
@@ -765,6 +836,8 @@ Section ConfRel.
     forall (buf1: n_tuple bool se.(se_st).(cs_st1).(st_buf_len))
            (buf2: n_tuple bool se.(se_st).(cs_st2).(st_buf_len))
            (store1 store2: store (P4A.interp a)),
+      n_tup_wf buf1 -> 
+      n_tup_wf buf2 ->
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2 ->
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2.
 
@@ -819,12 +892,13 @@ Section ConfRel.
         * unfold conf_to_state_template; simpl.
           now (destruct (e.(e_concl).(cr_st).(cs_st1));
                destruct (e.(e_concl).(cr_st).(cs_st2))).
-        * apply H3.
+        * eauto.
       + now unfold interp_conf_state, interp_state_template; simpl.
     - apply simplify_conf_rel_correct; intros.
-      destruct H1 as [[? ?] [? ?]].
-      rewrite H2, H4 in H.
-      apply H; auto.
+      unfold interp_conf_state, interp_state_template in H1.
+      intuition.
+      admit.
+(* 
       * unfold state_template_sane.
         rewrite H2, H1.
         apply q1.
@@ -842,10 +916,11 @@ Section ConfRel.
         + rewrite interp_crel_cons in H0.
           apply IHc.
           intuition.
+      * unfold interp_crel in H0.
       * eapply simplify_crel_correct; auto.
         + now unfold interp_conf_state, interp_state_template.
-        + exact H0.
-  Qed.
+        + exact H0. *)
+  Admitted.
 
   Lemma simplify_entailment_correct' (e: entailment):
     forall i: Relations.rel state_template,
@@ -877,10 +952,11 @@ Section ConfRel.
       replace store2 with (conf_store q2) in * by reflexivity.
       pose proof (simplify_crel_correct i e.(e_prem)).
       specialize (H4 e.(e_concl).(cr_st) q1 q2).
-      apply H4; try easy.
-      apply H; try easy.
-      subst q1 q2.
-      now destruct e, e_concl0, cr_st0, cs_st3, cs_st4; simpl in *.
+      eapply H4; try easy.
+      2: apply H; try easy.
+      all: admit.
+      (* subst q1 q2.
+      now destruct e, e_concl0, cr_st0, cs_st3, cs_st4; simpl in *. *)
     - intros.
       unfold interp_simplified_entailment' in H.
       unfold interp_entailment'; intros.
@@ -891,14 +967,16 @@ Section ConfRel.
       destruct H2 as [[? ?] [? ?]].
       destruct q1, q2; simpl in *.
       unfold conf_to_state_template in *; simpl in *.
-      rewrite H2, H5 in H.
+      intuition.
+      admit.
+      (* rewrite H2, H5 in H.
       apply H.
       + unfold state_template_sane; congruence.
       + unfold state_template_sane; congruence.
       + destruct e, e_concl, cr_st, cs_st1, cs_st2; simpl in *.
         congruence.
-      + apply H3.
-  Qed.
+      + apply H3. *)
+  Admitted.
 End ConfRel.
 Arguments interp_conf_rel {_} {_} {_} {_} {_} {_} a phi.
 Arguments interp_crel {_} {_} {_} {_} {_} {_} a i rel.

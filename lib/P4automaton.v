@@ -71,6 +71,8 @@ Arguments conf_buf {a} _.
 Arguments conf_buf_sane {a} _.
 Arguments conf_store {a} _.
 
+Definition config_wf {a} (c: configuration a) := n_tup_wf c.(conf_buf).
+
 Definition update_conf_store {a} (v: store a) (c: configuration a) : configuration a :=
   {| conf_state := conf_state c;
      conf_buf_len := conf_buf_len c;
@@ -121,7 +123,6 @@ Ltac obl_tac := unfold complement, Equivalence.equiv; Tactics.program_simpl.
 
 (* Local Obligation Tactic := intros. *)
 
-Check N.eq_dec.
 Definition step
   {a: p4automaton}
   (c: configuration a)

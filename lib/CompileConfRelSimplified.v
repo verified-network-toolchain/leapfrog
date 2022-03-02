@@ -104,6 +104,9 @@ Section CompileConfRelSimplified.
     VSnoc _ (fm_model a) Store _ store2 (
     VEmp _ _)))).
 
+  Definition outer_wf {b1 b2} (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2 := 
+    valu_wf (m := fm_model a) (val_wf a) (outer_valu buf1 buf2 store1 store2).
+
   Equations compile_bit_expr
             {c: bctx}
             (b1 b2: N)
@@ -246,7 +249,7 @@ Section CompileConfRelSimplified.
     forall c (r: store_rel Hdr c) bval b1 b2 buf1 buf2 store1 store2,
       interp_store_rel r bval buf1 buf2 store1 store2 <->
       let valu := outer_valu buf1 buf2 store1 store2 in
-      interp_fm (m := fm_model a) (app_valu _ valu (compile_bval bval))
+      interp_fm_wf (m := fm_model a) (wf := val_wf a) (app_valu _ valu (compile_bval bval))
                 (compile_store_rel b1 b2 r).
   Proof.
     intros; simpl.
@@ -254,41 +257,72 @@ Section CompileConfRelSimplified.
     autorewrite with interp_store_rel;
     autorewrite with compile_store_rel;
     try destruct (eq_dec _ _);
-    autorewrite with interp_fm;
+    autorewrite with interp_fm_wf;
     try tauto.
-    rewrite <- interp_tm_rect.
+    erewrite <- interp_tm_rect.
     repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
     repeat rewrite compile_bit_expr_correct; simpl.
     intuition.
   Qed.
 
+  Lemma decompile_val_wf: 
+    forall c v,
+      valu_wf (m := fm_model a) (val_wf a) v <-> bval_wf c (decompile_val v).
+  Admitted.
+
+  Lemma compile_val_wf: 
+    forall c v,
+      valu_wf (m := fm_model a) (val_wf a) (compile_bval v) <-> bval_wf c v.
+  Admitted.
+
+  Ltac inv_v_wf H := 
+    refine (match H with 
+    | ValWellFormedBits _ _ => _
+    | _ => _
+    end); try exact idProp.
+
   Lemma compile_simplified_conf_rel_correct:
     forall r b1 b2 buf1 buf2 store1 store2,
-      interp_simplified_conf_rel r buf1 buf2 store1 store2 <->
-      interp_fm (m := fm_model a) (outer_valu buf1 buf2 store1 store2)
-                (compile_simplified_conf_rel b1 b2 r).
+      (outer_wf buf1 buf2 store1 store2) ->
+      (interp_simplified_conf_rel (a := a) r buf1 buf2 store1 store2 <->
+      interp_fm_wf (m := fm_model a) (wf := val_wf a) (outer_valu buf1 buf2 store1 store2)
+                (compile_simplified_conf_rel b1 b2 r)).
   Proof.
-    intros; destruct r.
+  Admitted.
+    (* intros; destruct r.
     unfold interp_simplified_conf_rel, compile_simplified_conf_rel.
-    rewrite quantify_correct; simpl.
+    erewrite quantify_correct_wf; simpl.
     setoid_rewrite compile_store_rel_correct; simpl.
-    split; intros; auto.
-    now rewrite <- bval_roundtrip with (valu0 := valu).
-  Qed.
+    unfold outer_wf in H.
+    simpl in H.
+    split; intros; intuition eauto.
+    - erewrite <- bval_roundtrip with (valu0 := valu).
+      eapply H0; intuition eauto.
+      * eapply decompile_val_wf.
+        auto.
+      * inv_v_wf H2; auto.
+      * inv_v_wf H; auto.
+    - eapply H0.
+      eapply compile_val_wf.
+      auto.
+  Qed. *)
 
   Lemma compile_simplified_crel_correct:
     forall r b1 b2 buf1 buf2 store1 store2,
-      interp_simplified_crel r buf1 buf2 store1 store2 <->
-      interp_fm (m := fm_model a) (outer_valu buf1 buf2 store1 store2)
-                (compile_simplified_crel b1 b2 r).
+      outer_wf buf1 buf2 store1 store2 ->
+      (interp_simplified_crel (a := a) r buf1 buf2 store1 store2 <->
+      interp_fm_wf (m := fm_model a) (wf := val_wf a) (outer_valu buf1 buf2 store1 store2)
+                (compile_simplified_crel b1 b2 r)).
   Proof.
-    intros.
+  Admitted.
+    (* intros.
     induction r;
     autorewrite with interp_simplified_crel; simpl;
-    autorewrite with interp_fm.
+    autorewrite with interp_fm_wf.
     - intuition.
-    - now rewrite compile_simplified_conf_rel_correct, IHr.
-  Qed.
+    - rewrite compile_simplified_conf_rel_correct, IHr;
+      intuition. *)
+  (* Qed. *)
 
   Transparent interp_fm.
 
@@ -298,23 +332,36 @@ Section CompileConfRelSimplified.
         (state_template_sane e.(se_st).(cs_st1) ->
          state_template_sane e.(se_st).(cs_st2) ->
          i e.(se_st).(cs_st1) e.(se_st).(cs_st2) ->
-         interp_fm (m := fm_model a) (VEmp _ _)
+         interp_fm_wf (m := fm_model a) (wf := val_wf a) (VEmp _ _)
                    (compile_simplified_entailment e)
         ).
   Proof.
-    intros.
+  Admitted.
+    (* intros.
     destruct e.
     unfold interp_simplified_entailment; simpl.
     unfold compile_simplified_entailment; simpl.
-    rewrite quantify_all_correct; simpl.
-    setoid_rewrite compile_simplified_crel_correct.
-    setoid_rewrite compile_simplified_conf_rel_correct.
+    erewrite quantify_all_correct_wf; simpl.
     intuition.
-    unfold outer_ctx in valu.
-    repeat dependent destruction valu.
-    simpl in *.
-    eauto.
-  Qed.
+    - autorewrite with interp_fm_wf.
+      intros.
+      setoid_rewrite compile_simplified_crel_correct in H3.
+      erewrite <- compile_simplified_conf_rel_correct in H3.
+      erewrite <- compile_simplified_crel_correct.
+      setoid_rewrite compile_simplified_conf_rel_correct.
+      unfold outer_ctx in valu.
+      repeat dependent destruction valu.
+      simpl in *.
+      autorewrite with interp_fm_wf in *.
+      intuition.
+    - 
+      specialize (H3 (outer_valu buf1 buf2 store1 store2)).
+      autorewrite with interp_fm_wf in H3.
+      eapply H3;
+      intuition.
+
+
+  Qed. *)
 
   Lemma compile_simplified_entailment_correct':
       forall i e,
@@ -322,21 +369,22 @@ Section CompileConfRelSimplified.
         (state_template_sane e.(se_st).(cs_st1) ->
          state_template_sane e.(se_st).(cs_st2) ->
          i e.(se_st).(cs_st1) e.(se_st).(cs_st2) ->
-         interp_fm (m := fm_model a) (VEmp _ _)
+         interp_fm_wf (m := fm_model a) (wf := val_wf a) (VEmp _ _)
                    (compile_simplified_entailment' e)).
   Proof.
     intros; destruct e; simpl.
     unfold interp_simplified_entailment'; simpl.
     unfold compile_simplified_entailment'; simpl.
-    rewrite quantify_all_correct; simpl.
-    setoid_rewrite compile_simplified_conf_rel_correct.
+    rewrite quantify_all_correct_wf; simpl.
+  Admitted.
+    (* setoid_rewrite compile_simplified_conf_rel_correct.
     setoid_rewrite compile_simplified_crel_correct.
     intuition.
     unfold outer_ctx in valu.
     repeat dependent destruction valu.
     simpl in *.
     eauto.
-  Qed.
+  Qed. *)
 
   Opaque interp_fm.
 

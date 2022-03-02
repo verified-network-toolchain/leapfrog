@@ -145,41 +145,45 @@ Section BisimChecker.
 
   Lemma compilation_corr:
     forall (R: list (Reachability.state_pair a)) (E: entailment a),
-      interp_entailment a
+      let SE := (simplify_entailment E) in 
+      let CE := (compile_simplified_entailment (simplify_entailment E)) in 
+      FOS.fm_wf CE -> 
+    
+      (interp_entailment a
         (fun q1 q2 : configuration (ConfRel.P4A.interp a) =>
           top' _ _ _ _ a R (conf_to_state_template q1) (conf_to_state_template q2))
         E
       <->
-      let E' := (se_st (simplify_entailment E)) in
+      let E' := (se_st SE) in
       (state_template_sane (cs_st1 E') ->
         state_template_sane (cs_st2 E') ->
         top' _ _ _ _ a R (cs_st1 E') (cs_st2 E') ->
-        interp_fm
+        interp_fm_wf
           (m := FOBV.fm_model)
+          (wf := FOBV.val_wf)
           (VEmp _ _)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
-                    (compile_simplified_entailment (simplify_entailment E)))))).
+                    (compile_simplified_entailment (simplify_entailment E))))))).
   Proof.
 
     intros.
     erewrite simplify_entailment_correct
       with (equiv0:=RelationClasses.eq_equivalence)
-          (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec).
-    erewrite compile_simplified_entailment_correct; [|typeclasses eauto];
-    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr; [|typeclasses eauto];
+          (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec); [|typeclasses eauto].
+    erewrite compile_simplified_entailment_correct; [|typeclasses eauto].
+    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr; [|typeclasses eauto].
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|typeclasses eauto].
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct.
-    eapply iff_refl.
-    typeclasses eauto.
+    - eapply iff_refl.
+    - typeclasses eauto.
     - exact I.
-    - (* we need a meta theorem here, 
-         that simplify_entailment is always well-formed and the other 
-         compilation passes preserve well-formedness
-         *)
-      admit.
-  Admitted.
+    - 
+      eapply FOS.simplify_eq_zero_wf.
+      eapply FOS.simplify_concat_zero_wf.
+      eapply H.
+  Qed.
 
 End BisimChecker.
 
