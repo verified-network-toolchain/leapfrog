@@ -56,46 +56,6 @@ Definition mk_init' s1 s2 :=
   List.nodup (@conf_rel_eq_dec _ _ _ _ _ _ _ _ A)
               (mk_partition (Reachability.reachable_states A s1 s2)).
 
-Lemma prebisim_sloppystrict:
-  forall q1 q2,
-    interp_conf_rel' {| cr_st := {|
-                        cs_st1 := {|
-                          st_state := inl (inl (Sloppy.ParseEthernet));
-                          st_buf_len := 0;
-                        |};
-                        cs_st2 := {|
-                          st_state := inl (inr (Strict.ParseEthernet));
-                          st_buf_len := 0;
-                        |};
-                      |};
-                      cr_ctx := BCEmp;
-                      cr_rel := btrue;
-                   |} q1 q2 ->
-  pre_bisimulation A
-                   (projT1 r_states)
-                   (wp (a := A))
-                   []
-                   (mk_init' start_left start_right)
-                   q1 q2.
-Proof.
-  idtac "running sloppystrict bisimulation (language equivalence)".
-
-  intros.
-
-  pose proof (Reachability.reachable_states_wit_conv init_states_wf (projT2 r_states)) as Hr.
-
-  unfold mk_init'.
-  rewrite Hr.
-  clear Hr.
-
-  set (foo := (List.nodup (conf_rel_eq_dec (a:=A)) (mk_partition _))).
-  vm_compute in foo.
-  subst foo.
-
-  time "build phase" repeat (time "single step" run_bisim).
-  time "close phase" close_bisim.
-Time Admitted.
-
 Lemma prebisim_sloppystrict_stores:
   forall q1 q2,
     interp_conf_rel' {| cr_st := {|
@@ -142,6 +102,7 @@ Lemma prebisim_sloppystrict_stores:
 Proof.
   idtac "running sloppystrict bisimulation (store relation)".
   intros.
-  time "build phase" repeat (time "single step" run_bisim).
-  time "close phase" close_bisim.
-Time Admitted.
+  time "build phase"
+       repeat (time "single step" run_bisim_axiom Sloppy.state_eqdec Strict.state_eqdec false).
+  time "close phase" close_bisim_axiom.
+Time Qed.
