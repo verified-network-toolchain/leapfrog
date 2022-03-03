@@ -1,4 +1,5 @@
 # Leapfrog
+
 This is the artifact accompanying the paper "Leapfrog: Certified Equivalence for Protocol Parsers", to appear at [PLDI 2022](https://pldi22.sigplan.org/).
 
 ## Hardware requirements
@@ -30,26 +31,36 @@ Leapfrog relies on the following packages:
 * [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin), tag `pldi22-artifact` 
 
 #### System-level software packages
+
 To install CVC4, Z3, Dune and OPAM on Ubuntu, run the following:
+
 ```
 sudo apt install cvc4 z3 dune opam ocaml
 ```
+
 #### Packages installed through OPAM
+
 To install Coq and Equations through OPAM, first create a new switch --- possibly substituting your version of the OCaml compiler:
+
 ```
 opam switch create leapfrog ocaml-system.4.11.1
 ```
+
 Next, add the Coq OPAM repository:
+
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
 ```
+
 Finally, update the OPAM state, and install the required versions of Coq and Equations:
+
 ```
 opam update
 opam install coq=8.13.2 coq-equations=1.3~beta1+8.13
 ```
 
 #### Installing MirrorSolve
+
 The MirrorSolve source code can be obtained using Git, as follows:
 ```
 git clone https://github.com/jsarracino/mirrorsolve -b pldi22-artifact
