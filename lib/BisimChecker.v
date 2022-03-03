@@ -5,7 +5,6 @@ Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
 Require Import MirrorSolve.FirstOrder.
-Require Import Leapfrog.FirstOrderConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
 Require Import Leapfrog.CompileFirstOrderConfRelSimplified.
 Require Import Leapfrog.Sum.
@@ -84,27 +83,6 @@ Section BisimChecker.
     : crel a :=
     List.concat (List.map reachable_pair_to_partition r).
 
-  (*
-  Lemma no_state:
-    forall (a: P4A.t S H) i R (S: conf_rel a),
-      (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel a i R q1 q2),
-          interp_conf_rel a S q1 q2)
-      <->
-      (forall st1 (buf1: Ntuple.n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2
-         (buf2: Ntuple.n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
-          let q1 := (S.(cr_st).(cs_st1).(st_state), st1, Ntuple.t2l buf1) in
-          let q2 := (S.(cr_st).(cs_st2).(st_state), st2, Ntuple.t2l buf2) in
-          interp_crel a i R q1 q2 ->
-          forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
-  Proof.
-    intros.
-    split; intros.
-    - unfold interp_conf_rel in *.
-      simpl.
-      intros.
-  Admitted.
-  *)
-
   Definition states_match (c1 c2: conf_rel (Hdr_finite:=Hdr_finite) a) : bool :=
     if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
@@ -117,27 +95,27 @@ Section BisimChecker.
     | inr false, inr false => true
     | _, _ => false
     end.
-  
+
   Definition st_eqb (x y: state_template a) : bool :=
     andb (Nat.eqb (st_buf_len x) (st_buf_len y))
          (state_ref_eqb (st_state x) (st_state y)).
-  
+
   Definition st_pair_eqb (x y: state_template a * state_template a) : bool :=
     andb (st_eqb (fst x) (fst y))
          (st_eqb (snd x) (snd y)).
 
   Fixpoint in_R (x: state_template a * state_template a) (R: list (state_template a * state_template a)) : bool :=
-    match R with 
+    match R with
     | nil => false
     | x' :: R' =>
         if st_pair_eqb x x'
         then true
         else in_R x R'
     end.
-  
-  Lemma in_In : 
+
+  Lemma in_In :
     forall (R: list (state_template a * state_template a)) (x: state_template a * state_template a),
-      List.In x R <-> (in_R x R = true). 
+      List.In x R <-> (in_R x R = true).
   Proof.
     intros;
     induction R; simpl.
@@ -185,27 +163,19 @@ Section BisimChecker.
         * right; now apply IHR.
   Qed.
 
-  Lemma filter_entails:
-    forall i R C,
-      (forall q1 q2, interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
-      <->
-      (forall q1 q2, interp_crel a i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel a C q1 q2).
-  Proof.
-  Admitted.
 
-
-  Lemma compilation_corr: 
-    forall (R: list (Reachability.state_pair a)) (E: entailment a), 
+  Lemma compilation_corr:
+    forall (R: list (Reachability.state_pair a)) (E: entailment a),
       interp_entailment a
         (fun q1 q2 : configuration (ConfRel.P4A.interp a) =>
           top' _ _ _ _ a R (conf_to_state_template q1) (conf_to_state_template q2))
         E
-      <-> 
-      let E' := (se_st (simplify_entailment E)) in 
+      <->
+      let E' := (se_st (simplify_entailment E)) in
       (state_template_sane (cs_st1 E') ->
         state_template_sane (cs_st2 E') ->
         top' _ _ _ _ a R (cs_st1 E') (cs_st2 E') ->
-        interp_fm 
+        interp_fm
           (m := FOBV.fm_model)
           (VEmp _ _)
           (compile_fm
@@ -213,7 +183,7 @@ Section BisimChecker.
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
                     (compile_simplified_entailment (simplify_entailment E)))))).
   Proof.
-    
+
     intros.
     erewrite simplify_entailment_correct
       with (equiv0:=RelationClasses.eq_equivalence)
@@ -221,7 +191,7 @@ Section BisimChecker.
     erewrite compile_simplified_entailment_correct;
     erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-    erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;    
+    erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
     eapply iff_refl.
   Qed.
 
@@ -235,9 +205,9 @@ Qed.
 
 Lemma drop_antecedent_3:
   forall (A B C D : Prop),
-  A -> 
-  B -> 
-  C -> 
+  A ->
+  B ->
+  C ->
   (A -> B -> C -> D) <-> D.
 Proof.
   intros.
@@ -332,7 +302,7 @@ Ltac extend_bisim' HN use_hc :=
     | |- pre_bisimulation _ _ _ (_ :: ?R') (?X ++ _) _ _ =>
       let r := fresh "R'" in
       time "set R'" (set (r := R'));
-      match use_hc with 
+      match use_hc with
       | true => time "hashcons" (hashcons_list X)
       | false => idtac
       end;
@@ -366,12 +336,7 @@ Ltac crunch_foterm :=
 
 Ltac crunch_foterm_ctx :=
   match goal with
-  (* | H: context[interp_fm ?v ?g] |- _ =>
-      let temp := fresh "temp" in
-      set (temp := g) in H; vm_compute in temp; subst temp;
-      (let temp := fresh "temp1" in
-       set (temp := v) in H; vm_compute in temp; subst temp) *)
-  | H: _ <-> interp_fm _ ?g |- _ => 
+  | H: _ <-> interp_fm _ ?g |- _ =>
     let temp := fresh "temp" in
     set (temp := g) in H; vm_compute in temp; subst temp
   end.
@@ -379,15 +344,14 @@ Ltac crunch_foterm_ctx :=
 Ltac compile_fm H el er :=
   time "compilation correct" erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
   simpl in H;
-  (* these could be invariants and somehow avoided completely
-      or if they have to be done it could all be done with reflection *)
-  time "antecedents" match goal with 
-  | H0: _ <-> (?a -> ?b -> ?c -> ?d) |- _ => 
+  (* these could be invariants and somehow avoided completely *)
+  time "antecedents" match goal with
+  | H0: _ <-> (?a -> ?b -> ?c -> ?d) |- _ =>
     erewrite drop_antecedent_3 with (A := a) in H0;
     [|
       vm_compute; repeat econstructor |
       vm_compute; repeat econstructor |
-      eapply in_In; exact eq_refl 
+      eapply in_In; exact eq_refl
     ]
 
   end;
@@ -460,12 +424,12 @@ Ltac close_bisim_axiom :=
                     top' _ _ _ _ _ r_states (conf_to_state_template q1)
                       (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
                 (eapply simplify_entailment_correct';
-                  eapply compile_simplified_entailment_correct'; simpl; 
+                  eapply compile_simplified_entailment_correct'; simpl;
                   intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
                   eapply compile_simplified_fm_bv_correct; crunch_foterm;
                   match goal with
                   | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
-                  end); apply H0; auto; unfold top', conf_to_state_template; 
+                  end); apply H0; auto; unfold top', conf_to_state_template;
                 destruct q1, q2; vm_compute in H;
                 repeat match goal with
                        | H:_ /\ _ |- _ => idtac H; destruct H
@@ -509,34 +473,7 @@ Ltac verify_interp :=
     end
   else idtac.
 
-Ltac verify_interp' top top' L :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply L;
-
-      time "reduce goal" crunch_foterm;
-
-      match goal with
-      | |- ?X => time "smt check neg" check_interp_neg X
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    |]
-  end;
-  let n:= numgoals in
-  tryif ( guard n = 2) then
-    match goal with
-    | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ _ =>
-      clear H;
-      let HN := fresh "HN" in
-      assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
-    end
-  else idtac.
-
-Ltac run_bisim :=
+Ltac run_bisim_old :=
   time "verify_interp" verify_interp;
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
@@ -545,14 +482,6 @@ Ltac run_bisim :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
-Ltac run_bisim' top top' r_states L :=
-  verify_interp' top top' L;
-  match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    time "extending" (extend_bisim' HN r_states; clear HN)
-  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-    time "skipping" (skip_bisim' H; clear H; try clear C)
-  end.
 
 Ltac run_bisim_axiom el er use_hc :=
   match goal with
@@ -693,30 +622,27 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-Ltac solve_lang_equiv_state_axiom el er use_hc := 
+Ltac init_bisim :=
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
   unfold mk_init;
   erewrite Reachability.reachable_states_wit_conv; [
     | repeat econstructor | econstructor; solve_fp_wit
   ];
-  simpl);
+  simpl).
+  
+Ltac solve_lang_equiv_state_axiom el er use_hc :=
+  time "init phase" init_bisim;
   time "build phase" repeat run_bisim_axiom el er use_hc;
   time "close phase" close_bisim_axiom.
 
 
-  (** 
-    arguments: 
+  (**
+    arguments:
       el and er, eq_dec functions for the left and right automata states
-      use_hc, a bool, to use or not use "hashconsing" of intermediate conf_templates 
+      use_hc, a bool, to use or not use "hashconsing" of intermediate conf_templates
   *)
-Ltac solve_lang_equiv_state_admit el er use_hc := 
-  eapply lang_equiv_to_pre_bisim;
-  time "init prebisim" (intros;
-  unfold mk_init;
-  erewrite Reachability.reachable_states_wit_conv; [
-    | repeat econstructor | econstructor; solve_fp_wit
-  ];
-  simpl);
+Ltac solve_lang_equiv_state_admit el er use_hc :=
+  time "init phase" init_bisim;
   time "build phase" repeat run_bisim_admit el er use_hc;
   time "close phase" close_bisim_axiom.

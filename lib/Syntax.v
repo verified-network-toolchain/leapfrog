@@ -347,14 +347,6 @@ Section Interp.
     reflexivity.
   Qed.
 
-  Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
-  Proof.
-    pose proof (l2t (slice (t2l l) hi lo)).
-    rewrite slice_len in X.
-    rewrite t2l_len in X.
-    exact X.
-  Defined.
-
   Equations eval_expr (n: nat) (st: store) (e: expr Hdr_sz n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
