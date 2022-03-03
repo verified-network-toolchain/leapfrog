@@ -1,4 +1,5 @@
 # Leapfrog
+
 This is the artifact accompanying the paper "Leapfrog: Certified Equivalence for Protocol Parsers", to appear at [PLDI 2022](https://pldi22.sigplan.org/).
 
 ## Hardware requirements
@@ -6,6 +7,8 @@ This is the artifact accompanying the paper "Leapfrog: Certified Equivalence for
 To build Leapfrog and run the benchmarks in the "small" collection, 8GB of RAM is sufficient. The larger benchmarks may require significantly more RAM -- we conducted experiments on a machine with 500GB of RAM. 
 
 ## Installation instructions
+
+There are two ways to get Leapfrog running.
 
 ### Option 1: Installation inside Docker
 
@@ -20,6 +23,7 @@ Once you have Docker set up, type `make container`. When the container is built,
 ### Option 2: Manual installation
 Leapfrog relies on the following packages:
 
+* GNU Make, version 4.3 or later
 * CVC4, version 1.8 or later
 * Z3, version 4.8.14 or later
 * Dune, version 2.2 or later.
@@ -30,31 +34,44 @@ Leapfrog relies on the following packages:
 * [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin), tag `pldi22-artifact` 
 
 #### System-level software packages
-To install CVC4, Z3, Dune and OPAM on Ubuntu, run the following:
+
+To install Make, CVC4, Z3, Dune and OPAM on Ubuntu, run the following:
+
 ```
-sudo apt install cvc4 z3 dune opam ocaml
+sudo apt install build-essential cvc4 z3 dune opam ocaml
 ```
+
 #### Packages installed through OPAM
+
 To install Coq and Equations through OPAM, first create a new switch --- possibly substituting your version of the OCaml compiler:
+
 ```
 opam switch create leapfrog ocaml-system.4.11.1
 ```
+
 Next, add the Coq OPAM repository:
+
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
 ```
+
 Finally, update the OPAM state, and install the required versions of Coq and Equations:
+
 ```
 opam update
 opam install coq=8.13.2 coq-equations=1.3~beta1+8.13
 ```
 
 #### Installing MirrorSolve
+
 The MirrorSolve source code can be obtained using Git, as follows:
+
 ```
 git clone https://github.com/jsarracino/mirrorsolve -b pldi22-artifact
 ```
+
 To build and install the plugin, run the following inside the `mirrorsolve` directory:
+
 ```
 dune build
 dune install
@@ -66,7 +83,50 @@ Finally, you can build Leapfrog by running `make` inside the main source directo
 
 ## Benchmarks
 
+Leapfrog comes with several benchmarks, divided into "small" and "large" based on the resources required to run them (see "Hardware Requirements" above). They are all located under `lib/Benchmarks`. Each of these is divided into a file containing the declaration of the P4 automata (e.g., `SmallFilter.v`) and a file invoking the Leapfrog equivalence checking scripts (e.g., `SmallFilterProof.v`). 
+
+### Files for each benchmark
+
+The mapping between the benchmarks in the paper (Table 2) and the development is as follows.
+
+| Paper name              | Automaton definition                                | Proof file                                             |
+|-------------------------|-----------------------------------------------------|--------------------------------------------------------|
+| State Rearrangement     | `Ethernet.v`                                        | `EthernetProof.v`                                      |
+| Header initialization   | `SelfComparison.v`                                  | `SelfComparisonProof.v`                                |
+| Speculative loop        | `MPLSVectorized.v`                                  | `MPLSVectorizedProof.v`                                |
+| Relational verification | `SloppyStrict.v`                                    | `SloppyStrictProof.v` (`prebisim_sloppystrict_stores`) |
+| External filtering      | `SloppyStrict.v`                                    | `SloppySTrictProof.v` (`prebisim_sloppystrict`)        |
+| Variable-length parsing | `IPOptions3.v` (`IPOptionsRef63`,`TimeStampSpec3`)  | `IPOptions3Proof.v`                                    |
+| Edge                    | `Edge.v`                                            | `EdgeSelfProof.v`                                      |
+| Service Provider        | `ServiceProvider.v`                                 | `ServiceProviderTransProof.v`                          |
+| Datacenter              | `DataCenter.v`                                      | `DataCenterSelfProof.v`                                |
+| Enterprise              | `Enterprise.v`                                      | `EnterpriseSelfProof.v`                                |
+| Translation Validation  | `Edge.v`                                            | `EdgeTransProof.v`                                     |
+
+Of these, the first half ("State Rearrangement" through "External Filtering") are classified as "small" benchmarks, while the rest are "large".
+
+### Running the benchmark script
+
+We have provided a benchmark script in the `benchmarking` folder at the top level. To bootstrap the environment, enter the directory and run
+
+```
+pipenv install
+pipenv shell
+```
+
+This should drop you in a shell that has all the required Python packages. To run the "small" (respectively "large") suite of benchmarks, invoke
+
+```
+python runner.py --size small  # respectively large
+```
+
+This should output the logs of the benchmarks, including performance statistics, into `benchmarking/logs`.
+
+### Running the benchmarks interactively
+
 ## Code overview
+
+The code of Leapfrog itself lives under `lib/`. What folows is an extensive but perhaps not exhaustive overview of the development in relation to the concepts from the paper.
 
 ### Syntax and semantics
 
