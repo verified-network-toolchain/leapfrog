@@ -220,10 +220,53 @@ Section CompileConfRelSimplified.
       now rewrite IHc.
   Qed.
 
+  Lemma decompile_val_wf: 
+    forall c v,
+      valu_wf (m := fm_model a) (val_wf a) v <-> bval_wf c (decompile_val v).
+  Admitted.
+
+  Lemma compile_val_wf: 
+    forall c v,
+      valu_wf (m := fm_model a) (val_wf a) (compile_bval v) <-> bval_wf c v.
+  Admitted.
+
+  Lemma simplify_concat_zero_wf : 
+    forall c srt (t: tm _ c srt),
+      tm_wf t -> 
+      tm_wf (Hdr_sz := Hdr_sz) (simplify_concat_zero t).
+  Admitted.
+
+  Lemma tm_wf_cbexpr: 
+    forall {c} b1 b2 (e: bit_expr Hdr c), 
+      tm_wf (compile_bit_expr b1 b2 e).
+  Proof.
+    intros.
+    Opaque simplify_concat_zero.
+    induction e;
+    autorewrite with compile_bit_expr;
+    simpl;
+    intuition;
+    autorewrite with compile_bit_expr.
+    - eapply l2t_wf.
+    - destruct a0; autorewrite with compile_bit_expr;
+      simpl;
+      trivial.
+    - destruct a0; destruct h; autorewrite with compile_bit_expr;
+      simpl;
+      trivial;
+      intuition.
+   - eapply simplify_concat_zero_wf.
+     simpl;
+     intuition.
+  Qed.
+
+
   Lemma compile_bit_expr_correct:
-    forall c (e: bit_expr Hdr c) bval b1 b2 buf1 buf2 store1 store2,
-      interp_bit_expr e bval buf1 buf2 store1 store2 =
+    forall c (e: bit_expr Hdr c) bval b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2) store1 store2,
       let valu := outer_valu buf1 buf2 store1 store2 in
+      outer_wf buf1 buf2 store1 store2 -> 
+      bval_wf c bval ->
+      interp_bit_expr (a := a) e bval buf1 buf2 store1 store2 =
       interp_tm (m := fm_model a) (app_valu _ valu (compile_bval bval))
                 (compile_bit_expr b1 b2 e).
   Proof.
@@ -232,17 +275,27 @@ Section CompileConfRelSimplified.
     autorewrite with interp_bit_expr;
     autorewrite with compile_bit_expr;
     autorewrite with interp_tm; auto.
+    simpl; autorewrite with mod_fns; 
+    try now rewrite find_app_left.
     - now rewrite find_app_left.
     - now rewrite find_app_left.
-    - simpl; autorewrite with mod_fns.
-      now rewrite find_app_left.
     - simpl; autorewrite with mod_fns.
       now rewrite find_app_left.
     - rewrite find_app_right.
       apply compile_bvar_correct.
     - now rewrite IHe.
     - rewrite IHe1, IHe2.
-      now erewrite <- simplify_concat_zero_corr by typeclasses eauto.
+      erewrite <- simplify_concat_zero_corr;
+      intuition.
+      + subst valu.
+        eapply app_valu_wf.
+        * unfold outer_valu;
+          intuition.
+        * eapply compile_val_wf.
+          eauto.
+      + simpl; intuition;
+        eapply tm_wf_cbexpr;
+        intuition.
   Qed.
 
   Lemma compile_store_rel_correct:
@@ -260,20 +313,11 @@ Section CompileConfRelSimplified.
     autorewrite with interp_fm_wf;
     try tauto.
     erewrite <- interp_tm_rect.
-    repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
-    repeat rewrite compile_bit_expr_correct; simpl.
+    repeat erewrite <- simplify_concat_zero_corr.
+  Admitted.
+    (* repeat rewrite compile_bit_expr_correct; simpl.
     intuition.
-  Qed.
-
-  Lemma decompile_val_wf: 
-    forall c v,
-      valu_wf (m := fm_model a) (val_wf a) v <-> bval_wf c (decompile_val v).
-  Admitted.
-
-  Lemma compile_val_wf: 
-    forall c v,
-      valu_wf (m := fm_model a) (val_wf a) (compile_bval v) <-> bval_wf c v.
-  Admitted.
+  Qed. *)
 
   Ltac inv_v_wf H := 
     refine (match H with 
@@ -386,6 +430,12 @@ Section CompileConfRelSimplified.
     eauto.
   Qed. *)
 
-  Opaque interp_fm.
+  Theorem compile_simplified_wf: 
+    forall e, 
+      fm_wf (compile_simplified_entailment e).
+  Proof.
+  Admitted.
+
+  (* I think this is true because wf-ness is simple and bitstring literals get the right type *)
 
 End CompileConfRelSimplified.

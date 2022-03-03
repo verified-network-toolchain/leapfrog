@@ -750,19 +750,9 @@ Section CompileFirstOrderConfRelSimplified.
   ).
   Defined.
 
-  Goal FOS.fm_wf fm_2.
-  Proof.
-    simpl.
-    vm_compute.
-    intros.
-    repeat (split; trivial).
-    repeat econstructor.
-  Qed.
-
-
   Lemma compile_simplified_fm_bv_correct:
     forall c v, 
-      FOS.valu_wf v -> 
+      valu_wf (m := FOS.fm_model a) (FOS.val_wf a) v -> 
       forall (fm : fm _ c),
         FOS.fm_wf fm ->
         (interp_fm_wf (m := FOS.fm_model a) (wf := FOS.val_wf a) v fm <->

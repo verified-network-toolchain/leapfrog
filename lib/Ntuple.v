@@ -148,6 +148,20 @@ Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m :=
 
 Definition l2t {A: Type} (l: list A) : n_tuple A (N.of_nat (length l)) := l.
 
+Lemma l2t_wf : 
+  forall {A} (l: list A),
+    n_tup_wf (l2t l).
+Proof.
+  intros.
+  induction l.
+  - econstructor.
+  - eapply len_pf_rev.
+    pose proof len_pf_conv _ _ _ IHl.
+    unfold l2t in *.
+    simpl.
+    Lia.lia.
+Qed.
+
 Fixpoint p2digs (p: positive) : list bool :=
   match p with 
   | xH => [true]

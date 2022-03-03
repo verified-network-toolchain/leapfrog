@@ -173,16 +173,21 @@ Section BisimChecker.
       with (equiv0:=RelationClasses.eq_equivalence)
           (St_eq_dec:=@Sum.St_eq_dec _ _ St1_eq_dec _ _ St2_eq_dec); [|typeclasses eauto].
     erewrite compile_simplified_entailment_correct; [|typeclasses eauto].
-    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr; [|typeclasses eauto].
-    erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|typeclasses eauto].
+    erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr; [|shelve|shelve].
+    erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr; [|shelve|shelve].
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct.
     - eapply iff_refl.
     - typeclasses eauto.
-    - exact I.
-    - 
-      eapply FOS.simplify_eq_zero_wf.
-      eapply FOS.simplify_concat_zero_wf.
-      eapply H.
+    - shelve.
+    - shelve.
+    Unshelve.
+    all: try exact I.
+      + eapply H.
+      + eapply FOS.simplify_concat_zero_wf;
+        eapply H.
+      + eapply FOS.simplify_eq_zero_wf;
+        eapply FOS.simplify_concat_zero_wf;
+        eapply H.
   Qed.
 
 End BisimChecker.

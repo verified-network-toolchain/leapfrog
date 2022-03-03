@@ -138,6 +138,28 @@ Section AutModel.
   Require Import Coq.Program.Program.
   Require Import Coq.Arith.EqNat.
 
+  Ltac solve_simpl_reflect := 
+    match goal with 
+    | |- _ <-> _ => now intuition eauto
+    end.
+  Ltac bool_solver := 
+    intuition;
+    repeat match goal with 
+    | H: _ = true |- _ => 
+      pose proof Bool.Is_true_eq_left _ H; clear H
+    end;
+    repeat match goal with 
+    | H: Bool.Is_true (?X && ?Y) |- _ => 
+      pose proof Bool.andb_prop_elim _ _ H; clear H
+    end;
+    intuition;
+    repeat match goal with 
+    | H: Bool.Is_true ?X |- _ => 
+      pose proof Bool.Is_true_eq_true _ H; clear H
+    end;
+    intuition eauto.
+
+  Require Import Coq.Arith.PeanoNat.
   Lemma check_tm_wf_corr : 
     forall c srt (t: tm c srt), 
       check_tm_wf t = true <-> tm_wf t.
@@ -151,41 +173,31 @@ Section AutModel.
       | H: HList.t _ _ |- _ => dependent destruction H
       end;
       simpl in *.
-      + 
-        pose proof @Bool.Is_true_eq_left (Nat.eqb (length n0) (N.to_nat n)).
-        unfold n_tup_wf.
-        assert (len_pf n0 (N.to_nat n) <-> length n0 = (N.to_nat n)) by shelve.
-        
-        erewrite H1. 
-        assert (length n0 = N.to_nat n <-> Nat.eqb (length n0) (N.to_nat n) = true) by shelve.
-        
-        erewrite H2.
-        split; intros; intuition eauto.
-      + intuition eauto.
-        * admit.
-        * admit.
-        * erewrite H7. 
-          erewrite H3.
-          simpl.
-          trivial.
-      + intuition eauto.
-        * eapply H.
-          admit.
-        * erewrite H3.
-          exact eq_refl.
-      + intuition eauto.
-        * eapply H.
-          admit.
-        * erewrite H3.
-          exact eq_refl.
-  Admitted.
+      + unfold n_tup_wf.
+        pose proof Ntuple.len_pf_rev. 
+        pose proof Ntuple.len_pf_conv.
+        pose proof Nat.eqb_eq.
+        bool_solver.
+      + try bool_solver;
+        try bool_solver.
+        bool_solver.
+        repeat match goal with
+        | H: _ = true |- _ => 
+          erewrite H; clear H
+        end.
+        trivial.
+      + try bool_solver.
+        bool_solver.
+      + bool_solver.
+        bool_solver.
+  Qed.
 
-  Fixpoint valu_wf {c} (vs: valu _ fm_model c) : Prop :=
+  (* Fixpoint valu_wf {c} (vs: valu _ fm_model c) : Prop :=
     match vs with 
     | VEmp _ _ => True
     | VSnoc _ _ srt _ v inner  => 
       val_wf srt v /\ valu_wf inner
-    end.
+    end. *)
 
   Fixpoint fm_wf {ctx} (e: fm ctx) : Prop := 
     match e with 
@@ -204,12 +216,12 @@ Section AutModel.
     match e with 
     | FTrue => true
     | FFalse => true
-    | (FEq e1 e2) => Bool.eqb (check_tm_wf e1) (check_tm_wf e2)
+    | (FEq e1 e2) => (check_tm_wf e1) && (check_tm_wf e2)
     | (FRel _ _ _) => true
     | (FNeg _ f) => check_fm_wf f
-    | (FOr _ f1 f2) => Bool.eqb (check_fm_wf f1) (check_fm_wf f2)
-    | (FAnd _ f1 f2) => Bool.eqb (check_fm_wf f1) (check_fm_wf f2)
-    | (FImpl f1 f2) => Bool.eqb (check_fm_wf f1) (check_fm_wf f2)
+    | (FOr _ f1 f2) => (check_fm_wf f1) && (check_fm_wf f2)
+    | (FAnd _ f1 f2) => (check_fm_wf f1) && (check_fm_wf f2)
+    | (FImpl f1 f2) => (check_fm_wf f1) && (check_fm_wf f2)
     | (FForall _ f) => check_fm_wf f
     end.
 
@@ -219,11 +231,14 @@ Section AutModel.
   Proof.
     dependent induction e;
     simpl in *;
-    intuition eauto.
-    (* todo: write a tactic for discharging these... *)
-    all: admit.
-  Admitted.
+    try solve_simpl_reflect;
+    try now bool_solver.
 
+    pose proof check_tm_wf_corr.
+    bool_solver;
+    eapply H;
+    auto.
+  Qed.
 
 
   (* Lemma interp_valu_wf : 
@@ -235,9 +250,11 @@ Section AutModel.
   Require Import Coq.Program.Tactics.
   Require Import Coq.Program.Equality.
 
+  Notation valu_wf' := (valu_wf (m := fm_model) val_wf).
+
   Lemma valu_find_wf : 
     forall c srt (vs: valu _ _ c) v,
-      valu_wf vs -> 
+      valu_wf' vs -> 
       val_wf srt (find _ fm_model v vs).
   Proof.
     intros.
@@ -248,21 +265,21 @@ Section AutModel.
     intuition eauto.
   Qed.
 
-  Lemma valu_p4afind_wf:  
+  (* TODO: I don't think this is provable, but it's true *)
+
+  Axiom valu_p4afind_wf:  
     forall c (vs: valu _ _ c) (t : tm c Store) h,
-      valu_wf vs ->
+      valu_wf' vs ->
       tm_wf t ->
       match
         P4A.find Hdr Hdr_sz h (interp_tm (m := fm_model) vs t)
       with
       | P4A.VBits v => n_tup_wf v
       end.
-  Proof.
-  Admitted.
     
   Lemma tm_interp_wf : 
     forall c (v: valu _ _ c) srt (t: tm c srt), 
-      valu_wf v ->
+      valu_wf' v ->
       tm_wf t -> 
       val_wf srt (interp_tm (m := fm_model) v t).
   Proof. 
@@ -331,23 +348,26 @@ Section AutModel.
 
   Lemma interp_zero_tm:
      forall c (t: tm c (Bits 0)) v,
-
+       valu_wf' v -> 
+       tm_wf t ->
        interp_tm (m := fm_model) v t = n_tuple_emp.
   Proof.
-    dependent induction t using tm_ind'; intros;
-    autorewrite with interp_tm.
-    - induction v0;
-      dependent destruction v;
-      autorewrite with find.
-      + simpl in *.
-  Admitted.
+    intros.
+    eapply n_tuple_emp_uniq.
+    pose proof tm_interp_wf _ t H H0.
+    inv_v_wf H1;
+    destruct n; 
+    intuition;
+    exact idProp.
+  Qed.
 
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,
+      valu_wf' v -> 
+      tm_wf t ->
       interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
   Proof.
-  Admitted.
-    (* intros.
+    intros.
     dependent induction t using tm_ind'.
     - now autorewrite with simplify_concat_zero.
     - destruct srt;
@@ -357,19 +377,20 @@ Section AutModel.
         * autorewrite with simplify_concat_zero.
           autorewrite with interp_tm; simpl.
           autorewrite with mod_fns.
-          destruct (interp_tm v t).
-          rewrite concat_emp'.
-          apply H.
+          erewrite interp_zero_tm; 
+          intuition.
         * autorewrite with simplify_concat_zero.
           autorewrite with interp_tm; simpl.
           autorewrite with mod_fns.
-          f_equal; apply H.
+          f_equal; apply H;
+          intuition.
       + autorewrite with simplify_concat_zero.
         autorewrite with interp_tm; simpl.
         do 2 f_equal.
-        apply H.
+        apply H;
+        intuition.
       + now autorewrite with simplify_concat_zero.
-  Qed. *)
+  Qed.
 
   Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
     simplify_concat_zero_fm FTrue := FTrue;
@@ -384,22 +405,26 @@ Section AutModel.
 
   Lemma simplify_concat_zero_fm_corr:
     forall ctx (f: fm ctx) valu,
+      valu_wf' valu -> 
+      fm_wf f ->
       interp_fm_wf (m := fm_model) (wf := val_wf) valu f <-> interp_fm_wf (m := fm_model) (wf := val_wf) valu (simplify_concat_zero_fm f)
   .
   Proof.
-  Admitted.
-    (* intros.
+    intros.
     induction f; autorewrite with simplify_concat_zero_fm;
     (try now split; intros; auto);
-    autorewrite with interp_fm;
+    autorewrite with interp_fm_wf;
     repeat erewrite <- simplify_concat_zero_corr;
-    (try now split; intros; auto).
-    - split; unfold "~"; intros; apply H; eapply IHf; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - setoid_rewrite IHf. split; intros; auto.
-  Qed. *)
+    (try now split; intros; auto);
+    try now intuition.
+    split; intros; intuition.
+    - eapply IHf; intuition.
+      econstructor; intuition.
+    - eapply IHf;
+      intuition;
+      econstructor;
+      intuition.
+  Qed.
 
   Equations simplify_eq_zero_fm {ctx} (e: fm ctx) : fm ctx := {
     simplify_eq_zero_fm FTrue := FTrue;
@@ -421,26 +446,30 @@ Section AutModel.
 
   Lemma simplify_eq_zero_fm_corr:
     forall ctx (f: fm ctx) valu,
+      valu_wf' valu -> 
+      fm_wf f -> 
       interp_fm_wf (m := fm_model) (wf := val_wf) valu f <-> interp_fm_wf (m := fm_model) (wf := val_wf) valu (simplify_eq_zero_fm f).
   Proof.
-  Admitted.
-    (* intros.
+    intros.
     induction f; autorewrite with simplify_eq_zero_fm;
     (try now split; intros; auto);
-    autorewrite with interp_fm;
-    (try now split; intros; auto).
+    autorewrite with interp_fm_wf;
+    try now intuition.
     - unfold simplify_eq_zero_fm_obligations_obligation_1.
       destruct s.
       + destruct n.
-        * repeat erewrite interp_zero_tm; split; intros; autorewrite with interp_fm; autorewrite with interp_fm; auto.
-        * autorewrite with interp_fm; split; intros; auto.
-      + autorewrite with interp_fm; split; intros; auto.
-    - split; unfold "~"; intros; apply H; eapply IHf; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - erewrite IHf1. erewrite IHf2. split; intros; auto.
-    - setoid_rewrite IHf. split; intros; auto.
-  Qed. *)
+        * autorewrite with interp_fm_wf; split; intros; auto.
+          repeat erewrite interp_zero_tm;
+          intuition.
+        * repeat erewrite interp_zero_tm; split; intros; 
+          autorewrite with interp_fm_wf; autorewrite with interp_fm_wf; auto.
+        
+      + autorewrite with interp_fm_wf; split; intros; auto.
+    - split; intros; 
+      eapply IHf; intuition;
+      econstructor;
+      intuition.
+  Qed.
 
 
   (* It feels like this should be an instance of map_subst, but I can't get
