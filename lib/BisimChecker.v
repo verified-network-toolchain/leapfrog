@@ -336,11 +336,6 @@ Ltac crunch_foterm :=
 
 Ltac crunch_foterm_ctx :=
   match goal with
-  (* | H: context[interp_fm ?v ?g] |- _ =>
-      let temp := fresh "temp" in
-      set (temp := g) in H; vm_compute in temp; subst temp;
-      (let temp := fresh "temp1" in
-       set (temp := v) in H; vm_compute in temp; subst temp) *)
   | H: _ <-> interp_fm _ ?g |- _ =>
     let temp := fresh "temp" in
     set (temp := g) in H; vm_compute in temp; subst temp
@@ -349,8 +344,7 @@ Ltac crunch_foterm_ctx :=
 Ltac compile_fm H el er :=
   time "compilation correct" erewrite compilation_corr with (St1_eq_dec := el) (St2_eq_dec := er) in H;
   simpl in H;
-  (* these could be invariants and somehow avoided completely
-      or if they have to be done it could all be done with reflection *)
+  (* these could be invariants and somehow avoided completely *)
   time "antecedents" match goal with
   | H0: _ <-> (?a -> ?b -> ?c -> ?d) |- _ =>
     erewrite drop_antecedent_3 with (A := a) in H0;
@@ -479,34 +473,7 @@ Ltac verify_interp :=
     end
   else idtac.
 
-Ltac verify_interp' top top' L :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp _ ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment a top ({| e_prem := R; e_concl := C |}));
-    [
-      eapply L;
-
-      time "reduce goal" crunch_foterm;
-
-      match goal with
-      | |- ?X => time "smt check neg" check_interp_neg X
-      | |- ?X => time "smt check pos" check_interp_pos X; admit
-      end
-    |]
-  end;
-  let n:= numgoals in
-  tryif ( guard n = 2) then
-    match goal with
-    | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation ?a _ _ ?R (?C :: _) _ _ =>
-      clear H;
-      let HN := fresh "HN" in
-      assert (HN: ~ (interp_entailment a top ({| e_prem := R; e_concl := C |}))) by admit
-    end
-  else idtac.
-
-Ltac run_bisim :=
+Ltac run_bisim_old :=
   time "verify_interp" verify_interp;
   match goal with
   | HN: ~ (interp_entailment _ _ _ ) |- _ =>
@@ -515,14 +482,6 @@ Ltac run_bisim :=
     time "skipping" (skip_bisim' H; clear H; try clear C)
   end.
 
-Ltac run_bisim' top top' r_states L :=
-  verify_interp' top top' L;
-  match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    time "extending" (extend_bisim' HN r_states; clear HN)
-  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-    time "skipping" (skip_bisim' H; clear H; try clear C)
-  end.
 
 Ltac run_bisim_axiom el er use_hc :=
   match goal with
@@ -663,17 +622,6 @@ Ltac solve_header_eqdec_ n x y indfuns :=
     destruct x; exfalso; auto
   end.
 
-Ltac solve_lang_equiv_state_axiom el er use_hc :=
-  eapply lang_equiv_to_pre_bisim;
-  time "init prebisim" (intros;
-  unfold mk_init;
-  erewrite Reachability.reachable_states_wit_conv; [
-    | repeat econstructor | econstructor; solve_fp_wit
-  ];
-  simpl);
-  time "build phase" repeat run_bisim_axiom el er use_hc;
-  time "close phase" close_bisim_axiom.
-
 Ltac init_bisim :=
   eapply lang_equiv_to_pre_bisim;
   time "init prebisim" (intros;
@@ -682,6 +630,12 @@ Ltac init_bisim :=
     | repeat econstructor | econstructor; solve_fp_wit
   ];
   simpl).
+  
+Ltac solve_lang_equiv_state_axiom el er use_hc :=
+  time "init phase" init_bisim;
+  time "build phase" repeat run_bisim_axiom el er use_hc;
+  time "close phase" close_bisim_axiom.
+
 
   (**
     arguments:

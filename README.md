@@ -3,7 +3,7 @@ This is the artifact accompanying the paper "Leapfrog: Certified Equivalence for
 
 ## Hardware requirements
 
-To build Leapfrog and run the benchmarks in the "small" collection, 8GB of RAM is sufficient. The larger benchmarks may require up to 250GB of RAM. **--- TODO: John, could you check this please?**
+To build Leapfrog and run the benchmarks in the "small" collection, 8GB of RAM is sufficient. The larger benchmarks may require significantly more RAM -- we conducted experiments on a machine with 500GB of RAM. 
 
 ## Installation instructions
 
@@ -56,7 +56,8 @@ git clone https://github.com/jsarracino/mirrorsolve -b pldi22-artifact
 ```
 To build and install the plugin, run the following inside the `mirrorsolve` directory:
 ```
-opam install .
+dune build
+dune install
 ```
 
 #### Building Leapfrog
@@ -167,6 +168,6 @@ The optimized implementation of the algorithm (in LTac) and the elements of its 
 | Executions of Algorithm 1                | `pre_bisimulation`                   | `Bisimulations/WPLeaps.v`       |
 | Soundness of Algorithm 1                 | `wp_leaps_implies_bisim_leaps`       | `Bisimulations/WPLeapsProofs.v` |
 | Calculation of I (Thm. 5.2)              | `init_bisim`                         | `BisimChecker.v`                |
-| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim`                          | `BisimChecker.v`                |
-| Final check (Alg. 1, line 7)             | `close_bisim`                        | `BisimChecker.v`                |
+| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim_axiom/run_bisim_admit`    | `BisimChecker.v`                |
+| Final check (Alg. 1, line 7)             | `close_bisim_axiom/close_bisim_admit`| `BisimChecker.v`                |
 | Algorithm 1, optimized                   | `solve_lang_equiv_state_*`           | `BisimChecker.v`                |
