@@ -8,8 +8,6 @@ Lemma mpls_equiv:
     Plain.ParseMPLS
     Unrolled.ParseMPLS.
 Proof.
-
   solve_lang_equiv_state_admit Plain.state_eqdec Unrolled.state_eqdec false.
-
 Time Admitted.
 

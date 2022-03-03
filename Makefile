@@ -31,10 +31,16 @@ min-imports:
 
 benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
 
-benchmarks-large: ipoptions3 edgeself edgetrans datacenter serviceprovider enterprise
+benchmarks-large: ipoptions3 edgeself edgetrans datacenterself serviceproviderself enterpriseself
 
 ipfilter: build
 	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject
+
+memorytall: build
+	xargs coqc lib/Benchmarks/MemoryTallProof.v < _CoqProject | grep "Tactic call"
+
+memorywide: build
+	xargs coqc lib/Benchmarks/MemoryWideProof.v < _CoqProject | grep "Tactic call"
 
 mpls: build
 	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject
@@ -71,3 +77,12 @@ _CoqProject: _CoqProject.noplugins
 	echo >> _CoqProject
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve" >> _CoqProject
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/coq-memprof" >> _CoqProject
+
+container: Dockerfile
+	docker build . -t leapfrog
+
+shell: container
+	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -it leapfrog
+
+shell-gui: container
+	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog

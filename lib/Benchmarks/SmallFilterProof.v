@@ -11,4 +11,5 @@ Lemma small_filter_equiv:
 Proof.
   solve_lang_equiv_state_admit IncrementalBits.state_eqdec BigBits.state_eqdec false.
 Time Admitted.
+
 Print Assumptions small_filter_equiv.
