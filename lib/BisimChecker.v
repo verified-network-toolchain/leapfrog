@@ -5,7 +5,6 @@ Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
 Require Import MirrorSolve.FirstOrder.
-Require Import Leapfrog.FirstOrderConfRel.
 Require Import Leapfrog.CompileConfRelSimplified.
 Require Import Leapfrog.CompileFirstOrderConfRelSimplified.
 Require Import Leapfrog.Sum.
