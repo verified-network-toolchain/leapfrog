@@ -83,27 +83,6 @@ Section BisimChecker.
     : crel a :=
     List.concat (List.map reachable_pair_to_partition r).
 
-  (*
-  Lemma no_state:
-    forall (a: P4A.t S H) i R (S: conf_rel a),
-      (forall (q1 q2: configuration (P4A.interp a)) (_ : interp_crel a i R q1 q2),
-          interp_conf_rel a S q1 q2)
-      <->
-      (forall st1 (buf1: Ntuple.n_tuple bool S.(cr_st).(cs_st1).(st_buf_len)) st2
-         (buf2: Ntuple.n_tuple bool S.(cr_st).(cs_st2).(st_buf_len)),
-          let q1 := (S.(cr_st).(cs_st1).(st_state), st1, Ntuple.t2l buf1) in
-          let q2 := (S.(cr_st).(cs_st2).(st_state), st2, Ntuple.t2l buf2) in
-          interp_crel a i R q1 q2 ->
-          forall valu : bval (cr_ctx S), interp_store_rel (cr_rel S) valu q1 q2).
-  Proof.
-    intros.
-    split; intros.
-    - unfold interp_conf_rel in *.
-      simpl.
-      intros.
-  Admitted.
-  *)
-
   Definition states_match (c1 c2: conf_rel (Hdr_finite:=Hdr_finite) a) : bool :=
     if conf_states_eq_dec c1.(cr_st) c2.(cr_st)
     then true
@@ -183,14 +162,6 @@ Section BisimChecker.
                    end.
         * right; now apply IHR.
   Qed.
-
-  Lemma filter_entails:
-    forall i R C,
-      (forall q1 q2, interp_crel a i R q1 q2 -> interp_conf_rel a C q1 q2)
-      <->
-      (forall q1 q2, interp_crel a i (List.filter (states_match C) R) q1 q2 -> interp_conf_rel a C q1 q2).
-  Proof.
-  Admitted.
 
 
   Lemma compilation_corr: 
