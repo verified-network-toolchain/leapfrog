@@ -58,9 +58,9 @@ sloppystrict: build
 
 ipoptions3: build
 	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject
-ipoptions3: build
+ipoptions2: build
 	xargs coqc lib/Benchmarks/IPOptions2Proof.v < _CoqProject
-ipoptions3: build
+ipoptions1: build
 	xargs coqc lib/Benchmarks/IPOptionsProof.v < _CoqProject
 
 edgeself: build
