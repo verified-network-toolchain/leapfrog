@@ -29,9 +29,11 @@ clean:
 min-imports:
 	find lib/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
 
-benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
+benchmarks-small: pipenv build
+	cd benchmarking && pipenv run ./runner.py --size small
 
-benchmarks-large: ipoptions3 edgeself edgetrans datacenterself serviceproviderself enterpriseself
+benchmarks-large: pipenv build
+	cd benchmarking && pipenv run ./runner.py --size large
 
 ipfilter: build
 	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject
@@ -71,6 +73,9 @@ enterpriseself:
 
 serviceproviderself:
 	xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject
+
+pipenv: 
+	cd benchmarking && pipenv install
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject

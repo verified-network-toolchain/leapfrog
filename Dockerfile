@@ -4,7 +4,7 @@ ENV OPAMROOTISOK=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
-RUN apt-get install -y opam cvc4 z3 libgmp-dev dune proofgeneral
+RUN apt-get install -y opam cvc4 z3 libgmp-dev dune proofgeneral pipenv
 
 RUN opam init --auto-setup --disable-sandboxing
 RUN opam repo add --all-switches coq-released https://coq.inria.fr/opam/released
