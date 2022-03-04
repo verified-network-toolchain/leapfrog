@@ -257,6 +257,10 @@ coqide
 Note that the `make shell-gui` starts a root prompt inside the container, which
 is necessary for it to have access to your local `.Xauthority` file.
 
+On Mac OS X, coqide can run from inside the container using a combination of
+XQuartz and `socat`, as described
+[here](https://gist.github.com/stonehippo/2c2b0972b7d199c78fb94fa9b1be1f5d).
+
 ## Instructions: Evaluate the claims (variable, 2 hours to a week)
 Our paper makes the following claims:
 1. A tool exists for reasoning about P4A parsers. This is witnessed by our
