@@ -15,7 +15,6 @@ So we strongly recommend that you mount a persistent volume (one of the authors 
 To make a persistent volume, make a new directory and make sure it is globally accessible: `mkdir logs && chmod o+rwx logs`.
 Then, run the image and mount the directory by the following: 
 ```docker run -v `realpath logs`:/home/reviewer/logs -it leapfrog bash```
-We recommend mounting a persistent directory for the image as well:
 ## Compiling (5-10 minutes)
 Verify that Leapfrog compiles from scratch by running
 `make clean`
@@ -255,12 +254,12 @@ The benchmarking tools are in `benchmarking/`, so first
 This should take roughly 15 minutes.
 
 # Instructions: Evaluate the claims (variable time, 2 hours - a week of server time)
-For the full artifact evaluation, please verify the claims in our paper, which are the following:
+Our paper makes the following claims:
 1. A tool exists for reasoning about P4A parsers. This is witnessed by our implementation in general.
 2. Our implementation mechanizes a variety of language-equivalence results about P4A parsers. 
   This is witnessed by compiling leapfrog (which compiles and checks our Coq proofs of language-equivalence metatheory).
 3. We prove language equivalence for a variety of benchmarks (Table 2). On small benchmarks, the proof is interactive, while large benchmarks take longer and require a lot of memory.
-4. We translation-validate the optimized output of the parser-gen tool for a single Benchmark (Edge.v).
+4. We validate the optimized output of the parser-gen tool for a single benchmark, namely edge (Figure 7).
 
 Claims 1 and 2 are verified by the implementation compiling. 
 For a detailed mapping of paper results to the implementation, please see TODO.
