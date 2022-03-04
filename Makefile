@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+AECINSTRUCTIONS=Instructions.pdf
+
 .PHONY: all build install clean
 
 all: build
@@ -25,6 +27,7 @@ install: _CoqProject
 clean:
 	rm _CoqProject
 	dune clean -p leapfrog
+	rm -f $(AECINSTRUCTIONS)
 
 min-imports:
 	find lib/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
@@ -95,3 +98,8 @@ shell: container
 
 shell-gui: container
 	docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/home/opam/.Xauthority -it leapfrog
+
+$(AECINSTRUCTIONS): README.md
+	pandoc -V geometry:margin=1in README.md -o $(AECINSTRUCTIONS)
+
+aec-instructions: $(AECINSTRUCTIONS)

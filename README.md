@@ -259,13 +259,15 @@ section above and run them.
 The output of the runner indicates where the logs are saved. Here is some
 example output, showing how the runner uses the git hash and current time to
 create a new directory.
+
 ```
 pipenv run ./runner.py --size small
 running small benchmarks
 building leapfrog...
 dune build -p leapfrog
 done!
-starting benchmarking with output directory: /Users/john/leapfrog/benchmarking/logs/609bf43/03-03-2022.17:01:50
+starting benchmarking with output directory: 
+/Users/john/leapfrog/benchmarking/logs/609bf43/03-03-2022.17:01:50
 ...
 more output 
 ...
