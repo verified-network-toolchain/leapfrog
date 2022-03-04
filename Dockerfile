@@ -10,7 +10,8 @@ ENV LEAPFROG_APT_DEPS \
     libgmp-dev \
     proofgeneral \
     python3.10 \
-    pipenv
+    pipenv \
+    time
 
 ENV LEAPFROG_OPAM_DEPS \
     coq=8.13.2 \
