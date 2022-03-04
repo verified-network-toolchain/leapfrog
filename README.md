@@ -223,9 +223,6 @@ coqide
 Note that the `make shell-gui` starts a root prompt inside the container, which
 is necessary for it to have access to your local `.Xauthority` file.
 
-## Running the benchmarking tools (15 minutes)
-This should take roughly 15 minutes.
-
 ## Instructions: Evaluate the claims (variable, 2 hours to a week)
 Our paper makes the following claims:
 1. A tool exists for reasoning about P4A parsers. This is witnessed by our
