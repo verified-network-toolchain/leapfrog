@@ -198,6 +198,7 @@ Section CompileFirstOrderConfRelSimplified.
       TVar (subscript v (compile_lookup h))
   }.
 
+  (* Compilation from FOL(Conf) to FOL(BV). *)
   Equations compile_fm
     {c: ctx (FOS.sig Hdr_sz)}
     (f: fm (FOS.sig Hdr_sz) c)
@@ -392,9 +393,9 @@ Section CompileFirstOrderConfRelSimplified.
       simpl.
       rewrite P4A.assign_find; auto.
       symmetry.
-      rewrite <- NtupleProofs.n_tuple_concat_roundtrip with (n := Hdr_sz a0).
+      rewrite <- n_tuple_concat_roundtrip with (n := Hdr_sz a0).
       symmetry.
-      apply NtupleProofs.concat_proper with
+      apply concat_proper with
         (xs2 := (rewrite_size (decompile_store_val_partial_obligations_obligation_1 a0 enum) _))
         (ys2 := (compile_store_val_partial _ enum)).
       + now rewrite rewrite_size_jmeq.
@@ -459,7 +460,7 @@ Section CompileFirstOrderConfRelSimplified.
           f_equal.
           apply JMeq_eq.
           rewrite rewrite_size_jmeq.
-          pose proof NtupleProofs.n_tuple_take_n_roundtrip.
+          pose proof n_tuple_take_n_roundtrip.
           now specialize (H0 (Hdr_sz a0) n _ (compile_store_val_partial val l)).
         * unfold equiv, complement in c.
           autorewrite with compile_store_val_partial.
@@ -471,7 +472,7 @@ Section CompileFirstOrderConfRelSimplified.
           destruct (P4A.find Hdr Hdr_sz a0 val).
           apply JMeq_eq.
           rewrite rewrite_size_jmeq.
-          pose proof NtupleProofs.n_tuple_skip_n_roundtrip.
+          pose proof n_tuple_skip_n_roundtrip.
           now specialize (H0 (Hdr_sz a0) n _ (compile_store_val_partial val l)).
   Qed.
 
@@ -648,6 +649,7 @@ Section CompileFirstOrderConfRelSimplified.
     apply NoDup_enum.
   Qed.
 
+  (* Compilation from FOL(Conf) to FOL(BV) is correct. *)
   Lemma compile_simplified_fm_bv_correct:
     forall c v (fm : fm _ c),
       interp_fm (m := FOS.fm_model a) v fm <->

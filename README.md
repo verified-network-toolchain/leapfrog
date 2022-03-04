@@ -468,9 +468,8 @@ Figure 3, and derive their semantics as in the general semantics of this syntax.
 | TGF semantics (Def 4.3)                 | `interp_conf_rel`    | `ConfRel.v`  |
 | TGC syntax                              | `crel`               | `ConfRel.v`  |
 | TGC semantics (Def 4.3)                 | `interp_crel`        | `ConfRel.v`  |
-| TGE syntax                              | `entailment`         | `ConfRel.v`  |
+| TG(C)E syntax                           | `entailment`         | `ConfRel.v`  |
 | TGE semantics (Def 4.3)                 | `interp_entailment`  | `ConfRel.v`  |
-| TGCE syntax                             | `entailment'`        | `ConfRel.v`  |
 | TGCE semantics (Def 4.3)                | `interp_entailment'` | `ConfRel.v`  |
 | WP^{<,>} definition (Sec. 4.3)          | `wp_lpred`           | `WP.v`       |
 | WP^{<,>} soundness (Lem. 4.8)           | `wp_lpred_pair_safe` | `WPProofs.v` |
@@ -501,11 +500,11 @@ above, the compilation steps between them, and their soundness theorems.
 
 | Concept                          | Coq definition                           | Filename                               |
 |----------------------------------|------------------------------------------|----------------------------------------|
-| Simplified TGE                   | `simplified_entailment`                  | `ConfRel.v`                            |
-| Compilation of TGE to STGE       | `simplify_entailment`                    | `ConfRel.v`                            |
+| Simplified TG(C)E syntax         | `simplified_entailment`                  | `ConfRel.v`                            |
+| Simplified TGE semantics         | `interp_simplified_entailment`           | `ConfRel.v`                            |
+| Simplified TGCE semantics        | `interp_simplified_entailment'`          | `ConfRel.v`                            |
+| Compilation of TG(C)E to STG(C)E | `simplify_entailment`                    | `ConfRel.v`                            |
 | Correctness of TGE -> STGE       | `simplify_entailment_correct`            | `ConfRel.v`                            |
-| Simplified TGCE                  | `simplified_entailment'`                 | `ConfRel.v`                            |
-| Comp. of TGCE to STGCE           | `simplify_entailment'`                   | `ConfRel.v`                            |
 | Corr. of TGCE -> STGCE           | `simplify_entailment_correct'`           | `ConfRel.v`                            |
 | FOL(Conf) instantiation          | `fm_model`                               | `FirstOrderConfRelSimplified.v`        |
 | Comp. STGE to FOL(Conf)          | `compile_simplified_entailment`          | `CompileConfRelSimplified.v`           | 
@@ -530,8 +529,9 @@ correctness break down as follows.
 | Bisimilarity with leaps (Def. 5.4)       | `bisimilar_with_leaps`               | `Bisimulations/Leaps.v`         |
 | Correctness of leaps (Lem. 5.6)          | `bisimilar_iff_bisimilar_with_leaps` | `Bisimulations/LeapsProofs.v`   |
 | Executions of Algorithm 1                | `pre_bisimulation`                   | `Bisimulations/WPLeaps.v`       |
-| Soundness of Algorithm 1                 | `wp_leaps_implies_bisim_leaps`       | `Bisimulations/WPLeapsProofs.v` |
+| Pre-bisimulations yield bisimulations    | `wp_leaps_implies_bisim_leaps`       | `Bisimulations/WPLeapsProofs.v` |
+| Soundness of Algorithm 1                 | `lang_equiv_to_pre_bisim`            | `LangEquivToPreBisim.v`         |
 | Calculation of I (Thm. 5.2)              | `init_bisim`                         | `BisimChecker.v`                |
-| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim_axiom/run_bisim_admit`    | `BisimChecker.v`                |
-| Final check (Alg. 1, line 7)             | `close_bisim_axiom/close_bisim_admit`| `BisimChecker.v`                |
+| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim_*`                        | `BisimChecker.v`                |
+| Final check (Alg. 1, line 7)             | `close_bisim_*`                      | `BisimChecker.v`                |
 | Algorithm 1, optimized                   | `solve_lang_equiv_state_*`           | `BisimChecker.v`                |

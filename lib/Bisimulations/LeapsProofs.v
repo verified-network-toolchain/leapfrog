@@ -122,6 +122,8 @@ Section LeapsProofs.
     - lia.
   Qed.
 
+  (* The interpolation operator is a sound up-to principle, which means that
+     bisimulations up-to this operator are contained in bisimulations. *)
   Program Instance close_interpolate_sound
     : Upto.SoundClosure a (close_interpolate a).
   Next Obligation.
@@ -278,6 +280,8 @@ Section LeapsProofs.
     - eauto using InterpolateStep.
   Qed.
 
+  (* Coinductively defined bisimulations with leaps are bisimulations up-to
+     the interpolation closure operator. *)
   Lemma bisimilar_with_leaps_implies_bisimilar_upto
         (c1 c2: conf)
     :
@@ -299,6 +303,8 @@ Section LeapsProofs.
       eauto.
   Qed.
 
+  (* Coinductively defined bisimulations are, in particular, bisimulations
+     with leaps. *)
   Lemma bisimilar_implies_bisimilar_with_leaps:
     forall c1 c2,
       BC.bisimilar a c1 c2 ->
@@ -321,6 +327,8 @@ Section LeapsProofs.
         eauto.
   Qed.
 
+  (* States are bisimilar if and only if they are bisimilar with leaps. This
+     makes bisimilarity with leaps a sound and complete proof principle. *)
   Theorem bisimilar_iff_bisimilar_with_leaps
           (c1 c2: conf)
     :

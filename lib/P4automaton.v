@@ -6,7 +6,6 @@ Require Import Coq.Arith.Compare_dec.
 
 Require Import Leapfrog.Relations.
 Require Import Leapfrog.Ntuple.
-Require Import Leapfrog.NtupleProofs.
 
 Record p4automaton := MkP4Automaton {
   store: Type;

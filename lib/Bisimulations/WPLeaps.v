@@ -52,10 +52,13 @@ Section WPLeaps.
 
   Reserved Notation "R ⇝ S" (at level 10).
   Inductive pre_bisimulation : crel a -> crel a -> rel conf :=
+  (* Stop executing the main loop when there is nothing left to do. *)
   | PreBisimulationClose:
       forall R q1 q2,
         ⟦R⟧ q1 q2 ->
         R ⇝ [] q1 q2
+  (* Skip the if-statement in the main loop if the clause from T does not add
+     any new information to R. *)
   | PreBisimulationSkip:
       forall (R T: crel a) (C: conf_rel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
         match H with
@@ -64,6 +67,8 @@ Section WPLeaps.
         end ->
         R ⇝ T q1 q2 ->
         R ⇝ (C :: T) q1 q2
+  (* Extend R if the clause from T does add new information, and extend T with
+     a weakest precondition from the clause that was popped. *)
   | PreBisimulationExtend:
       forall (R T: crel a) (C: conf_rel a) (W: crel a) q1 q2 (H: {R ⊨ C} + {~(R ⊨ C)}),
         match H with

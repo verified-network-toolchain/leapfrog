@@ -13,16 +13,6 @@ Module P4A := Leapfrog.Syntax.
 
 Open Scope list_scope.
 
-Lemma split_ex:
-  forall A B (P: A * B -> Prop),
-    (exists x: A, exists y: B, P (x, y)) <->
-    exists x: A * B, P x.
-Proof.
-  firstorder.
-  destruct x.
-  firstorder.
-Qed.
-
 (* Bitstring variable context. *)
 Inductive bctx :=
 | BCEmp: bctx
@@ -721,11 +711,13 @@ Section ConfRel.
         now apply interp_conf_state_dichotomy with (c1 := q1) (c2:= q2).
   Qed.
 
+  (* Syntax for simplified entailment *and* simplified co-entailment. *)
   Record simplified_entailment :=
     { se_st: conf_states;
       se_prems: simplified_crel;
       se_concl: simplified_conf_rel; }.
 
+  (* Semantics of simplified entailments. *)
   Definition interp_simplified_entailment
     (i: relation state_template)
     (se: simplified_entailment)
@@ -739,6 +731,7 @@ Section ConfRel.
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2 ->
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2.
 
+  (* Semantics of simplified co-entailments. *)
   Definition interp_simplified_entailment'
     (i: relation state_template)
     (se: simplified_entailment)
@@ -752,11 +745,13 @@ Section ConfRel.
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2 ->
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2.
 
+  (* Compilation from entailment to simplified entailment. *)
   Definition simplify_entailment (e: entailment) :=
     {| se_st := e.(e_concl).(cr_st);
        se_prems := simplify_crel e.(e_prem) e.(e_concl).(cr_st);
        se_concl := simplify_conf_rel e.(e_concl); |}.
 
+  (* Correctness of compilation from entailment to simplified entailment. *)
   Lemma simplify_entailment_correct (e: entailment):
     forall i: Relations.rel state_template,
       interp_entailment (fun c1 c2 => i (conf_to_state_template c1)
@@ -818,6 +813,7 @@ Section ConfRel.
         + exact H0.
   Qed.
 
+  (* Correctness of compilation from co-entailment to simplified co-entailment. *)
   Lemma simplify_entailment_correct' (e: entailment):
     forall i: Relations.rel state_template,
       interp_entailment'

@@ -172,6 +172,7 @@ Section CompileConfRelSimplified.
       FAnd _ (compile_simplified_conf_rel b1 b2 r) f
     ) FTrue R.
 
+  (* Compilation from simplified entailments to FOL(Conf). *)
   Definition compile_simplified_entailment
     (se: simplified_entailment a)
     : fm (sig Hdr_sz) (CEmp _) :=
@@ -185,6 +186,7 @@ Section CompileConfRelSimplified.
                se.(se_st).(cs_st2).(st_buf_len)
                se.(se_concl))).
 
+  (* Compilation from simplified co-entailments to FOL(Conf). *)
   Definition compile_simplified_entailment'
     (se: simplified_entailment a)
     : fm (sig Hdr_sz) (CEmp _) :=
@@ -287,6 +289,7 @@ Section CompileConfRelSimplified.
 
   Transparent interp_fm.
 
+  (* Correctness of compilation from simplified entailments to FOL(Conf). *)
   Lemma compile_simplified_entailment_correct:
       forall i e,
         interp_simplified_entailment i e <->
@@ -311,6 +314,7 @@ Section CompileConfRelSimplified.
     eauto.
   Qed.
 
+  (* Correctness of compilation from simplified co-entailments to FOL(Conf). *)
   Lemma compile_simplified_entailment_correct':
       forall i e,
         interp_simplified_entailment' i e <->

@@ -72,13 +72,13 @@ Section Syntax.
   Next Obligation.
     apply NoDup_map.
     - intros x y Heq; inversion Heq; auto.
-    - eapply NtupleProofs.BoolTupleFinite.
+    - eapply BoolTupleFinite.
   Qed.
   Next Obligation.
     destruct x.
     rewrite List.in_map_iff.
     eexists; intuition eauto.
-    eapply NtupleProofs.BoolTupleFinite.
+    eapply BoolTupleFinite.
   Qed.
 
   Inductive typ :=

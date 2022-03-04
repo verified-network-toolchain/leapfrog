@@ -68,6 +68,7 @@ Section FirstOrderBitVec.
     match args with
     end.
 
+  (* Instantiation of abstract first-order logic to FOL(BV). *)
   Program Definition fm_model : model sig := {|
     FirstOrder.mod_sorts := mod_sorts;
     FirstOrder.mod_fns := mod_fns;

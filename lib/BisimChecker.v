@@ -1,20 +1,22 @@
-Require Import Leapfrog.FinType.
-Require Import Leapfrog.P4automaton.
-Require Import Leapfrog.ConfRel.
-Require Leapfrog.WP.
-Require Leapfrog.Reachability.
 Require Import Leapfrog.Bisimulations.WPLeaps.
-Require Import MirrorSolve.FirstOrder.
 Require Import Leapfrog.CompileConfRelSimplified.
 Require Import Leapfrog.CompileFirstOrderConfRelSimplified.
-Require Import Leapfrog.Sum.
+Require Import Leapfrog.ConfRel.
+Require Import Leapfrog.FinType.
 Require Import Leapfrog.LangEquivToPreBisim.
+Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.Sum.
+Require Import Leapfrog.Utils.Tactics.
+Require Import Leapfrog.Utils.FunctionalFP.
+Require Import MirrorSolve.FirstOrder.
+
+Require Leapfrog.WP.
+Require Leapfrog.Reachability.
 
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
 
-Require Import Leapfrog.Utils.FunctionalFP.
-
+Declare ML Module "mirrorsolve".
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -163,7 +165,7 @@ Section BisimChecker.
         * right; now apply IHR.
   Qed.
 
-
+  (* Links together all the correctness theorems in the compilation pipeline. *)
   Lemma compilation_corr:
     forall (R: list (Reachability.state_pair a)) (E: entailment a),
       interp_entailment a
@@ -183,7 +185,6 @@ Section BisimChecker.
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
                     (compile_simplified_entailment (simplify_entailment E)))))).
   Proof.
-
     intros.
     erewrite simplify_entailment_correct
       with (equiv0:=RelationClasses.eq_equivalence)
@@ -196,72 +197,6 @@ Section BisimChecker.
   Qed.
 
 End BisimChecker.
-
-Lemma drop_antecedent:
-  forall P Q: Prop, P -> (P -> Q) <-> Q.
-Proof.
-  tauto.
-Qed.
-
-Lemma drop_antecedent_3:
-  forall (A B C D : Prop),
-  A ->
-  B ->
-  C ->
-  (A -> B -> C -> D) <-> D.
-Proof.
-  intros.
-  do 3 (erewrite drop_antecedent; eauto).
-  eapply iff_refl.
-Qed.
-
-Lemma forall_exists:
-  forall {A B} (P: A -> B -> Prop),
-  (exists x y, ~ P x y) ->
-  ~ (forall x y, P x y).
-Proof.
-  firstorder.
-Qed.
-
-Lemma double_neg:
-  forall {A B} (P: A -> B -> Prop),
-  (exists x y, P x y) ->
-  (exists x y, ~ (P x y -> False)).
-Proof.
-  intros.
-  destruct H as [x [y H]].
-  exists x.
-  exists y.
-  intuition.
-Qed.
-
-Lemma split_univ:
-  forall (A B : Type) (P : A * B -> Prop),
-    (forall (x : A) (y : B), P (x, y)) <-> (forall x : A * B, P x).
-Proof.
-  firstorder.
-  destruct x.
-  firstorder.
-Qed.
-
-Lemma exists_unused:
-  forall A,
-    inhabited A ->
-    forall P: Prop,
-    exists (_: A), P <-> P.
-Proof.
-  intros.
-  inversion H.
-  firstorder.
-Qed.
-Lemma flip_ex_impl:
-  forall A B (P Q: A -> B -> Prop),
-    (exists x y, P x y /\ ~ Q x y) ->
-    (exists x y, ~ (P x y -> Q x y)).
-Proof.
-  firstorder.
-Qed.
-
 
 Ltac hashcons_list xs :=
   match xs with
@@ -276,20 +211,7 @@ Ltac hashcons_list xs :=
   | _ => idtac
   end.
 
-
-Ltac skip_bisim :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
-    [idtac |
-      apply PreBisimulationSkip with (H0:=left H);
-      [ exact I | ];
-      clear H
-    ]
-  end.
-
-Ltac extend_bisim' HN use_hc :=
+Ltac extend_bisim HN use_hc :=
   match goal with
   | |- pre_bisimulation ?a ?r_states _ _ (?C :: _) _ _ =>
     pose (t := WP.wp r_states C);
@@ -310,18 +232,10 @@ Ltac extend_bisim' HN use_hc :=
     end
   end.
 
-
-Ltac skip_bisim' H0 :=
+Ltac skip_bisim H0 :=
   time "apply skip" (apply PreBisimulationSkip with (H:=left H0));
   [ exact I | ];
   clear H0.
-
-Ltac size_script :=
-  unfold Syntax.interp;
-  autorewrite with size';
-  vm_compute;
-  repeat constructor.
-
 
 Ltac crunch_foterm :=
   match goal with
@@ -362,33 +276,16 @@ Ltac remember_iff name hyp term :=
   time "proving name <-> term" assert (hyp: name <-> term) by eapply iff_refl;
   time "clearbody" clearbody name.
 
-Declare ML Module "mirrorsolve".
-
+(* Unsound axioms to discharge goals cleared by the plugin. *)
 Polymorphic Axiom dummy_pf_true:
   forall sig m c (v: valu sig m c) fm, interp_fm v fm.
 Polymorphic Axiom dummy_pf_false:
   forall sig m c (v: valu sig m c) fm, ~ interp_fm v fm.
 
-Ltac decide_entailment H P HP el er P_orig e :=
-  let Horig := fresh "Horig" in
-  pose (P_orig := e);
-  time "remembering iff" remember_iff P HP e;
-  time "Horig" assert (Horig: P_orig <-> P)
-    by (rewrite HP; eapply iff_refl);
-  time "compile fm" compile_fm HP el er;
-  match goal with
-  | HP: P <-> interp_fm ?v ?f |- _ =>
-      time "smt check neg" check_interp_neg (interp_fm v f);
-      idtac "UNSAT";
-      time "asserting neg" assert (~ P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_false)
-  | HP: P <-> interp_fm ?v ?f |- _ =>
-      time "smt check pos" check_interp_pos (interp_fm v f);
-      idtac "SAT";
-      time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
-  | |- _ => idtac "undecided goal :("
-  end;
-  time "clearing Horig" clear Horig.
-
+(* Decides a template-guarded entailment by compiling it to a first-order
+   formula, shipping that off to the plugin, and admitting that if it clears
+   the goal. The result will have the (possibly negated) entailment in the
+   context if it was succesful. *)
 Ltac decide_entailment_admit H P HP el er P_orig e :=
   let Horig := fresh "Horig" in
   pose (P_orig := e);
@@ -409,102 +306,44 @@ Ltac decide_entailment_admit H P HP el er P_orig e :=
   end;
   time "clearing Horig" clear Horig.
 
-Ltac close_bisim_axiom :=
+(* Does the same as decide_entailment_admit, but uses an unsound axiom instead
+   of admitting the goal cleared by our plugin. *)
+Ltac decide_entailment_axiom H P HP el er P_orig e :=
+  let Horig := fresh "Horig" in
+  pose (P_orig := e);
+  time "remembering iff" remember_iff P HP e;
+  time "Horig" assert (Horig: P_orig <-> P)
+    by (rewrite HP; eapply iff_refl);
+  time "compile fm" compile_fm HP el er;
   match goal with
-  | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
-        apply PreBisimulationClose;
-         match goal with
-         | H:interp_conf_rel' ?C ?q1 ?q2
-           |- interp_crel _ _ ?P ?q1 ?q2 =>
-               let H0 := fresh "H0" in
-               assert
-                (H0 :
-                 interp_entailment'
-                   (fun q1 q2 =>
-                    top' _ _ _ _ _ r_states (conf_to_state_template q1)
-                      (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
-                (eapply simplify_entailment_correct';
-                  eapply compile_simplified_entailment_correct'; simpl;
-                  intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
-                  match goal with
-                  | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
-                  end); apply H0; auto; unfold top', conf_to_state_template;
-                destruct q1, q2; vm_compute in H;
-                repeat match goal with
-                       | H:_ /\ _ |- _ => destruct H
-                       end; subst; simpl; tauto
-         end
-  end.
-
-Ltac verify_interp :=
-  match goal with
-  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment a
-                                 (fun q1 q2 =>
-                                    top' _ _ _ _ _ r_states
-                                         (conf_to_state_template q1)
-                                         (conf_to_state_template q2))
-                                 ({| e_prem := R; e_concl := C |}));
-    [
-      eapply simplify_entailment_correct;
-      eapply compile_simplified_entailment_correct; simpl; intros;
-      eapply FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
-      eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-      eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
-
-      time "reduce goal" crunch_foterm;
-
-      match goal with
-      | |- ?X => time "smt check neg" check_interp_neg X
-      | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
-      end
-    |]
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check neg" check_interp_neg (interp_fm v f);
+      idtac "UNSAT";
+      time "asserting neg" assert (~ P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_false)
+  | HP: P <-> interp_fm ?v ?f |- _ =>
+      time "smt check pos" check_interp_pos (interp_fm v f);
+      idtac "SAT";
+      time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
+  | |- _ => idtac "undecided goal :("
   end;
-  let n:= numgoals in
-  tryif ( guard n = 2) then
-    match goal with
-    | |- interp_fm _ _ => admit
-    | H : interp_entailment _ _ _ |- pre_bisimulation ?a ?r_states _ ?R (?C :: _) _ _ =>
-      clear H;
-      let HN := fresh "HN" in
-      assert (HN: ~ (interp_entailment a (top _ _ _ _ _ r_states) ({| e_prem := R; e_concl := C |}))) by admit
-    end
-  else idtac.
+  time "clearing Horig" clear Horig.
 
-Ltac run_bisim_old :=
-  time "verify_interp" verify_interp;
-  match goal with
-  | HN: ~ (interp_entailment _ _ _ ) |- _ =>
-    time "extending" (extend_bisim' HN; clear HN)
-  | H: interp_entailment _ _ _  |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-    time "skipping" (skip_bisim' H; clear H; try clear C)
-  end.
+(* Initializes the search for a lang_equiv proof by converting it into a
+   pre-bisimulation goal using the soundness theorem. Also pre-computes the
+   set of reachable state template pairs. *)
+Ltac init_bisim :=
+  eapply lang_equiv_to_pre_bisim;
+  time "init prebisim" (intros;
+  unfold mk_init;
+  erewrite Reachability.reachable_states_wit_conv; [
+    | repeat econstructor | econstructor; solve_fp_wit
+  ];
+  simpl).
 
-
-Ltac run_bisim_axiom el er use_hc :=
-  match goal with
-  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
-      let H := fresh "H" in
-      let P := fresh "P" in
-      let HP := fresh "HP" in
-      let P_orig := fresh "P_orig" in
-      decide_entailment H P HP el er P_orig (interp_entailment a
-                                                         (fun q1 q2 =>
-                                                            top' _ _ _ _ _ r_states
-                                                                 (conf_to_state_template q1)
-                                                                 (conf_to_state_template q2))
-                                                         ({| e_prem := R; e_concl := C |}));
-      match goal with
-      | HN: ~ P_orig |- _ =>
-          time "extending" (extend_bisim' HN use_hc; clear HN)
-      | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-          time "skipping" (skip_bisim' H; clear H; try clear C)
-      end;
-      time "clearing all" clear P HP P_orig
-  end.
-
+(* Runs the main loop of our algorithm, clearing a pre-bisimulation goal by
+   repeatedly applying the PreBisimulationExtend constructor until there are
+   no more formulas left in T. Verification conditions created this way will
+   be admitted as long as they can be cleared by our plugin. *)
 Ltac run_bisim_admit el er use_hc :=
   match goal with
   | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
@@ -520,31 +359,41 @@ Ltac run_bisim_admit el er use_hc :=
                                                           ({| e_prem := R; e_concl := C |}));
       match goal with
       | HN: ~ P_orig |- _ =>
-          time "extending" (extend_bisim' HN use_hc; clear HN)
+          time "extending" (extend_bisim HN use_hc; clear HN)
       | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
-          time "skipping" (skip_bisim' H; clear H; try clear C)
+          time "skipping" (skip_bisim H; clear H; try clear C)
       end;
       time "clearing all" clear P HP P_orig
   end.
 
-Ltac print_rel_len :=
-  let foo := fresh "foo" in
-  let bar := fresh "bar" in
+(* Does the same as run_bisim_admit, but uses an axiom instead of admitting. *)
+Ltac run_bisim_axiom el er use_hc :=
   match goal with
-  | |- pre_bisimulation _ _ _ ?R _ _ _ =>
-    set (foo := length R);
-    assert (bar : foo = length R); [subst foo; trivial|]
-  end;
-  vm_compute in bar;
-  match goal with
-  | H: @eq nat _ ?X |- _ =>
-    idtac "size of relation is:";
-    idtac X
-  end;
-  clear foo;
-  clear bar.
+  | |- pre_bisimulation ?a ?r_states ?wp ?R (?C :: _) _ _ =>
+      let H := fresh "H" in
+      let P := fresh "P" in
+      let HP := fresh "HP" in
+      let P_orig := fresh "P_orig" in
+      decide_entailment_axiom H P HP el er P_orig (interp_entailment a
+                                                         (fun q1 q2 =>
+                                                            top' _ _ _ _ _ r_states
+                                                                 (conf_to_state_template q1)
+                                                                 (conf_to_state_template q2))
+                                                         ({| e_prem := R; e_concl := C |}));
+      match goal with
+      | HN: ~ P_orig |- _ =>
+          time "extending" (extend_bisim HN use_hc; clear HN)
+      | H: P_orig |- pre_bisimulation _ _ _ _ (?C :: _) _ _ =>
+          time "skipping" (skip_bisim H; clear H; try clear C)
+      end;
+      time "clearing all" clear P HP P_orig
+  end.
 
-Ltac close_bisim :=
+(* Closes the pre-bisimulation search by applying the PreBisimulationClose
+   constructor, and checking whether the remaining goal compiles to a formula
+   that can be cleared by our plugin. Corresponds to the final step in the
+   algorithm. *)
+Ltac close_bisim_admit :=
   match goal with
   | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
     apply PreBisimulationClose;
@@ -582,67 +431,73 @@ Ltac close_bisim :=
     end
   end.
 
-
-(* solves a header finiteness goal of the form:
-List.NoDup
-  [existT (fun n : nat => header n) 64 HPref;
-  existT (fun n : nat => header n) 48 HDest;
-  existT (fun n : nat => header n) 48 HSrc;
-  existT (fun n : nat => header n) 16 HProto]
-
-  which is an obligation for:
-
-    @Finite {n & header n} _ header_eqdec'
-
-  *)
-Ltac solve_header_finite :=
-  repeat constructor;
-  unfold "~"; intros;
-  repeat match goal with
-  | H: List.In _ _ |- _ => destruct H
-  | H: _ = _ |- _ => inversion H
+(* Just like close_bisim_admit, but uses an axiom instead of admitting. *)
+Ltac close_bisim_axiom :=
+  match goal with
+  | |- pre_bisimulation _ ?r_states _ _ _ _ _ =>
+        apply PreBisimulationClose;
+         match goal with
+         | H:interp_conf_rel' ?C ?q1 ?q2
+           |- interp_crel _ _ ?P ?q1 ?q2 =>
+               let H0 := fresh "H0" in
+               assert
+                (H0 :
+                 interp_entailment'
+                   (fun q1 q2 =>
+                    top' _ _ _ _ _ r_states (conf_to_state_template q1)
+                      (conf_to_state_template q2)) {| e_prem := P; e_concl := C |}) by
+                (eapply simplify_entailment_correct';
+                  eapply compile_simplified_entailment_correct'; simpl;
+                  intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
+                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
+                  match goal with
+                  | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
+                  end); apply H0; auto; unfold top', conf_to_state_template;
+                destruct q1, q2; vm_compute in H;
+                repeat match goal with
+                       | H:_ /\ _ |- _ => destruct H
+                       end; subst; simpl; tauto
+         end
   end.
 
-(* solves a header eq_dec from a list of finite indices and decision procedures, e.g.
+(* Tactic that solves a lang_equiv goal by discharging verfication conditions
+   cleared by the plugin by applying an (unsound) axiom.
 
-  Definition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.
-    solve_header_eqdec_ n x y
-      ((existT (fun n => forall x y: header n, {x = y} + {x <> y}) 32 h32_eq_dec) :: nil).
-  Defined.
-
+    arguments:
+      el, er, eq_dec: functions for the left and right automata states
+      use_hc, a bool to use or not use "hashconsing" of intermediate templates.
 *)
-Ltac solve_header_eqdec_ n x y indfuns :=
-  match indfuns with
-  | existT _ ?index ?f :: ?indfuns =>
-    destruct (Nat.eq_dec n index); [
-      subst; exact (f x y)  |
-      solve_header_eqdec_ n x y indfuns
-    ]
-  | nil =>
-    destruct x; exfalso; auto
-  end.
-
-Ltac init_bisim :=
-  eapply lang_equiv_to_pre_bisim;
-  time "init prebisim" (intros;
-  unfold mk_init;
-  erewrite Reachability.reachable_states_wit_conv; [
-    | repeat econstructor | econstructor; solve_fp_wit
-  ];
-  simpl).
-  
 Ltac solve_lang_equiv_state_axiom el er use_hc :=
   time "init phase" init_bisim;
   time "build phase" repeat run_bisim_axiom el er use_hc;
   time "close phase" close_bisim_axiom.
 
+(* Tactic that solves a lang_equiv goal by admitting verfication conditions
+   cleared by the plugin.
 
-  (**
     arguments:
-      el and er, eq_dec functions for the left and right automata states
-      use_hc, a bool, to use or not use "hashconsing" of intermediate conf_templates
-  *)
+      el, er, eq_dec: functions for the left and right automata states
+      use_hc, a bool to use or not use "hashconsing" of intermediate templates.
+*)
 Ltac solve_lang_equiv_state_admit el er use_hc :=
   time "init phase" init_bisim;
   time "build phase" repeat run_bisim_admit el er use_hc;
-  time "close phase" close_bisim_axiom.
+  time "close phase" close_bisim_admit.
+
+(* Prints the number of clauses in the current pre-bisimulation goal. *)
+Ltac print_rel_len :=
+  let foo := fresh "foo" in
+  let bar := fresh "bar" in
+  match goal with
+  | |- pre_bisimulation _ _ _ ?R _ _ _ =>
+    set (foo := length R);
+    assert (bar : foo = length R); [subst foo; trivial|]
+  end;
+  vm_compute in bar;
+  match goal with
+  | H: @eq nat _ ?X |- _ =>
+    idtac "size of relation is:";
+    idtac X
+  end;
+  clear foo;
+  clear bar.
