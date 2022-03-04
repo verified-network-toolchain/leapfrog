@@ -3,7 +3,7 @@
 import argparse
 from dataclasses import dataclass
 
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 
 import os
 from os import path
@@ -12,34 +12,39 @@ from typing import Tuple, Optional
 
 import re
 
+def fmt_td(td:timedelta): 
+  s = int(td.total_seconds())
+  hours, remainder = divmod(s, 3600)
+  minutes, seconds = divmod(remainder, 60)
+  return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+
 @dataclass(frozen=True)
 class LogData:
   name: str
   hash: str
-  dt: datetime
-  runtime: time
+  dt: time
+  runtime: timedelta
   memory_use: int
 
   def to_csv_row(self):
-    return ",".join([self.name, self.hash, str(self.dt), str(self.runtime), str(self.memory_use)])
+    return ",".join([self.name, self.hash, str(self.dt), fmt_td(self.runtime), str(self.memory_use)])
 
 
 @dataclass(frozen=True)
 class LogDataPartial:
   name: str
-  runtime: time
+  runtime: timedelta
   memory_use: int
 
   def to_csv_row(self):
-    return ",".join([self.name, str(self.runtime), str(self.memory_use)])
-
+    return ",".join([self.name, fmt_td(self.runtime), str(self.memory_use)])
 
 def parse_stats(loc: str) -> Tuple[time, int] : 
 
   # re_runtime_valu = r"(\d\d:\d\d:\d\d)|(\d:\d\d\.\d\d)"
 
   re_runtime = r"\s*Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*((\d+:\d\d:\d\d)|(\d:\d\d\.\d\d))\s*"
-  runtime : Optional[time] = None
+  runtime : Optional[timedelta] = None
   
   mem_bytes : Optional[int] = None
   re_mem = r"\s*Maximum resident set size \(kbytes\):\s*(\d+)\s*"
@@ -51,17 +56,14 @@ def parse_stats(loc: str) -> Tuple[time, int] :
       if rt_match:
         _, long, short = rt_match.groups()
         if long:
-          # the time is ISO, we can use a default parser
-          # print('parsed long to:', long)
           times = [int(x) for x in long.split(':')]
           hrs, mins, secs = times[0], times[1], times[2]
-          runtime = time(hour=hrs,minute=mins,second=secs)
+          runtime = timedelta(hours=hrs,minutes=mins,seconds=secs) 
         elif short: 
-          # ugh, we have to manually parse the fractional seconds to microseconds...
           mins, secs_str = short.split(':')[0], short.split(':')[1]
           secs, micros = secs_str.split('.')[0], secs_str.split('.')[1]
           micros = int(micros) * 10000
-          runtime = time(minute=int(mins), second=int(secs), microsecond=micros)
+          runtime = timedelta(minutes=int(mins), seconds=int(secs), microseconds=micros)
         else:
           assert False
       elif mem_match:
