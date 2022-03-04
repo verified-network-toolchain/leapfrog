@@ -4,7 +4,6 @@ From Equations Require Import Equations.
 
 Require Import Leapfrog.FinType.
 Require Import Leapfrog.Ntuple.
-Require Import Leapfrog.NtupleProofs.
 Require Import Leapfrog.P4automaton.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.WP.
@@ -723,7 +722,7 @@ Section WPProofs.
       pose proof (He2 := be_subst_buf si c e2 exp store1 store2 len1 len2 buf1 buf2 valu _ _ w1 w2 ltac:(eauto)).
       assert (Hsize1:
                 @eq Type
-                    (pick si 
+                    (pick si
                            (n_tuple bool (be_size Hdr_sz b1 len2 e1),
                             n_tuple bool (be_size Hdr_sz len1 b2 e1)))
                     (n_tuple bool

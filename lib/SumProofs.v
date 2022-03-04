@@ -10,6 +10,7 @@ Require Import Leapfrog.HAList.
 Require Import Leapfrog.WPProofs.
 Require Import Leapfrog.Sum.
 Require Import Leapfrog.P4automaton.
+Require Import Leapfrog.Ntuple.
 Require Leapfrog.Syntax.
 
 Require Import MirrorSolve.HLists.
@@ -201,17 +202,17 @@ Section SumProofs.
     - erewrite IHo1; auto.
       erewrite IHo2; auto.
       + repeat rewrite Ntuple.rewrite_size_jmeq.
-        apply NtupleProofs.t2l_eq.
+        apply t2l_eq.
         repeat rewrite Ntuple.t2l_n_tuple_skip_n.
         f_equal.
         * apply Syntax.op_fmapH_size.
-        * now apply NtupleProofs.eq_t2l.
+        * now apply eq_t2l.
       + repeat rewrite Ntuple.rewrite_size_jmeq.
-        apply NtupleProofs.t2l_eq.
+        apply t2l_eq.
         repeat rewrite Ntuple.t2l_n_tuple_take_n.
         f_equal.
         * apply Syntax.op_fmapH_size.
-        * now apply NtupleProofs.eq_t2l.
+        * now apply eq_t2l.
     - erewrite assign1; auto.
       f_equal.
       apply JMeq_eq; auto.
@@ -228,17 +229,17 @@ Section SumProofs.
     - reflexivity.
     - erewrite IHo1, IHo2; auto.
       + repeat rewrite Ntuple.rewrite_size_jmeq.
-        apply NtupleProofs.t2l_eq.
+        apply t2l_eq.
         repeat rewrite Ntuple.t2l_n_tuple_skip_n.
         f_equal.
         * apply Syntax.op_fmapH_size.
-        * now apply NtupleProofs.eq_t2l.
+        * now apply eq_t2l.
       + repeat rewrite Ntuple.rewrite_size_jmeq.
-        apply NtupleProofs.t2l_eq.
+        apply t2l_eq.
         repeat rewrite Ntuple.t2l_n_tuple_take_n.
         f_equal.
         * apply Syntax.op_fmapH_size.
-        * now apply NtupleProofs.eq_t2l.
+        * now apply eq_t2l.
     - erewrite assign2; auto.
       f_equal.
       apply JMeq_eq; auto.
@@ -263,7 +264,7 @@ Section SumProofs.
     unfold Syntax.update; simpl.
     erewrite eval_op1; auto.
     repeat f_equal.
-    now repeat rewrite NtupleProofs.eq_rect_jmeq.
+    now repeat rewrite eq_rect_jmeq.
   Qed.
 
   Lemma update2 (s: Syntax.store Hdr1 Hdr1_sz) (s': Syntax.store Hdr2 Hdr2_sz) (q: St2) buf1 buf2:
@@ -280,7 +281,7 @@ Section SumProofs.
     unfold Syntax.update; simpl.
     erewrite eval_op2; auto.
     repeat f_equal.
-    now repeat rewrite NtupleProofs.eq_rect_jmeq.
+    now repeat rewrite eq_rect_jmeq.
   Qed.
 
   Lemma eval_sel1:
@@ -499,7 +500,7 @@ Section SumProofs.
     intros.
     inversion H; subst;
     assert (conf_buf_len c1 = conf_buf_len c1')
-      by (eapply NtupleProofs.inv_jmeq_size; exact H2).
+      by (eapply inv_jmeq_size; exact H2).
     - unfold step.
       destruct (Compare_dec.le_lt_dec _ _),
                (Compare_dec.le_lt_dec _ _); try lia.
@@ -529,7 +530,7 @@ Section SumProofs.
           erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
           unfold Ntuple.rewrite_size.
           repeat rewrite rew_opp_l.
-          now apply NtupleProofs.pair_proper.
+          now apply pair_proper.
       + exfalso.
         replace (conf_state c1')
           with (inl (B := bool) (inl (B := St2) q))
@@ -551,7 +552,7 @@ Section SumProofs.
         * apply l.
         * apply l0.
       + apply EmbedConf1Inl with (q := q) (st := st); auto; simpl.
-        now apply NtupleProofs.pair_proper.
+        now apply pair_proper.
     - unfold step.
       destruct (Compare_dec.le_lt_dec _ _),
                (Compare_dec.le_lt_dec _ _).
@@ -588,7 +589,7 @@ Section SumProofs.
     intros.
     inversion H; subst.
     - assert (conf_buf_len c2 = conf_buf_len c2')
-        by (eapply NtupleProofs.inv_jmeq_size; exact H2).
+        by (eapply inv_jmeq_size; exact H2).
       unfold step.
       destruct (Compare_dec.le_lt_dec _ _),
                (Compare_dec.le_lt_dec _ _); try lia.
@@ -618,7 +619,7 @@ Section SumProofs.
           erewrite <- Ntuple.rewrite_size_jmeq; symmetry.
           unfold Ntuple.rewrite_size.
           repeat rewrite rew_opp_l.
-          now apply NtupleProofs.pair_proper.
+          now apply pair_proper.
       + exfalso.
         replace (conf_state c2')
           with (inl (B := bool) (inr (A := St1) q))
@@ -640,7 +641,7 @@ Section SumProofs.
         * apply l.
         * apply l0.
       + apply EmbedConf2Inl with (q := q) (st := st); auto; simpl.
-        now apply NtupleProofs.pair_proper.
+        now apply pair_proper.
     - unfold step.
       destruct (Compare_dec.le_lt_dec _ _),
                (Compare_dec.le_lt_dec _ _).
