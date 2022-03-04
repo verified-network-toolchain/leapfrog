@@ -52,7 +52,10 @@ def parse_stats(loc: str) -> Tuple[time, int] :
         _, long, short = rt_match.groups()
         if long:
           # the time is ISO, we can use a default parser
-          runtime = time.fromisoformat(long)
+          # print('parsed long to:', long)
+          times = [int(x) for x in long.split(':')]
+          hrs, mins, secs = times[0], times[1], times[2]
+          runtime = time(hour=hrs,minute=mins,second=secs)
         elif short: 
           # ugh, we have to manually parse the fractional seconds to microseconds...
           mins, secs_str = short.split(':')[0], short.split(':')[1]
