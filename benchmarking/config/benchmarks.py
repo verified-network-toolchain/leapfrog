@@ -15,6 +15,8 @@ class Benchmarks:
     else:
       assert False
 
+  def filter_by_name(self, name: str):
+    return Benchmarks(benchmarks=[x for x in self.benchmarks if x.name == name])
 
 # To modify benchmarks, change the list of benchmarks below by adding/editing rows
 

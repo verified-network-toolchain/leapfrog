@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from sys import platform
+from typing import Optional
 from config.logs import *
 from config.benchmarks import *
 
@@ -64,10 +65,10 @@ def run_benchmark(prefix: str, time_cmd: str, b: Benchmark):
     subprocess.run("%s make %s" % (time_cmd, targ), cwd="..", shell=True, stdout=f, stderr=subprocess.STDOUT)
 
 
-MainOpt = Enum('MainOpt', 'SMALL LARGE ALL')
+MainOpt = Enum('MainOpt', 'SMALL LARGE ALL ONE')
 
 
-def main(opt: MainOpt, log_config):
+def main(opt: MainOpt, log_config, bench_name : Optional[str] = None):
 
   benches : Benchmarks
   match opt:
@@ -80,6 +81,13 @@ def main(opt: MainOpt, log_config):
     case MainOpt.ALL:
       print("running all benchmarks")
       benches = all_benchmarks
+    case MainOpt.ONE:
+      if bench_name:
+        print('running one benchmark:', bench_name)
+        benches = all_benchmarks.filter_by_name(bench_name)
+      else: 
+        print('missing required benchmark argument for size one')
+        assert False
     case _:
       print('bad argument to main', opt)
       assert False
@@ -111,12 +119,16 @@ def main(opt: MainOpt, log_config):
 
   
 parser = argparse.ArgumentParser()
-parser.add_argument('--size', choices=['small', 'large', 'all'], required=True)
+parser.add_argument('--size', choices=['small', 'large', 'all', 'one'], required=True)
 parser.add_argument('--log-dir', default=os.path.join(LEAPFROG_ROOT,
 "benchmarking/logs"))
+parser.add_argument('-f', default=None, choices=[ "ethernet" , "selfcomparison" , "mpls" , "sloppystrict" , "ipfilter" , "edgeself" , "edgetrans" , "datacenter" , "serviceprovider" , "enterprise" , "ipoptions2"],
+  help="benchmark name if size is one"
+)
 
 if __name__ == "__main__":
   args = parser.parse_args()
+  bench_name = None
   opt : MainOpt
   match args.size:
     case 'small':
@@ -133,8 +145,11 @@ if __name__ == "__main__":
         print("warning: running large benchmarks without using unlimited stack size")
         print("try rerunning with ulimit -s unlimited")
       opt = MainOpt.ALL
+    case 'one': 
+      opt = MainOpt.ONE
+      bench_name = args.f
     case _:
       print('bad CLI argument to runner', args.size)
       assert False
   log_config = LogConfig(args.log_dir)
-  main(opt, log_config)
+  main(opt, log_config, bench_name=bench_name)
