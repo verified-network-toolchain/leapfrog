@@ -198,6 +198,7 @@ Section CompileFirstOrderConfRelSimplified.
       TVar (subscript v (compile_lookup h))
   }.
 
+  (* Compilation from FOL(Conf) to FOL(BV). *)
   Equations compile_fm
     {c: ctx (FOS.sig Hdr_sz)}
     (f: fm (FOS.sig Hdr_sz) c)
@@ -648,6 +649,7 @@ Section CompileFirstOrderConfRelSimplified.
     apply NoDup_enum.
   Qed.
 
+  (* Compilation from FOL(Conf) to FOL(BV) is correct. *)
   Lemma compile_simplified_fm_bv_correct:
     forall c v (fm : fm _ c),
       interp_fm (m := FOS.fm_model a) v fm <->

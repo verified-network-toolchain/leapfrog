@@ -187,9 +187,8 @@ All of these are instantiations of the more general syntax for formulas in Figur
 | TGF semantics (Def 4.3)                 | `interp_conf_rel`    | `ConfRel.v`  |
 | TGC syntax                              | `crel`               | `ConfRel.v`  |
 | TGC semantics (Def 4.3)                 | `interp_crel`        | `ConfRel.v`  |
-| TGE syntax                              | `entailment`         | `ConfRel.v`  |
+| TG(C)E syntax                           | `entailment`         | `ConfRel.v`  |
 | TGE semantics (Def 4.3)                 | `interp_entailment`  | `ConfRel.v`  |
-| TGCE syntax                             | `entailment'`        | `ConfRel.v`  |
 | TGCE semantics (Def 4.3)                | `interp_entailment'` | `ConfRel.v`  |
 | WP^{<,>} definition (Sec. 4.3)          | `wp_lpred`           | `WP.v`       |
 | WP^{<,>} soundness (Lem. 4.8)           | `wp_lpred_pair_safe` | `WPProofs.v` |
@@ -212,11 +211,11 @@ What follows are the pointers to the definitions of the three logics mentioned a
 
 | Concept                          | Coq definition                           | Filename                               |
 |----------------------------------|------------------------------------------|----------------------------------------|
-| Simplified TGE                   | `simplified_entailment`                  | `ConfRel.v`                            |
-| Compilation of TGE to STGE       | `simplify_entailment`                    | `ConfRel.v`                            |
+| Simplified TG(C)E syntax         | `simplified_entailment`                  | `ConfRel.v`                            |
+| Simplified TGE semantics         | `interp_simplified_entailment`           | `ConfRel.v`                            |
+| Simplified TGCE semantics        | `interp_simplified_entailment'`          | `ConfRel.v`                            |
+| Compilation of TG(C)E to STG(C)E | `simplify_entailment`                    | `ConfRel.v`                            |
 | Correctness of TGE -> STGE       | `simplify_entailment_correct`            | `ConfRel.v`                            |
-| Simplified TGCE                  | `simplified_entailment'`                 | `ConfRel.v`                            |
-| Comp. of TGCE to STGCE           | `simplify_entailment'`                   | `ConfRel.v`                            |
 | Corr. of TGCE -> STGCE           | `simplify_entailment_correct'`           | `ConfRel.v`                            |
 | FOL(Conf) instantiation          | `fm_model`                               | `FirstOrderConfRelSimplified.v`        |
 | Comp. STGE to FOL(Conf)          | `compile_simplified_entailment`          | `CompileConfRelSimplified.v`           | 
