@@ -7,8 +7,6 @@ ENV LC_ALL=C.UTF-8
 ENV LEAPFROG_APT_DEPS \
     cvc4 \
     z3 \
-    libgmp-dev \
-    proofgeneral \
     python3.10 \
     pipenv \
     time
