@@ -68,7 +68,8 @@ up and run a shell with
 make shell
 ```
 This will drop you into a Bash shell in a copy of the Leapfrog source with all
-the Coq built.
+the Coq built. Inside the container, the MirrorSolve plugin is located in
+`~/mirrorsolve`.
 
 ### Option 2: Manual installation
 Leapfrog relies on the following packages:
@@ -181,6 +182,12 @@ hardware with the axiom-based scripts, because Coq's proof checker runs out of
 memory at QED-time. These benchmarks therefore use the `admit`-based scripts
 described in the paper.
 
+To verify that only smt queries are admitted in benchmarks, run Print
+Assumptions <term> after one of the small benchmarks. You should see a few
+axioms that are equivalent to Axiom K, and also two axioms for smt positive and
+negative. Our admit script has the same structure as the axiom script but it
+uses admit instead of applying the axioms. To see that the axioms are being used
+safely, you can also inspect the script in `BisimChecker.v`.
 
 ### Running one benchmark (30 seconds)
 From the root of the Leapfrog repo, run
@@ -536,13 +543,13 @@ Our algorithm lowers the symbolic relations represented using `conf_rel`:
   returning to FOL(Conf);
 * Finally, a compilation to a first-order logic over bitvectors, called FOL(BV).
 
-For an overview of the pipeline, we refer to Figure 5. The generic first-order
-logic is provided by MirrorSolve, and can be found in
-`src/theories/FirstOrder.v`; an instantiation also automatically provides a
-semantics.
+For an overview of the pipeline, we refer to Figure 5.
 
 What follows are the pointers to the definitions of the three logics mentioned
-above, the compilation steps between them, and their soundness theorems.
+above, the compilation steps between them, and their soundness theorems. Note
+that the generic definition of first-order logic is located in the MirrorSolve
+repo, not in the Leapfrog repo. Leapfrog instantiates it with particular
+theories.
 
 | Concept                          | Coq definition                           | Filename                               |
 |----------------------------------|------------------------------------------|----------------------------------------|
@@ -552,6 +559,8 @@ above, the compilation steps between them, and their soundness theorems.
 | Compilation of TG(C)E to STG(C)E | `simplify_entailment`                    | `ConfRel.v`                            |
 | Correctness of TGE -> STGE       | `simplify_entailment_correct`            | `ConfRel.v`                            |
 | Corr. of TGCE -> STGCE           | `simplify_entailment_correct'`           | `ConfRel.v`                            |
+| FOL(-) syntax                    | `fm`                                     | `mirrorsolve/src/theories/FirstOrder.v`|
+| FOL(-) semantics                 | `interp_fm`                              | `mirrorsolve/src/theories/FirstOrder.v`|
 | FOL(Conf) instantiation          | `fm_model`                               | `FirstOrderConfRelSimplified.v`        |
 | Comp. STGE to FOL(Conf)          | `compile_simplified_entailment`          | `CompileConfRelSimplified.v`           | 
 | Corr. STGE -> FOL(Conf)          | `compile_simplified_entailment_correct`  | `CompileConfRelSimplified.v`           |
