@@ -123,7 +123,7 @@ if __name__ == "__main__":
         name = Path(loc).name
         print(import_partial_log(name, str(Path(loc).absolute())).to_csv_row())
       except:
-        print("couldn't parse log at all")
+        print("couldn't parse log at all:", str(Path(loc)))
   else:
     root = Path(loc)
     for f in root.glob("*.out"):
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         try: 
           print(import_partial_log(f.name, str(f.absolute())).to_csv_row())
         except:
-          print("couldn't parse log at all")
+          print("couldn't parse log at all:", str(Path(loc)))
 
 
 
