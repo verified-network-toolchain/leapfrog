@@ -165,20 +165,6 @@ Section ConfRel.
   Arguments BEHdr {c} _ _.
   Derive NoConfusion for bit_expr.
 
-  Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
-    (* if Nat.ltb hi lo then BELit [] else *)
-    match be with
-    | BELit l => BELit (P4A.slice l hi lo)
-    | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
-    | _ => BESlice be hi lo
-    end.
-
-  Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) :=
-    match l, r with
-    | BELit l, BELit r => BELit (l ++ r)
-    | _, _ => BEConcat l r
-    end.
-
   Fixpoint weaken_bit_expr {c} (size: nat) (b: bit_expr c) : bit_expr (BCSnoc c size) :=
     match b with
     | BELit l => BELit l
@@ -291,46 +277,6 @@ Section ConfRel.
   | BRImpl (r1 r2: store_rel c).
   Arguments store_rel : default implicits.
 
-  (* smart constructors *)
-
-  Definition brand {c} (l: store_rel c) (r: store_rel c) :=
-    (* BRAnd l r. *)
-    match l with
-    | BRTrue _ => r
-    | BRFalse _ => BRFalse c
-    | _ =>
-      match r with
-      | BRTrue _ => l
-      | BRFalse _ => BRFalse c
-      | _ => BRAnd l r
-      end
-    end.
-
-  Definition bror {c} (l: store_rel c) (r: store_rel c) :=
-    (* BROr l r. *)
-    match l with
-    | BRTrue _ => BRTrue c
-    | BRFalse _ => r
-    | _ =>
-      match r with
-      | BRTrue _ => BRTrue c
-      | BRFalse _ => l
-      | _ => BROr l r
-      end
-    end.
-
-  Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
-    (* BRImpl l r. *)
-    match l with
-    | BRTrue _ => r
-    | BRFalse _ => BRTrue c
-    | _ =>
-      match r with
-      | BRTrue _ => BRTrue c
-      | _ => BRImpl l r
-      end
-    end.
-
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;
       store_rel_eq_dec (BRFalse _) (BRFalse _) := in_left;
@@ -370,16 +316,6 @@ Section ConfRel.
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
     store_rel_eq_dec.
 
-  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
-    match r with
-    | BRTrue _ => BRTrue _
-    | BRFalse _ => BRFalse _
-    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
-    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
-    end.
-
   Equations interp_store_rel {b1 b2 c}
     (r: store_rel c)
     (valu: bval c)
@@ -409,39 +345,99 @@ Section ConfRel.
       interp_store_rel r2 valu buf1 buf2 store1 store2
   }.
 
-  (* correctness of smart constructors *)
-  Lemma bror_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BROr l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (bror l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold bror in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+  Section SmartConstructors.
+    Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+      match be with
+      | BELit l => BELit (P4A.slice l hi lo)
+      | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
+      | _ => BESlice be hi lo
+      end.
 
-  Lemma brand_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BRAnd l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (brand l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold brand in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+    Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) :=
+      match l, r with
+      | BELit l, BELit r => BELit (l ++ r)
+      | _, _ => BEConcat l r
+      end.
 
-  Lemma brimpl_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BRImpl l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (brimpl l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold brimpl in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+    Definition brand {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => r
+      | BRFalse _ => BRFalse c
+      | _ =>
+        match r with
+        | BRTrue _ => l
+        | BRFalse _ => BRFalse c
+        | _ => BRAnd l r
+        end
+      end.
+
+    Definition bror {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => BRTrue c
+      | BRFalse _ => r
+      | _ =>
+        match r with
+        | BRTrue _ => BRTrue c
+        | BRFalse _ => l
+        | _ => BROr l r
+        end
+      end.
+
+    Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => r
+      | BRFalse _ => BRTrue c
+      | _ =>
+        match r with
+        | BRTrue _ => BRTrue c
+        | _ => BRImpl l r
+        end
+      end.
+
+    (* correctness of smart constructors *)
+    Lemma bror_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BROr l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (bror l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold bror in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+
+    Lemma brand_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BRAnd l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (brand l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold brand in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+
+    Lemma brimpl_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BRImpl l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (brimpl l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold brimpl in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+  End SmartConstructors.
+
+  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
+    match r with
+    | BRTrue _ => BRTrue _
+    | BRFalse _ => BRFalse _
+    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
+    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
+    end.
 
   Record conf_states :=
     { cs_st1: state_template;
