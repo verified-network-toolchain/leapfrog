@@ -124,6 +124,20 @@ This should output the logs of the benchmarks, including performance statistics,
 
 ### Running the benchmarks interactively
 
+If you've built everything locally, you should be able to open the benchmark files in `lib/Benchmarks` in your favorite Coq editor, and step through the proofs.
+
+If you've built the Docker image, you may need to set up your editor inside of the container first. The user `opam` is a password-less sudoer, so you should be able to invoke `apt` and install what you need. For your convenience, the Docker image also provides a pre-installed version of Coqide. If your host OS is Linux, you should be able to run the following:
+
+```
+make shell-gui
+# inside the container shell
+eval $(opam env)
+make -B _CoqProject
+coqide
+```
+
+Note that the `make shell-gui` starts a root prompt inside the container, which is necessary for it to have access to your local `.Xauthority` file.
+
 ## Code overview
 
 The code of Leapfrog itself lives under `lib/`. What folows is an extensive but perhaps not exhaustive overview of the development in relation to the concepts from the paper.

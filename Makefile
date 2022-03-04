@@ -90,4 +90,4 @@ shell: container
 	docker run -it leapfrog
 
 shell-gui: container
-	docker run -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog
+	docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/home/opam/.Xauthority -it leapfrog

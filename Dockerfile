@@ -10,7 +10,8 @@ ENV LEAPFROG_APT_DEPS \
     libgmp-dev \
     python3.10 \
     pipenv \
-    time
+    time \
+    coqide
 
 ENV LEAPFROG_OPAM_DEPS \
     coq=8.13.2 \
