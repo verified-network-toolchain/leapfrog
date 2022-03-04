@@ -240,8 +240,9 @@ The optimized implementation of the algorithm (in LTac) and the elements of its 
 | Bisimilarity with leaps (Def. 5.4)       | `bisimilar_with_leaps`               | `Bisimulations/Leaps.v`         |
 | Correctness of leaps (Lem. 5.6)          | `bisimilar_iff_bisimilar_with_leaps` | `Bisimulations/LeapsProofs.v`   |
 | Executions of Algorithm 1                | `pre_bisimulation`                   | `Bisimulations/WPLeaps.v`       |
-| Soundness of Algorithm 1                 | `wp_leaps_implies_bisim_leaps`       | `Bisimulations/WPLeapsProofs.v` |
+| Pre-bisimulations yield bisimulations    | `wp_leaps_implies_bisim_leaps`       | `Bisimulations/WPLeapsProofs.v` |
+| Soundness of Algorithm 1                 | `lang_equiv_to_pre_bisim`            | `LangEquivToPreBisim.v`         |
 | Calculation of I (Thm. 5.2)              | `init_bisim`                         | `BisimChecker.v`                |
-| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim_axiom/run_bisim_admit`    | `BisimChecker.v`                |
-| Final check (Alg. 1, line 7)             | `close_bisim_axiom/close_bisim_admit`| `BisimChecker.v`                |
+| Main algorithm loop (Alg. 1, line 2-6)   | `run_bisim_*`                        | `BisimChecker.v`                |
+| Final check (Alg. 1, line 7)             | `close_bisim_*`                      | `BisimChecker.v`                |
 | Algorithm 1, optimized                   | `solve_lang_equiv_state_*`           | `BisimChecker.v`                |

@@ -49,6 +49,9 @@ Section LangEquivToPreBisim.
 
   Notation St := (St1 + St2)%type.
 
+  (* To prove language equivalence, it is sufficient to establish a certain
+     pre-bisimulation, as it will give you a bisimulation with leaps and
+     hence a bisimulation, which implies language equivalence. *)
   Lemma lang_equiv_to_pre_bisim:
     forall (s1: St1) (s2: St2),
       let init := mk_init _ _ _ _ (Sum.sum a1 a2) s1 s2 in

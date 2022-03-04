@@ -144,6 +144,8 @@ Section WPLeapsProofs.
         * apply reads_left_lower_bound.
   Qed.
 
+  (* Establishing a pre-bisimulation from the set of initial formulas computed
+     by mk_init means that you have find a bisimulation with leaps. *)
   Lemma wp_leaps_implies_bisim_leaps:
     forall q1 q2,
       let init := mk_init _ _ _ _ _ s1 s2 in
