@@ -1,26 +1,45 @@
 # Prequisites
-Leapfrog does not have special requirements for interactive use and for some of the evaluation claims on smaller benchmarks.
-However, some of the larger benchmarks require a significant amount of memory (we conducted our evaluation with 500GB of RAM).
+Leapfrog does not have special requirements for interactive use and for some of
+the evaluation claims on smaller benchmarks. However, some of the larger
+benchmarks require a significant amount of memory (we conducted our evaluation
+with 500GB of RAM).
 
 # Instructions: kick the tires (30 minutes)
 ## (Optional, Recommended) Loading the Docker image
-We have provided a Docker image with the necessary prerequisites. 
-To use this image, first load the image using:  
+We have provided a Docker image with the necessary prerequisites. To use this
+image, first load the image using:  
 `docker -i leapfrog.tar`
 
-In addition, the experiments can take a long time, so we recommend mounting a persistent volume for the image.
-WARNING: If you don't do this, the output of leapfrog within the image will not be saved between docker sessions.
-So we strongly recommend that you mount a persistent volume (one of the authors recently skipped this step in artifact evaluation and had to redo a bunch of experiments).
+In addition, the experiments can take a long time, so we recommend mounting
+a persistent volume for the image. WARNING: If you don't do this, the output of
+leapfrog within the image will not be saved between docker sessions. So we
+strongly recommend that you mount a persistent volume (one of the authors
+recently skipped this step in artifact evaluation and had to redo a bunch of
+experiments).
 
-To make a persistent volume, make a new directory and make sure it is globally accessible: `mkdir logs && chmod o+rwx logs`.
-Then, run the image and mount the directory by the following: 
-```docker run -v `realpath logs`:/home/reviewer/logs -it leapfrog bash```
+To make a persistent volume, make a new directory and make sure it is globally
+accessible:
+```
+mkdir logs
+chmod o+rwx logs
+```
+Then, run the image and mount the
+directory with the following Docker command: 
+```
+docker run -v `realpath logs`:/home/reviewer/logs -it leapfrog bash
+```
+
 ## Compiling (5-10 minutes)
 Verify that Leapfrog compiles from scratch by running
-`make clean`
+```
+make clean
+```
 and then
-`make`
-from the root directory. This should take several minutes (at most 5). Warning messages are normal, for example, here is our output:
+```
+make
+```
+from the root directory. This should take several minutes (at most 5). Warning
+messages are normal, for example, here is our output:
 ```
 john@Johns-MacBook-Pro leapfrog % gtime -v make
 cp _CoqProject.noplugins _CoqProject
@@ -245,46 +264,66 @@ Finished transaction in 1.024 secs (1.019u,0.005s) (successful)
 ```
 
 ## Running the benchmarking tools (15 minutes)
-Verify that the benchmarking tools work correctly by running a set of smaller benchmarks.
-The benchmarking tools are in `benchmarking/`, so first 
+Verify that the benchmarking tools work correctly by running a set of smaller
+benchmarks. The benchmarking tools are in `benchmarking/`, so first 
+* make sure that the pipenv environment is initialized: `make pipenv`, 
 * change directory to benchmarking: `pushd benchmarking`,
-* make sure that the pipenv environment is initialized: `pipenv install`, 
 * and then run the benchmarking script on small benchmarks: `pipenv run ./runner.py --size small`. 
 
 This should take roughly 15 minutes.
 
 # Instructions: Evaluate the claims (variable time, 2 hours - a week of server time)
 Our paper makes the following claims:
-1. A tool exists for reasoning about P4A parsers. This is witnessed by our implementation in general.
-2. Our implementation mechanizes a variety of language-equivalence results about P4A parsers. 
-  This is witnessed by compiling leapfrog (which compiles and checks our Coq proofs of language-equivalence metatheory).
-3. We prove language equivalence for a variety of benchmarks (Table 2). On small benchmarks, the proof is interactive, while large benchmarks take longer and require a lot of memory.
-4. We validate the optimized output of the parser-gen tool for a single benchmark, namely edge (Figure 7).
+1. A tool exists for reasoning about P4A parsers. This is witnessed by our
+   implementation in general.
+2. Our implementation mechanizes a variety of language-equivalence results about
+   P4A parsers. This is witnessed by compiling leapfrog (which compiles and
+   checks our Coq proofs of language-equivalence metatheory).
+3. We prove language equivalence for a variety of benchmarks (Table 2). On small
+   benchmarks, the proof is interactive, while large benchmarks take longer and
+   require a lot of memory.
+4. We validate the optimized output of the parser-gen tool for a single
+   benchmark, namely edge (Figure 7).
 
-Claims 1 and 2 are verified by the implementation compiling. 
-For a detailed mapping of paper results to the implementation, please see TODO.
-We discuss how to verify claims 3 and 4 in more detail.
+Claims 1 and 2 are verified by the implementation compiling. For a detailed
+mapping of paper results to the implementation, please see TODO. We discuss how
+to verify claims 3 and 4 in more detail.
 
 ## Language equivalence (Claim 3)
-There are two sets of benchmarks, small and large (grouped by total state size less than 10 states), that together compose the contents of Table 2. 
-Because the small benchmarks are interactive while the large benchmarks are not, 
-we provide a runner script `benchmarking/runner.py` for running these groups of benchmarks separately. 
-To access the runner script, do the following:
+There are two sets of benchmarks, small and large (grouped by total state size
+less than 10 states), that together compose the contents of Table 2. Because the
+small benchmarks are interactive while the large benchmarks are not, we provide
+a runner script `benchmarking/runner.py` for running these groups of benchmarks
+separately. To access the runner script, do the following:
 * change directory to benchmarking: `pushd benchmarking`,
 * make sure that the pipenv environment is initialized: `pipenv install`.
 Now the runner script can be run with `pipenv run ./runner.py <args>`.
 
-We also provide a data extraction script which measures the runtime and memory usage of the benchmarks in `benchmarking/plotter.py`.
-This script requires the same pipenv environment as `runner.py` and should be called with the output directory specified by the output of `runner.py`. (If that's a bit confusing, don't worry, we will explain in detail how to use `runner.py` and `plotter.py`.)
+We also provide a data extraction script which measures the runtime and memory
+usage of the benchmarks in `benchmarking/plotter.py`.
+This script requires the same pipenv environment as `runner.py` and should be
+called with the output directory specified by the output of `runner.py`. (If
+that's a bit confusing, don't worry, we will explain in detail how to use
+`runner.py` and `plotter.py`.)
 
 ### Small benchmarks (30 minutes)
-These benchmarks comprise all of the Utility benchmarks except for Variable length parsing: State Rearrangement, Header initialization, Speculative Loop, Relational verification, and External filtering.
-If you are using the provided image, run the benchmarking script with the persistent `logs/` directory as an option: 
-`pipenv run ./runner.py --size small --log-dir /opt/reviewer/logs`.
-If you run the runner script without a `--log-dir` option it will default to `benchmarking/logs`, e.g. by 
-`pipenv run ./runner.py --size small`.
+These benchmarks comprise all of the Utility benchmarks except for Variable
+length parsing: State Rearrangement, Header initialization, Speculative Loop,
+Relational verification, and External filtering. If you are using the provided
+image, run the benchmarking script with the persistent `logs/` directory as an
+option: 
+```
+pipenv run ./runner.py --size small --log-dir /opt/reviewer/logs
+```
+If you run the runner script without a `--log-dir` option it will default to
+`benchmarking/logs`, e.g. with
+```
+pipenv run ./runner.py --size small
+```
 
-This command will indicate where the logging info is saved (it uses the git hash and current time to mangle the output directory): 
+This command indicates where the logging info is saved. Here is some example
+output, showing how the runner uses the git hash and current time to create
+a new directory.
 ```
 pipenv run ./runner.py --size small
 running small benchmarks
@@ -297,7 +336,8 @@ more output
 ...
 ```
 
-To check the runtimes, run the plotting script with this output directory as an argument, e.g.
+To check the runtimes, run the plotting script with this output directory as an
+argument, e.g.
 ```
 pipenv run ./plotter.py /Users/john/leapfrog/benchmarking/logs/609bf43/03-03-2022.17:01:50
 
@@ -308,17 +348,21 @@ selfcomparison,609bf43,2022-03-03 17:01:50,00:09:49.710000,4625728
 ipfilter,609bf43,2022-03-03 17:01:50,00:00:25.930000,1154928
 ```
 
-The output format is benchmark name, hash, timestamp, runtime in hh:mm:ss, and memory use in KB.
-So in this case, mpls (the overview example) took 2 minutes and 6.65 seconds while using roughly 3.3 GB memory. 
+The output format is benchmark name, hash, timestamp, runtime in hh:mm:ss, and
+memory use in KB. So in this case, mpls (the overview example) took 2 minutes
+and 6.65 seconds while using roughly 3.3 GB memory. 
 
-Verify that all of the small benchmarks succeeded and in particular, that the plotting script produces rows for sloppystrict, mpls, ethernet, selfcomparison, and ipfilter.
+Verify that all of the small benchmarks succeeded and in particular, that the
+plotting script produces rows for sloppystrict, mpls, ethernet, selfcomparison,
+and ipfilter.
 
 ### Large benchmarks (a long time, should be done asynchronously)
-The larger benchmarks are the Applicability benchmarks and the variable-length parsing benchmark (ipoptions3).
-Warning: these benchmarks take a long time and a lot of memory. 
-For reference, the Edge applicability benchmark took 9 hours and 250 GB on our server.
-So we recommend using nohup to run them remotely if possible.
-They use the same runner script as above, but with the `--size` option set to `large`: 
+The larger benchmarks are the Applicability benchmarks and the variable-length
+parsing benchmark (ipoptions3). WARNING: these benchmarks take a long time and
+a lot of memory. For reference, the Edge applicability benchmark took 9 hours
+and 250 GB on our server. So we recommend using nohup to run them remotely if
+possible. They use the same runner script as above, but with the `--size` option
+set to `large`: 
 ```
 pipenv run ./runner.py --size large --log-dir /opt/reviewer/logs
 ```
@@ -328,47 +372,72 @@ To run them with nohup in the background, you can use the following command:
 nohup pipenv run ./runner.py --size large --log-dir /opt/reviewer/logs > leapfrog_output.out 2>&1 &
 ```
 
-Similar to before, use the plotting script to view the runtime and memory usage. The output directory for the logs will be at the beginning
-of the `leapfrog_output.out` file if run using the nohup command.
+Similar to before, use the plotting script to view the runtime and memory usage.
+The output directory for the logs will be at the beginning of the
+`leapfrog_output.out` file if run using the nohup command.
 
 ## Translation validation (Claim 4)
-The translation validation experiment is found in `lib/Benchmarks/Edge.v` and `lib/Benchmarks/EdgeTransProof.v`. 
-Our version of the Edge parser is the Plain automata in `Edge.v`, while the output of the parser-gen is the Optimized automata in `Edge.v`.
-To build this automata, we implemented a python script for converting TCAM tables into P4A parsers; this script is found in `lib/Benchmarks/mk_bench.py`.
-The parser-gen TCAM output is in a string in `mk_bench.py` (the definition of edge on line 532), 
-and the script prints out a P4A automata when run. 
-Similar to before, the script requires a pipenv environment, so you will need to run `pipenv install` first, 
-and then run the following command from `lib/Benchmarks`: 
+The translation validation experiment is found in `lib/Benchmarks/Edge.v` and
+`lib/Benchmarks/EdgeTransProof.v`. Our version of the Edge parser is the Plain
+automata in `Edge.v`, while the output of the parser-gen is the Optimized
+automata in `Edge.v`. To build this automata, we implemented a python script for
+converting TCAM tables into P4A parsers; this script is found in
+`lib/Benchmarks/mk_bench.py`. The parser-gen TCAM output is in a string in
+`mk_bench.py` (the definition of edge on line 532), and the script prints out
+a P4A automata when run. Similar to before, the script requires a pipenv
+environment, so you will need to run `pipenv install` first, and then run the
+following command from `lib/Benchmarks`: 
 ```
 pipenv run ./mk_bench.py > EdgeOptimizedOriginal.v
 ```
 
-There is now a P4A automata definition in EdgeOptimizedOriginal.v that should compile: 
-compare it with the Optimized automata in Edge.v.
+There is now a P4A automata definition in EdgeOptimizedOriginal.v that should
+compile: compare it with the Optimized automata in Edge.v.
 
-Our conversion script is naive and the output needs a few more manual edits.
-In particular, we made the following edits:
-* Removed unused header branches. The output automata converts a TCAM mask expression (such as 0x0F) into a bit-by-bit comparison. 
-  Many of these comparisons are unnecessary, e.g. in State_0, the first 16 matched bits are never used, so we completely remove them from the select statement. 
-* Condensed contiguous select slices: for example, in State_0, we condensed the 16 slices of `buf_112[111 -- 111], buf_112[110 -- 110] ...` to a single slice `buf_112[[111 -- 96]`.
-* Remove early accepts. The parser-gen tool assumed that malformed packets that are too short should be accepted (and later rejected by other mechanisms). These manifest as spurious branches that slice an entire packet but do not match the contents, and then transition to accept. 
-In our implementation we assumed that such packets should be rejected. We removed these branches by hand (e.g. the second-to-last transition of State_0).
-* Repair miscompiled branches. The parser-gen tool is very clever and in State_4, the output TCAM transitions into the middle of a different
-parse state. Our script doesn't fully handle this behavior (it only handles transitions to the start of a parse state) and so reports an error in the comments. This comment contains info about the destination state, as well as the amount that actually should have been parsed.
+Our conversion script is naive and the output needs a few more manual edits. In
+particular, we made the following edits:
+* Removed unused header branches. The output automata converts a TCAM mask
+  expression (such as 0x0F) into a bit-by-bit comparison. Many of these
+  comparisons are unnecessary, e.g. in State_0, the first 16 matched bits are
+  never used, so we completely remove them from the select statement. 
+* Condensed contiguous select slices: for example, in State_0, we condensed the
+  16 slices of `buf_112[111 -- 111], buf_112[110 -- 110] ...` to a single slice
+  `buf_112[[111 -- 96]`.
+* Remove early accepts. The parser-gen tool assumed that malformed packets that
+  are too short should be accepted (and later rejected by other mechanisms).
+  These manifest as spurious branches that slice an entire packet but do not
+  match the contents, and then transition to accept. 
+
+In our implementation we assumed that such packets should be rejected. We
+removed these branches by hand (e.g. the second-to-last transition of State_0).
+* Repair miscompiled branches. The parser-gen tool is very clever and in
+  State_4, the output TCAM transitions into the middle of a different parse
+  state. Our script doesn't fully handle this behavior (it only handles
+  transitions to the start of a parse state) and so reports an error in the
+  comments. This comment contains info about the destination state, as well as
+  the amount that actually should have been parsed.
 For example, the comment for the first transition is: 
-```(* overflow, transition to inl State_1 extracting only 48 *)```;
-the transition should actually go to State_1 and only consume 48 bits. 
-We manually repaired these transitions by jumping to the proper suffix of the destination state;
-in this case, by still extracting 64 bits but transitioning to State_1_suff_0 (as State_1 always parses 16 bits).
+```
+(* overflow, transition to inl State_1 extracting only 48 *)
+```
+The transition should actually go to State_1 and only consume 48 bits. We
+manually repaired these transitions by jumping to the proper suffix of the
+destination state; in this case, by still extracting 64 bits but transitioning
+to State_1_suff_0 (as State_1 always parses 16 bits).
 
 # Adding a new benchmark
-If you would like to make a new benchmark, the fastest way is to copy and tweak one of the existing files (for example `lib/Benchmarks/Ethernet.v`).
-To add a state, add a constructor to the state inductive; 
-to add a variable, add a constructor to the header inductive and specify its size as a nat in the definition of `sz`. 
-The statement grammar includes assignment, sequencing, and extraction; for example, the statement
-`extract(V1) ;; V2 <- V1[2 -- 1]` extracts into a header variable V1 and assigns two bits from V1 to the variable V2. 
+If you would like to make a new benchmark, the fastest way is to copy and tweak
+one of the existing files (for example `lib/Benchmarks/Ethernet.v`). To add
+a state, add a constructor to the state inductive; to add a variable, add
+a constructor to the header inductive and specify its size as a nat in the
+definition of `sz`. The statement grammar includes assignment, sequencing, and
+extraction; for example, the statement `extract(V1) ;; V2 <- V1[2 -- 1]`
+extracts into a header variable V1 and assigns two bits from V1 to the variable
+V2. 
 
-For a new proof of language equivalence, again, it is best to use an existing proof as a template. However the proofs are push-button so it should be easy to do. 
+For a new proof of language equivalence, again, it is best to use an existing
+proof as a template. However the proofs are push-button so it should be easy to
+do. 
 
 Here are the contents of an existing proof `lib/Benchmarks/EthernetProof.v`: 
 ```
@@ -392,5 +461,10 @@ Time Qed.
 If you were to tweak this, the parts to edit would be: 
 1. The import path on line 2 to match your new benchmark;
 2. The automata names (Reference.aut and Combined.aut) in the lemma definition;
-3. The starting states for equivalence (Reference.SPref and Combined.Parse, which are members of the Reference.state and Combined.Parse inductives respectively);
-4. The state decidable equality instances in the tactic (Reference.state_eqdec and Combined.state_eqdec). These should be generated automatically in your benchmark file with a `Scheme Equality for state.` vernacular command. You will need to change these functions to match your new state inductives.
+3. The starting states for equivalence (Reference.SPref and Combined.Parse,
+   which are members of the Reference.state and Combined.Parse inductives
+   respectively);
+4. The state decidable equality instances in the tactic (Reference.state_eqdec
+   and Combined.state_eqdec). These should be generated automatically in your
+   benchmark file with a `Scheme Equality for state.` vernacular command. You
+   will need to change these functions to match your new state inductives.
