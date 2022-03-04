@@ -166,6 +166,22 @@ as follows.
 Of these, the first half ("State Rearrangement" through "External Filtering")
 are classified as "small" benchmarks, while the rest are "large".
 
+### Use of `admit`
+
+Our language equivalence checking scripts come in two flavors. One version,
+which is described in the paper, uses `admit` to discharge proof obligations
+that have been cleared by our plugin. This means that we have to close the
+proof using `Admitted`. Another version of the script uses two (unsound) axioms
+to discharge these proof goals instead, which means that the proof can be
+closed with Qed.
+
+For the small benchmarks, we have used the latter version --- although the one
+with `admit` also still works. The larger benchmarks do not complete on our
+hardware with the axiom-based scripts, because Coq's proof checker runs out of
+memory at QED-time. These benchmarks therefore use the `admit`-based scripts
+described in the paper.
+
+
 ### Running one benchmark (30 seconds)
 From the root of the Leapfrog repo, run
 ```
