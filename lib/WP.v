@@ -151,6 +151,7 @@ Section WP.
       end
     end.
 
+  (* Left- and right weakest precondition operators. *)
   Definition wp_lpred {c: bctx}
              (si: side)
              (b: bvar c)
@@ -191,6 +192,7 @@ Section WP.
        cr_rel := wp_lpred Left b prev_l cur_l leap_l
                           (wp_lpred Right b prev_r cur_r leap_r phi_rel) |}.
 
+  (* Weakest precondition operator. *)
   Definition wp (phi: conf_rel a) : list (conf_rel a) :=
     let cur_st_left  := phi.(cr_st).(cs_st1) in
     let cur_st_right := phi.(cr_st).(cs_st2) in

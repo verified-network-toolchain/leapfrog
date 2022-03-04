@@ -86,6 +86,7 @@ Section ConfRel.
 
   Notation conf := (configuration (P4A.interp a)).
 
+  (* Syntax for templates. *)
   Record state_template :=
     { st_state: state_ref (P4A.interp a);
       st_buf_len: nat }.
@@ -124,6 +125,7 @@ Section ConfRel.
                            simpl in *;
                            congruence).
 
+  (* Semantics for templates. *)
   Definition interp_state_template (st: state_template) (c: conf) :=
     st.(st_state) = c.(conf_state) /\
     st.(st_buf_len) = c.(conf_buf_len).
@@ -153,6 +155,7 @@ Section ConfRel.
   Derive NoConfusion for side.
   Derive EqDec for side.
 
+  (* Syntax for bitvector expressions. *)
   Inductive bit_expr (c: bctx) :=
   | BELit (l: list bool)
   | BEBuf (a: side)
@@ -232,6 +235,7 @@ Section ConfRel.
       be_size b1 b2 e1 + be_size b1 b2 e2
     end.
 
+  (* Semantics for bitvector expressions. *)
   Equations interp_bit_expr {b1 b2 c}
     (e: bit_expr c)
     (valu: bval c)
@@ -268,6 +272,7 @@ Section ConfRel.
         (interp_bit_expr e2 valu buf1 buf2 store1 store2)
   }.
 
+  (* Syntax for pure formulas. *)
   Inductive store_rel c :=
   | BRTrue
   | BRFalse
@@ -316,6 +321,7 @@ Section ConfRel.
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
     store_rel_eq_dec.
 
+  (* Semantics for pure formulas. *)
   Equations interp_store_rel {b1 b2 c}
     (r: store_rel c)
     (valu: bval c)
@@ -451,10 +457,12 @@ Section ConfRel.
         else in_right }.
   Solve All Obligations with (destruct x, y; simpl in *; congruence).
 
+  (* Syntax for template-guarded formulas. *)
   Record conf_rel :=
     { cr_st: conf_states;
       cr_ctx: bctx;
       cr_rel: store_rel cr_ctx }.
+
   Equations conf_rel_eq_dec: EquivDec.EqDec conf_rel eq :=
     { conf_rel_eq_dec x y with (bctx_eq_dec x.(cr_ctx) y.(cr_ctx)) :=
         { conf_rel_eq_dec ({| cr_st := st1;
@@ -505,6 +513,7 @@ Section ConfRel.
     - now apply interp_state_template_dichotomy with (c := c2).
   Qed.
 
+  (* Semantics for template-guarded formulas. *)
   Definition interp_conf_rel (phi: conf_rel) : relation conf :=
     fun x y =>
       interp_conf_state phi.(cr_st) x y ->
@@ -517,12 +526,15 @@ Section ConfRel.
       forall valu,
         interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
 
+  (* Syntax for template-guarded clauses. *)
   Definition crel :=
     list (conf_rel).
 
   Notation "⊤" := rel_true.
   Notation "x ⊓ y" := (relation_conjunction x y) (at level 40).
   Notation "⟦ x ⟧" := (interp_conf_rel x).
+
+  (* Semantics for template-guarded clauses. *)
   Definition interp_crel i (rel: crel) : relation conf :=
     interp_rels i (List.map interp_conf_rel rel).
 
@@ -589,15 +601,18 @@ Section ConfRel.
       end
     end.
 
+  (* Syntax for template-guarded (co-)entailments. *)
   Record entailment :=
     { e_prem: crel;
       e_concl: conf_rel }.
 
+  (* Semantics for template-guarded entailments. *)
   Definition interp_entailment (i: relation conf) (e: entailment) :=
     forall q1 q2,
       interp_crel i e.(e_prem) q1 q2 ->
       interp_conf_rel e.(e_concl) q1 q2.
 
+  (* Semantics for template-guarded co-entailments. *)
   Definition interp_entailment' (i: relation conf) (e: entailment) :=
     forall q1 q2,
       i q1 q2 ->

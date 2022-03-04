@@ -1488,6 +1488,7 @@ Section WPProofs.
            l >= 1
     end.
 
+  (* Soundness of left- and right- weakest precondition operators. *)
   Lemma wp_lpred_pair_read_safe:
     forall (c: bctx) si (valu: bval c) b prev cur phi q1 q2,
       interp_store_rel (wp_lpred (a:=a) si b prev cur Read phi) valu (conf_buf q1) (conf_buf q2) (conf_store q1) (conf_store q2) ->
@@ -2742,7 +2743,7 @@ Section WPProofs.
           intuition.
   Qed.
 
-  (* prove this first *)
+  (* Soundness of weakest precondition operator. *)
   Theorem wp_safe:
     forall top r phi q1 q2,
       In (conf_to_state_template q1, conf_to_state_template q2) r ->
