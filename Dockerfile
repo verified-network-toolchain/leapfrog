@@ -14,10 +14,9 @@ RUN opam install -y coq=8.13.2 coq-equations=1.3~beta1+8.13
 RUN mkdir -p /opt/reviewer
 
 RUN git clone https://github.com/jsarracino/mirrorsolve /opt/reviewer/mirrorsolve
-WORKDIR /opt/mirrorsolve
-RUN dune build && dune install
+RUN opam install -y /opt/reviewer/mirrorsolve
 
-RUN mkdir -p /opt/reviewer/leapfrog
-WORKDIR /opt/reviewer/leapfrog
+COPY . /opt/reviewer/leapfrog
+RUN opam install -y /opt/reviewer/leapfrog
 
 ENTRYPOINT /bin/bash --rcfile /root/.profile

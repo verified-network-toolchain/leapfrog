@@ -59,19 +59,19 @@ sloppystrict: build
 ipoptions3: build
 	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject
 
-edgeself:
+edgeself: build
 	xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject
 
-edgetrans:
+edgetrans: build
 	xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject
 
-datacenterself:
+datacenterself: build
 	xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject
 
-enterpriseself:
+enterpriseself: build
 	xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject
 
-serviceproviderself:
+serviceproviderself: build
 	xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject
 
 pipenv: 
@@ -87,7 +87,7 @@ container: Dockerfile
 	docker build . -t leapfrog
 
 shell: container
-	docker run --mount type=bind,source=$(shell pwd),target=/opt/reviewer/leapfrog -it leapfrog
+	docker run -it leapfrog
 
 shell-gui: container
-	docker run --mount type=bind,source=$(shell pwd),target=/opt/reviewer/leapfrog -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog
+	docker run -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog

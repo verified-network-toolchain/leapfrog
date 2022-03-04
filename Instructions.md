@@ -1,21 +1,25 @@
 # Prequisites
-Leapfrog does not have special requirements for interactive use and for some of
-the evaluation claims on smaller benchmarks. However, some of the larger
-benchmarks require a significant amount of memory (we conducted our evaluation
-with 500GB of RAM).
+You should be able to build Leapfrog and run most of its evaluation on any
+modern laptop. To run the larger benchmarks you will need a more powerful
+computer, as Leapfrog ends up using a lot of memory. For reference, we conducted
+our evaluation on a server with 500GB of RAM.
 
 # Instructions: kick the tires (30 minutes)
-## (Optional, Recommended) Loading the Docker image
-We have provided a Docker image with the necessary prerequisites. To use this
-image, first load the image using:  
-`docker -i leapfrog.tar`
+You can either install Leapfrog using a Docker image or by installing all the
+dependencies locally. We recommend using the Docker image.
+## (Recommended) Loading the Docker image
+Install [Docker](https://www.docker.com) and make sure the Docker daemon is
+running.
 
-In addition, the experiments can take a long time, so we recommend mounting
-a persistent volume for the image. WARNING: If you don't do this, the output of
-leapfrog within the image will not be saved between docker sessions. So we
-strongly recommend that you mount a persistent volume (one of the authors
-recently skipped this step in artifact evaluation and had to redo a bunch of
-experiments).
+We have provided a Docker image with Leapfrog's dependencies already installed.
+You can load the image as follows:  
+`docker -i /path/to/leapfrog.tar`
+
+The experiments can take a long time, so we suggest mounting a persistent
+volume for the image to store logs and other output. If you don't do this, the
+output of Leapfrog within the image will not be saved between docker sessions,
+and you will almost certainly lose data. One of the authors recently skipped
+this step in artifact evaluation and had to redo a bunch of experiments :)
 
 To make a persistent volume, make a new directory and make sure it is globally
 accessible:
@@ -23,8 +27,7 @@ accessible:
 mkdir logs
 chmod o+rwx logs
 ```
-Then, run the image and mount the
-directory with the following Docker command: 
+Then, run the image and mount the directory with the following Docker command: 
 ```
 docker run -v `realpath logs`:/home/reviewer/logs -it leapfrog bash
 ```
