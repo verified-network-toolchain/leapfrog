@@ -64,7 +64,7 @@ ipoptions3: build
 ipoptions2: build
 	xargs coqc lib/Benchmarks/IPOptions2Proof.v < _CoqProject
 ipoptions1: build
-	xargs coqc lib/Benchmarks/IPOptionsProof.v < _CoqProject
+	xargs coqc lib/Benchmarks/IPOptions1Proof.v < _CoqProject
 
 edgeself: build
 	xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject

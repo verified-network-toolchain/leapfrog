@@ -156,7 +156,7 @@ as follows.
 | Speculative loop        | `MPLSVectorized.v`                                  | `MPLSVectorizedProof.v`                                |
 | Relational verification | `SloppyStrict.v`                                    | `SloppyStrictProof.v` (`prebisim_sloppystrict_stores`) |
 | External filtering      | `SloppyStrict.v`                                    | `SloppySTrictProof.v` (`prebisim_sloppystrict`)        |
-| Variable-length parsing | `IPOptions.v` (`IPOptionsRef63`,`TimeStampSpec3`)   | `IPOptions2Proof.v`                                    |
+| Variable-length parsing | `IPOptions.v` (`IPOptionsRef63`,`TimeStampSpec3`)   | `IPOptions{1,2,3}Proof.v`                              |
 | Edge                    | `Edge.v`                                            | `EdgeSelfProof.v`                                      |
 | Service Provider        | `ServiceProvider.v`                                 | `ServiceProviderTransProof.v`                          |
 | Datacenter              | `DataCenter.v`                                      | `DataCenterSelfProof.v`                                |
