@@ -215,54 +215,6 @@ Proof.
   eapply iff_refl.
 Qed.
 
-Lemma forall_exists:
-  forall {A B} (P: A -> B -> Prop),
-  (exists x y, ~ P x y) ->
-  ~ (forall x y, P x y).
-Proof.
-  firstorder.
-Qed.
-
-Lemma double_neg:
-  forall {A B} (P: A -> B -> Prop),
-  (exists x y, P x y) ->
-  (exists x y, ~ (P x y -> False)).
-Proof.
-  intros.
-  destruct H as [x [y H]].
-  exists x.
-  exists y.
-  intuition.
-Qed.
-
-Lemma split_univ:
-  forall (A B : Type) (P : A * B -> Prop),
-    (forall (x : A) (y : B), P (x, y)) <-> (forall x : A * B, P x).
-Proof.
-  firstorder.
-  destruct x.
-  firstorder.
-Qed.
-
-Lemma exists_unused:
-  forall A,
-    inhabited A ->
-    forall P: Prop,
-    exists (_: A), P <-> P.
-Proof.
-  intros.
-  inversion H.
-  firstorder.
-Qed.
-Lemma flip_ex_impl:
-  forall A B (P Q: A -> B -> Prop),
-    (exists x y, P x y /\ ~ Q x y) ->
-    (exists x y, ~ (P x y -> Q x y)).
-Proof.
-  firstorder.
-Qed.
-
-
 Ltac hashcons_list xs :=
   match xs with
   | ?x :: ?xs =>
@@ -274,19 +226,6 @@ Ltac hashcons_list xs :=
     let v := fresh "v" in
     set (v := x) in |- * at 1
   | _ => idtac
-  end.
-
-
-Ltac skip_bisim :=
-  match goal with
-  | |- pre_bisimulation ?a ?wp ?i ?R (?C :: _) _ _ =>
-    let H := fresh "H" in
-    assert (H: interp_entailment a i ({| e_prem := R; e_concl := C |}));
-    [idtac |
-      apply PreBisimulationSkip with (H0:=left H);
-      [ exact I | ];
-      clear H
-    ]
   end.
 
 Ltac extend_bisim' HN use_hc :=
@@ -310,18 +249,10 @@ Ltac extend_bisim' HN use_hc :=
     end
   end.
 
-
-Ltac skip_bisim' H0 :=
+Ltac skip_bisim H0 :=
   time "apply skip" (apply PreBisimulationSkip with (H:=left H0));
   [ exact I | ];
   clear H0.
-
-Ltac size_script :=
-  unfold Syntax.interp;
-  autorewrite with size';
-  vm_compute;
-  repeat constructor.
-
 
 Ltac crunch_foterm :=
   match goal with
@@ -582,7 +513,6 @@ Ltac close_bisim :=
     end
   end.
 
-
 (* solves a header finiteness goal of the form:
 List.NoDup
   [existT (fun n : nat => header n) 64 HPref;
@@ -630,12 +560,11 @@ Ltac init_bisim :=
     | repeat econstructor | econstructor; solve_fp_wit
   ];
   simpl).
-  
+
 Ltac solve_lang_equiv_state_axiom el er use_hc :=
   time "init phase" init_bisim;
   time "build phase" repeat run_bisim_axiom el er use_hc;
   time "close phase" close_bisim_axiom.
-
 
   (**
     arguments:

@@ -13,16 +13,6 @@ Module P4A := Leapfrog.Syntax.
 
 Open Scope list_scope.
 
-Lemma split_ex:
-  forall A B (P: A * B -> Prop),
-    (exists x: A, exists y: B, P (x, y)) <->
-    exists x: A * B, P x.
-Proof.
-  firstorder.
-  destruct x.
-  firstorder.
-Qed.
-
 (* Bitstring variable context. *)
 Inductive bctx :=
 | BCEmp: bctx
