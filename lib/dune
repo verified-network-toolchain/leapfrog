@@ -17,7 +17,7 @@
    Benchmarks.ServiceProviderTransProof
    Benchmarks.EdgeTransProof
    Benchmarks.SimpleBucketProof
-   Benchmarks.IPOptionsProof
+   Benchmarks.IPOptions1Proof
    Benchmarks.IPOptions2Proof
    Benchmarks.IPOptions3Proof
    Benchmarks.IPOptionsProofSmall
