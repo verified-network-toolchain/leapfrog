@@ -97,12 +97,17 @@ def main(opt: MainOpt, log_config):
 
     for bench in tqdm(benches.benchmarks):
       print('running benchmark for', bench.name)
-      run_benchmark(prefix, runner_conf.time_cmd, bench)
-      print('done!')
-  finally:
+      try: 
+        run_benchmark(prefix, runner_conf.time_cmd, bench)
+        print('done!')
+      except: 
+        print('hit an error in ', bench.name)
+        print('continuing anyway...')
+  except Exception as e:
     print("ran into error while running benchmarks, cleaning up...")
     subprocess.run("make clean", cwd="..", shell=True)
     print("done!")
+    raise e
 
   
 parser = argparse.ArgumentParser()

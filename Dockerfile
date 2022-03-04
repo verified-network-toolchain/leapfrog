@@ -11,11 +11,13 @@ RUN opam repo add --all-switches coq-released https://coq.inria.fr/opam/released
 RUN opam update
 RUN opam install -y coq=8.13.2 coq-equations=1.3~beta1+8.13
 
-RUN git clone https://github.com/jsarracino/mirrorsolve /opt/mirrorsolve
-WORKDIR /opt/mirrorsolve
-RUN opam install -y .
+RUN mkdir -p /opt/reviewer
 
-RUN mkdir -p /opt/leapfrog
-WORKDIR /opt/leapfrog
+RUN git clone https://github.com/jsarracino/mirrorsolve /opt/reviewer/mirrorsolve
+WORKDIR /opt/mirrorsolve
+RUN dune build && dune install
+
+RUN mkdir -p /opt/reviewer/leapfrog
+WORKDIR /opt/reviewer/leapfrog
 
 ENTRYPOINT /bin/bash --rcfile /root/.profile

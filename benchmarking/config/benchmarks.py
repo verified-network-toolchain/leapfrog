@@ -30,12 +30,12 @@ small_benchmarks : Benchmarks = Benchmarks(
 
 large_benchmarks : Benchmarks = Benchmarks(
   benchmarks=[
-      Benchmark(name="ipoptions3", target="ipoptions3")
-    , Benchmark(name="edgeself", target="edgeself")
+      Benchmark(name="edgeself", target="edgeself")
     , Benchmark(name="edgetrans", target="edgetrans")
     , Benchmark(name="datacenter", target="datacenterself")
     , Benchmark(name="serviceprovider", target="serviceproviderself")
     , Benchmark(name="enterprise", target="enterpriseself")
+    , Benchmark(name="ipoptions3", target="ipoptions3")
   ]
 )
 

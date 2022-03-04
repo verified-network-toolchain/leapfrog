@@ -432,7 +432,7 @@ Ltac close_bisim_axiom :=
                   end); apply H0; auto; unfold top', conf_to_state_template;
                 destruct q1, q2; vm_compute in H;
                 repeat match goal with
-                       | H:_ /\ _ |- _ => idtac H; destruct H
+                       | H:_ /\ _ |- _ => destruct H
                        end; subst; simpl; tauto
          end
   end.
