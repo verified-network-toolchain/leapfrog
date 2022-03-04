@@ -35,7 +35,7 @@ large_benchmarks : Benchmarks = Benchmarks(
     , Benchmark(name="datacenter", target="datacenterself")
     , Benchmark(name="serviceprovider", target="serviceproviderself")
     , Benchmark(name="enterprise", target="enterpriseself")
-    , Benchmark(name="ipoptions3", target="ipoptions3")
+    , Benchmark(name="ipoptions2", target="ipoptions2")
   ]
 )
 

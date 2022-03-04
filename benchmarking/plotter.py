@@ -24,6 +24,16 @@ class LogData:
     return ",".join([self.name, self.hash, str(self.dt), str(self.runtime), str(self.memory_use)])
 
 
+@dataclass(frozen=True)
+class LogDataPartial:
+  name: str
+  runtime: time
+  memory_use: int
+
+  def to_csv_row(self):
+    return ",".join([self.name, str(self.runtime), str(self.memory_use)])
+
+
 def parse_stats(loc: str) -> Tuple[time, int] : 
 
   # re_runtime_valu = r"(\d\d:\d\d:\d\d)|(\d:\d\d\.\d\d)"
@@ -75,6 +85,8 @@ def import_log(location_path: str):
 
   _, hash = path.split(pref)
 
+  assert len(hash) == 7
+
   runtime, mem = parse_stats(location_path)
 
   return LogData(
@@ -84,6 +96,10 @@ def import_log(location_path: str):
     , runtime = runtime
     , memory_use= mem
   )
+
+def import_partial_log(name: str, location_path: str):
+  runtime, mem = parse_stats(location_path)
+  return LogDataPartial(name=name, runtime=runtime, memory_use=mem)
 
 
 parser = argparse.ArgumentParser()
@@ -99,11 +115,26 @@ if __name__ == "__main__":
   loc = args.location
 
   if args.file:
-    print(import_log(loc).to_csv_row())
+    try: 
+      print(import_log(loc).to_csv_row())
+    except: 
+      print("couldn't parse hash/time, trying to partially parse...")
+      try: 
+        name = Path(loc).name
+        print(import_partial_log(name, str(Path(loc).absolute())).to_csv_row())
+      except:
+        print("couldn't parse log at all")
   else:
     root = Path(loc)
     for f in root.glob("*.out"):
-      print(import_log(str(f.absolute())).to_csv_row())
+      try:
+        print(import_log(str(f.absolute())).to_csv_row())
+      except: 
+        print("couldn't parse hash/time, trying to partially parse...")
+        try: 
+          print(import_partial_log(f.name, str(f.absolute())).to_csv_row())
+        except:
+          print("couldn't parse log at all")
 
 
 
