@@ -134,7 +134,7 @@ if __name__ == "__main__":
         try: 
           print(import_partial_log(f.name, str(f.absolute())).to_csv_row())
         except:
-          print("couldn't parse log at all:", str(Path(loc).name))
+          print("couldn't parse log at all:", str(f.absolute()))
 
 
 
