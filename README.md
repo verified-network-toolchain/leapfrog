@@ -156,7 +156,7 @@ as follows.
 | Speculative loop        | `MPLSVectorized.v`                                  | `MPLSVectorizedProof.v`                                |
 | Relational verification | `SloppyStrict.v`                                    | `SloppyStrictProof.v` (`prebisim_sloppystrict_stores`) |
 | External filtering      | `SloppyStrict.v`                                    | `SloppySTrictProof.v` (`prebisim_sloppystrict`)        |
-| Variable-length parsing | `IPOptions3.v` (`IPOptionsRef63`,`TimeStampSpec3`)  | `IPOptions3Proof.v`                                    |
+| Variable-length parsing | `IPOptions.v` (`IPOptionsRef63`,`TimeStampSpec3`)   | `IPOptions2Proof.v`                                    |
 | Edge                    | `Edge.v`                                            | `EdgeSelfProof.v`                                      |
 | Service Provider        | `ServiceProvider.v`                                 | `ServiceProviderTransProof.v`                          |
 | Datacenter              | `DataCenter.v`                                      | `DataCenterSelfProof.v`                                |
@@ -194,27 +194,38 @@ this is normal.
 
 If this works, you are ready to move on to using the benchmarking script.
 
-### Running the benchmark script (15 minutes)
+### Running the benchmark script (5 to 15 minutes)
 
-Verify that the benchmarking tools work correctly by running a set of smaller
-benchmarks. The benchmarking tools are in `benchmarking/`. To bootstrap the
+Verify that the benchmarking tools work correctly by running on one benchmark. 
+
+The benchmarking tools are in `benchmarking/`. To bootstrap the
 environment, enter the Leapfrog directory and run
 ```
 make pipenv
 ```
-
-To run the "small" (respectively "large") suite of
-benchmarks, run
-
+Next change directory to `benchmarking/`:
 ```
 cd benchmarking
-pipenv run ./runner.py --size small
 ```
-This should take about 15 minutes.
 
+The benchmarking script is `runner.py` and it takes one required option, `--size`, as well as several optional options.
+Run the benchmarking script on the ethernet benchmark by the following command: 
+```
+pipenv run ./runner.py --size one -f ethernet
+```
+This should take 30 seconds at most.
 The runner outputs the logs of the benchmarks, including performance statistics,
 into `benchmarking/logs`. If you are using Docker and have a persistent volume
 set up, check that the logs are also showing up outside the Docker image.
+
+### Optional: run the benchmark script on the small benchmarks (15 minutes)
+
+If you have the time, verify that the small benchmarks finish by running the following command: 
+
+```
+pipenv run ./runner.py --size small
+```
+This should take about 15 minutes.
 
 ### Running the benchmarks interactively
 
@@ -357,14 +368,15 @@ particular, we made the following edits:
   never used, so we completely remove them from the select statement. 
 * Condensed contiguous select slices: for example, in State_0, we condensed the
   16 slices of `buf_112[111 -- 111], buf_112[110 -- 110] ...` to a single slice
-  `buf_112[[111 -- 96]`.
+  `buf_112[111 -- 96]`.
 * Remove early accepts. The parser-gen tool assumed that malformed packets that
   are too short should be accepted (and later rejected by other mechanisms).
   These manifest as spurious branches that slice an entire packet but do not
-  match the contents, and then transition to accept.
+  match the contents, and then transition to accept. 
+  
+  In our implementation we assumed that such packets should be rejected. We
+  removed these branches by hand (e.g. the second-to-last transition of State_0). 
 
-In our implementation we assumed that such packets should be rejected. We
-removed these branches by hand (e.g. the second-to-last transition of State_0).
 * Repair miscompiled branches. The parser-gen tool is very clever and in
   State_4, the output TCAM transitions into the middle of a different parse
   state. Our script doesn't fully handle this behavior (it only handles
@@ -372,14 +384,14 @@ removed these branches by hand (e.g. the second-to-last transition of State_0).
   comments. This comment contains info about the destination state, as well as
   the amount that actually should have been parsed.
 
-For example, the comment for the first transition is: 
-```
-(* overflow, transition to inl State_1 extracting only 48 *)
-```
-The transition should actually go to State_1 and only consume 48 bits. We
-manually repaired these transitions by jumping to the proper suffix of the
-destination state; in this case, by still extracting 64 bits but transitioning
-to State_1_suff_0 (as State_1 always parses 16 bits).
+  For example, the comment for the first transition is: 
+  ```
+  (* overflow, transition to inl State_1 extracting only 48 *)
+  ```
+  The transition should actually go to State_1 and only consume 48 bits. We
+  manually repaired these transitions by jumping to the proper suffix of the
+  destination state; in this case, by still extracting 64 bits but transitioning
+  to State_1_suff_0 (as State_1 always parses 16 bits).
 
 ## Adding a new benchmark
 If you would like to make a new benchmark, the fastest way is to copy and tweak
