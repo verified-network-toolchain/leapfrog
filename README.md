@@ -341,6 +341,22 @@ and memory usage for all the benchmarks.  The output directory for the logs will
 be at the beginning of the `leapfrog_output.out` file if run using the nohup
 command.
 
+Note: One claim that is *not* validated by the artifact is the variable-length parser.
+The specific sentence in the paper is 
+
+> Our parser handles up to three generic options, with data-dependent lengths that ranges from 0 bytes to 6 bytes.
+
+The artifact benchmark is for two generic options (notice that the ipoptions benchmark is in fact ipoptions2). 
+
+This is due to a modification to our proof search algorithm. Since the submission, 
+in part due to reviewer feedback, 
+we refactored and reimplemented part of our Ltac tactics to support axioms.
+While we have spent some time optimizing the new search algorithm,
+it is still not as performant as our previous algorithm, 
+and so the ipoptions3 benchmark does not finish on our hardware.
+
+We are in contact with our paper shepherd about this and we do not expect that the artifact supports the claim in the paper.
+
 ### Translation validation (Claim 4)
 The translation validation experiment is found in `lib/Benchmarks/Edge.v` and
 `lib/Benchmarks/EdgeTransProof.v`. Our version of the Edge parser is the Plain
@@ -362,13 +378,16 @@ compile: compare it with the Optimized automata in Edge.v.
 
 Our conversion script is naive and the output needs a few more manual edits. In
 particular, we made the following edits:
+
 * Removed unused header branches. The output automata converts a TCAM mask
   expression (such as 0x0F) into a bit-by-bit comparison. Many of these
   comparisons are unnecessary, e.g. in State_0, the first 16 matched bits are
   never used, so we completely remove them from the select statement. 
+
 * Condensed contiguous select slices: for example, in State_0, we condensed the
   16 slices of `buf_112[111 -- 111], buf_112[110 -- 110] ...` to a single slice
   `buf_112[111 -- 96]`.
+
 * Remove early accepts. The parser-gen tool assumed that malformed packets that
   are too short should be accepted (and later rejected by other mechanisms).
   These manifest as spurious branches that slice an entire packet but do not
