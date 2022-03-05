@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
+
 from __future__ import annotations
 from dataclasses import dataclass
-import dataclasses
 import enum
 from typing import Match, Optional, Pattern
 
@@ -30,34 +31,21 @@ Obligation Tactic := prep_equiv.
 """
 
 def hdr_ty_decl(widths: dict[str, int]):
-  output = "Inductive header : nat -> Type :="
+  output = "\nInductive header :="
   for h, w in widths.items():
-    output += f"\n| {h}: header {w}"
+    output += f"\n| {h}"
+  return output + ".\n"
+
+def mk_hdr_sz(widths: dict[str, int]):
+  output = "Definition sz (h: header) : nat :="
+  output += "\n  match h with"
+  for h, w in widths.items():
+    output += f"\n  | {h} => {w}"
+  output += "\n  end"
   return output + ".\n"
 
 def state_ty_decl(states: list[str]):
   return "Inductive state := " + " ".join([f"| {s}" for s in states]) + ".\n"
-
-def format_one_width(hdrs: list[str], widths: dict[str, int], width: int):
-  hdrs = [x for x in hdrs if widths[x] == width]
-  match = f"Definition h{width}_eq_dec (x y: header {width}) : {{x = y}} + {{x <> y}}.\n"
-  match += "refine (\n"
-  match += "  match x with\n"
-  for outer in hdrs:
-    match += f"  | {outer} => \n"
-    match += "    match y with\n"
-    for inner in hdrs:
-      match += f"    | {inner} => "
-      if outer == inner:
-        match += "left eq_refl\n"
-      else:
-        match += "right _\n"
-    match += "    end\n"
-  match += "  end\n"
-  match += "); unfold \"<>\"; intros H; inversion H.\n"
-  match += "Defined.\n"
-
-  return match
 
   # Definition h8_eq_dec (x y: header 8) : {x = y} + {x <> y}. 
   # refine (
@@ -92,58 +80,26 @@ def format_one_width(hdrs: list[str], widths: dict[str, int], width: int):
   #       (existT _ _ h40_eq_dec) :: (existT _ _ h48_eq_dec) :: nil).
   # Defined. 
 
-def format_header_eqdec (widths: dict[str, int]):
-  widths_ = list(set(widths.values()))
-  output = "Derive Signature for header.\nDefinition header_eqdec_ (n: nat) (x: header n) (y: header n) : {x = y} + {x <> y}.\n"
-  output += "  solve_header_eqdec_ n x y\n"
-  output += f"    ((existT (fun n => forall x y: header n, {{x = y}} + {{x <> y}}) _ h{widths_[0]}_eq_dec) ::\n"
-  for w in widths_[1:]:
-    output += f"     (existT _ _ h{w}_eq_dec) ::\n"
-  output += "      nil).\n"
-  output += "Defined.\n\n"
-  output += "Global Instance header_eqdec: forall n, EquivDec.EqDec (header n) eq := header_eqdec_.\n"
+def format_header_schemes ():
+  output = "Scheme Equality for header.\n"
+  output += "Global Instance header_eqdec: EquivDec.EqDec header eq := header_eq_dec.\n"
+  output += """
+Global Instance header_finite: @Finite header _ header_eq_dec.
+Proof.
+  solve_finiteness.
+Defined.
 
-  output += "Global Instance header_eqdec': EquivDec.EqDec (Syntax.H' header) eq.\n"
-  output += "  solve_eqdec'.\n"
-  output += "Defined.\n"
-  return output
+Notation EHdr\' := (@EHdr header sz).
 
-def format_header_finite(hdrs: list[str], widths: dict[str, int]):
-  output = "Global Instance header_finite: forall n, @Finite (header n) _ _.\n"
-  output += "  intros n; solve_indexed_finiteness n ["
-  widths_ = list(set(widths.values()))
-  output += f"{widths_[0]}"
-  for w in widths_[1:]:
-    output += f"; {w} "
-  output += "].\nQed.\n\n"
-
-  output += "Global Program Instance header_finite': @Finite {n & header n} _ header_eqdec' :=\n"
-  output += "  {| enum := [ \n"
-  output += f"      existT _ _ {hdrs[0]}\n"
-  for h in hdrs[1:]:
-    output += f"    ; existT _ _ {h}\n"
-  output += "    ] |}.\n"
-  output += "Next Obligation.\n  solve_header_finite.\nQed.\nNext Obligation.\n"
-  output += "dependent destruction X; subst; \n"
-  output += "repeat (\n"
-  output += "  match goal with \n"
-  output += "  | |- ?L \/ ?R => (now left; trivial) || right\n"
-  output += "  end\n).\nQed.\n"  
-
+"""
   return output
 
 
 def format_headers (hdrs: list[str], widths:dict[str, int]):
 
   output = hdr_ty_decl(widths)
-
-  widths_ = set(widths.values())
-
-  for w in widths_:
-    output += format_one_width(hdrs, widths, w)
-  
-  output += format_header_eqdec(widths)
-  output += format_header_finite(hdrs, widths)
+  output += mk_hdr_sz(widths)
+  output += format_header_schemes()
 
   return output
 
@@ -152,25 +108,11 @@ def format_states (states: list[str]):
   output += f"\
 Scheme Equality for state.\n\
 Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.\n\
-Global Program Instance state_finite: @Finite state _ state_eq_dec :=\n\
-  {{| enum := [{states[0]}"
-  for s in states[1:]:
-    output += f"; {s}"
-  output += f"] |}}.\n"
-  output += f"\
-Next Obligation.\n\
-repeat constructor;\n\
-  repeat match goal with\n\
-          | H: List.In _ [] |- _ => apply List.in_nil in H; exfalso; exact H\n\
-          | |- ~ List.In _ [] => apply List.in_nil\n\
-          | |- ~ List.In _ (_ :: _) => unfold not; intros\n\
-          | H: List.In _ (_::_) |- _ => inversion H; clear H\n\
-          | _ => discriminate\n\
-          end.\n\
-Qed.\n\
-Next Obligation.\n\
-  destruct x; intuition congruence.\n\
-Qed.\n"
+Global Instance state_finite: @Finite state _ state_eq_dec.\n\
+Proof.\n\
+  solve_finiteness.\n\
+Defined.\n\
+"
 
   return output
 
@@ -292,7 +234,7 @@ def format_tcam_state(pref: int, st: tcam_state):
   slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(15, -1, -1)]
   # slices = [f"[{w*8 + off} -- {w*8 + off}]" for w in st.windows for off in range(16)]
 
-  output += f"    st_trans := transition select (| " + ", ".join([f"(EHdr {window_var}){x}" for x in slices]) + f"|) {{{{\n"
+  output += f"    st_trans := transition select (| " + ", ".join([f"(EHdr' {window_var}){x}" for x in slices]) + f"|) {{{{\n"
   
   suffs = []
 
@@ -328,6 +270,12 @@ def format_tcam_state(pref: int, st: tcam_state):
       output += "accept"
     elif nxt_extract < 0:
       output += "reject"
+      output += f" (* overflow, transition to "
+      if type(trans.next_state) is int: 
+        output +=  f"inl State_{trans.next_state}" 
+      else: 
+        output += f"{'accept' if trans.next_state else 'reject'}"
+      output += f" extracting only {trans.next_extract*8} *)"
     else:
       suffs.append((i, nxt_extract, trans.next_state))
       output += f"inl State_{pref}_suff_{i}"
@@ -380,9 +328,9 @@ def format_tcam_prog(tcp: tcam_program):
   
   output += """\
 end.
-Program Definition aut: Syntax.t state header :=
+Program Definition aut: Syntax.t state sz :=
   {| t_states := states |}.
-Solve Obligations with (destruct s; cbv; Lia.lia).
+Solve Obligations with (destruct h || destruct s; cbv; Lia.lia).
   """
   return output
 
@@ -577,7 +525,7 @@ def parse_prog(s: str):
   
   prog = tcam_program(window_size=2, states=prog_states)
   
-  print("prog:", prog)
+  # print("prog:", prog)
 
   return prog
   
@@ -653,3 +601,6 @@ def hex_digs_to_slices(digs: str) -> tuple[int, int]:
 
     base += 4
   return ret
+
+if __name__ == "__main__":
+  print_tcam_prog(parse_prog(edge))

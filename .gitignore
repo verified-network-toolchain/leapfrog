@@ -11,7 +11,7 @@ _CoqProject
 \#*
 *.p4~
 
-#Coq build files
+# Coq build files
 *.vo
 *.vok
 *.vos
@@ -21,3 +21,6 @@ _CoqProject
 *.glob
 .lia.cache
 .*.aux
+
+# Benchmarking
+benchmarking/logs

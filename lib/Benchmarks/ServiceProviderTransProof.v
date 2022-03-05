@@ -44,9 +44,6 @@ Definition r_states : list (Reachability.state_pair A) :=
                         start_left
                         start_right).
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
-
 ClearEnvCtors.
 
 (*
@@ -92,11 +89,11 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                   |} q1 q2 ->
   pre_bisimulation A
-                  (wp r_states)
-                  top
-                  []
-                  (mk_init _ _ _ _ A r_len start_left start_right)
-                  q1 q2.
+                   (projT1 r_states)
+                   (wp (a := A))
+                   []
+                   (mk_init _ _ _ _ A r_len start_left start_right)
+                   q1 q2.
 Proof.
   idtac "running service provider translation validation".
 
@@ -105,8 +102,6 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-
-  (* run_bisim top top' r_states. *)
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.

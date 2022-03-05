@@ -19,12 +19,6 @@ Proof.
   vm_compute; Lia.lia.
 Qed.
 
-Definition top : Relations.rel conf :=
-  fun q1 q2 => List.In (conf_to_state_template q1, conf_to_state_template q2) (projT1 r_states).
-
-Definition top' : Relations.rel (state_template A) :=
-  fun q1 q2 => List.In (q1, q2) (projT1 r_states).
-
 Declare ML Module "mirrorsolve".
 
 Definition not_equally_accepting (s: Reachability.state_pair A) : bool :=
@@ -78,13 +72,14 @@ Lemma prebisim_sloppystrict:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp (projT1 r_states))
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (mk_init' start_left start_right)
                    q1 q2.
+
 Proof.
-  idtac "running sloppystrict bisimulation (language equivalence)".
+  idtac "running sloppystrict bisimulation (language equivalence modulo filtering)".
 
   intros.
 
@@ -98,9 +93,10 @@ Proof.
   vm_compute in foo.
   subst foo.
 
-  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
-Time Admitted.
+  time "build phase"
+       repeat (time "single step" run_bisim_axiom Sloppy.state_eqdec Strict.state_eqdec false).
+  time "close phase" close_bisim_axiom.
+Time Qed.
 
 Lemma prebisim_sloppystrict_stores:
   forall q1 q2,
@@ -118,8 +114,8 @@ Lemma prebisim_sloppystrict_stores:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp (projT1 r_states))
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (* Invariant: if both automata accept, then
                       (1) they have the same data in their ethernet headers, and
@@ -148,6 +144,7 @@ Lemma prebisim_sloppystrict_stores:
 Proof.
   idtac "running sloppystrict bisimulation (store relation)".
   intros.
-  time "build phase" repeat (time "single step" run_bisim top top' (projT1 r_states)).
-  time "close phase" close_bisim top'.
-Time Admitted.
+  time "build phase"
+       repeat (time "single step" run_bisim_axiom Sloppy.state_eqdec Strict.state_eqdec false).
+  time "close phase" close_bisim_axiom.
+Time Qed.

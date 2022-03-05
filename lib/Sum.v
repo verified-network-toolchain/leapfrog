@@ -1,11 +1,8 @@
-Require Coq.Lists.List.
-Require Coq.Logic.Eqdep_dec.
-Require Import Coq.Classes.EquivDec.
-Import List.ListNotations.
-
 Require Import Leapfrog.FinType.
-Require Import Leapfrog.HAList.
+Require Import Leapfrog.P4automaton.
 Require Leapfrog.Syntax.
+
+Require Import MirrorSolve.HLists.
 
 Open Scope list_scope.
 
@@ -72,4 +69,11 @@ Section Sum.
     destruct a1, a2, s;
       erewrite Syntax.state_fmapSH_size; eauto.
   Qed.
+
+  Definition sum_stores
+             (s1: Syntax.store Hdr1 Hdr1_sz)
+             (s2: Syntax.store Hdr2 Hdr2_sz) : Syntax.store Hdr Hdr_sz :=
+    HList.app (HList.map_inj (fun h => Syntax.v (Hdr_sz h)) inl s1)
+              (HList.map_inj (fun h => Syntax.v (Hdr_sz h)) inr s2).
+    
 End Sum.

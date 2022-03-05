@@ -4,15 +4,11 @@ Require Import Leapfrog.Benchmarks.SimpleParsers.
 Notation A := OneZero.aut.
 Notation conf := (P4automaton.configuration (P4A.interp A)).
 
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        OneZero.aut
-                        200
-                        ParseOne.Start
-                        ParseZero.Start).
-
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit ParseOne.Start ParseZero.Start r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
 Declare ML Module "mirrorsolve".
 
@@ -39,17 +35,17 @@ Goal
       cr_ctx := BCEmp;
       cr_rel := btrue;
     |} q1 q2 ->
-      pre_bisimulation  A
-                        (wp r_states)
-                        top
-                        []
-                        (mk_init _ _ _ _ A 200 ParseOne.Start ParseZero.Start)
-                        q1 q2.
+      pre_bisimulation A
+                       (projT1 r_states)
+                       (wp (a := A))
+                       []
+                       (mk_init _ _ _ _ A ParseOne.Start ParseZero.Start)
+                       q1 q2.
 Proof.
   intros.
-  set (rel0 := (mk_init _ _ _ _ _ _ _ _)).
+  set (rel0 := (mk_init _ _ _ _ _ _ _)).
   vm_compute in rel0.
   subst rel0.
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  Fail time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  Fail time "close phase" close_bisim.
 Abort.

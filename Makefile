@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+AECINSTRUCTIONS=Instructions.pdf
+
 .PHONY: all build install clean
 
 all: build
@@ -25,16 +27,19 @@ install: _CoqProject
 clean:
 	rm _CoqProject
 	dune clean -p leapfrog
+	rm -f $(AECINSTRUCTIONS)
 
 min-imports:
 	find lib/ -name "*.v" | sed "s#^./##" | xargs -i coq-min-imports {} -cmi-verbose -cmi-replace $(shell cat _CoqProject)
 
-benchmarks-small: ethernet selfcomparison mpls sloppystrict ipfilter
+benchmarks-small: pipenv build
+	cd benchmarking && pipenv run ./runner.py --size small
 
-benchmarks-large: ipoptions3 edgeself edgetrans datacenterself serviceproviderself enterpriseself
+benchmarks-large: pipenv build
+	cd benchmarking && pipenv run ./runner.py --size large
 
 ipfilter: build
-	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/IPFilterProof.v < _CoqProject
 
 memorytall: build
 	xargs coqc lib/Benchmarks/MemoryTallProof.v < _CoqProject | grep "Tactic call"
@@ -43,45 +48,58 @@ memorywide: build
 	xargs coqc lib/Benchmarks/MemoryWideProof.v < _CoqProject | grep "Tactic call"
 
 mpls: build
-	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/MPLSVectorizedProof.v < _CoqProject
 
 selfcomparison: build
-	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SelfComparisonProof.v < _CoqProject
 
 ethernet: build
-	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject
 
 sloppystrict: build
-	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject | grep "Tactic call"
+	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject
 
 ipoptions3: build
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject > ipoptions_timing.out 2>&1 &
+	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject
+ipoptions2: build
+	xargs coqc lib/Benchmarks/IPOptions2Proof.v < _CoqProject
+ipoptions1: build
+	xargs coqc lib/Benchmarks/IPOptions1Proof.v < _CoqProject
 
-edgeself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject > edge_self_timing.out 2>&1 &
+edgeself: build
+	xargs coqc lib/Benchmarks/EdgeSelfProof.v < _CoqProject
 
-edgetrans:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject > edge_trans_timing.out 2>&1 &
+edgetrans: build
+	xargs coqc lib/Benchmarks/EdgeTransProof.v < _CoqProject
 
-datacenterself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject > datacenter_self_timing.out 2>&1 &
+datacenterself: build
+	xargs coqc lib/Benchmarks/DatacenterSelfProof.v < _CoqProject
 
-enterpriseself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject > enterprise_self_timing.out 2>&1 &
+enterpriseself: build
+	xargs coqc lib/Benchmarks/EnterpriseSelfProof.v < _CoqProject
 
-serviceproviderself:
-	nohup /usr/bin/time -v xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject > serviceprovider_self_timing.out 2>&1 &
+serviceproviderself: build
+	xargs coqc lib/Benchmarks/ServiceproviderSelfProof.v < _CoqProject
+
+pipenv: 
+	cd benchmarking && pipenv install
 
 _CoqProject: _CoqProject.noplugins
 	cp _CoqProject.noplugins _CoqProject
 	echo >> _CoqProject
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/mirrorsolve" >> _CoqProject
+	echo "-I $(OPAM_SWITCH_PREFIX)/lib/coq-memprof" >> _CoqProject
 
 container: Dockerfile
-	docker build . -t leapfrog
+	docker build . -t hackedy/leapfrog
 
 shell: container
-	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -it leapfrog
+	docker run -it hackedy/leapfrog
 
 shell-gui: container
-	docker run --mount type=bind,source=$(shell pwd),target=/opt/leapfrog -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/root/.Xauthority -it leapfrog
+	docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/home/opam/.Xauthority -it hackedy/leapfrog
+
+$(AECINSTRUCTIONS): README.md
+	pandoc -V geometry:margin=1in README.md -o $(AECINSTRUCTIONS)
+
+aec-instructions: $(AECINSTRUCTIONS)

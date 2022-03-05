@@ -33,7 +33,7 @@ Section Syntax.
 
   Inductive hdr_ref: Type :=
   | HRVar (var: Hdr).
-  (*| HRField (hdr: hdr_ref) (field: string).*)
+
   Derive NoConfusion for hdr_ref.
   Global Program Instance hdr_ref_eq_dec : EquivDec.EqDec hdr_ref eq :=
     { equiv_dec x y :=
@@ -44,12 +44,12 @@ Section Syntax.
   Solve Obligations with unfold equiv, complement in *;
     program_simpl; congruence.
 
+  (* Syntax for expressions in operations. *)
   Inductive expr : nat -> Type :=
   | EHdr (h: Hdr): expr (Hdr_sz h)
   | ELit {n} (bs: n_tuple bool n): expr n
   | ESlice {n} (e: expr n) (hi lo: nat): expr (Nat.min (1 + hi) n - lo)
   | EConcat {n m} (l: expr n) (r: expr m): expr (n + m).
-  (* todo: binops, ...? *)
 
   Definition state_ref: Type := St + bool.
 
@@ -72,13 +72,13 @@ Section Syntax.
   Next Obligation.
     apply NoDup_map.
     - intros x y Heq; inversion Heq; auto.
-    - eapply NtupleProofs.BoolTupleFinite.
+    - eapply BoolTupleFinite.
   Qed.
   Next Obligation.
     destruct x.
     rewrite List.in_map_iff.
     eexists; intuition eauto.
-    eapply NtupleProofs.BoolTupleFinite.
+    eapply BoolTupleFinite.
   Qed.
 
   Inductive typ :=
@@ -86,6 +86,7 @@ Section Syntax.
   | TPair (t1 t2: typ).
   Derive NoConfusion for typ.
 
+  (* Syntax for patterns. *)
   Inductive pat: typ -> Type :=
   | PExact {n} (val: v n) : pat (TBits n)
   | PAny: forall n, pat (TBits n)
@@ -97,20 +98,24 @@ Section Syntax.
   | CPair {t1 t2} (c1: cond t1) (c2: cond t2) : cond (TPair t1 t2).
   Derive Signature for cond.
 
+  (* Syntax for select statements. *)
   Record sel_case t: Type :=
     { sc_pat: pat t;
       sc_st: state_ref }.
 
+  (* Syntax for transitions. *)
   Inductive transition: Type :=
   | TGoto (state: state_ref)
   | TSel {t} (c: cond t) (cases: list (sel_case t)) (default: state_ref).
 
+  (* Syntax for operations. *)
   Inductive op :=
   | OpNil: op
   | OpSeq (o1 o2: op)
   | OpExtract (hdr: Hdr)
   | OpAsgn (lhs: Hdr) (rhs: expr (Hdr_sz lhs)).
 
+  (* Calculating the size of an operation. *)
   Fixpoint op_size (o: op) :=
     match o with
     | OpNil => 0
@@ -119,6 +124,7 @@ Section Syntax.
     | @OpAsgn _ _ => 0
     end.
 
+  (* Syntax for states. *)
   Record state: Type :=
     { st_op: op;
       st_trans: transition }.
@@ -126,6 +132,7 @@ Section Syntax.
   Definition st_size (st: state) : nat :=
     op_size (st_op st).
 
+  (* Syntax for P4 automata. *)
   Record t: Type :=
     { t_states: St -> state;
       t_nonempty: forall h, Hdr_sz h > 0;
@@ -347,14 +354,7 @@ Section Interp.
     reflexivity.
   Qed.
 
-  Definition n_slice {A n} (l: n_tuple A n) (hi lo: nat) : n_tuple A (Nat.min (1 + hi) n - lo).
-  Proof.
-    pose proof (l2t (slice (t2l l) hi lo)).
-    rewrite slice_len in X.
-    rewrite t2l_len in X.
-    exact X.
-  Defined.
-
+  (* Semantics for expressions inside operations. *)
   Equations eval_expr (n: nat) (st: store) (e: expr Hdr_sz n) : v n :=
     { eval_expr n st (EHdr n h) := find h st;
       eval_expr n st (ELit _ bs) := VBits _ bs;
@@ -367,6 +367,7 @@ Section Interp.
         VBits _ (n_tuple_concat bs_l bs_r)
     }.
 
+  (* Semantics for operations. *)
   Equations eval_op (st: store) (o: op Hdr_sz) (bits: n_tuple bool (op_size o))  : store :=
     {
       eval_op st (OpNil _) bits :=
@@ -380,12 +381,7 @@ Section Interp.
       eval_op st (OpAsgn hdr expr) bits :=
         assign hdr (eval_expr _ st expr) st
     }.
-  Next Obligation.
-    Lia.lia.
-  Qed.
-  Next Obligation.
-    Lia.lia.
-  Qed.
+  Solve Obligations with (simpl; Lia.lia).
 
   Program Definition update
     (state: St)
@@ -397,6 +393,7 @@ Section Interp.
             (a.(t_states) state).(st_op)
             (eq_rect _ _ bits _ (plus_O_n _)).
 
+  (* Semantics for patterns. *)
   Equations match_pat {T: typ} (st: store) (c: cond Hdr_sz T) (p: pat T) : bool := {
     match_pat st (CExpr e) (PExact val) :=
       if eval_expr _ st e == val then true else false;
@@ -406,6 +403,7 @@ Section Interp.
       andb (match_pat st c1 p1) (match_pat st c2 p2)
   }.
 
+  (* Semantics for select statements. *)
   Fixpoint eval_sel
     {T: typ}
     (st: store)
@@ -421,6 +419,7 @@ Section Interp.
     | nil => default
     end.
 
+  (* Semantics for transitions. *)
   Definition eval_trans (st: store) (t: transition St Hdr_sz) : state_ref St :=
     match t with
     | TGoto _ state => state
@@ -439,6 +438,7 @@ Section Interp.
       default :: List.map (fun c => sc_st c) cases
     end.
 
+  (* Conversion of syntax to abstract P4 automaton. *)
   Definition interp : P4A.p4automaton :=
     {| P4A.store := store;
        P4A.states := St;
@@ -483,11 +483,6 @@ Section Inline.
   Next Obligation.
     apply auto.(t_nonempty).
   Qed.
-
-  (* Lemma inline_corr :
-    forall pref suff auto (s: store),
-      let start_config : P4A.configuration (interp _ _ auto) := (SNStart, s, nil) in
-      True. *)
 
 End Inline.
 

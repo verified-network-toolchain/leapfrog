@@ -10,8 +10,8 @@ Lemma ipoptions3_equiv:
   lang_equiv_state
     (P4A.interp IPOptionsRef63.aut)
     (P4A.interp TimestampSpec3.aut)
-    IPOptionsRef63.Parse0
-    TimestampSpec3.Parse0.
+    IPOptionsRef63.Parse2
+    TimestampSpec3.Parse2.
 Proof.
   solve_lang_equiv_state_admit IPOptionsRef63.state_eqdec TimestampSpec3.state_eqdec true.
 Time Admitted.

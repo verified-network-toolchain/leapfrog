@@ -11,6 +11,8 @@ Import ListNotations.
 Import HListNotations.
 Local Open Scope program_scope.
 
+Set Universe Polymorphism.
+
 Section AutModel.
   Set Implicit Arguments.
   (* State identifiers. *)
@@ -76,6 +78,7 @@ Section AutModel.
     match args with
     end.
 
+  (* Instantiation of abstract first-order logic to FOL(BV). *)
   Program Definition fm_model : model sig := {|
     FirstOrder.mod_sorts := mod_sorts;
     FirstOrder.mod_fns := mod_fns;
@@ -83,6 +86,8 @@ Section AutModel.
   |}.
 
   Obligation Tactic := intros.
+
+  (* Removes concatenations where the left operand is empty. *)
   Equations simplify_concat_zero {ctx srt} (e: tm ctx srt) : tm ctx srt :=
     { simplify_concat_zero (TFun sig (Concat 0 m) (_ ::: x ::: hnil)) :=
         simplify_concat_zero x;
@@ -115,7 +120,6 @@ Section AutModel.
     intros; now destruct (interp_tm v t).
   Qed.
 
-
   Lemma simplify_concat_zero_corr :
     forall ctx srt (t : tm ctx srt) v,
       interp_tm (m := fm_model) v t = interp_tm v (simplify_concat_zero (ctx := ctx) t).
@@ -144,6 +148,8 @@ Section AutModel.
       + now autorewrite with simplify_concat_zero.
   Qed.
 
+  (* Pass that removes concatenations where the left operand is empty;
+     the real work is done in simplify_concat_zero above. *)
   Equations simplify_concat_zero_fm {ctx} (e: fm ctx) : fm ctx := {
     simplify_concat_zero_fm FTrue := FTrue;
     simplify_concat_zero_fm FFalse := FFalse;
@@ -155,6 +161,7 @@ Section AutModel.
     simplify_concat_zero_fm (FForall f) := FForall _ (simplify_concat_zero_fm f);
   }.
 
+  (* Removing zero concatenations is a correct transformation. *)
   Lemma simplify_concat_zero_fm_corr:
     forall ctx (f: fm ctx) valu,
       interp_fm valu f <-> interp_fm (m := fm_model) valu (simplify_concat_zero_fm f)

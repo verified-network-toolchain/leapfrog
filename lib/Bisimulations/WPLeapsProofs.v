@@ -44,7 +44,7 @@ Section WPLeapsProofs.
 
   Variable (s1: St1).
   Variable (s2: St2).
-  Definition r := reachable_states a s1 s2.
+  Notation r := (reachable_states a s1 s2).
 
   Notation conf := (configuration (P4A.interp a)).
 
@@ -58,7 +58,7 @@ Section WPLeapsProofs.
 
   Lemma pre_bisimulation_embed:
     forall R T q1 q2,
-      pre_bisimulation a (WP.wp r) top R T q1 q2 ->
+      pre_bisimulation a r (WP.wp (a := a))  R T q1 q2 ->
       In (conf_to_state_template q1, conf_to_state_template q2) r ->
       AlgorithmicLeaps.pre_bisimulation
         (P4A.interp a)
@@ -144,10 +144,12 @@ Section WPLeapsProofs.
         * apply reads_left_lower_bound.
   Qed.
 
+  (* Establishing a pre-bisimulation from the set of initial formulas computed
+     by mk_init means that you have find a bisimulation with leaps. *)
   Lemma wp_leaps_implies_bisim_leaps:
     forall q1 q2,
       let init := mk_init _ _ _ _ _ s1 s2 in
-      pre_bisimulation a (WP.wp r) top [] init q1 q2 ->
+      pre_bisimulation a r (WP.wp (a := a)) [] init q1 q2 ->
       top q1 q2 ->
       bisimilar_with_leaps (P4A.interp a) q1 q2.
   Proof.

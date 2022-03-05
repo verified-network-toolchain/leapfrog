@@ -6,19 +6,25 @@ Require Import Coq.Arith.Compare_dec.
 
 Require Import Leapfrog.Relations.
 Require Import Leapfrog.Ntuple.
-Require Import Leapfrog.NtupleProofs.
 
+(* Abstract representation of a P4 automaton, independent of syntax. *)
 Record p4automaton := MkP4Automaton {
   store: Type;
   states: Type;
+
   size: states -> nat;
   update: forall (S: states), n_tuple bool (size S) -> store -> store;
   transitions: states -> store -> states + bool;
+
+  (* Every state needs to read at least one bit. *)
   cap: forall s, 0 < size s;
 }.
 
+(* A state reference is either a state, false (reject) or true (accept). *)
 Definition state_ref (a: p4automaton) : Type := states a + bool.
 
+(* Variations of the functions/proofs defining an abstract P4 automaton that
+   take into account the accept and reject states. *)
 Equations size'
   (a: p4automaton)
   (s: state_ref a)
@@ -53,12 +59,15 @@ Proof.
   apply cap.
 Qed.
 
+(* Configurations as a tuple. *)
 Record configuration (a: p4automaton) := MkConfiguration {
   conf_state: state_ref a;
   conf_buf_len: nat;
   conf_buf: n_tuple bool conf_buf_len;
+  conf_store: store a;
+
+  (* The buffer must not be larger than what the state reads. *)
   conf_buf_sane: conf_buf_len < size' a conf_state;
-  conf_store: store a
 }.
 
 Arguments conf_state {a} _.
@@ -67,30 +76,11 @@ Arguments conf_buf {a} _.
 Arguments conf_buf_sane {a} _.
 Arguments conf_store {a} _.
 
-Definition update_conf_store {a} (v: store a) (c: configuration a) : configuration a :=
-  {| conf_state := conf_state c;
-     conf_buf_len := conf_buf_len c;
-     conf_buf := conf_buf c;
-     conf_buf_sane := conf_buf_sane c;
-     conf_store := v |}.
-
 Definition configuration_room_left {a: p4automaton} (c: configuration a) :=
   size' a c.(conf_state) - c.(conf_buf_len).
 
 Definition configuration_has_room {a: p4automaton} (c: configuration a) :=
   c.(conf_buf_len) + 1 < size' a c.(conf_state).
-
-Definition initial_configuration
-  {a: p4automaton}
-  (state: states a)
-  (store: store a)
-:= {|
-  conf_state := inl state;
-  conf_buf_len := 0;
-  conf_buf := tt : n_tuple bool 0;
-  conf_buf_sane := cap a state;
-  conf_store := store
-|}.
 
 Lemma conf_buf_len_done
   {a: p4automaton}
@@ -113,6 +103,7 @@ Proof.
   lia.
 Qed.
 
+(* Configuration dynamics resulting from update and transition functions. *)
 Definition step
   {a: p4automaton}
   (c: configuration a)
@@ -120,6 +111,7 @@ Definition step
   : configuration a :=
   let buf_padded : n_tuple bool (1 + conf_buf_len c) := (conf_buf c, b) in
   match le_lt_dec (size' a (conf_state c)) (1 + conf_buf_len c) with
+  (* The buffer has been filled; invoke update and transition. *)
   | left Hle =>
     let buf_full := eq_rect _ _ buf_padded _ (squeeze (conf_buf_sane c) Hle) in
     let conf_store' := update' a (conf_state c) buf_full (conf_store c) in
@@ -130,6 +122,7 @@ Definition step
       conf_buf_sane := cap' _ conf_state';
       conf_store := conf_store';
     |}
+  (* The new bit does not fill the buffer, so just append it. *)
   | right conf_buf_sane' =>
     {|
       conf_state := conf_state c;
@@ -281,6 +274,7 @@ Proof.
     eapply rewrite_size_jmeq.
 Qed.
 
+(* Multi-step configuration dynamics. *)
 Equations follow
   {a: p4automaton}
   (c: configuration a)
@@ -325,7 +319,6 @@ Proof.
     + apply conf_store_step_fill; auto; lia.
     + rewrite conf_state_step_fill, conf_buf_len_step_fill; lia.
 Qed.
-
 
 Lemma conf_buf_follow_fill
   {a: p4automaton}
@@ -575,6 +568,8 @@ Definition accepting
   conf_state c = inr true
 .
 
+(* A bitstring is accepted if executing the configuration dynamics leads to
+   an accepting configuration (i.e., in the accept state). *)
 Definition accepted
   {a: p4automaton}
   (c: configuration a)
@@ -584,6 +579,8 @@ Definition accepted
   accepting (follow c input)
 .
 
+(* Configurations are language equivalent if they accept the same
+   bitstrings. *)
 Definition lang_equiv
   {a1 a2: p4automaton}
   (c1: configuration a1)
@@ -592,6 +589,27 @@ Definition lang_equiv
   forall input,
     accepted c1 input <->
     accepted c2 input
+.
+
+(* States are language equivalent if every pair of configurations that starts
+   in these states (i.e., regardless of store) is language equivalent. *)
+Definition lang_equiv_state
+  (a1 a2: p4automaton)
+  (q1: states a1)
+  (q2: states a2)
+:=
+  forall s1 s2,
+    lang_equiv
+      {| conf_state := inl q1;
+         conf_buf_len := 0;
+         conf_buf := tt;
+         conf_store := s1;
+         conf_buf_sane := cap a1 q1; |}
+      {| conf_state := inl q2;
+         conf_buf_len := 0;
+         conf_buf := tt;
+         conf_store := s2;
+         conf_buf_sane := cap a2 q2; |}
 .
 
 Definition rel a1 a2 := configuration a1 -> configuration a2 -> Prop.

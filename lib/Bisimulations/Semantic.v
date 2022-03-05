@@ -5,20 +5,25 @@ Require Import Leapfrog.FinType.
 Require Import Leapfrog.Relations.
 
 Section Semantic.
-  Variable (a: p4automaton).
-  Notation conf := (configuration a).
+  Context {a1 a2: p4automaton}.
+  Notation rel := (configuration a1 -> configuration a2 -> Prop).
 
-  Definition bisimulation (R: rel conf) :=
+  (* A relation is a bisimulation if (1) related states are equally accepting
+     and (2) related states transition to related states. *)
+  Definition bisimulation (R: rel) :=
     forall q1 q2,
       R q1 q2 ->
       (accepting q1 <-> accepting q2) /\
       forall b, R (step q1 b) (step q2 b).
 
+  (* Two states are bisimilar if a bisimulation relates them. Note that this
+     is, by construction, the largest possible bisimulation. *)
   Definition bisimilar q1 q2 :=
     exists R, bisimulation R /\ R q1 q2.
 
+  (* Bisimilar states are language equivalent. *)
   Lemma bisimilar_implies_equiv :
-    forall (c1 c2: conf),
+    forall (c1: configuration a1) (c2: configuration a2),
       bisimilar c1 c2 ->
       lang_equiv c1 c2.
   Proof.
@@ -41,6 +46,7 @@ Section Semantic.
       easy.
   Qed.
 
+  (* Language equivalence is a bisimulation relation. *)
   Lemma lang_equiv_is_bisimulation :
       bisimulation lang_equiv
   .
@@ -55,8 +61,9 @@ Section Semantic.
       apply H.
   Qed.
 
+  (* The last lemma tells us that language equivalence implies bisimilarity. *)
   Lemma equiv_implies_bisimilar:
-    forall c1 c2: conf,
+    forall (c1: configuration a1) (c2: configuration a2),
       lang_equiv c1 c2 -> bisimilar c1 c2.
   Proof.
     intros.
@@ -65,8 +72,9 @@ Section Semantic.
     apply lang_equiv_is_bisimulation.
   Qed.
 
+  (* Bisimilarity is sound and complete for language equivalence. *)
   Theorem bisimilar_iff_lang_equiv:
-    forall c1 c2: conf,
+    forall (c1: configuration a1) (c2: configuration a2),
       lang_equiv c1 c2 <-> bisimilar c1 c2.
   Proof.
     split.

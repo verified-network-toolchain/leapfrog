@@ -4,15 +4,12 @@ Require Import Leapfrog.Benchmarks.SimpleParsers.
 Notation H := (TwoOnesChunk.header + TwoOnesBucket.header).
 Notation A := (Sum.sum TwoOnesChunk.aut TwoOnesBucket.aut).
 Notation conf := (P4automaton.configuration (P4A.interp A)).
-Definition r_states :=
-  Eval vm_compute in (Reachability.reachable_states
-                        A
-                        10
-                        TwoOnesChunk.Start
-                        TwoOnesBucket.Start).
 
-Definition top : Relations.rel conf := fun _ _ => True.
-Definition top' : Relations.rel (state_template A) := fun _ _ => True.
+Definition r_states : {r : Reachability.state_pairs A & Reachability.reachable_states_wit TwoOnesChunk.Start TwoOnesBucket.Start r}.
+  econstructor.
+  unfold Reachability.reachable_states_wit.
+  solve_fp_wit.
+Defined.
 
 Declare ML Module "mirrorsolve".
 
@@ -39,8 +36,8 @@ Lemma prebisim_babyip:
                       cr_rel := btrue;
                    |} q1 q2 ->
   pre_bisimulation A
-                   (wp r_states)
-                   top
+                   (projT1 r_states)
+                   (wp (a := A))
                    []
                    (mk_init _ _ _ _ A 10 TwoOnesChunk.Start TwoOnesBucket.Start)
                    q1 q2.
@@ -52,6 +49,6 @@ Proof.
   vm_compute in rel0.
   subst rel0.
 
-  time "build phase" repeat (time "single step" run_bisim top top' r_states).
-  time "close phase" close_bisim top'.
+  time "build phase" repeat (time "single step" run_bisim).
+  time "close phase" close_bisim.
 Time Admitted.

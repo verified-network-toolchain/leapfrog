@@ -245,32 +245,6 @@ Section ReachablePairs.
     (steps, List.list_prod (advance steps t1 s1)
                            (advance steps t2 s2)).
 
-  Lemma reachable_step_backwards:
-    forall st st' bs sts q1 q2,
-      reachable_pair_step' st' = (length bs, sts) ->
-      List.In st sts ->
-      interp_conf_state (a:=a)
-                        {|cs_st1 := fst st; cs_st2 := snd st|}
-                        (follow q1 bs)
-                        (follow q2 bs) ->
-      interp_conf_state (a:=a)
-                        {|cs_st1 := fst st'; cs_st2 := snd st'|}
-                        q1
-                        q2.
-  Proof.
-    intros [st1 st2] [st1' st2'].
-    unfold reachable_pair_step'.
-    intros.
-    set (k := reads_left (st1', st2')) in *.
-    inversion H.
-    subst sts.
-    clear H.
-    apply List.in_prod_iff in H0.
-    unfold interp_conf_state; cbn; intuition.
-    - admit.
-    - admit.
-  Admitted.
-
   Definition reaches (cur prev: state_template a * state_template a)
     : list (nat * (state_template a * state_template a)) :=
     let '(n, successors) := reachable_pair_step' prev in

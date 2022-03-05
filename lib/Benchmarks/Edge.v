@@ -8,8 +8,8 @@ Require Import Leapfrog.Sum.
 Require Import Leapfrog.ConfRel.
 Require Import Leapfrog.Notations.
 
-Require Import Leapfrog.BisimChecker.
 Require Import Coq.Program.Equality.
+Require Import Coq.Program.Program.
 
 Open Scope p4a.
 
@@ -157,18 +157,6 @@ Module Plain.
 End Plain.
 
 Module Optimized.
-Require Coq.Classes.EquivDec.
-Require Coq.Lists.List.
-Import List.ListNotations.
-Require Import Coq.Program.Program.
-Require Import Leapfrog.Syntax.
-Require Import Leapfrog.FinType.
-Require Import Leapfrog.Sum.
-Require Import Leapfrog.Syntax.
-Require Import Leapfrog.BisimChecker.
-
-Require Import Leapfrog.Notations.
-
 Open Scope p4a.
 
 Ltac prep_equiv :=
@@ -309,12 +297,12 @@ Definition sz (h: header) : nat :=
     | State_4_trailer => {|
       st_op := extract(buf_16);
       st_trans := transition select (| (EHdr' buf_16)[3 -- 0], (EHdr' buf_16)[7--4] |) {{
-        [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits rem *) ;;;
-        [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits rem *) ;;;
-        [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits rem *) ;;;
-        [| exact #b|0|1|0|0, exact #b|0|1|1|0 |] ==> inl State_3_suff_1 (* State_3 but with 16 bits rem *) ;;;
-        [| exact #b|0|1|0|0, exact #b|0|1|1|1 |] ==> inl State_3_suff_2 (* State_3 but with 16 bits rem *) ;;;
-        [| exact #b|0|1|0|0, exact #b|1|0|0|0 |] ==> inl State_3_suff_3 (* State_3 but with 16 bits rem *) ;;;
+        [| exact #b|0|0|0|0, * |] ==> inl State_1_suff_0 (* State_1 but with 16 bits removed *) ;;;
+        [| exact #b|0|1|1|0, * |] ==> inl State_2_suff_0 (* State_2 but with 16 bits removed *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|0|1 |] ==> inl State_3_suff_0 (* State_3 but with 16 bits removed *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|1|0 |] ==> inl State_3_suff_1 (* State_3 but with 16 bits removed *) ;;;
+        [| exact #b|0|1|0|0, exact #b|0|1|1|1 |] ==> inl State_3_suff_2 (* State_3 but with 16 bits removed *) ;;;
+        [| exact #b|0|1|0|0, exact #b|1|0|0|0 |] ==> inl State_3_suff_3 (* State_3 but with 16 bits removed *) ;;;
         reject
       }}
     |}

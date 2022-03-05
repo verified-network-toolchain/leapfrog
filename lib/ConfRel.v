@@ -13,16 +13,6 @@ Module P4A := Leapfrog.Syntax.
 
 Open Scope list_scope.
 
-Lemma split_ex:
-  forall A B (P: A * B -> Prop),
-    (exists x: A, exists y: B, P (x, y)) <->
-    exists x: A * B, P x.
-Proof.
-  firstorder.
-  destruct x.
-  firstorder.
-Qed.
-
 (* Bitstring variable context. *)
 Inductive bctx :=
 | BCEmp: bctx
@@ -96,12 +86,32 @@ Section ConfRel.
 
   Notation conf := (configuration (P4A.interp a)).
 
+  (* Syntax for templates. *)
   Record state_template :=
     { st_state: state_ref (P4A.interp a);
       st_buf_len: nat }.
 
   Definition state_template_sane (st: state_template) :=
     st.(st_buf_len) < size' (P4A.interp a) st.(st_state).
+
+  Definition state_template_sane_fn (st: state_template) :=
+    match Nat.ltb st.(st_buf_len) (size' (P4A.interp a) st.(st_state)) with
+    | true => True
+    | false => False
+    end.
+
+  Lemma state_template_sane_fn_equiv:
+    forall st,
+      state_template_sane st <->
+      state_template_sane_fn st.
+  Proof.
+    unfold state_template_sane, state_template_sane_fn.
+    intros st.
+    pose proof (PeanoNat.Nat.ltb_spec0 (st_buf_len st) (size' _ (st_state st))).
+    destruct H; eauto.
+    - tauto.
+    - tauto.
+  Qed.
 
   Global Program Instance state_template_eq_dec : EquivDec.EqDec state_template eq :=
     { equiv_dec x y :=
@@ -115,6 +125,7 @@ Section ConfRel.
                            simpl in *;
                            congruence).
 
+  (* Semantics for templates. *)
   Definition interp_state_template (st: state_template) (c: conf) :=
     st.(st_state) = c.(conf_state) /\
     st.(st_buf_len) = c.(conf_buf_len).
@@ -144,6 +155,7 @@ Section ConfRel.
   Derive NoConfusion for side.
   Derive EqDec for side.
 
+  (* Syntax for bitvector expressions. *)
   Inductive bit_expr (c: bctx) :=
   | BELit (l: list bool)
   | BEBuf (a: side)
@@ -155,20 +167,6 @@ Section ConfRel.
   Arguments BEBuf {c} _.
   Arguments BEHdr {c} _ _.
   Derive NoConfusion for bit_expr.
-
-  Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
-    (* if Nat.ltb hi lo then BELit [] else *)
-    match be with
-    | BELit l => BELit (P4A.slice l hi lo)
-    | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
-    | _ => BESlice be hi lo
-    end.
-
-  Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) :=
-    match l, r with
-    | BELit l, BELit r => BELit (l ++ r)
-    | _, _ => BEConcat l r
-    end.
 
   Fixpoint weaken_bit_expr {c} (size: nat) (b: bit_expr c) : bit_expr (BCSnoc c size) :=
     match b with
@@ -237,6 +235,7 @@ Section ConfRel.
       be_size b1 b2 e1 + be_size b1 b2 e2
     end.
 
+  (* Semantics for bitvector expressions. *)
   Equations interp_bit_expr {b1 b2 c}
     (e: bit_expr c)
     (valu: bval c)
@@ -273,6 +272,7 @@ Section ConfRel.
         (interp_bit_expr e2 valu buf1 buf2 store1 store2)
   }.
 
+  (* Syntax for pure formulas. *)
   Inductive store_rel c :=
   | BRTrue
   | BRFalse
@@ -281,46 +281,6 @@ Section ConfRel.
   | BROr (r1 r2: store_rel c)
   | BRImpl (r1 r2: store_rel c).
   Arguments store_rel : default implicits.
-
-  (* smart constructors *)
-
-  Definition brand {c} (l: store_rel c) (r: store_rel c) :=
-    (* BRAnd l r. *)
-    match l with
-    | BRTrue _ => r
-    | BRFalse _ => BRFalse c
-    | _ =>
-      match r with
-      | BRTrue _ => l
-      | BRFalse _ => BRFalse c
-      | _ => BRAnd l r
-      end
-    end.
-
-  Definition bror {c} (l: store_rel c) (r: store_rel c) :=
-    (* BROr l r. *)
-    match l with
-    | BRTrue _ => BRTrue c
-    | BRFalse _ => r
-    | _ =>
-      match r with
-      | BRTrue _ => BRTrue c
-      | BRFalse _ => l
-      | _ => BROr l r
-      end
-    end.
-
-  Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
-    (* BRImpl l r. *)
-    match l with
-    | BRTrue _ => r
-    | BRFalse _ => BRTrue c
-    | _ =>
-      match r with
-      | BRTrue _ => BRTrue c
-      | _ => BRImpl l r
-      end
-    end.
 
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;
@@ -361,16 +321,7 @@ Section ConfRel.
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
     store_rel_eq_dec.
 
-  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
-    match r with
-    | BRTrue _ => BRTrue _
-    | BRFalse _ => BRFalse _
-    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
-    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
-    end.
-
+  (* Semantics for pure formulas. *)
   Equations interp_store_rel {b1 b2 c}
     (r: store_rel c)
     (valu: bval c)
@@ -400,39 +351,99 @@ Section ConfRel.
       interp_store_rel r2 valu buf1 buf2 store1 store2
   }.
 
-  (* correctness of smart constructors *)
-  Lemma bror_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BROr l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (bror l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold bror in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+  Section SmartConstructors.
+    Definition beslice {c} (be: bit_expr c) (hi lo: nat) :=
+      match be with
+      | BELit l => BELit (P4A.slice l hi lo)
+      | BESlice x hi' lo' => BESlice x (Nat.min (lo' + hi) hi') (lo' + lo)
+      | _ => BESlice be hi lo
+      end.
 
-  Lemma brand_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BRAnd l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (brand l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold brand in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+    Definition beconcat {c} (l: bit_expr c) (r: bit_expr c) :=
+      match l, r with
+      | BELit l, BELit r => BELit (l ++ r)
+      | _, _ => BEConcat l r
+      end.
 
-  Lemma brimpl_corr :
-    forall c (l r: store_rel c) v
-           b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
-           store1 store2,
-        interp_store_rel (BRImpl l r) v buf1 buf2 store1 store2 <->
-        interp_store_rel (brimpl l r) v buf1 buf2 store1 store2.
-  Proof.
-    split; intros; destruct l, r; unfold brimpl in *;
-    autorewrite with interp_store_rel in *; auto; intuition.
-  Qed.
+    Definition brand {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => r
+      | BRFalse _ => BRFalse c
+      | _ =>
+        match r with
+        | BRTrue _ => l
+        | BRFalse _ => BRFalse c
+        | _ => BRAnd l r
+        end
+      end.
+
+    Definition bror {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => BRTrue c
+      | BRFalse _ => r
+      | _ =>
+        match r with
+        | BRTrue _ => BRTrue c
+        | BRFalse _ => l
+        | _ => BROr l r
+        end
+      end.
+
+    Definition brimpl {c} (l: store_rel c) (r: store_rel c) :=
+      match l with
+      | BRTrue _ => r
+      | BRFalse _ => BRTrue c
+      | _ =>
+        match r with
+        | BRTrue _ => BRTrue c
+        | _ => BRImpl l r
+        end
+      end.
+
+    (* correctness of smart constructors *)
+    Lemma bror_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BROr l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (bror l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold bror in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+
+    Lemma brand_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BRAnd l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (brand l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold brand in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+
+    Lemma brimpl_corr :
+      forall c (l r: store_rel c) v
+             b1 b2 (buf1: n_tuple bool b1) (buf2: n_tuple bool b2)
+             store1 store2,
+          interp_store_rel (BRImpl l r) v buf1 buf2 store1 store2 <->
+          interp_store_rel (brimpl l r) v buf1 buf2 store1 store2.
+    Proof.
+      split; intros; destruct l, r; unfold brimpl in *;
+      autorewrite with interp_store_rel in *; auto; intuition.
+    Qed.
+  End SmartConstructors.
+
+  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
+    match r with
+    | BRTrue _ => BRTrue _
+    | BRFalse _ => BRFalse _
+    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
+    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
+    end.
 
   Record conf_states :=
     { cs_st1: state_template;
@@ -446,10 +457,12 @@ Section ConfRel.
         else in_right }.
   Solve All Obligations with (destruct x, y; simpl in *; congruence).
 
+  (* Syntax for template-guarded formulas. *)
   Record conf_rel :=
     { cr_st: conf_states;
       cr_ctx: bctx;
       cr_rel: store_rel cr_ctx }.
+
   Equations conf_rel_eq_dec: EquivDec.EqDec conf_rel eq :=
     { conf_rel_eq_dec x y with (bctx_eq_dec x.(cr_ctx) y.(cr_ctx)) :=
         { conf_rel_eq_dec ({| cr_st := st1;
@@ -500,6 +513,7 @@ Section ConfRel.
     - now apply interp_state_template_dichotomy with (c := c2).
   Qed.
 
+  (* Semantics for template-guarded formulas. *)
   Definition interp_conf_rel (phi: conf_rel) : relation conf :=
     fun x y =>
       interp_conf_state phi.(cr_st) x y ->
@@ -512,12 +526,15 @@ Section ConfRel.
       forall valu,
         interp_store_rel phi.(cr_rel) valu x.(conf_buf) y.(conf_buf) x.(conf_store) y.(conf_store).
 
+  (* Syntax for template-guarded clauses. *)
   Definition crel :=
     list (conf_rel).
 
   Notation "⊤" := rel_true.
   Notation "x ⊓ y" := (relation_conjunction x y) (at level 40).
   Notation "⟦ x ⟧" := (interp_conf_rel x).
+
+  (* Semantics for template-guarded clauses. *)
   Definition interp_crel i (rel: crel) : relation conf :=
     interp_rels i (List.map interp_conf_rel rel).
 
@@ -584,20 +601,18 @@ Section ConfRel.
       end
     end.
 
-  Lemma add_strengthen_corr :
-    forall C CR q1 q2 top,
-    interp_crel top (add_strengthen_crel C CR) q1 q2 <-> interp_crel top (C :: CR) q1 q2.
-  Admitted.
-
+  (* Syntax for template-guarded (co-)entailments. *)
   Record entailment :=
     { e_prem: crel;
       e_concl: conf_rel }.
 
+  (* Semantics for template-guarded entailments. *)
   Definition interp_entailment (i: relation conf) (e: entailment) :=
     forall q1 q2,
       interp_crel i e.(e_prem) q1 q2 ->
       interp_conf_rel e.(e_concl) q1 q2.
 
+  (* Semantics for template-guarded co-entailments. *)
   Definition interp_entailment' (i: relation conf) (e: entailment) :=
     forall q1 q2,
       i q1 q2 ->
@@ -707,11 +722,13 @@ Section ConfRel.
         now apply interp_conf_state_dichotomy with (c1 := q1) (c2:= q2).
   Qed.
 
+  (* Syntax for simplified entailment *and* simplified co-entailment. *)
   Record simplified_entailment :=
     { se_st: conf_states;
       se_prems: simplified_crel;
       se_concl: simplified_conf_rel; }.
 
+  (* Semantics of simplified entailments. *)
   Definition interp_simplified_entailment
     (i: relation state_template)
     (se: simplified_entailment)
@@ -725,6 +742,7 @@ Section ConfRel.
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2 ->
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2.
 
+  (* Semantics of simplified co-entailments. *)
   Definition interp_simplified_entailment'
     (i: relation state_template)
     (se: simplified_entailment)
@@ -738,11 +756,13 @@ Section ConfRel.
       interp_simplified_conf_rel se.(se_concl) buf1 buf2 store1 store2 ->
       interp_simplified_crel se.(se_prems) buf1 buf2 store1 store2.
 
+  (* Compilation from entailment to simplified entailment. *)
   Definition simplify_entailment (e: entailment) :=
     {| se_st := e.(e_concl).(cr_st);
        se_prems := simplify_crel e.(e_prem) e.(e_concl).(cr_st);
        se_concl := simplify_conf_rel e.(e_concl); |}.
 
+  (* Correctness of compilation from entailment to simplified entailment. *)
   Lemma simplify_entailment_correct (e: entailment):
     forall i: Relations.rel state_template,
       interp_entailment (fun c1 c2 => i (conf_to_state_template c1)
@@ -804,6 +824,7 @@ Section ConfRel.
         + exact H0.
   Qed.
 
+  (* Correctness of compilation from co-entailment to simplified co-entailment. *)
   Lemma simplify_entailment_correct' (e: entailment):
     forall i: Relations.rel state_template,
       interp_entailment'

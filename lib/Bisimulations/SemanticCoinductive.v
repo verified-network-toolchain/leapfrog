@@ -23,7 +23,7 @@ Section SemanticCoinductive.
   Lemma bisimilar_coalg_implies_sem_bisim:
     forall q1 q2,
       bisimilar q1 q2 ->
-      BS.bisimilar a q1 q2.
+      BS.bisimilar q1 q2.
   Proof.
     intros.
     exists bisimilar.
@@ -36,7 +36,7 @@ Section SemanticCoinductive.
 
   Lemma sem_bisim_implies_bisimilar_coalg:
     forall q1 q2,
-      BS.bisimilar a q1 q2 ->
+      BS.bisimilar q1 q2 ->
       bisimilar q1 q2.
   Proof.
     cofix C.
