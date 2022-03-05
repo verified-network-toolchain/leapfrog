@@ -91,13 +91,13 @@ _CoqProject: _CoqProject.noplugins
 	echo "-I $(OPAM_SWITCH_PREFIX)/lib/coq-memprof" >> _CoqProject
 
 container: Dockerfile
-	docker build . -t leapfrog
+	docker build . -t hackedy/leapfrog
 
 shell: container
-	docker run -it leapfrog
+	docker run -it hackedy/leapfrog
 
 shell-gui: container
-	docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/home/opam/.Xauthority -it leapfrog
+	docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$(DISPLAY) -h $(shell cat /etc/hostname) -v $(HOME)/.Xauthority:/home/opam/.Xauthority -it hackedy/leapfrog
 
 $(AECINSTRUCTIONS): README.md
 	pandoc -V geometry:margin=1in README.md -o $(AECINSTRUCTIONS)
