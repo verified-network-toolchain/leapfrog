@@ -33,14 +33,18 @@ but please be aware of the following:
    container is `root`, this may create `root`-owned files in your local
    directory as well.
 
-You can obtain a pre-built container from the Docker repos tagged
-`hackedy/leapfrog:latest`.
+There are a few ways to get the Docker image. This container is a few GB in
+size, so this can take a while depending on the speed of your internet
+connection. The third option has to build Coq and other dependencies, so it will
+take a while depending on the speed of your computer.
+1. Download it from Zenodo to a local file `leapfrog-docker-image.tar` and then
+   run `docker load leapfrog-docker-image.tar`.
+2. Download a public version from the Docker repos with `docker pull
+   hackedy/leapfrog:latest`
+3. Build a copy locally from the Zenodo source archive `leapfrog.zip`:
 ```
-docker pull hackedy/leapfrog:latest
-```
-This container is a few GB in size, so, depending on the speed of your internet
-connection, you may want to build it locally instead.
-```
+unzip leapfrog.zip
+cd leapfrog
 make container
 ```
 
@@ -59,13 +63,13 @@ chmod o+rwx logs
 ```
 Then, run the image and mount the directory with the following Docker command:
 ```
-docker run -v `realpath logs`:/home/opam/leapfrog/benchmarking/logs -it leapfrog bash
+docker run -v `realpath logs`:/home/opam/leapfrog/benchmarking/logs -it hackedy/leapfrog bash
 ```
 
 Either way, once you have the Leapfrog docker image installed, you can start it
 up and run a shell with
 ```
-make shell
+docker run -it hackedy/leapfrog
 ```
 This will drop you into a Bash shell in a copy of the Leapfrog source with all
 the Coq built. Inside the container, the MirrorSolve plugin is located in
@@ -247,14 +251,14 @@ image also provides a pre-installed version of Coqide. If your host OS is Linux,
 you should be able to run the following:
 
 ```
-make shell-gui
+docker run -u root -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$DISPLAY -h $(shell cat /etc/hostname) -v ~/.Xauthority:/home/opam/.Xauthority -it hackedy/leapfrog
 # inside the container shell
 eval $(opam env)
 make -B _CoqProject
 coqide
 ```
 
-Note that the `make shell-gui` starts a root prompt inside the container, which
+Note that the `docker` command starts a root prompt inside the container, which
 is necessary for it to have access to your local `.Xauthority` file.
 
 On Mac OS X, coqide can run from inside the container using a combination of
