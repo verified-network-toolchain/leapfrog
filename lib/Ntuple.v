@@ -14,269 +14,71 @@ Import ListNotations.
 
 Set Universe Polymorphism.
 
-Require Import Coq.NArith.BinNat.
-Require Import Coq.NArith.Nnat.
-Require Import Coq.PArith.BinPos.
-
-
-(* Transparent versions of the standard library's positive and nat peano recursion, as well as reasoning principles *)
-Fixpoint peano_rect (P:positive->Type) (a:P 1%positive)
-  (f: forall p:positive, P p -> P (Pos.succ p)) (p:positive) : P p :=
-let f2 := peano_rect (fun p:positive => P (p~0))%positive (f _ a)
-  (fun (p:positive) (x:P (p~0)) => f _ (f _ x))%positive
-in
-(match p with
-  | q~1 => f _ (f2 q)
-  | q~0 => f2 q
-  | 1 => a
-end)%positive.
-
-Theorem peano_rect_succ (P:positive->Type) (a:P 1%positive)
-  (f:forall p, P p -> P (Pos.succ p)) (p:positive) :
-  peano_rect P a f (Pos.succ p) = f _ (peano_rect P a f p).
-Proof.
- revert P a f. induction p as [p IHp|p IHp|]; trivial.
- intros. simpl. now rewrite IHp.
-Defined.
-
-Definition peano_rect_base (P:positive->Type) (a:P 1%positive)
-  (f:forall p, P p -> P (Pos.succ p)) :
-  peano_rect P a f 1%positive = a := eq_refl.
-
-Definition peano_rect_N
-  (P : N -> Type) (f0 : P 0%N)
-    (f : forall n : N, P n -> P (N.succ n)) (n : N) : P n :=
-  let P' p := P (N.pos p) in
-  let f' p := f (N.pos p) in
+Fixpoint n_tuple A (n: nat): Type :=
   match n with
-  | 0%N => f0
-  | N.pos p => peano_rect P' (f 0%N f0) f' p
+  | 0 => unit
+  | S n => n_tuple A n * A
   end.
 
-Definition peano_rect_N_base P a f : peano_rect_N P a f 0%N = a 
-  := eq_refl.
+Definition n_tuple_snoc {A n} (xs: n_tuple A n) (x: A) : n_tuple A (1 + n) :=
+  (xs, x).
 
-Lemma peano_rect_N_succ P a f n :
- peano_rect_N P a f (N.succ n) = f n (peano_rect_N P a f n).
+Fixpoint n_tuple_cons {A n} (xs: n_tuple A n) (x: A) : n_tuple A (1 + n) :=
+  match n as n' return (n_tuple A n' -> n_tuple A (1 + n')) with
+  | 0 =>
+    fun _ => (tt, x)
+  | S n =>
+    fun '(xs, x') => (n_tuple_cons xs x, x')
+  end xs.
+
+Fixpoint t2l {A: Type} {n: nat} (x: n_tuple A n) : list A :=
+  match n as n' return n_tuple A n' -> list A with
+  | 0 => fun _ => nil
+  | S n => fun p => t2l (fst p) ++ [snd p]
+  end x.
+
+Lemma t2l_len {A} n: forall (x: n_tuple A n), length (t2l x) = n.
 Proof.
-  destruct n; simpl; trivial.
-  now rewrite peano_rect_succ.
-Defined.
-
-Definition n_tuple (A: Set) (n: N): Type := 
-  peano_rect_N (fun _ => Type) unit (fun _ r => r * A)%type n.
-
-Lemma n_tuple_succ: 
-  forall {A n},
-  n_tuple A (N.succ n) = (n_tuple A n * A)%type.
-Proof.
-  intros.
-  unfold n_tuple.
-  erewrite peano_rect_N_succ.
-  exact eq_refl.
-Defined.
-
-Definition n_tuple_snoc {A n} (xs: n_tuple A n) (x: A) : n_tuple A (N.succ n).
-  unfold n_tuple.
-  erewrite peano_rect_N_succ.
-  refine (
-    (xs, x)
-  ).
-Defined.
-
-Definition n_tuple_rect {A: Set} {n} 
-  (P: forall n, n_tuple A n -> Type)
-  (PB: P _ (tt: n_tuple A 0))
-  (PS: 
-    forall n (x: n_tuple A n) (x': A), 
-      P _ x -> 
-      P _ (@n_tuple_snoc A n x x'))
-  (x: n_tuple A n) : 
-    P _ x.
-  refine (
-    (peano_rect_N 
-      (fun n => forall (x: n_tuple A n), P n x) 
-      (fun tt' => match tt' with tt => PB end) 
-      (fun n' IHm => _)
-    ) n x
-  ).
-  generalize x''.
-  generalize n''.
-  pose proof (@n_tuple_succ A n').
-
-  erewrite H.
-  erewrite n_tuple_succ.
-
-
-Definition n_tuple_cons {A n} (xs: n_tuple A n) : A -> n_tuple A (N.succ n).
-  induction n using peano_rect_N.
-  - exact (fun x => (tt, x)).
-  - erewrite n_tuple_succ.
-    erewrite n_tuple_succ in xs.
-    refine (
-      let (xs, x') := xs in 
-      fun x => (IHn xs x, x')
-    ).
-Defined.
-
-Definition t2l {A: Set} {n: N} (x: n_tuple A n) : list A.
-  refine (
-    (peano_rect_N (fun n => n_tuple A n -> list A) (fun _ => nil) (fun n' rec t => _) ) n x
-  ).
-  erewrite n_tuple_succ in t.
-  refine (
-    let (xs, x) := t in 
-    rec xs ++ [x]
-  ).
-Defined.
-
-Fixpoint length_N {A} (l: list A) : N := 
-  match l with
-  | nil => 0%N
-  | h :: t => N.succ (length_N t)
-  end.
-
-Lemma length_N_spec: 
-  forall {A} (l: list A),
-    length_N l = (N.of_nat (length l)).
-Proof.
-  induction l; trivial.
-  simpl length_N.
-  simpl length.
-  erewrite Nat2N.inj_succ.
-  f_equal.
-  auto.
-Defined.
-
-Lemma app_length_N : 
-  forall A (l l' : list A), 
-    length_N (l ++ l') = (length_N l + length_N l')%N.
-Admitted.
-
-
-Lemma t2l_len {A} n: forall (x: n_tuple A n), length_N (t2l x) = n.
-Proof.
-  induction n using peano_rect_N.
+  induction n.
   - simpl; intros; trivial.
-  - intros.
-    unfold t2l.
-    erewrite peano_rect_N_succ.
-    change (peano_rect_N _ _ _) with (@t2l A).
-    destruct eq_rect.
-    erewrite app_length_N.
-    erewrite IHn.
+  - simpl; intros.
+    erewrite app_length.
     simpl.
-    Lia.lia.
-Defined.
+    erewrite <- plus_n_Sm.
+    erewrite <- plus_n_O.
+    erewrite IHn.
+    trivial.
+Qed.
 
 Definition rewrite_size {A n m} (pf: m = n) (l: n_tuple A n) : n_tuple A m :=
   eq_rect_r (fun m' => n_tuple A m') l pf.
 
-Fixpoint l2t {A: Set} (l: list A) : n_tuple A (length_N l) :=
-  match l as l' return n_tuple A (length_N l') with
+Fixpoint l2t {A: Type} (l: list A) : n_tuple A (length l) :=
+  match l as l' return n_tuple A (length l') with
   | nil => tt
   | a::l => n_tuple_cons (l2t l) a
   end.
 
-Definition n2t (n: N) (v: N): n_tuple bool v.
-Admitted.
-
-Fixpoint nat2t (n: N) (v: nat) : n_tuple bool n.
-Admitted.
-  (* match n as n' return n_tuple bool n' with
+Fixpoint nat2t (n: nat) (v: nat) : n_tuple bool n :=
+  match n as n' return n_tuple bool n' with
   | 0 => tt
   | S n =>
     (nat2t n (Nat.div2 v), Nat.eqb (Nat.modulo v 2) 1)
-  end. *)
+  end.
 
-Lemma n_add_zero : 
-  forall n, (n + 0 = n)%N.
-Proof.
-  induction n using peano_rect_N; eauto.
-  destruct n; trivial.
-Defined.
+Fixpoint n_tuple_concat' {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (m + n) :=
+  match m as m' return (n_tuple A m' -> n_tuple A (m' + n)) with
+  | 0 =>
+    fun _ => xs
+  | S m0 =>
+    fun '(ys, y) => (n_tuple_concat' xs ys, y)
+  end ys.
 
-Lemma n_pos_distr: 
-  forall n m, (N.pos n + N.pos m)%N = N.pos (n + m)%positive.
-Proof.
-  trivial.
-Defined.
-
-(* taken from the coq standard library and Defined *)
-
-Lemma add_1_r p : (p + 1 = Pos.succ p)%positive.
-Proof.
-  now destruct p.
-Defined.
-
-Lemma add_1_l p : (1 + p = Pos.succ p)%positive.
-Proof.
-  now destruct p.
-Defined.
-
-Theorem add_carry_spec p q : (Pos.add_carry p q = Pos.succ (p + q))%positive.
-Proof.
-  revert q. induction p; intro q; destruct q; simpl; now f_equal.
-Defined.
-
-(** ** Commutativity *)
-
-Theorem add_comm p q : (p + q = q + p)%positive.
-Proof.
-  revert q. induction p; intro q; destruct q; simpl; f_equal; trivial.
-  rewrite 2 add_carry_spec; now f_equal.
-Defined.
-
-(** ** Permutation of [add] and [succ] *)
-
-Theorem add_succ_r p q : (p + Pos.succ q = Pos.succ (p + q))%positive.
-Proof.
-  revert q.
-  induction p; intro q; destruct q; simpl; f_equal;
-   auto using add_1_r; rewrite add_carry_spec; auto.
-Defined.
-
-Theorem add_succ_l p q : (Pos.succ p + q = Pos.succ (p + q))%positive.
-Proof.
-  rewrite add_comm, (add_comm p). apply add_succ_r.
-Defined.
-
-Lemma n_succ_plus : 
-  forall n m, (N.succ n + m = N.succ (n + m))%N.
-Proof.
-  intros;
-  destruct n; destruct m; try exact eq_refl.
-  - simpl.
-    f_equal.
-    destruct p; trivial.
-  - simpl N.succ.
-    erewrite n_pos_distr.
-    f_equal.
-    eapply add_succ_l.
-Defined.
-
-
-Definition n_tuple_concat' {A n m} (xs: n_tuple A n) : n_tuple A m -> n_tuple A (m + n).
-  refine (
-    (peano_rect_N (fun m' => n_tuple A m' -> n_tuple A (m' + n)) (fun _ => xs) _) m
-  ).
-  intros.
-  erewrite n_succ_plus.
-  erewrite n_tuple_succ.
-  erewrite n_tuple_succ in X0.
-  refine (
-    let (ys, y) := X0 in 
-    (X ys, y)
-  ).
-Defined.
-
-Definition n_tuple_repeat {A: Set} (n: N) (a: A) : n_tuple A n.
-  refine (peano_rect_N _ tt (fun n' r => _) n).
-  erewrite n_tuple_succ.
-  refine (r, a).
-Defined.
-
-(* Eval vm_compute in (n_tuple_concat' (n_tuple_repeat 3%N true) (n_tuple_repeat 4%N false)). *)
+Fixpoint n_tuple_repeat {A: Type} (n: nat) (a: A) : n_tuple A n :=
+  match n with
+  | 0 => tt
+  | S n => ((n_tuple_repeat n a), a)
+  end.
 
 Definition p_l_trans x y : S x + y = S (x + y) := eq_refl.
 
@@ -295,7 +97,7 @@ Definition plus_zero_trans : forall n, n + 0 = n.
   rewrite HR'.
   rewrite HR.
   exact eq_refl.
-Defined.
+  Defined.
 
 Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
   refine (fix satrec n {struct n} :=
@@ -310,28 +112,23 @@ Definition succ_add_trans (m: nat) : forall n, n + S m = S n + m.
   rewrite hr.
   simpl.
   exact eq_refl.
-Defined.
+  Defined.
 
-(* we probably shouldn't use this definition...it produces several nasty rew dependent terms in practice *)
 Program Definition n_tuple_concat {A n m} (xs: n_tuple A n) (ys: n_tuple A m) : n_tuple A (n + m) :=
   rewrite_size _ (n_tuple_concat' xs ys).
 Next Obligation.
   Lia.lia.
 Defined.
-(* 
-Eval vm_compute in (n_tuple_concat (n_tuple_repeat 3%N true) (n_tuple_repeat 4%N false)). *)
 
 Instance n_tuple_eq_dec
-         {A: Set}
+         {A: Type}
          `{A_eq_dec: EquivDec.EqDec A eq}
-         (n: N) : EquivDec.EqDec (n_tuple A n) eq.
+         (n: nat) : EquivDec.EqDec (n_tuple A n) eq.
 Proof.
-  unfold EquivDec.EqDec.
-  induction n using peano_rect_N.
-  - intros; destruct x, y; now left.
-  - erewrite n_tuple_succ.
-    intros.
-    destruct x, y.
+  unfold EquivDec.EqDec; intros.
+  induction n.
+  - destruct x, y; now left.
+  - destruct x, y.
     destruct (A_eq_dec a a0).
     + destruct (IHn n0 n1).
       * left; congruence.
@@ -339,48 +136,34 @@ Proof.
     + right; congruence.
 Defined.
 
-Lemma min_0_r : forall n, (N.min n 0 = 0)%N.
+Lemma min_0_r : forall n, Nat.min n 0 = 0.
 Proof.
-  Lia.lia.
-Defined.
-Lemma min_0_l : forall n, (N.min 0 n = 0)%N.
+  intros.
+  eapply min_r; eapply le_0_n.
+Qed.
+Lemma min_0_l : forall n, Nat.min 0 n = 0.
 Proof.
-  Lia.lia.
-Defined.
+  intros.
+  eapply min_l; eapply le_0_n.
+Qed.
 
-Definition firstn_N {A} (n: N) (l: list A) : list A.
-Admitted.
-
-Lemma firstn_N_length: 
-  forall A n (l: list A), 
-    length_N (firstn_N n l) = N.min n (length_N l).
-Admitted.
-
-Program Definition n_tuple_take_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (N.min n m) :=
-  rewrite_size _ (l2t (firstn_N n (t2l xs))).
+Program Definition n_tuple_take_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (Nat.min n m) :=
+  rewrite_size _ (l2t (firstn n (t2l xs))).
 Next Obligation.
-  rewrite firstn_N_length.
+  rewrite firstn_length.
   rewrite t2l_len.
   exact eq_refl.
 Defined.
 
-Definition skipn_N {A} (n: N) (l: list A) : list A.
-Admitted.
-
-Lemma skipn_N_length: 
-  forall A n (l: list A), 
-    length_N (skipn_N n l) = (length_N l - n)%N.
-Admitted.
-
-Program Definition n_tuple_skip_n {A m} (n: N) (xs: n_tuple A m) : n_tuple A (m - n) :=
-  rewrite_size _ (l2t (skipn_N n (t2l xs))).
+Program Definition n_tuple_skip_n {A m} (n: nat) (xs: n_tuple A m) : n_tuple A (m - n) :=
+  rewrite_size _ (l2t (skipn n (t2l xs))).
 Next Obligation.
-  rewrite skipn_N_length.
+  rewrite skipn_length.
   rewrite t2l_len.
   exact eq_refl.
 Defined.
 
-Program Definition n_tuple_slice {A n} (hi lo: N) (xs: n_tuple A n) : n_tuple A (N.min (1 + hi) n - lo) :=
+Program Definition n_tuple_slice {A n} (hi lo: nat) (xs: n_tuple A n) : n_tuple A (Nat.min (1 + hi) n - lo) :=
   n_tuple_skip_n lo (n_tuple_take_n (1 + hi) xs).
 
 Lemma rewrite_size_eq:
@@ -390,12 +173,12 @@ Proof.
   unfold Ntuple.rewrite_size, eq_rect_r.
   intros.
   rewrite <- eq_rect_eq_dec; eauto.
-  apply N.eq_dec.
+  apply PeanoNat.Nat.eq_dec.
 Qed.
 
 Lemma rewrite_size_jmeq:
   forall A n m (x: Ntuple.n_tuple A m) (pf: n = m),
-    (Ntuple.rewrite_size pf x) ~= x.
+    JMeq (Ntuple.rewrite_size pf x) x.
 Proof.
   unfold Ntuple.rewrite_size, eq_rect_r.
   intros.
@@ -405,36 +188,17 @@ Qed.
 
 Lemma concat'_emp:
   forall A n (t: n_tuple A n),
-    (n_tuple_concat' (tt: n_tuple A 0) t) ~= t.
+    JMeq (n_tuple_concat' (tt: n_tuple A 0) t) t.
 Proof.
-  induction n using peano_rect_N.
-  - intros; destruct t; reflexivity.
-  - 
-    erewrite n_tuple_succ.
-    unfold n_tuple_concat'.
-    erewrite peano_rect_N_succ.
-    intros.
-    erewrite n_tuple_succ in t.
-    specialize (IHn t).
-    change (peano_rect_N _ _ _) with (n_tuple_concat' (tt: n_tuple A 0) t).
-    set (x := (peano_rect_N _ _ _ _)).
-    change ((peano_rect_N (fun m' : N => n_tuple A m' -> n_tuple A (m' + 0))
-    (fun _ : n_tuple A 0 => tt)
-    (fun (n0 : N) (X : n_tuple A n0 -> n_tuple A (n0 + 0))
-       (X0 : n_tuple A (N.succ n0)) =>
-     rew <- [fun n1 : N => n_tuple A n1] n_succ_plus n0 0 in
-     rew <- [fun S : Set => S] n_tuple_succ in
-     (let (ys0, y0) := rew [fun S : Set => S] n_tuple_succ in X0 in
-      (X ys0, y0))) n ys, y) with n_tuple_concat' tt t).
-    erewrite n_tuple_succ.
-    admit.
-    (* should be able to rewrite with IHn... *)
-Admitted.
-
+  induction n; cbn; destruct t.
+  - reflexivity.
+  - rewrite IHn.
+    reflexivity.
+Qed.
 
 Lemma concat_emp:
   forall A n (t: n_tuple A n),
-    (n_tuple_concat (tt: n_tuple A 0) t) ~= t.
+    JMeq (n_tuple_concat (tt: n_tuple A 0) t) t.
 Proof.
   unfold n_tuple_concat.
   unfold eq_rect_r.
@@ -460,12 +224,12 @@ Qed.
 
 Lemma concat_cons:
   forall bool n m (xs: n_tuple bool n) (ys: n_tuple bool m) a,
-    (n_tuple_cons (n_tuple_concat xs ys) a) ~=
-    (n_tuple_concat (n_tuple_cons xs a) ys).
+    JMeq (n_tuple_cons (n_tuple_concat xs ys) a)
+         (n_tuple_concat (n_tuple_cons xs a) ys).
 Proof.
   intros.
   unfold n_tuple_concat.
-  generalize (n_tuple_concat_obligation_1 bool (N.succ n) m).
+  generalize (n_tuple_concat_obligation_1 bool (1 + n) m).
   generalize (n_tuple_concat_obligation_1 bool n m).
   intros e e0.
   rewrite e, e0.
