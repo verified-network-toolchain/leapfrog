@@ -124,31 +124,30 @@ class tcam_mask(enum.Enum):
 
   @property
   def width(self):
-    match self:
-      case tcam_mask.BIT: return 1
+    if self == tcam_mask.BIT: 
+      return 1
       # case tcam_mask.BYTE: return 4
-      case tcam_mask.WILD: return 1
+    elif self == tcam_mask.WILD: 
+      return 1
+    else: 
+      assert False
+    
   
   def __or__(self, other: tcam_mask):
-    match self, other:
-      case tcam_mask.WILD, _: return tcam_mask.WILD
-      case _, tcam_mask.WILD: return tcam_mask.WILD
-      case _, _:
-        if self == other:
-          return self
-        else:
-          print("can't OR together bit and byte masks:", self, other)
-          assert False
+    if self == tcam_mask.WILD: return tcam_mask.WILD
+    elif other == tcam_mask.WILD: return tcam_mask.WILD
+    elif self == other: return self
+    else:
+      print("can't OR together bit and byte masks:", self, other)
+      assert False
 
 
 def c_to_mask(c: chr) -> tcam_mask:
-  match c: 
-    # case 'f': return tcam_mask.BYTE
-    case '1': return tcam_mask.BIT
-    case '0': return tcam_mask.WILD
-    case _: 
-      print("unhandled mask:", c)
-      assert False
+  if c == '1': return tcam_mask.BIT
+  elif c == '0': return tcam_mask.WILD
+  else:
+    print("unhandled mask:", c)
+    assert False
 
 def s_to_masks(s: str) -> list[tcam_mask]:
   return [c_to_mask(x) for x in s]
@@ -244,24 +243,25 @@ def format_tcam_state(pref: int, st: tcam_state):
     for j, mask in enumerate(trans.masks):
       # print("pat:", trans.pats[j])
       # print("mask:", mask, mask == tcam_mask.WILD, mask == tcam_mask.BIT)
-      match mask:
-        case tcam_mask.WILD: 
-          if masks_str == "":
-            masks_str = "*"
-          else:
-            masks_str += f", *"
-        # case tcam_mask.BYTE:
-        #   if masks_str == "":
-        #     masks_str = "hexact 0x" + "".join(trans.pats[j])
-        #   else:
-        #     masks_str += f", hexact 0x{''.join(trans.pats[j])}"
-        case tcam_mask.BIT:
-          # dig = "true" if trans.pats[j] == "1" else "false"
-          dig = trans.pats[j]
-          if masks_str == "":
-            masks_str = f"exact #b|{dig}"
-          else:
-            masks_str += f", exact #b|{dig}"
+      if mask == tcam_mask.WILD: 
+        if masks_str == "":
+          masks_str = "*"
+        else:
+          masks_str += f", *"
+      # case tcam_mask.BYTE:
+      #   if masks_str == "":
+      #     masks_str = "hexact 0x" + "".join(trans.pats[j])
+      #   else:
+      #     masks_str += f", hexact 0x{''.join(trans.pats[j])}"
+      elif mask == tcam_mask.BIT:
+        # dig = "true" if trans.pats[j] == "1" else "false"
+        dig = trans.pats[j]
+        if masks_str == "":
+          masks_str = f"exact #b|{dig}"
+        else:
+          masks_str += f", exact #b|{dig}"
+      else: 
+        assert False
 
     nxt_extract = trans.next_extract*8 - st.window*8
     output += f"      [| {masks_str} |] ==> "

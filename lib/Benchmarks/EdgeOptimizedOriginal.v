@@ -17,7 +17,7 @@ Ltac prep_equiv :=
   program_simpl; try congruence.
 
 Obligation Tactic := prep_equiv.
-Inductive state := | State_0_suff_1 | State_0_suff_2 | State_3_suff_2 | State_3_suff_1 | State_0_suff_3 | State_2_suff_0 | State_1_suff_0 | State_1 | State_3_suff_3 | State_4 | State_3_suff_0 | State_0 | State_3 | State_2.
+Inductive state := | State_4 | State_3_suff_3 | State_3_suff_1 | State_0 | State_1_suff_0 | State_0_suff_2 | State_1 | State_3 | State_3_suff_2 | State_2 | State_3_suff_0 | State_0_suff_3 | State_2_suff_0 | State_0_suff_1.
 Scheme Equality for state.
 Global Instance state_eqdec: EquivDec.EqDec state eq := state_eq_dec.
 Global Instance state_finite: @Finite state _ state_eq_dec.
