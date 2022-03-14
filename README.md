@@ -93,6 +93,8 @@ Leapfrog relies on the following packages:
 * Equations (Coq plugin), version 1.3~beta1+8.13
 * [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin), tag
   `pldi22-artifact`
+* Python, version 3.10 or later
+* Pipenv, version 11.9 or later
 
 #### System-level software packages
 
@@ -100,7 +102,7 @@ To install Make, CVC4, Z3, OPAM, and GNU MP Bignum on Ubuntu, run the following:
 
 ```
 sudo apt update
-sudo apt install build-essential cvc4 z3 opam libgmp-dev
+sudo apt install build-essential cvc4 z3 opam libgmp-dev python3 pipenv
 ```
 
 #### Packages installed through OPAM
