@@ -76,6 +76,10 @@ the Coq built. Inside the container, the MirrorSolve plugin is located in
 `~/mirrorsolve`.
 
 ### Option 2: Manual installation
+
+For this option, we will assume Ubuntu 21.10 as a base operating system.
+Instructions for other systems may differ slightly.
+
 Leapfrog relies on the following packages:
 
 * GNU Make, version 4.3 or later
