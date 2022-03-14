@@ -8,7 +8,7 @@ ENV LEAPFROG_APT_DEPS \
 cvc4 \
 z3 \
 libgmp-dev \
-python3.10 \
+python3.9 \
 pipenv \
 time \
 coqide \
@@ -23,7 +23,7 @@ ENV COQ_REPO=https://coq.inria.fr/opam/released
 
 RUN sudo apt-get update && \
 sudo apt-get install -y $LEAPFROG_APT_DEPS && \
-sudo ln -s /usr/bin/python3.10 /usr/bin/python
+sudo ln -s /usr/bin/python3.9 /usr/bin/python
 
 RUN opam repo add --all-switches coq-released $COQ_REPO && \
 opam update && \
