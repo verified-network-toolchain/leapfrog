@@ -148,7 +148,7 @@ dune install
 #### Building Leapfrog
 
 Finally, you can build Leapfrog by running `make` inside the main source
-directory.
+directory. Warnings about missing the mirrorsolve module are normal here.
 
 ## Benchmarks
 
