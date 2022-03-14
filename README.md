@@ -84,6 +84,7 @@ Leapfrog relies on the following packages:
 
 * GNU Make, version 4.3 or later
 * GNU MP Bignum, version 6.2 or later
+* GNU Time, version 1.9 or later
 * CVC4, version 1.8 or later
 * Z3, version 4.8.14 or later
 * Dune, version 2.9.3 or later.
@@ -93,7 +94,7 @@ Leapfrog relies on the following packages:
 * Equations (Coq plugin), version 1.3~beta1+8.13
 * [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin), tag
   `pldi22-artifact`
-* Python, version 3.10 or later
+* Python, version 3.9 or later
 * Pipenv, version 11.9 or later
 
 #### System-level software packages
@@ -102,7 +103,7 @@ To install Make, CVC4, Z3, OPAM, and GNU MP Bignum on Ubuntu, run the following:
 
 ```
 sudo apt update
-sudo apt install build-essential cvc4 z3 opam libgmp-dev python3 pipenv
+sudo apt install build-essential cvc4 z3 opam libgmp-dev python3 pipenv time
 ```
 
 #### Packages installed through OPAM
