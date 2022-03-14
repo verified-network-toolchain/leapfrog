@@ -100,16 +100,22 @@ sudo apt install build-essential cvc4 z3 opam libgmp-dev
 
 #### Packages installed through OPAM
 
-To install Coq, Equations, Dune, and the appropriate version of OCaml through
-OPAM, first create a new switch---possibly substituting your version of the
-OCaml compiler:
+First, initialize OPAM. If you are running inside a container, you may also
+want to add the `--disable-sandboxing` flag.
+
+```
+opam init
+```
+
+Next create a new switch---possibly substituting your version of the OCaml
+compiler:
 
 ```
 opam switch create leapfrog 4.11.1
 eval $(opam env)
 ```
 
-Next, add the Coq OPAM repository:
+Then, add the Coq OPAM repository:
 
 ```
 opam repo add coq-released https://coq.inria.fr/opam/released
