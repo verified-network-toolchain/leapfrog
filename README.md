@@ -79,10 +79,10 @@ the Coq built. Inside the container, the MirrorSolve plugin is located in
 Leapfrog relies on the following packages:
 
 * GNU Make, version 4.3 or later
-* GNU MP Bignum library, version 6.2 or later
+* GNU MP Bignum, version 6.2 or later
 * CVC4, version 1.8 or later
 * Z3, version 4.8.14 or later
-* Dune, version 2.2 or later.
+* Dune, version 2.9.3 or later.
 * OCaml, version 4.11.1 or later
 * OPAM, version 2.0.8 or later.
 * Coq, version 8.13.2
@@ -92,19 +92,21 @@ Leapfrog relies on the following packages:
 
 #### System-level software packages
 
-To install Make, CVC4, Z3, Dune and OPAM on Ubuntu, run the following:
+To install Make, CVC4, Z3, OPAM, and GNU MP Bignum on Ubuntu, run the following:
 
 ```
-sudo apt install build-essential cvc4 z3 dune opam ocaml libgmp-dev
+sudo apt install build-essential cvc4 z3 opam libgmp-dev
 ```
 
 #### Packages installed through OPAM
 
-To install Coq and Equations through OPAM, first create a new switch---possibly
-substituting your version of the OCaml compiler:
+To install Coq, Equations, Dune, and the appropriate version of OCaml through
+OPAM, first create a new switch---possibly substituting your version of the
+OCaml compiler:
 
 ```
 opam switch create leapfrog 4.11.1
+eval $(opam env)
 ```
 
 Next, add the Coq OPAM repository:
@@ -118,7 +120,7 @@ Equations:
 
 ```
 opam update
-opam install coq=8.13.2 coq-equations=1.3~beta1+8.13
+opam install coq=8.13.2 coq-equations=1.3~beta1+8.13 dune=2.9.3
 ```
 
 #### Installing MirrorSolve
