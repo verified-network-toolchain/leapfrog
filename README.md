@@ -99,6 +99,7 @@ Leapfrog relies on the following packages:
 To install Make, CVC4, Z3, OPAM, and GNU MP Bignum on Ubuntu, run the following:
 
 ```
+sudo apt update
 sudo apt install build-essential cvc4 z3 opam libgmp-dev
 ```
 
