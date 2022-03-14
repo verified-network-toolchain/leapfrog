@@ -71,27 +71,26 @@ MainOpt = Enum('MainOpt', 'SMALL LARGE ALL ONE')
 def main(opt: MainOpt, log_config, bench_name : Optional[str] = None):
 
   benches : Benchmarks
-  match opt:
-    case MainOpt.SMALL:
-      print("running small benchmarks")
-      benches = small_benchmarks
-    case MainOpt.LARGE: 
-      print("running large benchmarks")
-      benches = large_benchmarks
-    case MainOpt.ALL:
-      print("running all benchmarks")
-      benches = all_benchmarks
-    case MainOpt.ONE:
-      if bench_name:
-        print('running one benchmark:', bench_name)
-        benches = all_benchmarks.filter_by_name(bench_name)
-      else: 
-        print('missing required benchmark argument for size one')
-        assert False
-    case _:
-      print('bad argument to main', opt)
+  if opt == MainOpt.SMALL:
+    print("running small benchmarks")
+    benches = small_benchmarks
+  elif opt == MainOpt.LARGE:
+    print("running large benchmarks")
+    benches = large_benchmarks
+  elif opt == MainOpt.ALL:
+    print("running all benchmarks")
+    benches = all_benchmarks
+  elif opt == MainOpt.ONE:
+    if bench_name:
+      print('running one benchmark:', bench_name)
+      benches = all_benchmarks.filter_by_name(bench_name)
+    else:
+      print('missing required benchmark argument for size one')
       assert False
-  
+  else:
+    print('bad argument to main', opt)
+    assert False
+ 
   prefix = make_bench_prefix(log_config)
 
   os.makedirs(prefix, mode=0o777)
@@ -130,26 +129,25 @@ if __name__ == "__main__":
   args = parser.parse_args()
   bench_name = None
   opt : MainOpt
-  match args.size:
-    case 'small':
-      opt = MainOpt.SMALL
-    case 'large':
-      curr_limit, _ = resource.getrlimit(resource.RLIMIT_STACK)
-      if not curr_limit == resource.RLIM_INFINITY:
-        print("warning: running large benchmarks without using unlimited stack size")
-        print("try rerunning with ulimit -s unlimited")
-      opt = MainOpt.LARGE
-    case 'all':
-      curr_limit, _ = resource.getrlimit(resource.RLIMIT_STACK)
-      if not curr_limit == resource.RLIM_INFINITY:
-        print("warning: running large benchmarks without using unlimited stack size")
-        print("try rerunning with ulimit -s unlimited")
-      opt = MainOpt.ALL
-    case 'one': 
-      opt = MainOpt.ONE
-      bench_name = args.f
-    case _:
-      print('bad CLI argument to runner', args.size)
-      assert False
+  if args.size == 'small':
+    opt = MainOpt.SMALL
+  if args.size == 'large':
+    curr_limit, _ = resource.getrlimit(resource.RLIMIT_STACK)
+    if not curr_limit == resource.RLIM_INFINITY:
+      print("warning: running large benchmarks without using unlimited stack size")
+      print("try rerunning with ulimit -s unlimited")
+    opt = MainOpt.LARGE
+  elif args.size == 'all':
+    curr_limit, _ = resource.getrlimit(resource.RLIMIT_STACK)
+    if not curr_limit == resource.RLIM_INFINITY:
+      print("warning: running large benchmarks without using unlimited stack size")
+      print("try rerunning with ulimit -s unlimited")
+    opt = MainOpt.ALL
+  elif args.size == 'one':
+    opt = MainOpt.ONE
+    bench_name = args.f
+  else:
+    print('bad CLI argument to runner', args.size)
+    assert False
   log_config = LogConfig(args.log_dir)
   main(opt, log_config, bench_name=bench_name)
