@@ -37,8 +37,8 @@ There are a few ways to get the Docker image. This container is a few GB in
 size, so this can take a while depending on the speed of your internet
 connection. The third option has to build Coq and other dependencies, so it will
 take a while depending on the speed of your computer.
-1. Download it from Zenodo to a local file `leapfrog-docker-image.tar` and then
-   run `docker load -i leapfrog-docker-image.tar`.
+1. Download it from Zenodo to a local file `leapfrog-docker-image.tar.xz` and then
+   run `docker load -i leapfrog-docker-image.tar.xz`.
 2. Download a public version from the Docker repos with `docker pull
    hackedy/leapfrog:latest`
 3. Build a copy locally from the Zenodo source archive `leapfrog.zip`:
@@ -113,13 +113,14 @@ want to add the `--disable-sandboxing` flag.
 
 ```
 opam init
+eval $(opam env)
 ```
 
 Next create a new switch---possibly substituting your version of the OCaml
 compiler:
 
 ```
-opam switch create leapfrog 4.11.1
+opam switch create leapfrog ocaml-base-compiler.4.11.1
 eval $(opam env)
 ```
 

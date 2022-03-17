@@ -131,7 +131,7 @@ if __name__ == "__main__":
   opt : MainOpt
   if args.size == 'small':
     opt = MainOpt.SMALL
-  if args.size == 'large':
+  elif args.size == 'large':
     curr_limit, _ = resource.getrlimit(resource.RLIMIT_STACK)
     if not curr_limit == resource.RLIM_INFINITY:
       print("warning: running large benchmarks without using unlimited stack size")
