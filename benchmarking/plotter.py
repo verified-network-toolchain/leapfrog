@@ -25,9 +25,10 @@ class LogData:
   dt: time
   runtime: timedelta
   memory_use: int
+  success: bool
 
   def to_csv_row(self):
-    return ",".join([self.name, self.hash, str(self.dt), fmt_td(self.runtime), str(self.memory_use)])
+    return ",".join([self.name, self.hash, str(self.dt), fmt_td(self.runtime), str(self.memory_use)]) + ("" if self.success else "*")
 
 
 @dataclass(frozen=True)
@@ -35,24 +36,29 @@ class LogDataPartial:
   name: str
   runtime: timedelta
   memory_use: int
+  success: bool
 
   def to_csv_row(self):
-    return ",".join([self.name, fmt_td(self.runtime), str(self.memory_use)])
+    return ",".join([self.name, fmt_td(self.runtime), str(self.memory_use)]) + ("" if self.success else "*")
 
-def parse_stats(loc: str) -> Tuple[time, int] : 
+def parse_stats(loc: str) -> Tuple[timedelta, int, bool] : 
 
   # re_runtime_valu = r"(\d\d:\d\d:\d\d)|(\d:\d\d\.\d\d)"
 
-  re_runtime = r"\s*Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*((\d+:\d\d:\d\d)|(\d:\d\d\.\d\d))\s*"
+  re_runtime = r"\s*Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*((\d+:\d\d:\d\d)|(\d\d?:\d\d\.\d\d))\s*"
   runtime : Optional[timedelta] = None
   
   mem_bytes : Optional[int] = None
   re_mem = r"\s*Maximum resident set size \(kbytes\):\s*(\d+)\s*"
 
+  success : Optional[bool] = None
+  re_succ = r"\s*Exit status: (\d+)\s*"
+
   with open(loc) as f:
     for line in f:
       rt_match = re.match(re_runtime, line)
       mem_match = re.match(re_mem, line)
+      succ_match = re.match(re_succ, line)
       if rt_match:
         _, long, short = rt_match.groups()
         if long:
@@ -68,15 +74,26 @@ def parse_stats(loc: str) -> Tuple[time, int] :
           assert False
       elif mem_match:
         mem_bytes = int(mem_match.group(1))
+      elif succ_match:
+        # print('parsed success to')
+        # print(succ_match.groups())
+        result_val = int(succ_match.group(1))
+        success = result_val == 0
+
+
+
   
   if runtime is None:
     print('could not parse runtime in', loc)
     assert False
   elif mem_bytes is None:
-    print('cloudl not parse memory in', loc)
+    print('could not parse memory in', loc)
+    assert False
+  elif success is None:
+    print('could not parse output result', loc)
     assert False
   else:
-    return (runtime, mem_bytes)
+    return (runtime, mem_bytes, success)
 
 
 def import_log(location_path: str):
@@ -92,7 +109,7 @@ def import_log(location_path: str):
 
   assert len(hash) == 7
 
-  runtime, mem = parse_stats(location_path)
+  runtime, mem, success = parse_stats(location_path)
 
   return LogData(
       name = name
@@ -100,11 +117,12 @@ def import_log(location_path: str):
     , dt = dt
     , runtime = runtime
     , memory_use= mem
+    , success=success
   )
 
 def import_partial_log(name: str, location_path: str):
-  runtime, mem = parse_stats(location_path)
-  return LogDataPartial(name=name, runtime=runtime, memory_use=mem)
+  runtime, mem, success = parse_stats(location_path)
+  return LogDataPartial(name=name, runtime=runtime, memory_use=mem, success=success)
 
 
 parser = argparse.ArgumentParser()
