@@ -25,7 +25,8 @@ small_benchmarks : Benchmarks = Benchmarks(
     	Benchmark(name="ethernet", target="ethernet")
     , Benchmark(name="selfcomparison", target="selfcomparison")
     , Benchmark(name="mpls", target="mpls")
-    , Benchmark(name="sloppystrict", target="sloppystrict")
+    , Benchmark(name="sloppystrict filtering", target="sloppystrictfilter")
+    , Benchmark(name="sloppystrict stores", target="sloppystrictstores")
     , Benchmark(name="ipfilter", target="ipfilter")
   ]
 )

@@ -56,8 +56,11 @@ selfcomparison: build
 ethernet: build
 	xargs coqc lib/Benchmarks/EthernetProof.v < _CoqProject
 
-sloppystrict: build
-	xargs coqc lib/Benchmarks/SloppyStrictProof.v < _CoqProject
+sloppystrictstores: build
+	xargs coqc lib/Benchmarks/SloppyStrictStores.v < _CoqProject
+
+sloppystrictfilter: build
+	xargs coqc lib/Benchmarks/SloppyStrictFilter.v < _CoqProject
 
 ipoptions3: build
 	xargs coqc lib/Benchmarks/IPOptions3Proof.v < _CoqProject

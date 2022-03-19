@@ -33,7 +33,8 @@
    Benchmarks.MPLSVectorizedSmallUnrollProof
    Benchmarks.MPLSVectorizedUnrollProof
    Benchmarks.SmallFilterProof
-   Benchmarks.SloppyStrictProof
+   Benchmarks.SloppyStrictFilter
+   Benchmarks.SloppyStrictStores
    Benchmarks.TimestampSmallProof
    Benchmarks.TimestampSingleProof
    Benchmarks.TimestampSingleZeroProof
