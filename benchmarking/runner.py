@@ -121,7 +121,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--size', choices=['small', 'large', 'all', 'one'], required=True)
 parser.add_argument('--log-dir', default=os.path.join(LEAPFROG_ROOT,
 "benchmarking/logs"))
-parser.add_argument('-f', default=None, choices=[ "ethernet" , "selfcomparison" , "mpls" , "sloppystrict" , "ipfilter" , "edgeself" , "edgetrans" , "datacenter" , "serviceprovider" , "enterprise" , "ipoptions2"],
+parser.add_argument('-f', default=None, choices=[ 
+    "ethernet" , "selfcomparison" , "mpls" , "sloppystrict_filter" , "sloppystrict_stores",
+    "ipfilter" , "edgeself" , "edgetrans" , "datacenter" , 
+    "serviceprovider" , "enterprise" , "ipoptions2"
+  ],
   help="benchmark name if size is one"
 )
 
