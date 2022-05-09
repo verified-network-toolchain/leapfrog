@@ -41,15 +41,15 @@ Section WP.
     | BEConcat e1 e2 => beconcat (be_subst e1 e x) (be_subst e2 e x)
     end.
 
-  Fixpoint sr_subst {c} (sr: store_rel Hdr c) (e: bit_expr Hdr c) (x: bit_expr Hdr c) : store_rel Hdr c :=
-  match sr with
-  | BRTrue _ _
-  | BRFalse _ _ => sr
-  | BREq e1 e2 => BREq (be_subst e1 e x) (be_subst e2 e x)
-  | BRAnd r1 r2 => brand (sr_subst r1 e x) (sr_subst r2 e x)
-  | BROr r1 r2 => bror (sr_subst r1 e x) (sr_subst r2 e x)
-  | BRImpl r1 r2 => brimpl (sr_subst r1 e x) (sr_subst r2 e x)
-  end.
+  Equations sr_subst {c} (sr: store_rel Hdr c) (e: bit_expr Hdr c) (x: bit_expr Hdr c) : store_rel Hdr c := {
+    sr_subst (BRTrue _ _) e x := BRTrue _ _;
+    sr_subst (BRFalse _ _) e x := BRFalse _ _;
+    sr_subst (BREq e1 e2) e x := BREq (be_subst e1 e x) (be_subst e2 e x);
+    sr_subst (BRAnd r1 r2) e x := brand (sr_subst r1 e x) (sr_subst r2 e x);
+    sr_subst (BROr r1 r2) e x := bror (sr_subst r1 e x) (sr_subst r2 e x);
+    sr_subst (BRImpl r1 r2) e x := brimpl (sr_subst r1 e x) (sr_subst r2 e x);
+    sr_subst (BRForAll r) e x := BRForAll (sr_subst r (weaken_bit_expr _ e) (weaken_bit_expr _ x));
+  }.
 
   Inductive lkind :=
   | Jump
@@ -85,7 +85,14 @@ Section WP.
         let slice := beslice (BEBuf _ _ s) (buf_hi_idx - 1) new_idx in
         (new_idx, sr_subst phi slice (BEHdr _ s (P4A.HRVar hdr)))
       | P4A.OpAsgn lhs rhs =>
-        (buf_hi_idx, sr_subst phi (expr_to_bit_expr s rhs) (BEHdr _ s (P4A.HRVar lhs)))
+        (buf_hi_idx,
+          BRForAll (n := Hdr_sz lhs) (
+            BRImpl (BREq (BEVar _ (BVarTop _ _)) (expr_to_bit_expr s rhs))
+                   (sr_subst (weaken_store_rel (Hdr_sz := Hdr_sz) a _ phi)
+                             (BEVar _ (BVarTop _ _))
+                             (BEHdr _ s (P4A.HRVar lhs)))
+          )
+        )
       end.
 
   Definition wp_op {c} (s: side) (o: P4A.op Hdr_sz) (phi: store_rel Hdr c) : store_rel Hdr c :=
@@ -186,7 +193,7 @@ Section WP.
     let leap_l := leap_kind prev_l cur_l in
     let leap_r := leap_kind prev_r cur_r in
     let b := BVarTop phi.(cr_ctx) size in
-    let phi_rel := weaken_store_rel size phi_rel in
+    let phi_rel := weaken_store_rel a size phi_rel in
     {| cr_st := {| cs_st1 := prev_l;
                    cs_st2 := prev_r |};
        cr_rel := wp_lpred Left b prev_l cur_l leap_l

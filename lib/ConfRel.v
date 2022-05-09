@@ -273,15 +273,17 @@ Section ConfRel.
   }.
 
   (* Syntax for pure formulas. *)
-  Inductive store_rel c :=
-  | BRTrue
-  | BRFalse
-  | BREq (e1 e2: bit_expr c)
-  | BRAnd (r1 r2: store_rel c)
-  | BROr (r1 r2: store_rel c)
-  | BRImpl (r1 r2: store_rel c).
+  Inductive store_rel: bctx -> Type :=
+  | BRTrue: forall c, store_rel c
+  | BRFalse: forall c, store_rel c
+  | BREq: forall c (e1 e2: bit_expr c), store_rel c
+  | BRAnd: forall c (r1 r2: store_rel c), store_rel c
+  | BROr: forall c (r1 r2: store_rel c), store_rel c
+  | BRImpl: forall c (r1 r2: store_rel c), store_rel c
+  | BRForAll: forall c (n: nat) (r: store_rel (BCSnoc c n)), store_rel c.
   Arguments store_rel : default implicits.
 
+  Obligation Tactic := program_simpl.
   Equations store_rel_eq_dec {c: bctx} : forall x y: store_rel c, {x = y} + {x <> y} :=
     { store_rel_eq_dec (BRTrue _) (BRTrue _) := in_left;
       store_rel_eq_dec (BRFalse _) (BRFalse _) := in_left;
@@ -307,7 +309,44 @@ Section ConfRel.
              then in_left
              else in_right
         else in_right;
-    store_rel_eq_dec _ _ := in_right }.
+      store_rel_eq_dec (@BRForAll _ n1 r1) (@BRForAll _ n2 r2) with n1 == n2 := {
+        store_rel_eq_dec (@BRForAll _ n r1) (@BRForAll _ ?(n) r2) (left eq_refl) :=
+          if (store_rel_eq_dec r1 r2)
+          then in_left
+          else in_right;
+        store_rel_eq_dec (@BRForAll _ n1 r1) (@BRForAll _ n2 r2) (right _) :=
+          in_right;
+      };
+      store_rel_eq_dec _ _ := in_right
+    }.
+    Solve Obligations with (
+      program_simpl; contradict n; inversion n;
+      now apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply bctx_eq_dec]
+    ).
+    Next Obligation.
+      congruence.
+    Qed.
+    Next Obligation.
+      contradict o.
+      inversion o.
+      apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply bctx_eq_dec].
+      apply Eqdep_dec.inj_pair2_eq_dec in H1; [|apply bctx_eq_dec].
+      subst; intro.
+      destruct H; congruence.
+    Qed.
+    Next Obligation.
+      contradict n0.
+      inversion n0.
+      apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply bctx_eq_dec].
+      apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply nat_eq_eqdec].
+      assumption.
+    Qed.
+    Next Obligation.
+      contradict wildcard3.
+      inversion wildcard3.
+      subst.
+      congruence.
+    Qed.
 
   Solve All Obligations with
       (intros;
@@ -348,7 +387,9 @@ Section ConfRel.
       interp_store_rel r2 valu buf1 buf2 store1 store2;
     interp_store_rel (BRImpl r1 r2) valu buf1 buf2 store1 store2 :=
       interp_store_rel r1 valu buf1 buf2 store1 store2 ->
-      interp_store_rel r2 valu buf1 buf2 store1 store2
+      interp_store_rel r2 valu buf1 buf2 store1 store2;
+    interp_store_rel (BRForAll r) valu buf1 buf2 store1 store2 :=
+      forall v, interp_store_rel r (valu, v) buf1 buf2 store1 store2
   }.
 
   Section SmartConstructors.
@@ -435,6 +476,9 @@ Section ConfRel.
     Qed.
   End SmartConstructors.
 
+  Definition swap_outer {c} (n1 n2: nat) (r: store_rel (BCSnoc (BCSnoc c n1) n2)): store_rel (BCSnoc (BCSnoc c n2) n1).
+  Admitted.
+
   Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
     match r with
     | BRTrue _ => BRTrue _
@@ -443,6 +487,7 @@ Section ConfRel.
     | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
     | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
     | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | @BRForAll c n r => BRForAll (swap_outer (weaken_store_rel size r))
     end.
 
   Record conf_states :=
