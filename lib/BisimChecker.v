@@ -10,6 +10,8 @@ Require Import Leapfrog.Utils.Tactics.
 Require Import Leapfrog.Utils.FunctionalFP.
 Require Import MirrorSolve.FirstOrder.
 
+Require Import MirrorSolve.SMT.
+
 Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 

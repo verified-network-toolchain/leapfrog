@@ -37,9 +37,9 @@ Section CompileFirstOrderConfRelSimplified.
     (hdrs: list Hdr)
     : ctx FOBV.sig
   := {
-    compile_store_ctx_partial nil := CEmp _;
+    compile_store_ctx_partial nil := SLNil _;
     compile_store_ctx_partial (hdr :: hdrs) :=
-      CSnoc _ (compile_store_ctx_partial hdrs) (FOBV.Bits (Hdr_sz hdr))
+      Snoc _ (compile_store_ctx_partial hdrs) (FOBV.Bits (Hdr_sz hdr))
   }.
 
   Definition compile_store_ctx : ctx FOBV.sig :=
@@ -53,16 +53,16 @@ Section CompileFirstOrderConfRelSimplified.
   := {
     compile_store_valu_partial hnil := VEmp _ _;
     compile_store_valu_partial (hdr ::: hdrs) :=
-      VSnoc _ FOBV.fm_model (FOBV.Bits _) _ hdr
-            (compile_store_valu_partial hdrs)
+      VSnoc _ FOBV.fm_model (FOBV.Bits _) _
+            (compile_store_valu_partial hdrs) hdr
   }.
 
   Equations compile_ctx (c: ctx (FOS.sig Hdr_sz)) : ctx FOBV.sig := {
-    compile_ctx (CEmp _) := CEmp _;
-    compile_ctx (CSnoc _ c FOS.Store) :=
+    compile_ctx (SLNil _) := SLNil _;
+    compile_ctx (Snoc _ c FOS.Store) :=
       app_ctx (compile_ctx c) compile_store_ctx;
-    compile_ctx (CSnoc _ c (FOS.Bits n)) :=
-      CSnoc _ (compile_ctx c) (FOBV.Bits n)
+    compile_ctx (Snoc _ c (FOS.Bits n)) :=
+      Snoc _ (compile_ctx c) (FOBV.Bits n)
   }.
 
   Equations build_hlist_env
@@ -82,9 +82,9 @@ Section CompileFirstOrderConfRelSimplified.
     (v: valu (FOS.sig Hdr_sz) (FOS.fm_model a) c)
     : valu FOBV.sig FOBV.fm_model (compile_ctx c) := {
     compile_valu (VEmp _ _) := VEmp _ _;
-    compile_valu (VSnoc _ _ (FOS.Bits n) _ v vinner) :=
-      VSnoc _ FOBV.fm_model (FOBV.Bits n) _ v (compile_valu vinner);
-    compile_valu (VSnoc _ _ (FOS.Store) _ v vinner) :=
+    compile_valu (VSnoc _ _ (FOS.Bits n) _ vinner v) :=
+      VSnoc _ FOBV.fm_model (FOBV.Bits n) _ (compile_valu vinner) v;
+    compile_valu (VSnoc _ _ (FOS.Store) _ vinner v) :=
       app_valu _ (compile_valu vinner) (compile_store_valu_partial (build_hlist_env _ v))
   }.
 
@@ -162,7 +162,7 @@ Section CompileFirstOrderConfRelSimplified.
   := {
     subscript (VHere c' _) v' :=
       reindex_var v';
-    subscript (VThere _ c (FOS.Bits n) _ v) v' :=
+    subscript (VThere _ c (FOS.Bits _) _ v) v' :=
       VThere _ _ _ _ (subscript v v');
     subscript (VThere _ c FOS.Store _ v) v' :=
       weaken_var _ (subscript v v')
@@ -292,7 +292,7 @@ Section CompileFirstOrderConfRelSimplified.
   Proof.
     intros.
     dependent induction v; dependent destruction v0.
-    - rewrite (compile_valu_equation_3 (c0 := c) m).
+    - erewrite compile_valu_equation_3 with (c0 := c).
       rewrite (subscript_equation_1 c).
       replace (find FOBV.sig FOBV.fm_model _ _)
       with (find FOBV.sig FOBV.fm_model (compile_lookup h)
@@ -306,11 +306,18 @@ Section CompileFirstOrderConfRelSimplified.
       rewrite IHv; auto.
       destruct s.
       + simpl.
-        rewrite (subscript_equation_2 n (ctx1 := c) v0 (compile_lookup h)).
-        rewrite (compile_valu_equation_2 n (c0 := c) m).
+        match goal with 
+        | |- _ = find _ _ ?X _ => 
+          assert (X = VThere FOBV.sig (compile_ctx c) (FOBV.Bits n) (FOBV.Bits (Hdr_sz h)) (subscript v0 (compile_lookup h))) by eapply subscript_equation_2
+        end.
+        erewrite H; clear H.
+
+        erewrite compile_valu_equation_2 with (n := n) (c0 := c).
+
+        
         now rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_ctx c) (FOBV.Bits n) (FOBV.Bits (Hdr_sz h))).
-      + rewrite (subscript_equation_3 (ctx1 := c) v0).
-        rewrite (compile_valu_equation_3 (c0 := c) m v).
+      + rewrite (subscript_equation_3 (c := c) v0).
+        rewrite (compile_valu_equation_3 (c0 := c) v).
         erewrite <- find_app_left; now f_equal.
   Qed.
 
@@ -519,7 +526,7 @@ Section CompileFirstOrderConfRelSimplified.
     - dependent destruction v.
       + destruct s; [easy|].
         rewrite (compile_var_equation_2 c).
-        rewrite (compile_valu_equation_3 (c0 := c) m).
+        rewrite (compile_valu_equation_3 (c0 := c)).
         unfold compile_store.
         autorewrite with interp_tm.
         autorewrite with find.
@@ -531,7 +538,7 @@ Section CompileFirstOrderConfRelSimplified.
           apply compile_store_val_partial_correct.
         * now rewrite interp_tm_reindex_tm with (sig := FOBV.sig) (v' := compile_valu val).
       + destruct s0.
-        * rewrite (compile_var_equation_3 n (ctx1 := c)).
+        * rewrite (compile_var_equation_3 n (c := c)).
           rewrite (compile_valu_equation_2 (c0 := c) n).
           replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
           with (interp_tm (compile_valu val) (compile_var v)).
@@ -545,7 +552,7 @@ Section CompileFirstOrderConfRelSimplified.
             (s' := FOBV.Bits n)
             (val := m).
         * rewrite (compile_var_equation_4 v).
-          rewrite (compile_valu_equation_3 (c0 := c) m).
+          rewrite (compile_valu_equation_3 (c0 := c)).
           autorewrite with interp_tm.
           autorewrite with find.
           replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
@@ -635,8 +642,8 @@ Section CompileFirstOrderConfRelSimplified.
       subst.
       rewrite (compile_store_valu_partial_equation_2 a0 (rest := enum)).
       f_equal.
-      rewrite P4A.assign_find; auto.
-      now apply compile_store_valu_partial_invariant.
+      + now apply compile_store_valu_partial_invariant.
+      + rewrite P4A.assign_find; auto.
   Qed.
 
   Lemma compile_store_valu_partial_surjective:
@@ -688,11 +695,11 @@ Section CompileFirstOrderConfRelSimplified.
            destruct H0 as [s ?].
            specialize (H s).
            apply IHfm in H.
-           rewrite (compile_valu_equation_3 s (c0 := c)) in H.
+           erewrite compile_valu_equation_3 with (c0 := c) in H.
            now rewrite H0 in H.
         -- specialize (H (compile_store_valu_partial (build_hlist_env _ val))).
            apply IHfm.
-           now rewrite (compile_valu_equation_3 val (c0 := c)).
+           now erewrite compile_valu_equation_3 with (c0 := c).
   Qed.
 
 End CompileFirstOrderConfRelSimplified.

@@ -29,8 +29,8 @@ Section CompileConfRelSimplified.
 
   Fixpoint compile_bctx (b: bctx): ctx (sig Hdr_sz) :=
     match b with
-    | BCEmp => CEmp _
-    | BCSnoc b size => CSnoc _ (compile_bctx b) (Bits size)
+    | BCEmp => SLNil _
+    | BCSnoc b size => Snoc _ (compile_bctx b) (Bits size)
     end.
 
   Definition be_sort {c} b1 b2 (e: bit_expr Hdr c) : sorts :=
@@ -44,14 +44,14 @@ Section CompileConfRelSimplified.
 
   Equations compile_bval (c: bctx) (v: bval c) : valu _ (fm_model a) (compile_bctx c) by struct c := {
     compile_bval BCEmp _ := VEmp _ _;
-    compile_bval (BCSnoc c' n) (v', x) := VSnoc _ (fm_model a) (Bits n) _ x (compile_bval c' v');
+    compile_bval (BCSnoc c' n) (v', x) := VSnoc _ (fm_model a) (Bits n) _ (compile_bval c' v') x;
   }.
 
   Arguments compile_bval {_} _.
 
   Equations decompile_val (c: bctx) (v: valu _ (fm_model a) (compile_bctx c)) : bval c by struct c := {
       decompile_val BCEmp _ := tt;
-      decompile_val (BCSnoc c' n) (VSnoc _ _ _ _ x v') := (decompile_val c' v', x);
+      decompile_val (BCSnoc c' n) (VSnoc _ _ _ _ v' x) := (decompile_val c' v', x);
   }.
   Arguments decompile_val {_} _.
 
@@ -71,11 +71,11 @@ Section CompileConfRelSimplified.
       trivial.
   Qed.
 
-  Definition outer_ctx b1 b2 :=
-    CSnoc (sig Hdr_sz) (
-      CSnoc (sig Hdr_sz) (
-        CSnoc (sig Hdr_sz) (
-          CSnoc (sig Hdr_sz) (CEmp (sig Hdr_sz)) Store
+  Definition outer_ctx b1 b2 : ctx (sig Hdr_sz) :=
+    Snoc _ (
+      Snoc _ (
+        Snoc _ (
+          Snoc _ (SLNil _) Store
         ) Store
       ) (Bits b2)
     ) (Bits b1).
@@ -94,11 +94,13 @@ Section CompileConfRelSimplified.
     VThere (sig Hdr_sz) _ _ _ (VHere (sig Hdr_sz) _ _))).
 
   Definition outer_valu {b1 b2} buf1 buf2 store1 store2 :=
-    VSnoc _ (fm_model a) (Bits b1) _ buf1 (
-    VSnoc _ (fm_model a) (Bits b2) _ buf2 (
-    VSnoc _ (fm_model a) Store _ store1 (
-    VSnoc _ (fm_model a) Store _ store2 (
-    VEmp _ _)))).
+    VSnoc _ (fm_model a) (Bits b1) _ (
+      VSnoc _ (fm_model a) (Bits b2) _ (
+        VSnoc _ (fm_model a) Store _ (
+          VSnoc _ (fm_model a) Store _ (VEmp _ _) store2)
+        store1)
+      buf2)
+    buf1.
 
   Equations compile_bit_expr
             {c: bctx}
@@ -175,7 +177,7 @@ Section CompileConfRelSimplified.
   (* Compilation from simplified entailments to FOL(Conf). *)
   Definition compile_simplified_entailment
     (se: simplified_entailment a)
-    : fm (sig Hdr_sz) (CEmp _) :=
+    : fm (sig Hdr_sz) (SLNil _) :=
     quantify_all _
       (FImpl (compile_simplified_crel
                se.(se_st).(cs_st1).(st_buf_len)
@@ -189,7 +191,7 @@ Section CompileConfRelSimplified.
   (* Compilation from simplified co-entailments to FOL(Conf). *)
   Definition compile_simplified_entailment'
     (se: simplified_entailment a)
-    : fm (sig Hdr_sz) (CEmp _) :=
+    : fm (sig Hdr_sz) (SLNil _) :=
 
     quantify_all _
       (FImpl (compile_simplified_conf_rel
