@@ -11,18 +11,6 @@ Import HListNotations.
 
 Section FirstOrderBitVec.
   Set Implicit Arguments.
-  (* State identifiers. *)
-  Variable (St: Type).
-  Context `{St_eq_dec: EquivDec.EqDec St eq}.
-  Context `{St_finite: @Finite St _ St_eq_dec}.
-
-  (* Header identifiers. *)
-  Variable (Hdr: Type).
-  Context `{Hdr_eq_dec: EquivDec.EqDec Hdr eq}.
-  Context `{Hdr_finite: @Finite Hdr _ Hdr_eq_dec}.
-  Variable (Hdr_sz: Hdr -> nat).
-
-  Variable (a: P4A.t St Hdr_sz).
 
   Inductive sorts: Type :=
   | Bits (n: nat).
@@ -77,3 +65,23 @@ Section FirstOrderBitVec.
 End FirstOrderBitVec.
 
 
+(* Require Import MirrorSolve.SMT.
+
+Local Declare ML Module "mirrorsolve". *)
+
+(* RegisterSMTSort @Bits @SBitVector. *)
+
+(* RegisterSMTFun Z.Plus "+" 2.
+RegisterSMTFun Z.Gte ">=" 2.
+RegisterSMTFun Z.Lt "<" 2.
+RegisterSMTFun Z.Mul "*" 2.
+RegisterSMTFun Z.Lte "<=" 2.
+
+RegisterSMTBuiltin Z.BLit BoolLit.
+RegisterSMTBuiltin Z.ZLit IntLit.
+
+Register FOBV.Bits as p4a.sorts.bits.
+
+Register FOBV.BitsLit as p4a.funs.bitslit.
+Register FOBV.Concat as p4a.funs.concat.
+Register FOBV.Slice as p4a.funs.slice. *)

@@ -316,7 +316,7 @@ Section CompileFirstOrderConfRelSimplified.
 
         
         now rewrite (find_equation_2 FOBV.sig FOBV.fm_model (compile_ctx c) (FOBV.Bits n) (FOBV.Bits (Hdr_sz h))).
-      + rewrite (subscript_equation_3 (c := c) v0).
+      + erewrite (@subscript_equation_3 c).
         rewrite (compile_valu_equation_3 (c0 := c) v).
         erewrite <- find_app_left; now f_equal.
   Qed.
@@ -538,7 +538,7 @@ Section CompileFirstOrderConfRelSimplified.
           apply compile_store_val_partial_correct.
         * now rewrite interp_tm_reindex_tm with (sig := FOBV.sig) (v' := compile_valu val).
       + destruct s0.
-        * rewrite (compile_var_equation_3 n (c := c)).
+        * erewrite compile_var_equation_3 with (ctx1 := c) (n := n).
           rewrite (compile_valu_equation_2 (c0 := c) n).
           replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
           with (interp_tm (compile_valu val) (compile_var v)).
@@ -703,9 +703,3 @@ Section CompileFirstOrderConfRelSimplified.
   Qed.
 
 End CompileFirstOrderConfRelSimplified.
-
-Register FOBV.Bits as p4a.sorts.bits.
-
-Register FOBV.BitsLit as p4a.funs.bitslit.
-Register FOBV.Concat as p4a.funs.concat.
-Register FOBV.Slice as p4a.funs.slice.

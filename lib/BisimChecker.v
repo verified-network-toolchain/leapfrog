@@ -11,6 +11,7 @@ Require Import Leapfrog.Utils.FunctionalFP.
 Require Import MirrorSolve.FirstOrder.
 
 Require Import MirrorSolve.SMT.
+Require Import MirrorSolve.BV.
 
 Require Leapfrog.WP.
 Require Leapfrog.Reachability.
@@ -18,7 +19,9 @@ Require Leapfrog.Reachability.
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
 
-Declare ML Module "mirrorsolve".
+Local Declare ML Module "mirrorsolve".
+
+Require Import Leapfrog.CompileBitVec.
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -180,12 +183,13 @@ Section BisimChecker.
         state_template_sane (cs_st2 E') ->
         top' _ _ _ _ a R (cs_st1 E') (cs_st2 E') ->
         interp_fm
-          (m := FOBV.fm_model)
+          (m := BV.fm_model)
           (VEmp _ _)
+          ( fmap_fm FirstOrderBitVec.sig BV.sig FirstOrderBitVec.fm_model BV.fm_model conv_functor (@conv_fun_arrs) (@conv_rel_arrs) (@conv_forall_op)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
-                    (compile_simplified_entailment (simplify_entailment E)))))).
+                    (compile_simplified_entailment (simplify_entailment E))))))).
   Proof.
     intros.
     erewrite simplify_entailment_correct
@@ -195,6 +199,7 @@ Section BisimChecker.
     erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+    erewrite conv_corr;
     eapply iff_refl.
   Qed.
 
