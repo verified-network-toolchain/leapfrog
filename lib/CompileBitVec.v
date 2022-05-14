@@ -42,6 +42,8 @@ Section CompileBitVec.
     | left transparent_eq => transparent_eq
     | right _ => opaque_eq
     end.
+
+  Print N.eq_dec.
   
 
   Definition trans_inj_add : forall n n' : nat, N.of_nat (n + n') = (N.of_nat n + N.of_nat n')%N 
@@ -65,7 +67,7 @@ Section CompileBitVec.
   Equations conv_fun {arr : arity (sig_sorts FirstOrderBitVec.sig)} {srt: sig_sorts FirstOrderBitVec.sig} (nf: sig_funs FirstOrderBitVec.sig arr srt) : sig_funs sig (conv_arr arr) (conv_sort srt) :=
   {
     conv_fun (BitsLit w bs) := BVLit (N.of_nat w) (conv_n_tuple _ bs);
-    conv_fun (Concat n m) := eq_rect_r (fun n' => funs _ (BV n')) (BVCat (N.of_nat n) (N.of_nat m)) (Nat2N.inj_add n m);
+    conv_fun (Concat n m) := eq_rect_r (fun n' => funs _ (BV n')) (BVCat (N.of_nat n) (N.of_nat m)) (trans_inj_add n m);
     conv_fun (Slice n hi lo) := 
       let r := BVExtr (N.of_nat n) (N.of_nat hi) (N.of_nat lo) in 
         _;

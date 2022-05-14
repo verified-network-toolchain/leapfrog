@@ -418,6 +418,7 @@ Ltac close_bisim_admit :=
         simpl; intros;
         eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
         eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+        eapply conv_corr;
 
         crunch_foterm;
         match goal with
@@ -456,7 +457,9 @@ Ltac close_bisim_axiom :=
                 (eapply simplify_entailment_correct';
                   eapply compile_simplified_entailment_correct'; simpl;
                   intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
+                  eapply compile_simplified_fm_bv_correct; 
+                  eapply conv_corr; 
+                  crunch_foterm;
                   match goal with
                   | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
                   end); apply H0; auto; unfold top', conf_to_state_template;
