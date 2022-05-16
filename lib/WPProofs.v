@@ -352,6 +352,69 @@ Section WPProofs.
       + eauto using JMeq_sym.
   Qed.
 
+  Lemma weaken_bvar_interp:
+    forall (c: bctx) (n: nat) (valu: bval c) (bits: n_tuple bool n) (b: bvar c),
+    interp_bvar ((valu, bits): bval (BCSnoc c n)) (weaken_bvar n b) ~= interp_bvar valu b.
+  Proof.
+    destruct b, valu; simpl; autorewrite with interp_bvar; reflexivity.
+  Qed.
+
+  Set Universe Polymorphism.
+  Lemma weaken_expr_interp:
+    forall c n e (valu: bval c) (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
+      interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1 store2 ~=
+      interp_bit_expr (a:=a) e valu buf1 buf2 store1 store2.
+  Proof.
+    induction e; intros; simpl; autorewrite with interp_bit_expr in *.
+    - auto.
+    - destruct a0; autorewrite with interp_bit_expr; auto.
+    - destruct a0; simpl; auto.
+    - apply weaken_bvar_interp.
+    - set (v1 := interp_bit_expr (weaken_bit_expr n e) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v2 := interp_bit_expr e valu buf1 buf2 store1 store2).
+      assert (Hvv: v1 ~= v2) by eauto.
+      revert Hvv.
+      generalize v1 as x1, v2 as x2.
+      generalize (be_size Hdr_sz l1 l2 (weaken_bit_expr n e)).
+      generalize (be_size Hdr_sz l1 l2 e).
+      intros.
+      inversion Hvv.
+      apply n_tuple_inj in H0.
+      revert Hvv.
+      clear H2 H.
+      revert x1.
+      rewrite H0.
+      intros.
+      rewrite Hvv.
+      auto.
+    - set (v11 := interp_bit_expr (weaken_bit_expr n e1) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v12 := interp_bit_expr e1 valu buf1 buf2 store1 store2).
+      set (v21 := interp_bit_expr (weaken_bit_expr n e2) (valu, bits) buf1 buf2 store1
+                               store2).
+      set (v22 := interp_bit_expr e2 valu buf1 buf2 store1 store2).
+      assert (Hv1: v11 ~= v12) by eauto.
+      assert (Hv2: v21 ~= v22) by eauto.
+      revert Hv1 Hv2.
+      generalize v11 as x11, v12 as x12.
+      generalize v21 as x21, v22 as x22.
+      generalize (be_size Hdr_sz l1 l2 (weaken_bit_expr n e1)).
+      generalize (be_size Hdr_sz l1 l2 e1).
+      generalize (be_size Hdr_sz l1 l2 (weaken_bit_expr n e2)).
+      generalize (be_size Hdr_sz l1 l2 e2).
+      intros.
+      inversion Hv1.
+      inversion Hv2.
+      clear H2 H H4 H5.
+      apply n_tuple_inj in H0.
+      apply n_tuple_inj in H3.
+      subst n3.
+      subst n1.
+      rewrite Hv1, Hv2.
+      reflexivity.
+  Qed.
+
   Lemma sr_subst_hdr_left:
     forall c (valu: bval c) (hdr: Hdr) exp phi
       st1
@@ -390,6 +453,7 @@ Section WPProofs.
              | Hdr: _ /\ _ |- _ => destruct Hdr
              | Hdr: _ <-> _ |- _ => destruct Hdr
              | |- _ => progress subst
+             | |- _ => progress autorewrite with sr_subst in *
              | |- _ => progress autorewrite with interp_store_rel in *
              | |- _ => progress simpl in *
              | |- _ => progress erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *
@@ -493,6 +557,12 @@ Section WPProofs.
       autorewrite with interp_store_rel in *; intuition.
     - rewrite <- brimpl_corr in *.
       autorewrite with interp_store_rel in *; intuition.
+    - eapply IHphi; intuition eauto.
+      eapply JMeq_trans; [eapply H|].
+      now eapply JMeq_trans; [|symmetry; eapply weaken_expr_interp].
+    - eapply IHphi; intuition eauto.
+      eapply JMeq_trans; [eapply H|].
+      now eapply JMeq_trans; [|symmetry; eapply weaken_expr_interp].
   Qed.
 
   Lemma sr_subst_hdr_right:
@@ -533,6 +603,7 @@ Section WPProofs.
              | Hdr: _ /\ _ |- _ => destruct Hdr
              | Hdr: _ <-> _ |- _ => destruct Hdr
              | |- _ => progress subst
+             | |- _ => progress autorewrite with sr_subst in *
              | |- _ => progress autorewrite with interp_store_rel in *
              | |- _ => progress simpl in *
              | |- _ => progress erewrite ?brand_interp, ?bror_interp, ?brimpl_interp in *
@@ -634,6 +705,12 @@ Section WPProofs.
       autorewrite with interp_store_rel in *; intuition.
     - rewrite <- brimpl_corr in *.
       autorewrite with interp_store_rel in *; intuition.
+    - eapply IHphi; intuition eauto.
+      eapply JMeq_trans; [eapply H|].
+      now eapply JMeq_trans; [|symmetry; eapply weaken_expr_interp].
+    - eapply IHphi; intuition eauto.
+      eapply JMeq_trans; [eapply H|].
+      now eapply JMeq_trans; [|symmetry; eapply weaken_expr_interp].
   Qed.
 
   Lemma be_subst_buf:
@@ -683,6 +760,40 @@ Section WPProofs.
         eauto using JMeq_sym.
   Qed.
 
+  Lemma interp_store_rel_congr:
+    forall c phi valu len1 len1'
+      (buf1: n_tuple bool len1)
+      (buf1': n_tuple bool len1')
+      len2 len2'
+      (buf2: n_tuple bool len2)
+      (buf2': n_tuple bool len2')
+      st1 st1' st2 st2',
+      buf1 ~= buf1' ->
+      buf2 ~= buf2' ->
+      st1 = st1' ->
+      st2 = st2' ->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1 buf2 st1 st2 <->
+      interp_store_rel (a:=a) (c:=c) phi valu buf1' buf2' st1' st2'.
+  Proof.
+    intros.
+    assert (len1 = len1').
+    {
+      inversion H.
+      apply n_tuple_inj.
+      auto.
+    }
+    assert (len2 = len2').
+    {
+      inversion H0.
+      apply n_tuple_inj.
+      auto.
+    }
+    subst len1'.
+    subst len2'.
+    rewrite H, H0, H1, H2.
+    reflexivity.
+  Qed.
+
   Lemma sr_subst_buf:
     forall c si exp valu phi store1 store2 len1 len2 (buf1: n_tuple bool len1) (buf2: n_tuple bool len2) b1 b2 (w1: n_tuple bool b1) (w2: n_tuple bool b2),
       pick si (interp_bit_expr exp valu buf1 buf2 store1 store2 ~= w1,
@@ -714,6 +825,7 @@ Section WPProofs.
                  store2).
   Proof.
     induction phi; simpl in *; intros;
+      autorewrite with sr_subst;
       rewrite <- ?brand_corr, <- ?bror_corr, <- ?brimpl_corr;
       autorewrite with interp_store_rel.
     - destruct si; tauto.
@@ -765,6 +877,20 @@ Section WPProofs.
     - rewrite IHphi1 by eauto.
       rewrite IHphi2 by eauto.
       destruct si; reflexivity.
+    - split; intros.
+      + destruct si; simpl in *; intros;
+        eapply IHphi; intuition eauto.
+        * now eapply JMeq_trans; [eapply weaken_expr_interp|].
+        * now eapply JMeq_trans; [eapply weaken_expr_interp|].
+      + destruct si; simpl in *; eapply IHphi; eauto.
+        * eapply interp_store_rel_congr; [
+            | eapply JMeq_refl | trivial | trivial | eapply H0
+          ].
+          now eapply JMeq_trans; [eapply weaken_expr_interp |].
+        * eapply interp_store_rel_congr; [
+            eapply JMeq_refl | | trivial | trivial | eapply H0
+          ].
+          now eapply JMeq_trans; [eapply weaken_expr_interp |].
   Qed.
 
   Lemma wp_op'_size:
@@ -840,40 +966,6 @@ Section WPProofs.
     intro.
     apply n.
     eapply PeanoNat.Nat.pow_inj_r; eauto.
-  Qed.
-
-  Lemma interp_store_rel_congr:
-    forall c phi valu len1 len1'
-      (buf1: n_tuple bool len1)
-      (buf1': n_tuple bool len1')
-      len2 len2'
-      (buf2: n_tuple bool len2)
-      (buf2': n_tuple bool len2')
-      st1 st1' st2 st2',
-      buf1 ~= buf1' ->
-      buf2 ~= buf2' ->
-      st1 = st1' ->
-      st2 = st2' ->
-      interp_store_rel (a:=a) (c:=c) phi valu buf1 buf2 st1 st2 <->
-      interp_store_rel (a:=a) (c:=c) phi valu buf1' buf2' st1' st2'.
-  Proof.
-    intros.
-    assert (len1 = len1').
-    {
-      inversion H.
-      apply n_tuple_inj.
-      auto.
-    }
-    assert (len2 = len2').
-    {
-      inversion H0.
-      apply n_tuple_inj.
-      auto.
-    }
-    subst len1'.
-    subst len2'.
-    rewrite H, H0, H1, H2.
-    reflexivity.
   Qed.
 
   Lemma interp_bit_expr_congr_buf1:
