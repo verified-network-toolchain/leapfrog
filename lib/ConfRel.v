@@ -476,8 +476,42 @@ Section ConfRel.
     Qed.
   End SmartConstructors.
 
-  Definition swap_outer {c} (n1 n2: nat) (r: store_rel (BCSnoc (BCSnoc c n1) n2)): store_rel (BCSnoc (BCSnoc c n2) n1).
-  Admitted.
+  Equations swap_outer_bvar {c} (n1 n2: nat) (v: bvar (BCSnoc (BCSnoc c n1) n2))
+    : bvar (BCSnoc (BCSnoc c n2) n1) :=
+    {
+      swap_outer_bvar (BVarTop _ _)            := BVarRest (BVarTop _ _);
+      swap_outer_bvar (BVarRest (BVarTop _ _)) := BVarTop _ _;
+      swap_outer_bvar (BVarRest (BVarRest v))  := BVarRest (BVarRest v)
+    }.
+  Transparent swap_outer_bvar.
+
+  Equations swap_outer_exp {c} (n1 n2: nat) (e: bit_expr (BCSnoc (BCSnoc c n1) n2))
+    : bit_expr (BCSnoc (BCSnoc c n2) n1) :=
+    {
+      swap_outer_exp (BELit bs) := BELit bs;
+      swap_outer_exp (BEBuf si) := BEBuf si;
+      swap_outer_exp (BEHdr si h) := BEHdr si h;
+      swap_outer_exp (BEVar v) := BEVar (swap_outer_bvar v);
+      swap_outer_exp (BESlice e hi lo) := BESlice (swap_outer_exp e) hi lo;
+      swap_outer_exp (BEConcat e1 e2) := BEConcat (swap_outer_exp e1) (swap_outer_exp e2)
+    }.
+  Transparent swap_outer_exp.
+
+  Equations swap_outer_rel {c} (n1 n2: nat) (r: store_rel (BCSnoc (BCSnoc c n1) n2))
+    : store_rel (BCSnoc (BCSnoc c n2) n1) :=
+    {
+      swap_outer_rel (BRTrue c) := BRTrue _;
+      swap_outer_rel (BRFalse c) := BRFalse _;
+      swap_outer_rel (BREq e1 e2) := BREq (swap_outer_exp e1) (swap_outer_exp e2);
+      swap_outer_rel (BRAnd r1 r2) := BRAnd (swap_outer_rel r1) (swap_outer_rel r2);
+      swap_outer_rel (BROr r1 r2) := BROr (swap_outer_rel r1) (swap_outer_rel r2);
+      swap_outer_rel (BRImpl r1 r2) := BRImpl (swap_outer_rel r1) (swap_outer_rel r2);
+      swap_outer_rel (BRForAll r) := _
+    }.
+  Next Obligation.
+    eapply BRForAll.
+    apply swap_outer_rel in r.
+    apply swap_outer_rel.
 
   Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
     match r with
