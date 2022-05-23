@@ -2741,7 +2741,7 @@ Section WPProofs.
     simpl in *.
     intuition.
     pose (eq_rect (length bs) (fun x => n_tuple bool x) (l2t bs) size H2) as bits.
-    cut (interp_store_rel (weaken_store_rel size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
+    cut (interp_store_rel (weaken_store_rel a size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
            (conf_buf (follow q2 bs)) (conf_store (follow q1 bs))
            (conf_store (follow q2 bs))).
     {
