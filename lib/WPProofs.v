@@ -2450,6 +2450,15 @@ Section WPProofs.
     reflexivity.
   Qed.
 
+  Lemma sr_swap_outer_interp:
+    forall c (valu: bval c) n1 n2 v1 v2 (rel: store_rel _ (BCSnoc (BCSnoc c n1) n2)) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
+      interp_store_rel (sr_swap_outer a rel) (valu, v1, v2) buf1 buf2 store1 store2 <->
+      interp_store_rel (a:=a) rel (valu, v2, v1) buf1 buf2 store1 store2.
+  Proof.
+    intros.
+    unfold sr_swap_outer.
+  Admitted.
+  
   Lemma weaken_rel_interp:
     forall c (valu: bval c) n rel (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
       interp_store_rel rel valu buf1 buf2 store1 store2 <->
@@ -2498,9 +2507,11 @@ Section WPProofs.
     - rewrite IHrel1, IHrel2 by eauto.
       intuition eauto.
     - intuition.
-      rewrite IHrel by eauto.
-      intuition eauto.
-    - 
+      + rewrite sr_swap_outer_interp.
+        apply IHrel; eauto.
+      + rewrite IHrel.
+        rewrite <- sr_swap_outer_interp.
+        eauto.
   Qed.
 
   Lemma leap_size_read_bound1:
