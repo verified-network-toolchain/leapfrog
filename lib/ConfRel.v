@@ -319,10 +319,8 @@ Section ConfRel.
       };
       store_rel_eq_dec _ _ := in_right
     }.
-    Solve Obligations with (
-      program_simpl; contradict n; inversion n;
-      now apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply bctx_eq_dec]
-    ).
+    Solve Obligations with try (program_simpl; contradict n; inversion n;
+                                now apply Eqdep_dec.inj_pair2_eq_dec in H0; [|apply bctx_eq_dec]).
     Next Obligation.
       congruence.
     Qed.
@@ -347,14 +345,6 @@ Section ConfRel.
       subst.
       congruence.
     Qed.
-
-  Solve All Obligations with
-      (intros;
-      repeat match goal with
-             | H: _ /\ _|- _ => destruct H
-             | H: _ \/ _ |- _ => destruct H
-             | |- ?g => congruence
-             end).
   #[global] Transparent store_rel_eq_dec.
 
   Global Program Instance store_rel_eqdec {c: bctx}: EquivDec.EqDec (store_rel c) eq :=
