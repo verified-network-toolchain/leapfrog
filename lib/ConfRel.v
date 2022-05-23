@@ -476,54 +476,6 @@ Section ConfRel.
     Qed.
   End SmartConstructors.
 
-  Equations swap_outer_bvar {c} (n1 n2: nat) (v: bvar (BCSnoc (BCSnoc c n1) n2))
-    : bvar (BCSnoc (BCSnoc c n2) n1) :=
-    {
-      swap_outer_bvar (BVarTop _ _)            := BVarRest (BVarTop _ _);
-      swap_outer_bvar (BVarRest (BVarTop _ _)) := BVarTop _ _;
-      swap_outer_bvar (BVarRest (BVarRest v))  := BVarRest (BVarRest v)
-    }.
-  Transparent swap_outer_bvar.
-
-  Equations swap_outer_exp {c} (n1 n2: nat) (e: bit_expr (BCSnoc (BCSnoc c n1) n2))
-    : bit_expr (BCSnoc (BCSnoc c n2) n1) :=
-    {
-      swap_outer_exp (BELit bs) := BELit bs;
-      swap_outer_exp (BEBuf si) := BEBuf si;
-      swap_outer_exp (BEHdr si h) := BEHdr si h;
-      swap_outer_exp (BEVar v) := BEVar (swap_outer_bvar v);
-      swap_outer_exp (BESlice e hi lo) := BESlice (swap_outer_exp e) hi lo;
-      swap_outer_exp (BEConcat e1 e2) := BEConcat (swap_outer_exp e1) (swap_outer_exp e2)
-    }.
-  Transparent swap_outer_exp.
-
-  Equations swap_outer_rel {c} (n1 n2: nat) (r: store_rel (BCSnoc (BCSnoc c n1) n2))
-    : store_rel (BCSnoc (BCSnoc c n2) n1) :=
-    {
-      swap_outer_rel (BRTrue c) := BRTrue _;
-      swap_outer_rel (BRFalse c) := BRFalse _;
-      swap_outer_rel (BREq e1 e2) := BREq (swap_outer_exp e1) (swap_outer_exp e2);
-      swap_outer_rel (BRAnd r1 r2) := BRAnd (swap_outer_rel r1) (swap_outer_rel r2);
-      swap_outer_rel (BROr r1 r2) := BROr (swap_outer_rel r1) (swap_outer_rel r2);
-      swap_outer_rel (BRImpl r1 r2) := BRImpl (swap_outer_rel r1) (swap_outer_rel r2);
-      swap_outer_rel (BRForAll r) := _
-    }.
-  Next Obligation.
-    eapply BRForAll.
-    apply swap_outer_rel in r.
-    apply swap_outer_rel.
-
-  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
-    match r with
-    | BRTrue _ => BRTrue _
-    | BRFalse _ => BRFalse _
-    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
-    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
-    | @BRForAll c n r => BRForAll (swap_outer (weaken_store_rel size r))
-    end.
-
   Record conf_states :=
     { cs_st1: state_template;
       cs_st2: state_template; }.
@@ -574,6 +526,109 @@ Section ConfRel.
     {|  cr_st := C.(cr_st);
         cr_ctx := C.(cr_ctx);
         cr_rel := brand C.(cr_rel) (@eq_rect _ _ _ C'.(cr_rel) _ (eq_sym eq_bctx)) |}.
+
+  (* A list of parallel substitutions (var, exp).
+     The var is a bit_expr but should only be a var, buf, or hdr. *)
+  Definition substs (c: bctx) :=
+    list (bit_expr c * bit_expr c).
+
+  Definition find_subst {c: bctx} (var: bit_expr c) (theta: substs c) : option (bit_expr c) :=
+    match find (fun '(v, e) => if bit_expr_eq_dec v var then true else false) theta with
+    | Some (_, e) => Some e
+    | None => None
+    end.
+
+  Definition weaken_subst {c: bctx} (size : nat) (s: bit_expr c * bit_expr c)
+    : bit_expr (BCSnoc c size) * bit_expr (BCSnoc c size) :=
+    (weaken_bit_expr size (fst s), weaken_bit_expr size (snd s)).
+
+  Definition weaken_substs {c: bctx} (size : nat) (theta: substs c) : substs (BCSnoc c size) :=
+    List.map (weaken_subst size) theta.
+
+  Fixpoint be_par_subst {c} (be: bit_expr c) (theta: substs c) : bit_expr c :=
+    match be with
+    | BELit l => BELit l
+    | BEBuf _
+    | BEHdr _ _
+    | BEVar _ =>
+        match find_subst be theta with
+        | Some e => e
+        | None => be
+        end
+    | BESlice be hi lo => beslice (be_par_subst be theta) hi lo
+    | BEConcat e1 e2 => beconcat (be_par_subst e1 theta) (be_par_subst e2 theta)
+    end.
+
+  Equations sr_par_subst {c} (sr: store_rel c) (theta: substs c) : store_rel c := {
+    sr_par_subst (BRTrue _) theta := BRTrue _;
+    sr_par_subst (BRFalse _) theta := BRFalse _;
+    sr_par_subst (BREq e1 e2) theta := BREq (be_par_subst e1 theta) (be_par_subst e2 theta);
+    sr_par_subst (BRAnd r1 r2) theta := brand (sr_par_subst r1 theta) (sr_par_subst r2 theta);
+    sr_par_subst (BROr r1 r2) theta := bror (sr_par_subst r1 theta) (sr_par_subst r2 theta);
+    sr_par_subst (BRImpl r1 r2) theta := brimpl (sr_par_subst r1 theta) (sr_par_subst r2 theta);
+      sr_par_subst (BRForAll r) theta := BRForAll (sr_par_subst r (weaken_substs _ theta));
+  }.
+
+  Inductive swap : bctx -> Set :=
+  | SwapHere: forall c size (v: bvar c),
+      swap (BCSnoc c size)
+  | SwapThere: forall c size,
+      swap c ->
+      swap (BCSnoc c size).
+  Print check_bvar.
+
+  Fixpoint set_bvar {c: bctx} (v: bvar c) (size: nat) : bctx :=
+    match v with
+    | BVarTop c' size' => BCSnoc c' size
+    | BVarRest v' => set_bvar v' size
+    end.
+  
+  Fixpoint ctx_swap (c: bctx) (s: swap c) : bctx :=
+    match s with
+    | SwapHere size v =>
+        BCSnoc (set_bvar v size) (check_bvar v)
+    | SwapThere size s' =>
+        BCSnoc (ctx_swap s') size
+    end.
+
+  Fixpoint bvar_swap {c} (v: bvar c) (s: swap c) : bvar (ctx_swap s).
+  Admitted.
+  
+  Fixpoint be_swap {c} (be: bit_expr c) (s: swap c) : bit_expr (ctx_swap s) :=
+    match be with
+    | BEVar v => BEVar (bvar_swap v s)
+    | BELit l => BELit l
+    | BEBuf b => BEBuf b
+    | BEHdr si h => BEHdr si h
+    | BESlice be hi lo => beslice (be_swap be s) hi lo
+    | BEConcat e1 e2 => beconcat (be_swap e1 s) (be_swap e2 s)
+    end.
+
+  Equations sr_swap {c: bctx} (sr: store_rel c) (s: swap c) : store_rel (ctx_swap s) :=
+    {
+      sr_swap (BRTrue _) s := BRTrue _;
+      sr_swap (BRFalse _) s := BRFalse _;
+      sr_swap (BREq e1 e2) s := BREq (be_swap e1 s) (be_swap e2 s);
+      sr_swap (BRAnd r1 r2) s := BRAnd (sr_swap r1 s) (sr_swap r2 s);
+      sr_swap (BROr r1 r2) s := BROr (sr_swap r1 s) (sr_swap r2 s);
+      sr_swap (BRImpl r1 r2) s := BRImpl (sr_swap r1 s) (sr_swap r2 s);
+      sr_swap (BRForAll r) s := BRForAll (sr_swap r (SwapThere _ s));
+    }.
+
+  Definition sr_swap_outer {c: bctx} (n m: nat) (r: store_rel (BCSnoc (BCSnoc c n) m))
+    : store_rel (BCSnoc (BCSnoc c m) n) :=
+    sr_swap r (SwapHere m (BVarTop c n)).
+    
+  Fixpoint weaken_store_rel {c} (size: nat) (r: store_rel c) : store_rel (BCSnoc c size) :=
+    match r with
+    | BRTrue _ => BRTrue _
+    | BRFalse _ => BRFalse _
+    | BREq e1 e2 => BREq (weaken_bit_expr size e1) (weaken_bit_expr size e2)
+    | BRAnd r1 r2 => brand (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BROr r1 r2 => bror (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BRImpl r1 r2 => BRImpl (weaken_store_rel size r1) (weaken_store_rel size r2)
+    | BRForAll r => BRForAll (sr_swap_outer (weaken_store_rel size r))
+    end.
 
   Definition interp_conf_state (c: conf_states) : relation conf :=
     fun c1 c2 =>

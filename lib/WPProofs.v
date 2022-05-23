@@ -2498,7 +2498,6 @@ Section WPProofs.
     - rewrite IHrel1, IHrel2 by eauto.
       intuition eauto.
     - intuition.
-      print 
       rewrite IHrel by eauto.
       intuition eauto.
     - 
