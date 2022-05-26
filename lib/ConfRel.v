@@ -2,6 +2,7 @@ From Equations Require Import Equations.
 Require Import Coq.Lists.List.
 Require Import Coq.Classes.EquivDec.
 Require Import Coq.Program.Program.
+Require Import Coq.funind.FunInd.
 Import ListNotations.
 
 Require Import Leapfrog.Relations.
@@ -565,14 +566,52 @@ Section ConfRel.
   | SwapThere: forall c size,
       swap c ->
       swap (BCSnoc c size).
-  Print check_bvar.
+  Derive Signature for swap.
 
   Fixpoint set_bvar {c: bctx} (v: bvar c) (size: nat) : bctx :=
     match v with
     | BVarTop c' size' => BCSnoc c' size
-    | BVarRest v' => set_bvar v' size
+    | @BVarRest c' size' v' => BCSnoc (set_bvar v' size) size'
     end.
-  
+
+  Equations bvar_set: forall {c} (v v': bvar c) (s: nat), bvar (set_bvar v' s) :=
+    {
+      bvar_set (BVarTop _ _) (BVarTop _ _) s :=
+        BVarTop _ s;
+      bvar_set (BVarTop _ s') (BVarRest bv) s :=
+        BVarTop (set_bvar bv s) _;
+      bvar_set (BVarRest bv) (BVarTop _ _) s :=
+        BVarRest bv;
+      bvar_set (BVarRest bv) (BVarRest bv') s :=
+        BVarRest (bvar_set bv bv' s)
+    }.
+
+  Lemma bvar_set_check_diff:
+    forall c (v v': bvar c) s,
+      v =/= v' ->
+      check_bvar (bvar_set v v' s) = check_bvar v.
+  Proof.
+    intros.
+    functional induction (bvar_set v v' s) using bvar_set_elim;
+      simpl;
+      try apply IHb;
+      try congruence.
+  Qed.
+
+  Lemma bvar_set_check_same:
+    forall c (v v': bvar c) s,
+      v === v' ->
+      check_bvar (bvar_set v v' s) = s.
+  Proof.
+    intros.
+    functional induction (bvar_set v v' s) using bvar_set_elim;
+      simpl;
+      try congruence.
+    inversion H.
+    eapply EqDec.inj_right_pair in H1.
+    eauto.
+  Qed.
+
   Fixpoint ctx_swap (c: bctx) (s: swap c) : bctx :=
     match s with
     | SwapHere size v =>
@@ -581,9 +620,37 @@ Section ConfRel.
         BCSnoc (ctx_swap s') size
     end.
 
-  Fixpoint bvar_swap {c} (v: bvar c) (s: swap c) : bvar (ctx_swap s).
-  Admitted.
-  
+  Equations bvar_swap {c} (v: bvar c) (s: swap c) : bvar (ctx_swap s) :=
+    {
+      bvar_swap (BVarTop c size) (SwapHere size bv') :=
+        BVarRest (bvar_set bv' bv' size);
+      bvar_swap (BVarTop c size) (SwapThere size swap') :=
+        BVarTop _ size;
+      bvar_swap (BVarRest bv) (SwapHere size bv') :=
+        if bvar_eq_dec bv bv'
+        then BVarTop _ (check_bvar bv')
+        else BVarRest (bvar_set bv bv' size);
+      bvar_swap (BVarRest bv) (SwapThere size swap') :=
+        BVarRest (bvar_swap bv swap')
+    }.
+
+  Lemma bvar_swap_inv:
+    forall c (v: bvar c) (s: swap c),
+      check_bvar v = check_bvar (bvar_swap v s).
+  Proof.
+    intros.
+    functional induction (bvar_swap v s) using bvar_swap_elim.
+    - simpl.
+      rewrite bvar_set_check_same; reflexivity.
+    - reflexivity.
+    - destruct (bvar_eq_dec b v).
+      + simpl.
+        congruence.
+      + simpl.
+        rewrite bvar_set_check_diff; auto.
+    - eauto.
+  Qed.
+
   Fixpoint be_swap {c} (be: bit_expr c) (s: swap c) : bit_expr (ctx_swap s) :=
     match be with
     | BEVar v => BEVar (bvar_swap v s)

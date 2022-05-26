@@ -88,7 +88,7 @@ Section WP.
         (buf_hi_idx,
           BRForAll (n := Hdr_sz lhs) (
             BRImpl (BREq (BEVar _ (BVarTop _ _)) (expr_to_bit_expr s rhs))
-                   (sr_subst (weaken_store_rel (Hdr_sz := Hdr_sz) a _ phi)
+                   (sr_subst (weaken_store_rel _ phi)
                              (BEVar _ (BVarTop _ _))
                              (BEHdr _ s (P4A.HRVar lhs)))
           )
@@ -193,7 +193,7 @@ Section WP.
     let leap_l := leap_kind prev_l cur_l in
     let leap_r := leap_kind prev_r cur_r in
     let b := BVarTop phi.(cr_ctx) size in
-    let phi_rel := weaken_store_rel a size phi_rel in
+    let phi_rel := weaken_store_rel size phi_rel in
     {| cr_st := {| cs_st1 := prev_l;
                    cs_st2 := prev_r |};
        cr_rel := wp_lpred Left b prev_l cur_l leap_l

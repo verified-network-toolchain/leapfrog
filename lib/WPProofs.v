@@ -895,12 +895,12 @@ Section WPProofs.
 
   Lemma wp_op'_size:
     forall (c: bctx) si (o: P4A.op Hdr_sz) n phi m phi',
-      WP.wp_op' (c:=c) a si o (P4A.op_size o + n, phi) = (m, phi') ->
+      WP.wp_op' (c:=c) si o (P4A.op_size o + n, phi) = (m, phi') ->
       m = n.
   Proof.
     induction o; cbn; intros.
     - congruence.
-    - destruct (WP.wp_op' a si o2 (P4A.op_size o1 + P4A.op_size o2 + n, phi)) eqn:?.
+    - destruct (WP.wp_op' si o2 (P4A.op_size o1 + P4A.op_size o2 + n, phi)) eqn:?.
       replace (P4A.op_size o1 + P4A.op_size o2 + n)
         with (P4A.op_size o2 + (P4A.op_size o1 + n))
         in *
@@ -916,7 +916,7 @@ Section WPProofs.
 
   Lemma wp_op'_seq:
     forall (c: bctx) (o1: P4A.op Hdr_sz) (o2: P4A.op Hdr_sz) si phi,
-      WP.wp_op' (c:=c) a si (P4A.OpSeq o1 o2) phi = WP.wp_op' a si o1 (WP.wp_op' a si o2 phi).
+      WP.wp_op' (c:=c) si (P4A.OpSeq o1 o2) phi = WP.wp_op' si o1 (WP.wp_op' si o2 phi).
   Proof.
     induction o1; intros; simpl;
       repeat match goal with
@@ -929,12 +929,12 @@ Section WPProofs.
 
   Lemma wp_op'_mono:
     forall (c: bctx) si (o: P4A.op Hdr_sz) n phi,
-      fst (WP.wp_op' (c:=c) a si o (n, phi)) <= n.
+      fst (WP.wp_op' (c:=c) si o (n, phi)) <= n.
   Proof.
     induction o; simpl.
     - Lia.lia.
     - intros.
-      destruct (WP.wp_op' a si o2 _) as [m psi] eqn:?.
+      destruct (WP.wp_op' si o2 _) as [m psi] eqn:?.
       specialize (IHo2 n phi).
       specialize (IHo1 m psi).
       rewrite Heqp in *.
@@ -1176,7 +1176,7 @@ Section WPProofs.
     (BRForAll
        (BRImpl
           (BREq (BEVar Hdr (BVarTop c (Hdr_sz lhs))) (expr_to_bit_expr Left rhs))
-          (sr_subst (weaken_store_rel a (Hdr_sz lhs) phi)
+          (sr_subst (weaken_store_rel (Hdr_sz lhs) phi)
              (BEVar Hdr (BVarTop c (Hdr_sz lhs)))
              (BEHdr (BCSnoc c (Hdr_sz lhs)) Left (ConfRel.P4A.HRVar lhs))))) valu
     buf1 buf2 st1 st2 <->
@@ -1191,7 +1191,7 @@ Section WPProofs.
     (BRForAll
        (BRImpl
           (BREq (BEVar Hdr (BVarTop c (Hdr_sz lhs))) (expr_to_bit_expr Right rhs))
-          (sr_subst (weaken_store_rel a (Hdr_sz lhs) phi)
+          (sr_subst (weaken_store_rel (Hdr_sz lhs) phi)
              (BEVar Hdr (BVarTop c (Hdr_sz lhs)))
              (BEHdr (BCSnoc c (Hdr_sz lhs)) Right (ConfRel.P4A.HRVar lhs)))))
     valu buf1 buf2 st1 st2 <->
@@ -1205,7 +1205,7 @@ Section WPProofs.
       (buf1: n_tuple bool (n + P4A.op_size o + m)) (buf1': n_tuple bool (P4A.op_size o)) len2 (buf2: n_tuple bool len2) st2,
       buf1' ~= n_tuple_take_n (P4A.op_size o) (n_tuple_skip_n n buf1) ->
       interp_store_rel (a:=a)
-                       (snd (WP.wp_op' a Left o (n + P4A.op_size o, phi)))
+                       (snd (WP.wp_op' Left o (n + P4A.op_size o, phi)))
                        valu
                        buf1
                        buf2
@@ -1228,7 +1228,7 @@ Section WPProofs.
       reflexivity.
     - intros.
       rewrite wp_op'_seq.
-      destruct (wp_op' a Left o2 _) as [n' phi'] eqn:?.
+      destruct (wp_op' Left o2 _) as [n' phi'] eqn:?.
       simpl in Heqp.
       replace (n + (P4A.op_size o1 + P4A.op_size o2)) with (P4A.op_size o2 + (n + P4A.op_size o1))
         in Heqp by Lia.lia.
@@ -1372,7 +1372,7 @@ Section WPProofs.
       (buf2: n_tuple bool (n + P4A.op_size o + m)) (buf2': n_tuple bool (P4A.op_size o)) len1 (buf1: n_tuple bool len1) st1,
       buf2' ~= n_tuple_take_n (P4A.op_size o) (n_tuple_skip_n n buf2) ->
       interp_store_rel (a:=a)
-                       (snd (WP.wp_op' a Right o (n + P4A.op_size o, phi)))
+                       (snd (WP.wp_op' Right o (n + P4A.op_size o, phi)))
                        valu
                        buf1
                        buf2
@@ -1395,7 +1395,7 @@ Section WPProofs.
       reflexivity.
     - intros.
       rewrite wp_op'_seq.
-      destruct (wp_op' a Right o2 _) as [n' phi'] eqn:?.
+      destruct (wp_op' Right o2 _) as [n' phi'] eqn:?.
       simpl P4A.op_size in Heqp.
       replace (n + (P4A.op_size o1 + P4A.op_size o2)) with (P4A.op_size o2 + (n + P4A.op_size o1))
         in Heqp by Lia.lia.
@@ -2452,17 +2452,15 @@ Section WPProofs.
 
   Lemma sr_swap_outer_interp:
     forall c (valu: bval c) n1 n2 v1 v2 (rel: store_rel _ (BCSnoc (BCSnoc c n1) n2)) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
-      interp_store_rel (sr_swap_outer a rel) (valu, v1, v2) buf1 buf2 store1 store2 <->
+      interp_store_rel (sr_swap_outer rel) (valu, v1, v2) buf1 buf2 store1 store2 <->
       interp_store_rel (a:=a) rel (valu, v2, v1) buf1 buf2 store1 store2.
   Proof.
-    intros.
-    unfold sr_swap_outer.
   Admitted.
   
   Lemma weaken_rel_interp:
     forall c (valu: bval c) n rel (bits: n_tuple bool n) l1 l2 (buf1: n_tuple bool l1) (buf2: n_tuple bool l2) store1 store2,
       interp_store_rel rel valu buf1 buf2 store1 store2 <->
-      interp_store_rel (a:=a) (weaken_store_rel a n rel) (valu, bits) buf1 buf2 store1 store2.
+      interp_store_rel (a:=a) (weaken_store_rel n rel) (valu, bits) buf1 buf2 store1 store2.
   Proof.
     induction rel; intros; simpl; autorewrite with interp_store_rel in *.
     - split; auto.
@@ -2741,7 +2739,7 @@ Section WPProofs.
     simpl in *.
     intuition.
     pose (eq_rect (length bs) (fun x => n_tuple bool x) (l2t bs) size H2) as bits.
-    cut (interp_store_rel (weaken_store_rel a size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
+    cut (interp_store_rel (weaken_store_rel size (cr_rel phi)) (valu, bits) (conf_buf (follow q1 bs))
            (conf_buf (follow q2 bs)) (conf_store (follow q1 bs))
            (conf_store (follow q2 bs))).
     {
