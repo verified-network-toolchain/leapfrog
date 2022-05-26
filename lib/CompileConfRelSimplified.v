@@ -133,8 +133,8 @@ Section CompileConfRelSimplified.
             (b1 b2: nat)
             (r: store_rel Hdr c)
             : fm (sig Hdr_sz) (app_ctx (outer_ctx b1 b2) (compile_bctx c)) :=
-    { compile_store_rel b1 b2 BRTrue := FTrue;
-      compile_store_rel b1 b2 BRFalse := FFalse;
+    { compile_store_rel b1 b2 (BRTrue _) := FTrue;
+      compile_store_rel b1 b2 (BRFalse _) := FFalse;
       compile_store_rel b1 b2 (BREq e1 e2) :=
         match eq_dec (be_size Hdr_sz b1 b2 e1) (be_size Hdr_sz b1 b2 e2) with
         | left Heq =>
@@ -151,7 +151,9 @@ Section CompileConfRelSimplified.
               (compile_store_rel b1 b2 r2);
       compile_store_rel b1 b2 (BRImpl r1 r2) :=
         FImpl (compile_store_rel b1 b2 r1)
-              (compile_store_rel b1 b2 r2)
+              (compile_store_rel b1 b2 r2);
+      compile_store_rel b1 b2 (BRForAll r) :=
+        FForall _ (compile_store_rel b1 b2 r)
     }.
 
   Definition compile_simplified_conf_rel
@@ -253,10 +255,19 @@ Section CompileConfRelSimplified.
     try destruct (eq_dec _ _);
     autorewrite with interp_fm;
     try tauto.
-    rewrite <- interp_tm_rect.
-    repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
-    repeat rewrite compile_bit_expr_correct; simpl.
-    intuition.
+    - rewrite <- interp_tm_rect.
+      repeat erewrite <- simplify_concat_zero_corr by typeclasses eauto.
+      repeat rewrite compile_bit_expr_correct; simpl.
+      intuition.
+    - rewrite IHr1, IHr2.
+      reflexivity.
+    - rewrite IHr1, IHr2.
+      reflexivity.
+    - rewrite IHr1, IHr2.
+      reflexivity.
+    - simpl.
+      setoid_rewrite IHr.
+      intuition.
   Qed.
 
   Lemma compile_simplified_conf_rel_correct:
