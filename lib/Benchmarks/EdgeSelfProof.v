@@ -3,6 +3,8 @@ Require Import Leapfrog.Benchmarks.Edge.
 
 
 Declare ML Module "mirrorsolve".
+SetSMTSolver "cvc4".
+ 
 
 Notation H := (Plain.header + Plain.header).
 Notation A := (Sum.sum Plain.aut Plain.aut).

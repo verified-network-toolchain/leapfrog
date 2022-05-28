@@ -20,6 +20,7 @@ Proof.
 Qed.
 
 Declare ML Module "mirrorsolve".
+SetSMTSolver "cvc4".
 
 Definition not_equally_accepting (s: Reachability.state_pair A) : bool :=
   let '(s1, s2) := s in
