@@ -61,9 +61,109 @@ Section CompileBitVec.
   Definition conv_n_tuple (w: nat) (bs: n_tuple bool w) : bitvector (N.of_nat w) :=
     eq_rect _ (fun n => bitvector (N.of_nat n)) (of_bits (t2l bs)) _ (trans_t2l_len _ bs).
 
+  Lemma conv_n_tuple_succ : 
+    forall n b (bs : n_tuple bool n) bs',
+      bs' ~= (bs, b) ->
+      conv_n_tuple (S n) bs' ~= 
+      bv_concat (m := 1%N) (conv_n_tuple n bs) (conv_n_tuple 1%nat (tt, b)).
+  Admitted.
+
+  (* Lemma conv_n_tuple_succ :
+    forall n b bs,
+      conv_n_tuple (S n) (b, bs) ~=  *)
+
   Definition conv_bitvector {n} (x: bitvector n) : n_tuple bool (N.to_nat n) :=
     eq_rect _ _ (l2t (bits x)) _ (comp_eq_nat (bits_size x)).
+  
+  Require Import Coq.PArith.Pnat.
 
+  Lemma conv_tupl_rt : 
+    forall n v, 
+      (conv_n_tuple n
+        (eq_rect (N.to_nat (N.of_nat n)) (n_tuple bool)
+          (conv_bitvector v) n (Nat2N.id n))) = v.
+  Proof.
+    intros.
+    induction n; intros; simpl in *.
+    - vm_compute.
+      destruct v.
+      destruct bv0.
+      * erewrite (ProofIrrelevance.proof_irrelevance _ _ wf0).
+        trivial.
+      * exfalso.
+        inversion wf0.
+    - destruct v.
+      destruct bv0.
+      * exfalso. admit.
+      * pose proof conv_n_tuple_succ.
+        evar (n': nat).
+        evar (b': bool).
+        evar (bs': n_tuple bool n').
+        specialize (H n' b' bs').
+        match goal with 
+        | |- conv_n_tuple _ ?X = _ => 
+          specialize (H X)
+        end.
+        subst n'.
+        simpl in *.
+        admit.
+        (* erewrite H. *)
+  Admitted.
+
+  Lemma conv_tuple_bitvector_rt : 
+    forall n' n (bs: bitvector n) bits,
+      n' = N.to_nat n ->
+      conv_bitvector bs ~= bits ->
+      conv_n_tuple n' bits ~= bs.
+  Proof.
+  Admitted.
+    (* dependent induction n'.
+    - intros; simpl in *;
+      assert (n = 0%N) by Lia.lia.
+      subst.
+      destruct bits0.
+      unfold conv_n_tuple.
+      simpl.
+      destruct bs.
+      unfold of_bits.
+      compute.
+      destruct bv0.
+      + erewrite (ProofIrrelevance.proof_irrelevance _ _ wf0).
+        eapply JMeq_refl.
+      + exfalso.
+        inversion wf0.
+    - intros.
+      destruct bits0.
+      simpl.
+      assert (exists n'', n = (n'' + 1)%N) by admit.
+      destruct H0.
+      subst.
+      destruct bs.
+      destruct bv0.
+      * exfalso.
+        simpl in *.
+        destruct x; simpl in *; inversion wf0.
+      * pose proof conv_n_tuple_succ.
+        specialize (H0 n' b n0).
+        simpl in H0.
+        erewrite H0.
+        simpl.
+        unfold conv_n_tuple at 2.
+        simpl.
+        unfold bv_concat.
+        simpl.
+        simpl in *.
+        erewrite IHn' with (bs := (conv_n_tuple n' n0)).
+        unfold conv_n_tuple.
+        simpl.
+        fold conv_n_tuple. *)
+
+
+  Lemma conv_bitvector_tuple_rt : 
+    forall (n n' : nat) bits,
+      n ~= n' ->
+      conv_bitvector (conv_n_tuple n' bits) ~= bits.
+  Admitted.
 
   Local Obligation Tactic := intros.
   Equations conv_fun {arr : arity (sig_sorts FirstOrderBitVec.sig)} {srt: sig_sorts FirstOrderBitVec.sig} (nf: sig_funs FirstOrderBitVec.sig arr srt) : sig_funs sig (conv_arr arr) (conv_sort srt) :=
@@ -102,6 +202,8 @@ Section CompileBitVec.
   (* Lemma conv_mv_bitvector: 
     forall {n} bv, 
       @conv_mv (Bits n) (conv_bitvector bv) = bv.  *)
+
+  
 
   Require Import Coq.PArith.Pnat.
 
@@ -188,6 +290,18 @@ Section CompileBitVec.
           (@conv_fun_arrs) t').
   Admitted.
 
+  Ltac conv_bitvector := 
+    match goal with 
+    | x: bitvector (N.of_nat ?n) |- _ => 
+      match goal with 
+      | H : forall (_ : n_tuple bool ?n), _ |- _ =>  
+        specialize (H (eq_rect _ _ (conv_bitvector x) _ (Nat2N.id n)));
+        autorewrite with interp_fm in H;
+        erewrite conv_tupl_rt in H;
+        eapply H
+      end
+    end.
+
   Lemma interp_fmap_fm_equi: 
     forall {c srt} {v: valu _ _ c}
       (f: FirstOrder.fm FirstOrderBitVec.sig (Snoc _ c srt)),
@@ -262,50 +376,40 @@ Section CompileBitVec.
       + specialize (H (conv_n_tuple _ vA)).
         auto.
     - split; intros; autorewrite with fmap_fm in *; autorewrite with interp_fm in *; simpl in *.
-      + 
-        pose (vA := conv_bitvector vB).
-        admit.
-        (* pose proof @conv_mv_bitvector n vA.
-        specialize (H1 vA).
-        
-        specialize (H vA).
+      + conv_bitvector.
+      + evar (x: bitvector (N.of_nat n)).
+        specialize (H x).
+        subst x.
         autorewrite with interp_fm in H.
-        eapply H. *)
-      + specialize (H (conv_n_tuple _ vA)).
-        now autorewrite with interp_fm in *.
-
+        eapply H.
     - inversion s.
     - split; intros.
-      + autorewrite with fmap_fm.
-        autorewrite with interp_fm.
-        (* use conv_bitvector and a correctness lemma here *)
-        admit.
-      + 
-        specialize (H (conv_n_tuple _ vA)).
+      + conv_bitvector.
+      + specialize (H (conv_n_tuple _ vA)).
         autorewrite with fmap_fm in *.
         autorewrite with interp_fm in *.
         eapply H.
     - split; intros; autorewrite with interp_fm.
-      + admit.
+      + conv_bitvector.
       + specialize (H (conv_n_tuple _ vA)).
         autorewrite with interp_fm in H.
         destruct H; intuition eauto.
     - split; intros; autorewrite with interp_fm.
-      + admit.
+      + conv_bitvector.
       + specialize (H (conv_n_tuple _ vA)).
         autorewrite with interp_fm in H.
         intuition eauto.
     - split; intros; autorewrite with interp_fm.
-      + admit.
+      + conv_bitvector.
       + specialize (H (conv_n_tuple _ vA)).
         autorewrite with interp_fm in H.
         intuition eauto.
     - split; intros; autorewrite with interp_fm.
-      + admit.
+      + conv_bitvector.
       + specialize (H (conv_n_tuple _ vA)).
         autorewrite with interp_fm in H.
         intuition eauto.
-  Admitted.
+  Qed.
 
   Definition conv_wf : functor_wf _ _ _ _ conv_functor (@conv_fun_arrs) (@conv_rel_arrs) (@conv_forall_op) := {|
     interp_tm_inj := ltac:(intros; eapply fmap_tm_inj);
@@ -323,5 +427,7 @@ Section CompileBitVec.
     eapply fmap_corr.
     eapply conv_wf.
   Qed.
+
+  Print Assumptions conv_corr.
 
 End CompileBitVec.
