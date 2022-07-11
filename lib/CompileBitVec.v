@@ -121,6 +121,26 @@ Section CompileBitVec.
     Lia.lia.
   Qed.
 
+  Lemma JMeq_refl' : 
+    forall T (x y: T), 
+      x = y -> 
+      x ~= y.
+  Proof.
+    intros;
+    subst;
+    eapply JMeq_refl.
+  Qed.
+
+  Lemma N_of_nat_succ : 
+    forall n, 
+      (N.of_nat n + 1)%N ~=
+      N.pos (BinPos.Pos.of_succ_nat n).
+  Proof.
+    intros.
+    eapply JMeq_refl'.
+    Lia.lia.
+  Qed.
+
   Lemma conv_tupl_rt : 
     forall n v, 
       (conv_n_tuple n
@@ -152,13 +172,17 @@ Section CompileBitVec.
     - vm_compute.
       destruct v.
       destruct bv0.
-      * erewrite (ProofIrrelevance.proof_irrelevance _ _ wf0).
+      * pose proof (@Eqdep_dec.UIP_dec N N.eq_dec _ _ wf0 (of_bits_size [])).
+        subst;
         trivial.
       * exfalso.
         inversion wf0.
     - destruct v.
       destruct bv0.
-      * exfalso. admit.
+      * exfalso. 
+        unfold BVList.RAWBITVECTOR_LIST.size in wf0.
+        simpl in wf0.
+        Lia.lia.
       * destruct w'.
 
         assert (BVList.RAWBITVECTOR_LIST.size bv0 = N.of_nat n) by (eapply bv_size_cons; trivial).
@@ -188,7 +212,7 @@ Section CompileBitVec.
         ).
         eapply mk_bv;
         try now (subst; trivial).
-        -- admit.
+        -- eapply N_of_nat_succ.
         -- simpl.
            assert ((N.add (N.of_nat n) (Npos xH)) = (Npos (BinPos.Pos.of_succ_nat n)))%N by Lia.lia.
            revert wf0.
@@ -208,12 +232,12 @@ Section CompileBitVec.
            simpl in *.
            erewrite H3.
            intros.
-           erewrite ProofIrrelevance.proof_irrelevance;
+           pose proof (@Eqdep_dec.UIP_dec N N.eq_dec _ _ wf0 e).
+           subst;
            trivial.
-
            Unshelve.
            exact b0.
-  Admitted.
+  Qed.
 
   Lemma conv_tuple_bitvector_rt : 
     forall n' n (bs: bitvector n) bits,
