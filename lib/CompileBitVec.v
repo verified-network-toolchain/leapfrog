@@ -77,6 +77,50 @@ Section CompileBitVec.
   
   Require Import Coq.PArith.Pnat.
 
+
+  Lemma mk_bv: 
+    forall n m bv bv' pf pf', 
+      n ~= m ->
+      bv ~= bv' -> 
+      pf ~= pf' -> 
+      @MkBitvector n bv pf ~= @MkBitvector m bv' pf'.
+  Proof.
+    intros.
+    subst.
+    trivial.
+  Qed.
+
+  Lemma bv_concat_bit:
+    forall bv bv' b b',
+      bv = bv' -> 
+      b = b' -> 
+        BVList.RAWBITVECTOR_LIST.bv_concat bv
+          (BVList.RAWBITVECTOR_LIST.of_bits [b]) = b' :: bv'.
+  Proof.
+    intros.
+    subst.
+    exact eq_refl.
+  Qed.
+
+  Lemma conv_bv_inv : 
+    forall {n n' n'' b b' bv} {bits : n_tuple bool n} pf pf',
+      (bits, b) ~= conv_bitvector (n := n') {| bv := b' :: bv; wf := pf |} ->
+      b = b' /\ 
+      bits ~= conv_bitvector (n := n'') {| bv := bv; wf := pf' |}.
+  Admitted.
+
+  Lemma bv_size_cons:
+    forall b bv n, 
+      BVList.RAWBITVECTOR_LIST.size (b :: bv) =
+        N.pos (BinPos.Pos.of_succ_nat n) -> 
+      BVList.RAWBITVECTOR_LIST.size bv = N.of_nat n.
+  Proof.
+    intros.
+    unfold BVList.RAWBITVECTOR_LIST.size in *.
+    simpl length in *.
+    Lia.lia.
+  Qed.
+
   Lemma conv_tupl_rt : 
     forall n v, 
       (conv_n_tuple n
@@ -87,12 +131,7 @@ Section CompileBitVec.
     remember (conv_bitvector v) as w.
     assert (forall w',
                w' ~= w ->
-               conv_n_tuple n w' = v).
-    {
-      rewrite Heqw.
-      intros.
-      admit.
-    }
+               conv_n_tuple n w' ~= v) by shelve.
     clear Heqw.
     revert H.
     revert w.
@@ -103,15 +142,12 @@ Section CompileBitVec.
     rewrite e.
     simpl.
     intros.
-    apply H.
-    reflexivity.
-
-    (*
+    erewrite H; trivial.
+    Unshelve.
+    rewrite Heqw.
     intros.
-    rewrite <- e.
-
-    rewrite Nat2N.id.
-    intros.
+    clear Heqw.
+    clear w.
     induction n; intros; simpl in *.
     - vm_compute.
       destruct v.
@@ -123,20 +159,60 @@ Section CompileBitVec.
     - destruct v.
       destruct bv0.
       * exfalso. admit.
-      * pose proof conv_n_tuple_succ.
+      * destruct w'.
+
+        assert (BVList.RAWBITVECTOR_LIST.size bv0 = N.of_nat n) by (eapply bv_size_cons; trivial).
+        destruct (conv_bv_inv wf0 H0 H) as [? ?].
+        subst.
+      
+        pose proof conv_n_tuple_succ.
         evar (n': nat).
         evar (b': bool).
         evar (bs': n_tuple bool n').
-        specialize (H n' b' bs').
+        specialize (H1 n' b' bs');
+        subst b';
+        subst bs';
+        subst n';
         match goal with 
-        | |- conv_n_tuple _ ?X = _ => 
-          specialize (H X)
+        | |- conv_n_tuple _ ?X ~= _ => 
+          specialize (H1 X)
         end.
-        subst n'.
+        clear H.
         simpl in *.
-        admit.
-        (* erewrite H. *)
-        *)
+        erewrite H1; trivial.
+        
+        simpl in *.
+        assert (@eq BVList.RAWBITVECTOR_LIST.bitvector
+        (@bv (N.of_nat n) (conv_n_tuple n n0)) bv0) by (
+          erewrite IHn; eauto; trivial
+        ).
+        eapply mk_bv;
+        try now (subst; trivial).
+        -- admit.
+        -- simpl.
+           assert ((N.add (N.of_nat n) (Npos xH)) = (Npos (BinPos.Pos.of_succ_nat n)))%N by Lia.lia.
+           revert wf0.
+           erewrite <- H.
+           intros.
+           match goal with 
+           | |- ?X ~= _ => 
+            generalize X
+           end.
+           match goal with 
+           | |- forall _ : _ ?X = _, _ => 
+            assert (X = (b :: (conv_n_tuple n n0 : BVList.RAWBITVECTOR_LIST.bitvector))) by (
+              eapply bv_concat_bit; trivial
+            )
+           end.
+           revert wf0.
+           simpl in *.
+           erewrite H3.
+           intros.
+           erewrite ProofIrrelevance.proof_irrelevance;
+           trivial.
+
+           Unshelve.
+           exact b0.
   Admitted.
 
   Lemma conv_tuple_bitvector_rt : 
