@@ -84,6 +84,34 @@ Section CompileBitVec.
           (conv_bitvector v) n (Nat2N.id n))) = v.
   Proof.
     intros.
+    remember (conv_bitvector v) as w.
+    assert (forall w',
+               w' ~= w ->
+               conv_n_tuple n w' = v).
+    {
+      rewrite Heqw.
+      intros.
+      admit.
+    }
+    clear Heqw.
+    revert H.
+    revert w.
+    revert v.
+    generalize dependent (Nat2N.id n).
+    generalize (N.to_nat (N.of_nat n)).
+    intros n0 e.
+    rewrite e.
+    simpl.
+    intros.
+    apply H.
+    reflexivity.
+
+    (*
+    intros.
+    rewrite <- e.
+
+    rewrite Nat2N.id.
+    intros.
     induction n; intros; simpl in *.
     - vm_compute.
       destruct v.
@@ -108,6 +136,7 @@ Section CompileBitVec.
         simpl in *.
         admit.
         (* erewrite H. *)
+        *)
   Admitted.
 
   Lemma conv_tuple_bitvector_rt : 
