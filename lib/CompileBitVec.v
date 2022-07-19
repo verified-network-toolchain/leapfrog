@@ -17,8 +17,6 @@ Require Import Coq.NArith.Nnat.
 
 Set Universe Polymorphism.
 
-Require Import SMTCoq.SMTCoq.
-
 Import BVList.BITVECTOR_LIST.
 Require Import Coq.Lists.List.
 Import ListNotations.
@@ -304,6 +302,7 @@ Section CompileBitVec.
     simpl in e.
     revert e.
     (* erewrite H. *)
+    (* TODO: Stopped here *)
   Admitted.
 
   Lemma bv_size_cons:
