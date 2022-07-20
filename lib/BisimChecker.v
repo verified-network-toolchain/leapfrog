@@ -19,7 +19,7 @@ Require Leapfrog.Reachability.
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
 
-Local Declare ML Module "mirrorsolve".
+Local Declare ML Module "mirrorsolve.plugin".
 
 Require Import Leapfrog.CompileBitVec.
 

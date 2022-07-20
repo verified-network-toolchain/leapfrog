@@ -565,7 +565,7 @@ Section ReachablePairs.
              now rewrite <- List.app_assoc.
           -- rewrite H4 in H3.
              inversion_clear H4.
-             eapply nodup_split_left with (l4 := l2).
+             eapply nodup_split_left with (l2 := l2).
              now rewrite <- List.app_comm_cons, <- List.app_assoc.
       + exists (lpre' ++ [p']), (lpost' ++ [p]), s.
         repeat split; auto.
