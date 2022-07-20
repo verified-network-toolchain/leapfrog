@@ -272,7 +272,7 @@ Section CompileConfRelSimplified.
     rewrite quantify_correct; simpl.
     setoid_rewrite compile_store_rel_correct; simpl.
     split; intros; auto.
-    now rewrite <- bval_roundtrip with (valu0 := valu).
+    now rewrite <- bval_roundtrip with (valu := valu).
   Qed.
 
   Lemma compile_simplified_crel_correct:

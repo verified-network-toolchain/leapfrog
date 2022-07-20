@@ -513,7 +513,9 @@ Section CompileFirstOrderConfRelSimplified.
           (compile_store_valu_partial (build_hlist_env (enum Hdr) m))
           (compile_store_partial (enum Hdr)).
   Proof.
-    apply compile_store_val_partial_correct'.
+    intros.
+    erewrite compile_store_val_partial_correct'.
+    trivial.
   Qed.
 
   Lemma compile_var_correct:
@@ -538,7 +540,7 @@ Section CompileFirstOrderConfRelSimplified.
           apply compile_store_val_partial_correct.
         * now rewrite interp_tm_reindex_tm with (sig := FOBV.sig) (v' := compile_valu val).
       + destruct s0.
-        * erewrite compile_var_equation_3 with (ctx1 := c) (n := n).
+        * erewrite compile_var_equation_3 with (c := c) (n := n).
           rewrite (compile_valu_equation_2 (c0 := c) n).
           replace (@interp_tm FOBV.sig FOBV.fm_model _ _ _ _)
           with (interp_tm (compile_valu val) (compile_var v)).
@@ -571,7 +573,7 @@ Section CompileFirstOrderConfRelSimplified.
     intros.
     dependent induction tm using tm_ind'.
     - autorewrite with compile_tm.
-      apply compile_var_correct.
+      now erewrite compile_var_correct.
     - destruct srt;
       repeat dependent destruction hl;
       autorewrite with compile_tm;
@@ -590,7 +592,7 @@ Section CompileFirstOrderConfRelSimplified.
         autorewrite with interp_tm.
         autorewrite with compile_val.
         unfold compile_val_obligations_obligation_1.
-        apply compile_store_val_correct.
+        now erewrite compile_store_val_correct.
   Qed.
 
   Lemma compile_store_valu_partial_invariant:

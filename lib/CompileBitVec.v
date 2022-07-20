@@ -17,7 +17,6 @@ Require Import Coq.NArith.Nnat.
 
 Set Universe Polymorphism.
 
-Import BVList.BITVECTOR_LIST.
 Require Import Coq.Lists.List.
 Import ListNotations.
 
@@ -123,7 +122,7 @@ Section CompileBitVec.
 
   (* use t2l to convert bs to a list and cast the length of t2l to w *)
   Definition conv_n_tuple (w: nat) (bs: n_tuple bool w) : bitvector (N.of_nat w) :=
-    eq_rect _ (fun n => bitvector (N.of_nat n)) (of_bits (t2l bs)) _ (trans_t2l_len _ bs).
+    eq_rect _ (fun n => bitvector (N.of_nat n)) (MkBitvector (t2l bs)) _ (trans_t2l_len _ bs).
 
   Lemma conv_n_tuple_succ : 
     forall n b (bs : n_tuple bool n) bs',
@@ -136,24 +135,35 @@ Section CompileBitVec.
     forall n b bs,
       conv_n_tuple (S n) (b, bs) ~=  *)
 
+  Lemma bv_length : 
+    forall {n} (x: bitvector n), 
+      length (bv_bits x) = N.to_nat n.
+  Proof.
+    intros.
+    pose proof (bv_wf x).
+    destruct x; 
+    simpl in *;
+    erewrite <- H.
+    erewrite Nat2N.id.
+    trivial.
+  Qed.
+
   Definition conv_bitvector {n} (x: bitvector n) : n_tuple bool (N.to_nat n) :=
-    eq_rect _ _ (l2t (bits x)) _ (comp_eq_nat (bits_size x)).
-  
+    eq_rect _ _ (l2t (bv_bits x)) _ (comp_eq_nat (bv_length x)).
+
   Require Import Coq.PArith.Pnat.
 
 
   Lemma mk_bv: 
-    forall n m bv bv' pf pf', 
-      n ~= m ->
+    forall bv bv', 
       bv ~= bv' -> 
-      pf ~= pf' -> 
-      @MkBitvector n bv pf ~= @MkBitvector m bv' pf'.
+      MkBitvector bv ~= MkBitvector bv'.
   Proof.
     intros.
     subst.
     trivial.
   Qed.
-
+(* 
   Lemma bv_concat_bit:
     forall bv bv' b b',
       bv = bv' -> 
@@ -172,7 +182,7 @@ Section CompileBitVec.
       b = b' /\ 
       bits ~= conv_bitvector (n := n') {| bv := bv; wf := pf' |}.
   Proof.
-  Admitted.
+  Admitted. *)
     (* intros.
     revert H.
     unfold conv_bitvector.
@@ -253,10 +263,13 @@ Section CompileBitVec.
     simpl in H.
   Admitted. *)
 
+  Definition len {n} (x: bitvector n) := length (bv_bits x).
+
   Lemma conv_n_tuple_size: 
     forall n bs, 
-      length ((conv_n_tuple n bs) : BVList.RAWBITVECTOR_LIST.bitvector) = n.
-  Proof.
+      len (conv_n_tuple n bs) = n.
+  Admitted.
+  (* Proof.
     intros.
     simpl.
     unfold conv_n_tuple.
@@ -266,17 +279,17 @@ Section CompileBitVec.
     simpl.
     unfold BVList.RAWBITVECTOR_LIST.of_bits.
     trivial.
-  Qed.
+  Qed. *)
 
-  Lemma conv_n_tuple_cons_size n (bs: n_tuple bool n) b : (BVList.RAWBITVECTOR_LIST.size (b :: (conv_n_tuple n bs : BVList.RAWBITVECTOR_LIST.bitvector)) = N.of_nat (S n)).
+  (* Lemma conv_n_tuple_cons_size n (bs: n_tuple bool n) b : (BVList.RAWBITVECTOR_LIST.size (b :: (conv_n_tuple n bs : BVList.RAWBITVECTOR_LIST.bitvector)) = N.of_nat (S n)).
   Proof.
     simpl.
     unfold BVList.RAWBITVECTOR_LIST.size.
     simpl.
     erewrite conv_n_tuple_size.
     trivial.
-  Qed.
-
+  Qed. *)
+(* 
   Lemma conv_n_tuple_cons : 
     forall n bs b, 
         conv_n_tuple (S n) (n_tuple_cons bs b) = {| bv := b :: (bv (conv_n_tuple n bs)); wf := conv_n_tuple_cons_size n bs b |}. 
@@ -303,8 +316,8 @@ Section CompileBitVec.
     revert e.
     (* erewrite H. *)
     (* TODO: Stopped here *)
-  Admitted.
-
+  Admitted. *)
+(* 
   Lemma bv_size_cons:
     forall b bv n, 
       BVList.RAWBITVECTOR_LIST.size (b :: bv) =
@@ -315,7 +328,7 @@ Section CompileBitVec.
     unfold BVList.RAWBITVECTOR_LIST.size in *.
     simpl length in *.
     Lia.lia.
-  Qed.
+  Qed. *)
 
   Lemma N_of_nat_succ : 
     forall n, 
@@ -362,28 +375,24 @@ Section CompileBitVec.
     intros.
     - vm_compute.
       destruct v.
-      destruct bv0.
-      * pose proof (@Eqdep_dec.UIP_dec N N.eq_dec _ _ wf0 (of_bits_size [])).
+      destruct x.
+      * simpl in *.
+        pose proof (@Eqdep_dec.UIP_dec N N.eq_dec _ _ e eq_refl).
         subst;
         trivial.
       * exfalso.
-        inversion wf0.
+        inversion e.
     - destruct v.
-      destruct bv0.
+      destruct x.
       * exfalso. 
-        unfold BVList.RAWBITVECTOR_LIST.size in wf0.
-        simpl in wf0.
+        simpl in *.
         Lia.lia.
       * 
-
-        assert (BVList.RAWBITVECTOR_LIST.size bv0 = N.of_nat n) by (eapply bv_size_cons; trivial).
-        simpl in *.
-        assert (n = length bv0) by (
-          unfold BVList.RAWBITVECTOR_LIST.size in *;
-          Lia.lia
-        ).
+        assert (length x = n) by (simpl in *; Lia.lia).
         subst n.
-        destruct (cons_bv_inv wf0 H0 H) as [? ?];
+        admit.
+    Admitted.
+        (* destruct (cons_bv_inv wf0 H0 H) as [? ?];
         subst;
         simpl in *.
         specialize (IH _ H2).
@@ -416,7 +425,7 @@ Section CompileBitVec.
           trivial.
     Unshelve.
     exact b0.
-  Qed.
+  Qed. *)
 
   Print Assumptions conv_tupl_rt.
 
