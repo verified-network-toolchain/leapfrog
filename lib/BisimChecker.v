@@ -331,7 +331,7 @@ Ltac decide_entailment_axiom H P HP el er P_orig e :=
       time "smt check pos" check_interp_pos (interp_fm v f);
       idtac "SAT";
       time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
-  | |- _ => idtac "undecided goal :("
+  | HP: _ <-> interp_fm _ ?f |- _ => idtac "undecided goal :("; idtac f
   end;
   time "clearing Horig" clear Horig.
 

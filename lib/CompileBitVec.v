@@ -163,26 +163,27 @@ Section CompileBitVec.
     subst.
     trivial.
   Qed.
-(* 
-  Lemma bv_concat_bit:
-    forall bv bv' b b',
-      bv = bv' -> 
+
+  Lemma mk_bv_cons :
+    forall n n' bv bv' (b b' : bool) (pf: N.of_nat (length (b :: bv)) = n)(pf': N.of_nat (length (b' :: bv')) = n'),
       b = b' -> 
-        BVList.RAWBITVECTOR_LIST.bv_concat bv
-          (BVList.RAWBITVECTOR_LIST.of_bits [b]) = b' :: bv'.
+      bv = bv' -> 
+      pf ~= pf' -> 
+      exist (fun x => N.of_nat (length x) = n) (b :: bv) pf ~= exist (fun x => N.of_nat (length x) = n') (b' :: bv') pf'.
   Proof.
     intros.
     subst.
-    exact eq_refl.
+    simpl.
+    econstructor.
   Qed.
-
+  
   Lemma cons_bv_inv : 
     forall {n n' b b' bv} {bits : n_tuple bool (length bv)} pf pf',
-      n_tuple_cons bits b ~= conv_bitvector (n := n) {| bv := b' :: bv; wf := pf |} ->
+      n_tuple_cons bits b ~= conv_bitvector (n := n) ( b' :: bv; pf) ->
       b = b' /\ 
-      bits ~= conv_bitvector (n := n') {| bv := bv; wf := pf' |}.
+      bits ~= conv_bitvector (n := n') ( bv; pf').
   Proof.
-  Admitted. *)
+  Admitted.
     (* intros.
     revert H.
     unfold conv_bitvector.
@@ -281,38 +282,68 @@ Section CompileBitVec.
     trivial.
   Qed. *)
 
-  (* Lemma conv_n_tuple_cons_size n (bs: n_tuple bool n) b : (BVList.RAWBITVECTOR_LIST.size (b :: (conv_n_tuple n bs : BVList.RAWBITVECTOR_LIST.bitvector)) = N.of_nat (S n)).
+  
+  Lemma conv_n_tuple_cons_size n (bs: n_tuple bool n) b : 
+    (fun bv : list bool => N.of_nat (length bv) = N.of_nat (S n))
+    (b :: bv_bits (conv_n_tuple n bs)).
   Proof.
     simpl.
-    unfold BVList.RAWBITVECTOR_LIST.size.
-    simpl.
-    erewrite conv_n_tuple_size.
+    pose proof conv_n_tuple_size.
+    unfold len in H.
+    erewrite H.
     trivial.
-  Qed. *)
-(* 
+  Qed.
+
+
   Lemma conv_n_tuple_cons : 
     forall n bs b, 
-        conv_n_tuple (S n) (n_tuple_cons bs b) = {| bv := b :: (bv (conv_n_tuple n bs)); wf := conv_n_tuple_cons_size n bs b |}. 
-  Proof.
-    unfold conv_n_tuple at 1.
+        conv_n_tuple (S n) (n_tuple_cons bs b) ~= ( b :: bv_bits (conv_n_tuple n bs); conv_n_tuple_cons_size n bs b). 
+  Admitted.
+    (* unfold conv_n_tuple at 1.
     intros.
     generalize (trans_t2l_len (S n) (n_tuple_cons bs b)).
 
     erewrite t2l_cons.
     simpl.
     pose proof @t2l_len _ _ bs.
-    unfold of_bits.
-    unfold BVList.RAWBITVECTOR_LIST.of_bits.
-    generalize (of_bits_size (b :: t2l bs)).
-    intros.
-    (* pose proof (@Eqdep_dec.UIP_dec _ N.eq_dec _ _ e eq_refl).
-    subst e. *)
+    unfold MkBitvector.
+    simpl.
     remember (t2l bs).
     assert (l ~= t2l bs) by (eapply JMeq_refl'; trivial).
     clear Heql.
-    revert e0.
+    generalize (length l).
+    
+    unfold BV.MkBitvector_obligation_1.
+    simpl.
+    intros.
+    subst n.
+    simpl.
+    erewrite (@Eqdep_dec.UIP_dec nat eq_dec _ _ e eq_refl).
+    simpl.
+    clear e.
     revert H0.
-    simpl in e.
+    revert bs.
+    generalize eq_refl.
+    generalize (length l).
+
+    generalize dependent (length l).
+    assert (l ~= bv_bits (conv_n_tuple (length l) bs)) by admit.
+    generalize (conv_n_tuple_cons_size (length l) bs b).
+    simpl.
+    assert ((length (bv_bits (conv_n_tuple (length l) bs))) = length l) by admit.
+    erewrite <- H1.
+    erewrite H.
+    revert H.
+    revert H0.
+    revert bs.
+    revert l.
+    simpl.
+    erewrite H.
+    econstructor.
+    erewrite H.
+    revert H.
+    revert H0.
+    simpl.
     revert e.
     (* erewrite H. *)
     (* TODO: Stopped here *)
@@ -340,7 +371,7 @@ Section CompileBitVec.
     Lia.lia.
   Qed.
 
-  Lemma conv_tupl_rt : 
+  Lemma conv_tuple_rt : 
     forall n v, 
       (conv_n_tuple n
         (eq_rect (N.to_nat (N.of_nat n)) (n_tuple bool)
@@ -389,45 +420,40 @@ Section CompileBitVec.
         Lia.lia.
       * 
         assert (length x = n) by (simpl in *; Lia.lia).
-        subst n.
-        admit.
-    Admitted.
-        (* destruct (cons_bv_inv wf0 H0 H) as [? ?];
+        subst n. 
+        pose proof (@cons_bv_inv).
+        assert ((N.of_nat (length x)) = (N.of_nat (length x))) by exact eq_refl.
+        destruct (cons_bv_inv (n' := (N.of_nat (length x))) e H1 H) as [? ?];
         subst;
         simpl in *.
-        specialize (IH _ H2).
+        specialize (IH _ H3).
 
         destruct (conv_n_tuple _ bs) eqn:?.
-        erewrite conv_n_tuple_cons.
-        assert ((conv_n_tuple (length bv0) bs : BVList.RAWBITVECTOR_LIST.bitvector) = bv0).
-        {
-          erewrite Heqb;
+        pose proof @conv_n_tuple_cons.
+        specialize (H2 (length x) bs b0).
+        erewrite H2.
+        eapply mk_bv_cons; trivial.
+
+        + erewrite Heqb.
           erewrite IH.
-          trivial.
-        }
-        eapply mk_bv; trivial.
-
-        + erewrite H1.
-          eapply JMeq_refl.
-        + clear H.
-          revert wf0.
-          clear Heqb.
-          clear IH.
-          clear wf1.
-          clear bv1.
-          clear H2.
-          clear H0.
-          generalize (conv_n_tuple_cons_size (length bv0) bs b0).
-          erewrite H1.
+          exact eq_refl.
+        + generalize (conv_n_tuple_cons_size (length x) bs b0).
+          generalize e.
           simpl.
+          assert (length (bv_bits (conv_n_tuple (length x) bs)) = length x).
+          {
+            pose proof conv_n_tuple_size.
+            unfold len in H4.
+            eapply H4.
+          }
+          erewrite H4.
           intros.
-          erewrite (@Eqdep_dec.UIP_dec N N.eq_dec _ _ wf0 e).
-          trivial.
-    Unshelve.
-    exact b0.
-  Qed. *)
+          eapply JMeq_refl'.
+          eapply Eqdep_dec.UIP_dec.
+          eapply N.eq_dec.
+  Qed.
 
-  Print Assumptions conv_tupl_rt.
+  Print Assumptions conv_tuple_rt.
 
   Lemma conv_tuple_bitvector_rt : 
     forall n' n (bs: bitvector n) bits,
@@ -616,7 +642,7 @@ Section CompileBitVec.
       | H : forall (_ : n_tuple bool ?n), _ |- _ =>  
         specialize (H (eq_rect _ _ (conv_bitvector x) _ (Nat2N.id n)));
         autorewrite with interp_fm in H;
-        erewrite conv_tupl_rt in H;
+        erewrite conv_tuple_rt in H;
         eapply H
       end
     end.
