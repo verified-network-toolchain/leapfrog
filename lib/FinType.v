@@ -133,6 +133,13 @@ Global Program Instance ProdFinite A B `{Finite A} `{Finite B} : Finite (A * B) 
 Next Obligation.
   apply NoDup_prod; apply NoDup_enum.
 Qed.
+Next Obligation.
+  apply in_prod;
+  match goal with 
+  | H: Finite _ |- _ => 
+    eapply H
+  end.
+Qed.
 
 Global Program Instance DepProdEqDec
   (A: Type)
@@ -217,6 +224,14 @@ Next Obligation.
 Qed.
 Next Obligation.
   apply H3.
+Defined.
+Next Obligation.
+  unfold FinDepProdFinite_obligation_1.
+  eapply NoDup_enum.
+Qed.
+Next Obligation.
+  unfold FinDepProdFinite_obligation_1.
+  eapply H3.
 Qed.
 
 Ltac solve_finiteness :=

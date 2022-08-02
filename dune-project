@@ -14,7 +14,7 @@
  (bug_reports  "https://github.com/verified-network-toolchain/leapfrog")
  (license      "Apache 2.0")
  (depends
-   mirrorsolve
+   mirrorsolve.plugin
    (coq (and :build (= "8.13.2")))
    (coq-equations (and :build (= "1.3~beta~1.13"))))
 )

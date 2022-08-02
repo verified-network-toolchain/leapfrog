@@ -9,7 +9,7 @@ homepage: "https://github.com/verified-network-toolchain/leapfrog"
 bug-reports: "https://github.com/verified-network-toolchain/leapfrog"
 depends: [
   "dune" {>= "2.9"}
-  "mirrorsolve"
+  "mirrorsolve.plugin"
   "coq" {build & = "8.13.2"}
   "coq-equations" {build & = "1.3~beta~1.13"}
   "odoc" {with-doc}

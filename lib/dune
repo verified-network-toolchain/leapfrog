@@ -2,7 +2,7 @@
  (name Leapfrog)
  (package leapfrog)
  (synopsis "Leapfrog: Certified Equivalence for Protocol Parsers")
- (libraries mirrorsolve)
+ (libraries mirrorsolve.plugin)
  (modules
   (:standard
    \

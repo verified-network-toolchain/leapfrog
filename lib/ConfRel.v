@@ -478,14 +478,22 @@ Section ConfRel.
                  else in_right
             else in_right;
         conf_rel_eq_dec _ _ _ := in_right } }.
-  Solve All Obligations with (try congruence).
+  Next Obligation.
+    congruence.
+  Defined.
   Next Obligation.
     intro Hs.
     inversion Hs.
     apply Eqdep_dec.inj_pair2_eq_dec in H1.
     - contradiction.
     - apply bctx_eq_dec.
-  Qed.
+  Defined.
+  Next Obligation.
+    congruence.
+  Defined.
+  Next Obligation.
+    congruence.
+  Defined.
   #[global] Transparent conf_rel_eq_dec.
 
   Global Program Instance conf_rel_eqdec: EquivDec.EqDec conf_rel eq :=
