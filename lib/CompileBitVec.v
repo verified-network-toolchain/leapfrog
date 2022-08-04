@@ -20,6 +20,8 @@ Set Universe Polymorphism.
 Require Import Coq.Lists.List.
 Import ListNotations.
 
+Require Import Coq.PArith.Pnat.
+
 Lemma JMeq_refl' : 
   forall T (x y: T), 
     x = y -> 
@@ -142,49 +144,7 @@ Section CompileBitVec.
   Definition conv_bitvector {n} (x: bitvector n) : n_tuple bool (N.to_nat n) :=
     eq_rect _ _ (l2t (bv_bits x)) _ (comp_eq_nat (bv_length x)).
 
-  Require Import Coq.PArith.Pnat.
 
-
-  Lemma mk_bv: 
-    forall bv bv', 
-      bv ~= bv' -> 
-      MkBitvector bv ~= MkBitvector bv'.
-  Proof.
-    intros.
-    subst.
-    trivial.
-  Qed.
-
-  Lemma mk_bv_cons :
-    forall n n' bv bv' (b b' : bool) (pf: N.of_nat (length (b :: bv)) = n)(pf': N.of_nat (length (b' :: bv')) = n'),
-      b = b' -> 
-      bv = bv' -> 
-      pf ~= pf' -> 
-      exist (fun x => N.of_nat (length x) = n) (b :: bv) pf ~= exist (fun x => N.of_nat (length x) = n') (b' :: bv') pf'.
-  Proof.
-    intros.
-    subst.
-    simpl.
-    econstructor.
-  Qed.
-
-  Lemma mk_bv_cons' :
-    forall n n' (b b' : bool) (l : {x : list bool | N.of_nat (length x) = n}) (r : {x : list bool | N.of_nat (length x) = n'}),
-      b = b' -> 
-      n = n' -> 
-      proj1_sig l ~= proj1_sig r ->
-      proj2_sig l ~= proj2_sig r -> 
-      l ~= r.
-  Proof.
-    intros.
-    subst.
-    destruct l.
-    destruct r.
-    simpl in *.
-    subst.
-    erewrite H2.
-    econstructor.
-  Qed.
   
   Lemma cons_bv_inv : 
     forall {n n' b b' bv} {bits : n_tuple bool (length bv)} pf pf',
@@ -243,18 +203,6 @@ Section CompileBitVec.
       subst.
       clear Heqn0.
       intuition.
-  Qed.
-
-  Definition len {n} (x: bitvector n) := length (bv_bits x).
-
-  Lemma conv_n_tuple_size: 
-    forall n bs, 
-      len (conv_n_tuple n bs) = n.
-  Proof.
-    intros.
-    unfold len, bv_bits.
-    simpl.
-    eapply t2l_len.
   Qed.
 
   Lemma N_of_nat_succ : 
