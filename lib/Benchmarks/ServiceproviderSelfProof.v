@@ -6,6 +6,7 @@ Require Import Coq.Arith.PeanoNat.
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma serviceprovider_self_equiv:
   lang_equiv_state

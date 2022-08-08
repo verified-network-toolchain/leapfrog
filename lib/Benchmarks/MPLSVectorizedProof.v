@@ -3,6 +3,7 @@ Require Import Leapfrog.Benchmarks.MPLSVectorized.
 
 Declare ML Module "mirrorsolve".
 SetSMTSolver "z3".
+SetSMTLang "BV".
 
 Lemma mpls_equiv:
   lang_equiv_state

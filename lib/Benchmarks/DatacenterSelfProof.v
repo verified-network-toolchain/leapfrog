@@ -4,6 +4,7 @@ Require Import Leapfrog.Benchmarks.DataCenter.
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma datacenter_self_equiv:
   lang_equiv_state

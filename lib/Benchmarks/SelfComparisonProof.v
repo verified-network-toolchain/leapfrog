@@ -3,6 +3,7 @@ Require Import Leapfrog.Benchmarks.SelfComparison.
 
 Declare ML Module "mirrorsolve".
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Module Positive.
   Lemma equiv_read_undef:

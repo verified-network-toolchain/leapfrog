@@ -3,6 +3,7 @@ Require Import Leapfrog.Benchmarks.Enterprise.
 
 Declare ML Module "mirrorsolve".
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma enterprise_self_equiv:
   lang_equiv_state

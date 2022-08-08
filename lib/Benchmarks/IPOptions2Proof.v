@@ -5,6 +5,7 @@ Require Import Leapfrog.Benchmarks.Timestamp.
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma ipoptions3_equiv:
   lang_equiv_state
