@@ -3,6 +3,7 @@ Require Import Leapfrog.Benchmarks.Edge.
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma ethernet_equiv:
   lang_equiv_state

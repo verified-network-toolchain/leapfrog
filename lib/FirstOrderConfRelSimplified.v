@@ -183,21 +183,14 @@ Section AutModel.
   Equations simplify_eq_zero_fm {ctx} (e: fm ctx) : fm ctx := {
     simplify_eq_zero_fm FTrue := FTrue;
     simplify_eq_zero_fm FFalse := FFalse;
-    simplify_eq_zero_fm (FEq e1 e2) := _;
+    simplify_eq_zero_fm (@FEq _ _ (Bits 0) _ _) := FTrue;
+    simplify_eq_zero_fm (@FEq _ _ _ e1 e2) := FEq e1 e2;
     simplify_eq_zero_fm (FNeg f) := FNeg _ (simplify_eq_zero_fm f);
     simplify_eq_zero_fm (FOr f1 f2) := FOr _ (simplify_eq_zero_fm f1) (simplify_eq_zero_fm f2);
     simplify_eq_zero_fm (FAnd f1 f2) := FAnd _ (simplify_eq_zero_fm f1) (simplify_eq_zero_fm f2);
     simplify_eq_zero_fm (FImpl f1 f2) := FImpl (simplify_eq_zero_fm f1) (simplify_eq_zero_fm f2);
     simplify_eq_zero_fm (FForall f) := FForall _ (simplify_eq_zero_fm f);
   }.
-
-  Next Obligation.
-  destruct e0 eqn:?.
-  - destruct n.
-    + exact FTrue.
-    + exact (FEq e1 e2).
-  - exact (FEq e1 e2).
-  Defined.
 
   Lemma simplify_eq_zero_fm_corr:
     forall ctx (f: fm ctx) valu,
@@ -208,9 +201,8 @@ Section AutModel.
     (try now split; intros; auto);
     autorewrite with interp_fm;
     (try now split; intros; auto).
-    - unfold simplify_eq_zero_fm_obligations_obligation_1.
-      destruct s.
-      + destruct n.
+    - destruct s; autorewrite with simplify_eq_zero_fm.
+      + destruct n; autorewrite with simplify_eq_zero_fm.
         * repeat erewrite interp_zero_tm; split; intros; autorewrite with interp_fm; autorewrite with interp_fm; auto.
         * autorewrite with interp_fm; split; intros; auto.
       + autorewrite with interp_fm; split; intros; auto.
@@ -233,36 +225,3 @@ Section AutModel.
   Qed.
 
 End AutModel.
-
-
-Register TVar as p4a.core.var.
-Register TFun as p4a.core.fun.
-
-Register VHere as p4a.core.vhere.
-Register VThere as p4a.core.vthere.
-
-
-Register FEq as p4a.core.eq.
-Register FTrue as p4a.core.tt.
-Register FFalse as p4a.core.ff.
-Register FRel as p4a.core.rel.
-Register FNeg as p4a.core.neg.
-Register FOr as p4a.core.or.
-Register FAnd as p4a.core.and.
-Register FForall as p4a.core.forall.
-
-Register FImpl as p4a.core.impl.
-
-Register CEmp as p4a.core.cnil.
-Register CSnoc as p4a.core.csnoc.
-
-(* Register FirstOrderConfRelSimplified.Bits as p4a.sorts.bits. *)
-Register FirstOrderConfRelSimplified.Store as p4a.sorts.store.
-
-(* Register FirstOrderConfRelSimplified.BitsLit as p4a.funs.bitslit. *)
-(* Register FirstOrderConfRelSimplified.Concat as p4a.funs.concat. *)
-(* Register FirstOrderConfRelSimplified.Slice as p4a.funs.slice. *)
-Register FirstOrderConfRelSimplified.Lookup as p4a.funs.lookup.
-
-Register HList.HNil as p4a.core.hnil.
-Register HList.HCons as p4a.core.hcons.

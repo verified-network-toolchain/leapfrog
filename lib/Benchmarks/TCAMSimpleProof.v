@@ -19,6 +19,7 @@ Defined.
 Declare ML Module "mirrorsolve".
 
 SetSMTSolver "cvc4".
+SetSMTLang "BV".
 
 Lemma prebisim_incremental_sep:
   forall q1 q2,

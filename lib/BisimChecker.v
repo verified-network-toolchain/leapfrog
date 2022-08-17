@@ -10,13 +10,18 @@ Require Import Leapfrog.Utils.Tactics.
 Require Import Leapfrog.Utils.FunctionalFP.
 Require Import MirrorSolve.FirstOrder.
 
+Require Import MirrorSolve.SMT.
+Require Import MirrorSolve.BV.
+
 Require Leapfrog.WP.
 Require Leapfrog.Reachability.
 
 Require Import Coq.Arith.PeanoNat.
 Import List.ListNotations.
 
-Declare ML Module "mirrorsolve".
+Local Declare ML Module "mirrorsolve".
+
+Require Import Leapfrog.CompileBitVec.
 
 Notation "ctx , ⟨ s1 , n1 ⟩ ⟨ s2 , n2 ⟩ ⊢ b" :=
   ({| cr_st :=
@@ -178,12 +183,13 @@ Section BisimChecker.
         state_template_sane (cs_st2 E') ->
         top' _ _ _ _ a R (cs_st1 E') (cs_st2 E') ->
         interp_fm
-          (m := FOBV.fm_model)
+          (m := BV.fm_model)
           (VEmp _ _)
+          ( fmap_fm FirstOrderBitVec.sig BV.sig FirstOrderBitVec.fm_model BV.fm_model conv_functor (@conv_fun_arrs) (@conv_rel_arrs) (@conv_forall_op)
           (compile_fm
               (FirstOrderConfRelSimplified.simplify_eq_zero_fm
                 (FirstOrderConfRelSimplified.simplify_concat_zero_fm
-                    (compile_simplified_entailment (simplify_entailment E)))))).
+                    (compile_simplified_entailment (simplify_entailment E))))))).
   Proof.
     intros.
     erewrite simplify_entailment_correct
@@ -193,6 +199,7 @@ Section BisimChecker.
     erewrite FirstOrderConfRelSimplified.simplify_concat_zero_fm_corr;
     erewrite FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
     erewrite CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+    erewrite conv_corr;
     eapply iff_refl.
   Qed.
 
@@ -324,7 +331,7 @@ Ltac decide_entailment_axiom H P HP el er P_orig e :=
       time "smt check pos" check_interp_pos (interp_fm v f);
       idtac "SAT";
       time "asserting pos" assert (P_orig) by (rewrite -> Horig; rewrite -> HP; apply dummy_pf_true)
-  | |- _ => idtac "undecided goal :("
+  | HP: _ <-> interp_fm _ ?f |- _ => idtac "undecided goal :("; idtac f
   end;
   time "clearing Horig" clear Horig.
 
@@ -411,6 +418,7 @@ Ltac close_bisim_admit :=
         simpl; intros;
         eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
         eapply CompileFirstOrderConfRelSimplified.compile_simplified_fm_bv_correct;
+        eapply conv_corr;
 
         crunch_foterm;
         match goal with
@@ -449,7 +457,9 @@ Ltac close_bisim_axiom :=
                 (eapply simplify_entailment_correct';
                   eapply compile_simplified_entailment_correct'; simpl;
                   intros; eapply FirstOrderConfRelSimplified.simplify_eq_zero_fm_corr;
-                  eapply compile_simplified_fm_bv_correct; crunch_foterm;
+                  eapply compile_simplified_fm_bv_correct; 
+                  eapply conv_corr; 
+                  crunch_foterm;
                   match goal with
                   | |- ?X => time "smt check pos" check_interp_pos X; apply dummy_pf_true
                   end); apply H0; auto; unfold top', conf_to_state_template;
