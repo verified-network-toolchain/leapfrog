@@ -90,10 +90,9 @@ Leapfrog relies on the following packages:
 * Dune, version 2.9.3 or later.
 * OCaml, version 4.11.1 or later
 * OPAM, version 2.0.8 or later.
-* Coq, version 8.13.2
-* Equations (Coq plugin), version 1.3~beta1+8.13
-* [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin), tag
-  `pldi22-artifact`
+* Coq, version 8.15.2
+* Equations (Coq plugin), version 1.3+8.15
+* [MirrorSolve](https://github.com/jsarracino/mirrorsolve) (Coq plugin)
 * Python, version 3.9 or later
 * Pipenv, version 11.9 or later
 

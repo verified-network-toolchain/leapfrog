@@ -15,6 +15,6 @@
  (license      "Apache 2.0")
  (depends
    mirrorsolve
-   (coq (and :build (= "8.13.2")))
-   (coq-equations (and :build (= "1.3~beta~1.13"))))
+   (coq (and :build (= "8.15.2")))
+   (coq-equations (and :build (= "1.3+8.15"))))
 )
