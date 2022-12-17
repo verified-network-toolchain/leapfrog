@@ -12,7 +12,7 @@
  (authors      "Ryan Doenges" "Tobias Kappé" "John Sarracino")
  (homepage     "https://github.com/verified-network-toolchain/leapfrog")
  (bug_reports  "https://github.com/verified-network-toolchain/leapfrog")
- (license      "Apache 2.0")
+ (license      "Apache-2.0")
  (depends
    mirrorsolve.plugin
    (coq (and :build (= "8.15.2")))
